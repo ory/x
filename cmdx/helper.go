@@ -3,6 +3,7 @@ package cmdx
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 )
 
@@ -15,11 +16,11 @@ func Must(err error, message string, args ...interface{}) {
 	os.Exit(1)
 }
 
-func CheckResponse(err error, expectedStatusCode, receivedStatusCode int) {
+func CheckResponse(err error, expectedStatusCode int, response *http.Response) {
 	Must(err, "Command failed because error \"%s\" occurred.\n", err)
 
-	if receivedStatusCode != expectedStatusCode {
-		Fatalf("Command failed because status code %d was expected but code %d was received.\n", expectedStatusCode, receivedStatusCode)
+	if response.StatusCode != expectedStatusCode {
+		Fatalf("Command failed because status code %d was expected but code %d was received.\n", expectedStatusCode, response.StatusCode)
 	}
 }
 
