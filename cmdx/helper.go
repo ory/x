@@ -31,7 +31,7 @@ func FormatResponse(response interface{}) string {
 
 func Fatalf(message string, args ...interface{}) {
 	if len(args) > 0 {
-		fmt.Fprintf(os.Stderr, message+"\n", args)
+		fmt.Fprintf(os.Stderr, message+"\n", args...)
 	} else {
 		fmt.Fprintln(os.Stderr, message)
 	}

@@ -12,3 +12,11 @@ func MustGetBool(cmd *cobra.Command, name string) bool {
 	}
 	return ok
 }
+
+func MustGetString(cmd *cobra.Command, name string) string {
+	ok, err := cmd.Flags().GetString(name)
+	if err != nil {
+		cmdx.Fatalf(err.Error())
+	}
+	return ok
+}
