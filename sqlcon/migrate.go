@@ -17,7 +17,7 @@ type SchemaCreator interface {
 
 func MigratorSQLCmd(path, name string, logger logrus.FieldLogger, runners map[string]SchemaCreator) *cobra.Command {
 	c := &cobra.Command{
-		Use:   name + "<database-url>",
+		Use:   name + " <database-url>",
 		Short: "Creates database schemas and applies SQL migration plans",
 		Long: `This command creates SQL schemas and applies migration plans. Running this command will upgrade the database
 to the latest schema available in the binary.
