@@ -3,6 +3,7 @@ package cmdx
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 )
@@ -20,7 +21,17 @@ func CheckResponse(err error, expectedStatusCode int, response *http.Response) {
 	Must(err, "Command failed because error \"%s\" occurred.\n", err)
 
 	if response.StatusCode != expectedStatusCode {
-		Fatalf("Command failed because status code %d was expected but code %d was received.\n", expectedStatusCode, response.StatusCode)
+		out, _ := ioutil.ReadAll(response.Body)
+		Fatalf(
+			`Command failed because status code %d was expected but code %d was received.
+
+Response payload:
+
+%s`,
+			expectedStatusCode,
+			response.StatusCode,
+			FormatResponse(json.RawMessage(out)),
+		)
 	}
 }
 
