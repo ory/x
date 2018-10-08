@@ -1,4 +1,4 @@
-package dbalx
+package dbal
 
 import (
 	"net/url"
