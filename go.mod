@@ -16,6 +16,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/ory/dockertest v3.3.2+incompatible
+	github.com/ory/fosite v0.25.0
 	github.com/ory/go-convenience v0.1.0
 	github.com/ory/herodot v0.4.1
 	github.com/ory/sqlcon v0.0.7
@@ -31,5 +32,4 @@ require (
 	github.com/stretchr/testify v1.2.2
 	github.com/urfave/negroni v1.0.0
 	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
-	golang.org/x/net v0.0.0-20181005035420-146acd28ed58 // indirect
 )
