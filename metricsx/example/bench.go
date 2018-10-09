@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/ory/x/metricsx"
 	"github.com/segmentio/analytics-go"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/negroni"
@@ -29,7 +30,7 @@ func main() {
 	defer api.Close()
 
 	n := negroni.New()
-	segmentMiddleware := metrics.NewMetricsManagerWithConfig(
+	segmentMiddleware := metricsx.NewMetricsManagerWithConfig(
 		"foo",
 		true,
 		wk,

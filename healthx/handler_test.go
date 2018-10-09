@@ -21,14 +21,15 @@
 package healthx
 
 import (
+	"encoding/json"
 	"errors"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/ory/herodot"
-	"github.com/ory/keto/sdk/go/keto/swagger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -47,28 +48,34 @@ func TestHealth(t *testing.T) {
 	router := httprouter.New()
 	handler.SetRoutes(router)
 	ts := httptest.NewServer(router)
+	c := http.DefaultClient
 
-	healthClient := swagger.NewHealthApiWithBasePath(ts.URL)
-
-	body, response, err := healthClient.IsInstanceAlive()
+	var healthBody swaggerHealthStatus
+	response, err := c.Get(ts.URL + AliveCheckPath)
 	require.NoError(t, err)
 	require.EqualValues(t, http.StatusOK, response.StatusCode)
-	assert.EqualValues(t, "ok", body.Status)
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&healthBody))
+	assert.EqualValues(t, "ok", healthBody.Status)
 
-	versionClient := swagger.NewVersionApiWithBasePath(ts.URL)
-	version, response, err := versionClient.GetVersion()
+	var versionBody swaggerVersion
+	response, err = c.Get(ts.URL + VersionPath)
 	require.NoError(t, err)
 	require.EqualValues(t, http.StatusOK, response.StatusCode)
-	require.EqualValues(t, version.Version, handler.VersionString)
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&versionBody))
+	require.EqualValues(t, versionBody.Version, handler.VersionString)
 
-	_, response, err = healthClient.IsInstanceReady()
+	response, err = c.Get(ts.URL + ReadyCheckPath)
 	require.NoError(t, err)
 	require.EqualValues(t, http.StatusServiceUnavailable, response.StatusCode)
-	assert.Equal(t, `{"errors":{"test":"not alive"}}`, string(response.Payload))
+	out, err := ioutil.ReadAll(response.Body)
+	require.NoError(t, err)
+	assert.EqualValues(t, "ok", healthBody.Status)
+	assert.Equal(t, `{"errors":{"test":"not alive"}}`, string(out))
 
 	alive = nil
-	body, response, err = healthClient.IsInstanceReady()
+	response, err = c.Get(ts.URL + ReadyCheckPath)
 	require.NoError(t, err)
 	require.EqualValues(t, http.StatusOK, response.StatusCode)
-	assert.EqualValues(t, "ok", body.Status)
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&versionBody))
+	require.EqualValues(t, versionBody.Version, handler.VersionString)
 }

@@ -1,9 +1,10 @@
 package urlx
 
 import (
+	"net/url"
+
 	"github.com/ory/go-convenience/urlx"
 	"github.com/ory/x/cmdx"
-	"net/url"
 )
 
 func MustJoin(first string, parts ...string) string {

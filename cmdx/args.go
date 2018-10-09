@@ -2,7 +2,6 @@ package cmdx
 
 import (
 	"github.com/spf13/cobra"
-	"strings"
 )
 
 func MinArgs(cmd *cobra.Command, args []string, min int) {
@@ -27,9 +26,7 @@ func RangeArgs(cmd *cobra.Command, args []string, allowed []int) {
 			return
 		}
 	}
-	if len(args) < min {
-		Fatalf(`%s
+	Fatalf(`%s
 
-Expected exact %s command line arguments but got %d.`, cmd.UsageString(), strings.Join(allowed, ", "), len(args))
-	}
+Expected exact %v command line arguments but got %d.`, cmd.UsageString(), allowed, len(args))
 }
