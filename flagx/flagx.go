@@ -31,7 +31,7 @@ func MustGetDuration(cmd *cobra.Command, name string) time.Duration {
 	return d
 }
 
-func MustGetGetStringSlice(cmd *cobra.Command, name string) []string {
+func MustGetStringSlice(cmd *cobra.Command, name string) []string {
 	ss, err := cmd.Flags().GetStringSlice(name)
 	if err != nil {
 		cmdx.Fatalf(err.Error())
