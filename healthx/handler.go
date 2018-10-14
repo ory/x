@@ -42,6 +42,7 @@ func RoutesToObserve() []string {
 }
 
 type ReadyChecker func() error
+type ReadyCheckers map[string]ReadyChecker
 
 func NoopReadyChecker() error {
 	return nil
@@ -50,13 +51,13 @@ func NoopReadyChecker() error {
 type Handler struct {
 	H             herodot.Writer
 	VersionString string
-	ReadyChecks   map[string]ReadyChecker
+	ReadyChecks   ReadyCheckers
 }
 
 func NewHandler(
 	h herodot.Writer,
 	version string,
-	readyChecks map[string]ReadyChecker,
+	readyChecks ReadyCheckers,
 ) *Handler {
 	return &Handler{
 		H:             h,
