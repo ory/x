@@ -1,7 +1,9 @@
 package tlsx
 
 import (
+	"crypto/ecdsa"
 	"crypto/rand"
+	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -76,6 +78,17 @@ func Certificate(prefix string) ([]tls.Certificate, error) {
 	return nil, errors.WithStack(ErrInvalidCertificateConfiguration)
 }
 
+func PublicKey(key interface{}) interface{} {
+	switch k := key.(type) {
+	case *rsa.PrivateKey:
+		return &k.PublicKey
+	case *ecdsa.PrivateKey:
+		return &k.PublicKey
+	default:
+		return nil
+	}
+}
+
 func CreateSelfSignedCertificate(key interface{}) (cert *x509.Certificate, err error) {
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
@@ -103,7 +116,7 @@ func CreateSelfSignedCertificate(key interface{}) (cert *x509.Certificate, err e
 	certificate.IsCA = true
 	certificate.KeyUsage |= x509.KeyUsageCertSign
 	certificate.DNSNames = append(certificate.DNSNames, "localhost")
-	der, err := x509.CreateCertificate(rand.Reader, certificate, certificate, publicKey(key), key)
+	der, err := x509.CreateCertificate(rand.Reader, certificate, certificate, PublicKey(key), key)
 	if err != nil {
 		return cert, errors.Errorf("failed to create certificate: %s", err)
 	}
