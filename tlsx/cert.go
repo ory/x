@@ -1,9 +1,14 @@
 package tlsx
 
 import (
+	"crypto/rand"
 	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/base64"
 	"fmt"
+	"math/big"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -69,4 +74,43 @@ func Certificate(prefix string) ([]tls.Certificate, error) {
 	}
 
 	return nil, errors.WithStack(ErrInvalidCertificateConfiguration)
+}
+
+func CreateSelfSignedCertificate(key interface{}) (cert *x509.Certificate, err error) {
+	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
+	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
+	if err != nil {
+		return cert, errors.Errorf("failed to generate serial number: %s", err)
+	}
+
+	certificate := &x509.Certificate{
+		SerialNumber: serialNumber,
+		Subject: pkix.Name{
+			Organization: []string{"ORY GmbH"},
+			CommonName:   "ORY",
+		},
+		Issuer: pkix.Name{
+			Organization: []string{"ORY GmbH"},
+			CommonName:   "ORY",
+		},
+		NotBefore:             time.Now().UTC(),
+		NotAfter:              time.Now().UTC().Add(time.Hour * 24 * 31),
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+	}
+
+	certificate.IsCA = true
+	certificate.KeyUsage |= x509.KeyUsageCertSign
+	certificate.DNSNames = append(certificate.DNSNames, "localhost")
+	der, err := x509.CreateCertificate(rand.Reader, certificate, certificate, publicKey(key), key)
+	if err != nil {
+		return cert, errors.Errorf("failed to create certificate: %s", err)
+	}
+
+	cert, err = x509.ParseCertificate(der)
+	if err != nil {
+		return cert, errors.Errorf("failed to encode private key: %s", err)
+	}
+	return cert, nil
 }
