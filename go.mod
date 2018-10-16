@@ -13,9 +13,11 @@ require (
 	github.com/jmoiron/sqlx v0.0.0-20180614180643-0dae4fefe7c0
 	github.com/julienschmidt/httprouter v0.0.0-20180715161854-348b672cd90d
 	github.com/lib/pq v1.0.0
+	github.com/luna-duclos/instrumentedsql v0.0.0-20181016211422-eae529699c8a
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/opencontainers/runc v0.1.1 // indirect
+	github.com/opentracing/opentracing-go v1.0.2 // indirect
 	github.com/ory/dockertest v3.3.2+incompatible
 	github.com/ory/fosite v0.25.0
 	github.com/ory/go-convenience v0.1.0
