@@ -3,6 +3,7 @@ package sqlcon
 type options struct {
 	UseTracedDriver bool
 	OmitArgs        bool
+	AllowRoot       bool
 }
 
 type Opt func(*options)
@@ -18,5 +19,13 @@ func WithDistributedTracing() Opt {
 func WithOmitArgsFromTraceSpans() Opt {
 	return func(o *options) {
 		o.OmitArgs = true
+	}
+}
+
+// WithAllowRoot will make it so that root spans will be created if a trace could not be found using
+// opentracing's SpanFromContext method
+func WithAllowRoot() Opt {
+	return func(o *options) {
+		o.AllowRoot = true
 	}
 }
