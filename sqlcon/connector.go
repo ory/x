@@ -22,6 +22,7 @@ package sqlcon
 
 import (
 	"database/sql"
+	"fmt"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/lib/pq"
@@ -106,9 +107,12 @@ func (c *SQLConnection) GetDatabase() *sqlx.DB {
 	}
 
 	var err error
+	var registeredDriver string
 
 	clean := cleanURLQuery(c.URL)
-	registeredDriver := c.registerDriver()
+	if registeredDriver, err = c.registerDriver(); err != nil {
+		c.L.Fatalf("Could not register driver: %s", err)
+	}
 
 	if err = retry(c.L, time.Second*15, time.Minute*2, func() error {
 		c.L.Infof("Connecting with %s", c.URL.Scheme+"://*:*@"+c.URL.Host+c.URL.Path+"?"+clean.RawQuery)
@@ -203,11 +207,11 @@ func connectionString(clean *url.URL) string {
 	return u
 }
 
-func (c *SQLConnection) registerDriver() string {
+func (c *SQLConnection) registerDriver() (string, error) {
 	driverName := c.URL.Scheme
 	if c.UseTracedDriver {
 		driverName = "instrumented-sql-driver"
-		tracingOpts := []instrumentedsql.Opt{instrumentedsql.WithTracer(opentracing.NewTracer(false))}
+		tracingOpts := []instrumentedsql.Opt{instrumentedsql.WithTracer(opentracing.NewTracer(c.AllowRoot))}
 		if c.OmitArgs {
 			tracingOpts = append(tracingOpts, instrumentedsql.WithOmitArgs())
 		}
@@ -217,12 +221,14 @@ func (c *SQLConnection) registerDriver() string {
 			sql.Register(driverName,
 				instrumentedsql.WrapDriver(mysql.MySQLDriver{}, tracingOpts...))
 		case "postgres":
+			// Why does this have to be a pointer? Because the Open method for postgres has a pointer receiver
+			// and does not satisfy the driver.Driver interface.
 			sql.Register(driverName,
 				instrumentedsql.WrapDriver(&pq.Driver{}, tracingOpts...))
 		default:
-			c.L.Fatalf("unsupported scheme (%s) in DSN", c.URL.Scheme)
+			return "", fmt.Errorf("unsupported scheme (%s) in DSN", c.URL.Scheme)
 		}
 	}
 
-	return driverName
+	return driverName, nil
 }
