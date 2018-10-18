@@ -17,7 +17,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/opencontainers/runc v0.1.1 // indirect
-	github.com/opentracing/opentracing-go v1.0.2 // indirect
+	github.com/opentracing/opentracing-go v1.0.2
 	github.com/ory/dockertest v3.3.2+incompatible
 	github.com/ory/fosite v0.25.0
 	github.com/ory/go-convenience v0.1.0
@@ -27,6 +27,7 @@ require (
 	github.com/pkg/errors v0.8.0
 	github.com/pkg/profile v1.2.1
 	github.com/rs/cors v1.5.0
+	github.com/satori/go.uuid v1.2.0
 	github.com/segmentio/analytics-go v3.0.1+incompatible
 	github.com/segmentio/backo-go v0.0.0-20160424052352-204274ad699c // indirect
 	github.com/sirupsen/logrus v1.1.1
