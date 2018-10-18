@@ -69,6 +69,50 @@ func merge(u *url.URL, params map[string]string) *url.URL {
 	return b
 }
 
+func TestRegisterDriver(t *testing.T) {
+	unsupportedDSN := "unsupported://unsupported:secret@localhost:1337/mydb"
+	supportedDSN := "mysql://foo@bar:baz@qux/db"
+
+	for _, testCase := range []struct {
+		description string
+		sqlConnection *SQLConnection
+		expectedDriverName string
+		shouldError bool
+	} {
+		{
+			description: "should return error if supplied DSN is unsupported for tracing",
+			sqlConnection: mustSQL(t, unsupportedDSN, WithDistributedTracing()),
+			expectedDriverName: "",
+			shouldError: true,
+		},
+		{
+			description: "should return registered driver name if supplied DSN is valid for tracing",
+			sqlConnection: mustSQL(t, supportedDSN, WithDistributedTracing()),
+			expectedDriverName: "instrumented-sql-driver",
+			shouldError: false,
+		},
+		{
+			description: "should return registered driver name if tracing is NOT configured",
+			sqlConnection: mustSQL(t, supportedDSN),
+			expectedDriverName: "mysql",
+			shouldError: false,
+		},
+	} {
+		t.Run(fmt.Sprintf("case=%s", testCase.description), func(t *testing.T) {
+			testCase.sqlConnection.L = logrus.New()
+			driverName, err := testCase.sqlConnection.registerDriver()
+			assert.Equal(t, testCase.expectedDriverName, driverName)
+			if testCase.shouldError {
+				assert.Error(t, err)
+				assert.Empty(t, driverName)
+			} else {
+				assert.NoError(t, err)
+				assert.NotEmpty(t, driverName)
+			}
+		})
+	}
+}
+
 func TestCleanQueryURL(t *testing.T) {
 	a, _ := url.Parse("mysql://foo:bar@baz/db?max_conn_lifetime=1h&max_idle_conns=10&max_conns=10")
 	b := cleanURLQuery(a)
@@ -85,8 +129,8 @@ func TestConnectionString(t *testing.T) {
 	assert.True(t, strings.HasPrefix(b, "foo@bar:baz@qux"))
 }
 
-func mustSQL(t *testing.T, db string) *SQLConnection {
-	c, err := NewSQLConnection(db, logrus.New())
+func mustSQL(t *testing.T, db string, opts ...Opt) *SQLConnection {
+	c, err := NewSQLConnection(db, logrus.New(), opts...)
 	require.NoError(t, err)
 	return c
 }
