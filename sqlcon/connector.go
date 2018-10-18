@@ -23,7 +23,6 @@ package sqlcon
 import (
 	"database/sql"
 	"fmt"
-	"github.com/satori/go.uuid"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/lib/pq"
@@ -212,8 +211,8 @@ func (c *SQLConnection) registerDriver() (string, error) {
 	driverName := c.URL.Scheme
 	if c.UseTracedDriver {
 		driverName = "instrumented-sql-driver"
-		if c.useRandomDriverName {
-			driverName = uuid.NewV4().String()
+		if len(c.options.forcedDriverName) > 0 {
+			driverName = c.options.forcedDriverName
 		}
 
 		tracingOpts := []instrumentedsql.Opt{instrumentedsql.WithTracer(opentracing.NewTracer(c.AllowRoot))}

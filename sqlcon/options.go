@@ -1,10 +1,12 @@
 package sqlcon
 
+import "github.com/satori/go.uuid"
+
 type options struct {
-	UseTracedDriver     bool
-	OmitArgs            bool
-	AllowRoot           bool
-	useRandomDriverName bool
+	UseTracedDriver  bool
+	OmitArgs         bool
+	AllowRoot        bool
+	forcedDriverName string
 }
 
 type Opt func(*options)
@@ -35,6 +37,6 @@ func WithAllowRoot() Opt {
 // Reason for this option is because you can't register a driver with the same name more than once
 func withRandomDriverName() Opt {
 	return func(o *options) {
-		o.useRandomDriverName = true
+		o.forcedDriverName = uuid.NewV4().String()
 	}
 }
