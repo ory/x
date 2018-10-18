@@ -1,9 +1,10 @@
 package sqlcon
 
 type options struct {
-	UseTracedDriver bool
-	OmitArgs        bool
-	AllowRoot       bool
+	UseTracedDriver     bool
+	OmitArgs            bool
+	AllowRoot           bool
+	useRandomDriverName bool
 }
 
 type Opt func(*options)
@@ -27,5 +28,13 @@ func WithOmitArgsFromTraceSpans() Opt {
 func WithAllowRoot() Opt {
 	return func(o *options) {
 		o.AllowRoot = true
+	}
+}
+
+// This option is specifically for tests, hence why it is unexported...
+// Reason for this option is because you can't register a driver with the same name more than once
+func withRandomDriverName() Opt {
+	return func(o *options) {
+		o.useRandomDriverName = true
 	}
 }
