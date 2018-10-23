@@ -10,10 +10,11 @@ import (
 	"time"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/ory/x/metricsx"
 	"github.com/segmentio/analytics-go"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/negroni"
+
+	"github.com/ory/x/metricsx"
 )
 
 func main() {

@@ -5,9 +5,10 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/ory/x/sqlcon"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+
+	"github.com/ory/x/sqlcon"
 )
 
 func Connect(db string, logger logrus.FieldLogger, memf func() error, sqlf func(db *sqlx.DB) error) error {

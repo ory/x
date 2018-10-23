@@ -23,19 +23,17 @@ package sqlcon
 import (
 	"database/sql"
 	"fmt"
-
-	"github.com/go-sql-driver/mysql"
-	"github.com/lib/pq"
-	"github.com/luna-duclos/instrumentedsql"
-	"github.com/luna-duclos/instrumentedsql/opentracing"
-
 	"net/url"
 	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
+	"github.com/luna-duclos/instrumentedsql"
+	"github.com/luna-duclos/instrumentedsql/opentracing"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

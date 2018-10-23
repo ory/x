@@ -23,9 +23,10 @@ package serverx
 import (
 	"net/http"
 
+	"github.com/pkg/errors"
+
 	"github.com/ory/fosite"
 	"github.com/ory/herodot"
-	"github.com/pkg/errors"
 )
 
 type stackTracer interface {
