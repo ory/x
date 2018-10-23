@@ -82,27 +82,27 @@ func TestDistributedTracing(t *testing.T) {
 			description: "mysql: when tracing has been configured - spans should be created",
 			sqlConnection: mustSQL(t, mysqlUrl.String(),
 				WithDistributedTracing(),
-				withRandomDriverName(), // this test option is set to ensure a unique driver name is registered
+				WithRandomDriverName(), // this test option is set to ensure a unique driver name is registered
 				WithAllowRoot()),
 		},
 		{
 			description: "postgres: when tracing has been configured - spans should be created",
 			sqlConnection: mustSQL(t, postgresUrl.String(),
 				WithDistributedTracing(),
-				withRandomDriverName(), // this test option is set to ensure a unique driver name is registered
+				WithRandomDriverName(), // this test option is set to ensure a unique driver name is registered
 				WithAllowRoot()),
 		},
 		{
 			description: "mysql: no spans should be created if parent span is missing from context when `WithAllowRoot` has NOT been set",
 			sqlConnection: mustSQL(t, mysqlUrl.String(),
 				WithDistributedTracing(), // Notice that the WithAllowRoot() option has NOT been set
-				withRandomDriverName()),  // this test option is set to ensure a unique driver name is registered
+				WithRandomDriverName()),  // this test option is set to ensure a unique driver name is registered
 		},
 		{
 			description: "postgres: no spans should be created if parent span is missing from context when `WithAllowRoot` has NOT been set",
 			sqlConnection: mustSQL(t, postgresUrl.String(),
 				WithDistributedTracing(), // Notice that the WithAllowRoot() option has NOT been set
-				withRandomDriverName()),  // this test option is set to ensure a unique driver name is registered
+				WithRandomDriverName()),  // this test option is set to ensure a unique driver name is registered
 		},
 		{
 			description:   "mysql: when tracing has NOT been configured - NO spans should be created",
