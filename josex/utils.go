@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package pkg
+package josex
 
 import (
 	"crypto/x509"
