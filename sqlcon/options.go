@@ -1,5 +1,7 @@
 package sqlcon
 
+import "github.com/pborman/uuid"
+
 type options struct {
 	UseTracedDriver  bool
 	OmitArgs         bool
@@ -34,6 +36,6 @@ func WithAllowRoot() Opt {
 // This option is specifically for writing tests as you can't register a driver with the same name more than once
 func WithRandomDriverName() Opt {
 	return func(o *options) {
-		o.forcedDriverName = uuid.NewV4().String()
+		o.forcedDriverName = uuid.New()
 	}
 }
