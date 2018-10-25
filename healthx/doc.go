@@ -18,6 +18,7 @@
  * @license 	Apache-2.0
  */
 
+// Package healthx
 package healthx
 
 // swagger:model healthStatus
