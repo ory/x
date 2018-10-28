@@ -1,6 +1,6 @@
 # ory/x
 
-[![CircleCI](https://circleci.com/gh/ory/x.svg?style=svg)](https://circleci.com/gh/ory/x)
+[![CircleCI](https://circleci.com/gh/ory/x.svg?style=shield)](https://circleci.com/gh/ory/x)
 [![Coverage Status](https://coveralls.io/repos/github/ory/x/badge.svg?branch=master)](https://coveralls.io/github/ory/x?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/ory/x)](https://goreportcard.com/report/github.com/ory/x)
 
