@@ -24,7 +24,10 @@ func main() {
 	}
 
 	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		out, _ := ioutil.ReadAll(r.Body)
+		out, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			panic(err)
+		}
 		fmt.Printf("%+v\n\t%s", r, out)
 	}))
 

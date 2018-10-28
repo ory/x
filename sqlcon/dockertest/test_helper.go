@@ -121,8 +121,10 @@ func bootstrap(u, port, d string, pool *dockertest.Pool, resource *dockertest.Re
 
 		return db.Ping()
 	}); err != nil {
-		pool.Purge(resource)
-		log.Fatalf("Could not Connect to docker: %s", err)
+		if pErr := pool.Purge(resource); pErr != nil {
+			log.Fatalf("Could not connect to docker and unable to remove image: %s - %s", err, pErr)
+		}
+		log.Fatalf("Could not connect to docker: %s", err)
 	}
 	resources = append(resources, resource)
 	return
