@@ -1,4 +1,4 @@
-package tracing
+package tracing_test
 
 import (
 	"context"
@@ -21,12 +21,12 @@ func TestCompare(t *testing.T) {
 	assert.NotNil(t, expectedPasswordHash)
 
 	expectedTagsSuccess := map[string]interface{}{
-		tracing.workFactorTagName: int(workfactor),
+		tracing.BCryptWorkFactorTagName: int(workfactor),
 	}
 
 	expectedTagsError := map[string]interface{}{
-		tracing.workFactorTagName: int(workfactor),
-		"error":                   true,
+		tracing.BCryptWorkFactorTagName: int(workfactor),
+		"error":                         true,
 	}
 
 	testCases := []struct {
@@ -68,7 +68,7 @@ func TestCompare(t *testing.T) {
 			assert.Len(t, spans, 1)
 			span := spans[0]
 
-			assert.Equal(t, tracing.compareOpName, span.OperationName)
+			assert.Equal(t, tracing.BCryptCompareOpName, span.OperationName)
 			assert.Equal(t, test.expectedTags, span.Tags())
 		})
 	}
@@ -80,12 +80,12 @@ func TestHashCreatesSpanWithCorrectTags(t *testing.T) {
 	password := []byte("bar")
 
 	expectedTagsSuccess := map[string]interface{}{
-		tracing.workFactorTagName: int(validWorkFactor),
+		tracing.BCryptWorkFactorTagName: int(validWorkFactor),
 	}
 
 	expectedTagsError := map[string]interface{}{
-		tracing.workFactorTagName: int(invalidWorkFactor),
-		"error":                   true,
+		tracing.BCryptWorkFactorTagName: int(invalidWorkFactor),
+		"error":                         true,
 	}
 
 	testCases := []struct {
@@ -127,7 +127,7 @@ func TestHashCreatesSpanWithCorrectTags(t *testing.T) {
 			assert.Len(t, spans, 1)
 			span := spans[0]
 
-			assert.Equal(t, tracing.hashOpName, span.OperationName)
+			assert.Equal(t, tracing.BCryptHashOpName, span.OperationName)
 			assert.Equal(t, test.expectedTags, span.Tags())
 		})
 	}

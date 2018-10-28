@@ -23,7 +23,10 @@ func CheckResponse(err error, expectedStatusCode int, response *http.Response) {
 	Must(err, "Command failed because error occurred: %s", err)
 
 	if response.StatusCode != expectedStatusCode {
-		out, _ := ioutil.ReadAll(response.Body)
+		out, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			out = []byte{}
+		}
 		pretty, err := json.MarshalIndent(json.RawMessage(out), "", "\t")
 		if err == nil {
 			out = pretty

@@ -20,7 +20,7 @@ jobs:
     working_directory: /go/src/github.com/ory/sqlcon
     steps:
       - checkout
-      - run: go get github.com/mattn/goveralls
+      - run: go get github.com/mattn/goveralls github.com/ory/go-acc
       - run: curl -L https://git.io/vp6lP | sh
       - run: mv ./bin/* $GOPATH/bin
       - run:
@@ -30,5 +30,6 @@ jobs:
             source $BASH_ENV
       - run: go mod download
       - run: gometalinter --disable-all --enable=goimports --enable=gosec --enable=dupl --enable=vet --enable=golint --vendor ./...
-      - run: go test -race ./...
+      - run: go test -short -race ./...
+      - run: go-acc -v -o coverage.txt ./...
       - run: test -z "$CIRCLE_PR_NUMBER" && goveralls -service=circle-ci -coverprofile=coverage.txt -repotoken=$COVERALLS_REPO_TOKEN || echo "forks are not allowed to push to coveralls"

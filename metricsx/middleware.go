@@ -23,6 +23,7 @@ package metricsx
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"math/rand"
 	"net"
@@ -67,7 +68,10 @@ type MetricsManager struct {
 // Hash returns a hashed string of the value.
 func Hash(value string) string {
 	hash := sha256.New()
-	hash.Write([]byte(value))
+	_, err := hash.Write([]byte(value))
+	if err != nil {
+		panic(fmt.Sprintf("unable to hash value"))
+	}
 	return hex.EncodeToString(hash.Sum(nil))
 }
 
