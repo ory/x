@@ -23,7 +23,12 @@ jobs:
       - run: go get github.com/mattn/goveralls
       - run: curl -L https://git.io/vp6lP | sh
       - run: mv ./bin/* $GOPATH/bin
-      - run: go mod download
       - run: gometalinter --disable-all --enable=goimports --enable=gosec --enable=dupl --enable=vet --enable=golint --vendor ./...
+      - run:
+          name: Enable go1.11 modules
+          command: |
+            echo 'export GO111MODULE=on' >> $BASH_ENV
+            source $BASH_ENV
+      - run: go mod download
       - run: go test -race ./...
       - run: test -z "$CIRCLE_PR_NUMBER" && goveralls -service=circle-ci -coverprofile=coverage.txt -repotoken=$COVERALLS_REPO_TOKEN || echo "forks are not allowed to push to coveralls"
