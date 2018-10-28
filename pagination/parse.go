@@ -17,6 +17,7 @@
  * @copyright 	2017-2018 Aeneas Rekkas <aeneas+oss@aeneas.io>
  * @license 	Apache-2.0
  */
+
 package pagination
 
 import (

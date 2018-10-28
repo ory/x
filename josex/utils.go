@@ -25,6 +25,7 @@ import (
 	"gopkg.in/square/go-jose.v2"
 )
 
+// LoadJSONWebKey returns a *jose.JSONWebKey for a given JSON string.
 func LoadJSONWebKey(json []byte, pub bool) (*jose.JSONWebKey, error) {
 	var jwk jose.JSONWebKey
 	err := jwk.UnmarshalJSON(json)

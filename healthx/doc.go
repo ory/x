@@ -18,7 +18,7 @@
  * @license 	Apache-2.0
  */
 
-// Package healthx
+// Package healthx providers helpers for returning health status information via HTTP.
 package healthx
 
 // swagger:model healthStatus

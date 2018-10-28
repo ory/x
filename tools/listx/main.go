@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/ory/x/cmdx"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/ory/x/cmdx"
 )
 
 func main() {
@@ -27,11 +28,11 @@ func main() {
 		}
 
 		if filepath.Ext(path) == ".go" {
-			if p, err := filepath.Abs(filepath.Join(args[1], path)); err != nil {
+			p, err := filepath.Abs(filepath.Join(args[1], path))
+			if err != nil {
 				return err
-			} else {
-				fmt.Println(p)
 			}
+			fmt.Println(p)
 		}
 
 		return nil

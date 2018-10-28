@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"sync"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -24,6 +23,7 @@ import (
 var resources = []*dockertest.Resource{}
 var pool *dockertest.Pool
 
+// KillAllTestDatabases deletes all test databases.
 func KillAllTestDatabases() {
 	pool, err := dockertest.NewPool("")
 	if err != nil {
@@ -37,6 +37,7 @@ func KillAllTestDatabases() {
 	}
 }
 
+// Register sets up OnExit.
 func Register() *OnExit {
 	onexit := NewOnExit()
 	onexit.Add(func() {
@@ -45,6 +46,7 @@ func Register() *OnExit {
 	return onexit
 }
 
+// Parallel runs tasks in parallel.
 func Parallel(fs []func()) {
 	wg := sync.WaitGroup{}
 
@@ -59,6 +61,7 @@ func Parallel(fs []func()) {
 	wg.Wait()
 }
 
+// ConnectToTestPostgreSQL connects to a PostgreSQL database.
 func ConnectToTestPostgreSQL() (*sqlx.DB, error) {
 	if url := os.Getenv("TEST_DATABASE_POSTGRESQL"); url != "" {
 		log.Println("Found postgresql test database config, skipping dockertest...")
@@ -68,9 +71,6 @@ func ConnectToTestPostgreSQL() (*sqlx.DB, error) {
 		}
 		return db, nil
 	}
-
-	var db *sqlx.DB
-	var err error
 
 	pool, err := dockertest.NewPool("")
 	if err != nil {
@@ -82,22 +82,11 @@ func ConnectToTestPostgreSQL() (*sqlx.DB, error) {
 		return nil, errors.Wrap(err, "Could not start resource")
 	}
 
-	if err = pool.Retry(func() error {
-		var err error
-		db, err = sqlx.Open("postgres", fmt.Sprintf("postgres://postgres:secret@localhost:%s/hydra?sslmode=disable", resource.GetPort("5432/tcp")))
-		if err != nil {
-			return err
-		}
-		return db.Ping()
-	}); err != nil {
-		pool.Purge(resource)
-		return nil, errors.Wrap(err, "Could not connect to docker")
-	}
-	resources = append(resources, resource)
-
+	db := bootstrap("postgres://postgres:secret@localhost:%s/hydra?sslmode=disable", "5432/tcp", "postgres", pool, resource)
 	return db, nil
 }
 
+// ConnectToTestMySQL connects to a MySQL database.
 func ConnectToTestMySQL() (*sqlx.DB, error) {
 	if url := os.Getenv("TEST_DATABASE_MYSQL"); url != "" {
 		log.Println("Found mysql test database config, skipping dockertest...")
@@ -107,9 +96,6 @@ func ConnectToTestMySQL() (*sqlx.DB, error) {
 		}
 		return db, nil
 	}
-
-	var db *sqlx.DB
-	var err error
 
 	pool, err := dockertest.NewPool("")
 	if err != nil {
@@ -121,19 +107,23 @@ func ConnectToTestMySQL() (*sqlx.DB, error) {
 		return nil, errors.Wrap(err, "Could not start resource")
 	}
 
-	pool.MaxWait = time.Minute * 5
-	if err = pool.Retry(func() error {
+	db := bootstrap("root:secret@(localhost:%s)/mysql?parseTime=true", "3306/tcp", "mysql", pool, resource)
+	return db, nil
+}
+
+func bootstrap(u, port, d string, pool *dockertest.Pool, resource *dockertest.Resource) (db *sqlx.DB) {
+	if err := pool.Retry(func() error {
 		var err error
-		db, err = sqlx.Open("mysql", fmt.Sprintf("root:secret@(localhost:%s)/mysql?parseTime=true", resource.GetPort("3306/tcp")))
+		db, err = sqlx.Open(d, fmt.Sprintf(u, resource.GetPort(port)))
 		if err != nil {
 			return err
 		}
+
 		return db.Ping()
 	}); err != nil {
 		pool.Purge(resource)
-		return nil, errors.Wrap(err, "Could not connect to docker")
+		log.Fatalf("Could not Connect to docker: %s", err)
 	}
 	resources = append(resources, resource)
-
-	return db, nil
+	return
 }

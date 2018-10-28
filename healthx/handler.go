@@ -29,11 +29,15 @@ import (
 )
 
 const (
+	// AliveCheckPath is the path where information about the life state of the instance is provided.
 	AliveCheckPath = "/health/alive"
+	// ReadyCheckPath is the path where information about the rady state of the instance is provided.
 	ReadyCheckPath = "/health/ready"
-	VersionPath    = "/version"
+	// VersionPath is the path where information about the software version of the instance is provided.
+	VersionPath = "/version"
 )
 
+// RoutesToObserve returns a string of all the available routes of this module.
 func RoutesToObserve() []string {
 	return []string{
 		AliveCheckPath,
@@ -42,19 +46,25 @@ func RoutesToObserve() []string {
 	}
 }
 
+// ReadyChecker should return an error if the component is not ready yet.
 type ReadyChecker func() error
+
+// ReadyCheckers is a map of ReadyCheckers.
 type ReadyCheckers map[string]ReadyChecker
 
+// NoopReadyChecker is always ready.
 func NoopReadyChecker() error {
 	return nil
 }
 
+// Handler handles HTTP requests to health and version endpoints.
 type Handler struct {
 	H             herodot.Writer
 	VersionString string
 	ReadyChecks   ReadyCheckers
 }
 
+// NewHandler instantiates a handler.
 func NewHandler(
 	h herodot.Writer,
 	version string,
@@ -67,12 +77,15 @@ func NewHandler(
 	}
 }
 
+// SetRoutes registers this handler's routes.
 func (h *Handler) SetRoutes(r *httprouter.Router) {
 	r.GET(AliveCheckPath, h.Alive)
 	r.GET(ReadyCheckPath, h.Ready)
 	r.GET(VersionPath, h.Version)
 }
 
+// Alive returns an ok status if the instance is ready to handle HTTP requests.
+//
 // swagger:route GET /health/alive health isInstanceAlive
 //
 // Check alive status
@@ -98,6 +111,8 @@ func (h *Handler) Alive(rw http.ResponseWriter, r *http.Request, _ httprouter.Pa
 	})
 }
 
+// Ready returns an ok status if the instance is ready to handle HTTP requests and all ReadyCheckers are ok.
+//
 // swagger:route GET /health/ready health isInstanceReady
 //
 // Check readiness status
@@ -138,6 +153,8 @@ func (h *Handler) Ready(rw http.ResponseWriter, r *http.Request, _ httprouter.Pa
 	})
 }
 
+// Version returns this service's versions.
+//
 // swagger:route GET /version version getVersion
 //
 // Get service version

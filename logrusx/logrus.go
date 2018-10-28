@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+// New initializes logrus with environment variable configuration LOG_LEVEL and LOG_FORMAT.
 func New() *logrus.Logger {
 	l := logrus.New()
 	ll, err := logrus.ParseLevel(viper.GetString("LOG_LEVEL"))
@@ -20,6 +21,7 @@ func New() *logrus.Logger {
 	return l
 }
 
+// HelpMessage returns a string containing a help message for setting up the logger.
 func HelpMessage() string {
 	return `- LOG_LEVEL: Set the log level, supports "panic", "fatal", "error", "warn", "info" and "debug". Defaults to "info".
 

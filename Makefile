@@ -3,7 +3,7 @@ init:
 		go install ./tools/listx
 
 format:
-		goreturns -w -i -local github.com/ory $(listx .)
+		goreturns -w -i -local github.com/ory $$(listx .)
 
 test:
 		go test -race ./...

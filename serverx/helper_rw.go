@@ -30,6 +30,7 @@ import (
 )
 
 type stackTracer interface {
+	// StackTrace returns the error's stack trace.
 	StackTrace() errors.StackTrace
 }
 
@@ -39,10 +40,12 @@ type enhancedError struct {
 	ID    string `json:"request_id"`
 }
 
+// StackTrace returns the error's stack trace.
 func (e *enhancedError) StackTrace() errors.StackTrace {
 	return e.trace
 }
 
+// ErrorEnhancerRFC6749 returns an error of type fosite.ErrorEnhancerRFC6749
 func ErrorEnhancerRFC6749(r *http.Request, err error) interface{} {
 	var trace []errors.Frame
 

@@ -26,6 +26,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+// PermanentRedirect permanently redirects (302) a path to another one.
 func PermanentRedirect(to string) func(rw http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	return func(rw http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		http.Redirect(rw, r, to, http.StatusPermanentRedirect)

@@ -8,6 +8,7 @@ import (
 	"github.com/ory/x/cmdx"
 )
 
+// MustGetBool returns a bool flag or fatals if an error occurs.
 func MustGetBool(cmd *cobra.Command, name string) bool {
 	ok, err := cmd.Flags().GetBool(name)
 	if err != nil {
@@ -16,6 +17,7 @@ func MustGetBool(cmd *cobra.Command, name string) bool {
 	return ok
 }
 
+// MustGetString returns a string flag or fatals if an error occurs.
 func MustGetString(cmd *cobra.Command, name string) string {
 	s, err := cmd.Flags().GetString(name)
 	if err != nil {
@@ -24,6 +26,7 @@ func MustGetString(cmd *cobra.Command, name string) string {
 	return s
 }
 
+// MustGetDuration returns a time.Duration flag or fatals if an error occurs.
 func MustGetDuration(cmd *cobra.Command, name string) time.Duration {
 	d, err := cmd.Flags().GetDuration(name)
 	if err != nil {
@@ -32,6 +35,7 @@ func MustGetDuration(cmd *cobra.Command, name string) time.Duration {
 	return d
 }
 
+// MustGetStringSlice returns a []string flag or fatals if an error occurs.
 func MustGetStringSlice(cmd *cobra.Command, name string) []string {
 	ss, err := cmd.Flags().GetStringSlice(name)
 	if err != nil {
@@ -40,6 +44,7 @@ func MustGetStringSlice(cmd *cobra.Command, name string) []string {
 	return ss
 }
 
+// MustGetInt returns a int flag or fatals if an error occurs.
 func MustGetInt(cmd *cobra.Command, name string) int {
 	ss, err := cmd.Flags().GetInt(name)
 	if err != nil {

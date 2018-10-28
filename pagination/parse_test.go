@@ -20,6 +20,7 @@
 package pagination
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"testing"
@@ -28,52 +29,28 @@ import (
 )
 
 func TestParse(t *testing.T) {
-	t.Run("case=normal", func(t *testing.T) {
-		u, _ := url.Parse("http://localhost/foo?limit=10&offset=10")
-		limit, offset := Parse(&http.Request{URL: u}, 0, 0, 10)
-		assert.EqualValues(t, limit, 10)
-		assert.EqualValues(t, offset, 10)
-	})
-
-	t.Run("case=defaults", func(t *testing.T) {
-		u, _ := url.Parse("http://localhost/foo")
-		limit, offset := Parse(&http.Request{URL: u}, 5, 5, 10)
-		assert.EqualValues(t, limit, 5)
-		assert.EqualValues(t, offset, 5)
-	})
-
-	t.Run("case=defaults_and_limits", func(t *testing.T) {
-		u, _ := url.Parse("http://localhost/foo")
-		limit, offset := Parse(&http.Request{URL: u}, 5, 5, 2)
-		assert.EqualValues(t, limit, 2)
-		assert.EqualValues(t, offset, 5)
-	})
-
-	t.Run("case=limits", func(t *testing.T) {
-		u, _ := url.Parse("http://localhost/foo?limit=10&offset=10")
-		limit, offset := Parse(&http.Request{URL: u}, 0, 0, 5)
-		assert.EqualValues(t, limit, 5)
-		assert.EqualValues(t, offset, 10)
-	})
-
-	t.Run("case=negatives", func(t *testing.T) {
-		u, _ := url.Parse("http://localhost/foo?limit=-1&offset=-1")
-		limit, offset := Parse(&http.Request{URL: u}, 0, 0, 5)
-		assert.EqualValues(t, limit, 0)
-		assert.EqualValues(t, offset, 0)
-	})
-
-	t.Run("case=default_negatives", func(t *testing.T) {
-		u, _ := url.Parse("http://localhost/foo")
-		limit, offset := Parse(&http.Request{URL: u}, -1, -1, 5)
-		assert.EqualValues(t, limit, 0)
-		assert.EqualValues(t, offset, 0)
-	})
-
-	t.Run("case=invalid_defaults", func(t *testing.T) {
-		u, _ := url.Parse("http://localhost/foo?offset=a&limit=b")
-		limit, offset := Parse(&http.Request{URL: u}, 10, 10, 15)
-		assert.EqualValues(t, limit, 10)
-		assert.EqualValues(t, offset, 10)
-	})
+	for _, tc := range []struct {
+		d   string
+		url string
+		dl  int
+		do  int
+		ml  int
+		el  int
+		eo  int
+	}{
+		{"normal", "http://localhost/foo?limit=10&offset=10", 0, 0, 120, 10, 10},
+		{"defaults", "http://localhost/foo", 5, 5, 10, 5, 5},
+		{"defaults_and_limits", "http://localhost/foo", 5, 5, 2, 2, 5},
+		{"limits", "http://localhost/foo?limit=10&offset=10", 0, 0, 5, 5, 10},
+		{"negatives", "http://localhost/foo?limit=-1&offset=-1", 0, 0, 5, 0, 0},
+		{"default_negatives", "http://localhost/foo", -1, -1, 5, 0, 0},
+		{"invalid_defaults", "http://localhost/foo?limit=a&offset=b", 10, 10, 15, 10, 10},
+	} {
+		t.Run(fmt.Sprintf("case=%s", tc.d), func(t *testing.T) {
+			u, _ := url.Parse(tc.url)
+			limit, offset := Parse(&http.Request{URL: u}, tc.dl, tc.do, tc.ml)
+			assert.EqualValues(t, limit, tc.el)
+			assert.EqualValues(t, offset, tc.eo)
+		})
+	}
 }

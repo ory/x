@@ -11,6 +11,7 @@ import (
 	"github.com/ory/x/sqlcon"
 )
 
+// Connect is a wrapper for connecting to different SQL drivers.
 func Connect(db string, logger logrus.FieldLogger, memf func() error, sqlf func(db *sqlx.DB) error) error {
 	if db == "memory" {
 		return memf()

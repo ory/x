@@ -3,11 +3,17 @@ package dbal
 import "github.com/ory/x/cmdx"
 
 const (
-	DriverMySQL      = "mysql"
+	// DriverMySQL is the mysql driver name.
+	DriverMySQL = "mysql"
+
+	// DriverPostgreSQL is the mysql driver name.
 	DriverPostgreSQL = "postgres"
-	UnknownDriver    = "unknown"
+
+	// UnknownDriver is the driver name if the driver is unknown.
+	UnknownDriver = "unknown"
 )
 
+// Canonicalize returns constants DriverMySQL, DriverPostgreSQL, UnknownDriver, depending on `database`.
 func Canonicalize(database string) string {
 	switch database {
 	case "mysql":
@@ -19,6 +25,7 @@ func Canonicalize(database string) string {
 	}
 }
 
+// MustCanonicalize returns constants DriverMySQL, DriverPostgreSQL or fatals.
 func MustCanonicalize(database string) string {
 	d := Canonicalize(database)
 	if d == UnknownDriver {

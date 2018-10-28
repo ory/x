@@ -16,18 +16,23 @@ import (
 	"github.com/spf13/viper"
 )
 
+// ErrNoCertificatesConfigured is returned when no TLS configuration was found.
 var ErrNoCertificatesConfigured = errors.New("no tls configuration was found")
+
+// ErrInvalidCertificateConfiguration is returned when an invaloid TLS configuration was found.
 var ErrInvalidCertificateConfiguration = errors.New("tls configuration is invalid")
 
+// HTTPSCertificate returns loads a HTTP over TLS Certificate by looking at environment variables.
 func HTTPSCertificate() ([]tls.Certificate, error) {
 	return Certificate("HTTPS_TLS")
 }
 
+// HTTPSCertificateHelpMessage returns a help message for configuring HTTP over TLS Certificates.
 func HTTPSCertificateHelpMessage() string {
 	return CertificateHelpMessage("HTTPS_TLS")
 }
 
-// CertificateHelpMessage returns a help message for configuring TLS Certificates
+// CertificateHelpMessage returns a help message for configuring TLS Certificates.
 func CertificateHelpMessage(prefix string) string {
 	return `- ` + prefix + `_CERT_PATH: The path to the TLS certificate (pem encoded).
 	Example: ` + prefix + `_CERT_PATH=~/cert.pem
@@ -43,7 +48,7 @@ func CertificateHelpMessage(prefix string) string {
 `
 }
 
-// Certificate returns loads a TLS Certificate by looking at environment variables
+// Certificate returns loads a TLS Certificate by looking at environment variables.
 func Certificate(prefix string) ([]tls.Certificate, error) {
 	certString, keyString := viper.GetString(prefix+"_CERT"), viper.GetString(prefix+"_KEY")
 	certPath, keyPath := viper.GetString(prefix+"_CERT_PATH"), viper.GetString(prefix+"_KEY_PATH")
@@ -78,6 +83,7 @@ func Certificate(prefix string) ([]tls.Certificate, error) {
 	return nil, errors.WithStack(ErrInvalidCertificateConfiguration)
 }
 
+// PublicKey returns the public key for a given key or nul.
 func PublicKey(key interface{}) interface{} {
 	switch k := key.(type) {
 	case *rsa.PrivateKey:
@@ -89,6 +95,7 @@ func PublicKey(key interface{}) interface{} {
 	}
 }
 
+// CreateSelfSignedCertificate creates a self-signed x509 certificate.
 func CreateSelfSignedCertificate(key interface{}) (cert *x509.Certificate, err error) {
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)

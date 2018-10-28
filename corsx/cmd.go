@@ -1,5 +1,6 @@
 package corsx
 
+// HelpMessage returns a string containing information on setting up this CORS middleware.
 func HelpMessage() string {
 	return `- CORS_ENABLED: Switch CORS support on (true) or off (false). Default is off (false).
 

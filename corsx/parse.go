@@ -11,6 +11,14 @@ import (
 	"github.com/ory/go-convenience/stringsx"
 )
 
+// ParseOptions parses CORS settings by using the `viper` framework. The following options are parsed:
+//
+//  - CORS_ALLOWED_CREDENTIALS
+//  - CORS_DEBUG
+//  - CORS_MAX_AGE
+//  - CORS_ALLOWED_ORIGINS
+//  - CORS_ALLOWED_METHODS
+//  - CORS_ALLOWED_HEADERS
 func ParseOptions() cors.Options {
 	allowCredentials, _ := strconv.ParseBool(viper.GetString("CORS_ALLOWED_CREDENTIALS"))
 	debug, _ := strconv.ParseBool(viper.GetString("CORS_DEBUG"))
@@ -26,6 +34,7 @@ func ParseOptions() cors.Options {
 	}
 }
 
+// Initialize starts the CORS middleware for a http.Handler if `viper.GetString("CORS_ENABLED") == "true"`.
 func Initialize(h http.Handler, l logrus.FieldLogger) http.Handler {
 	if viper.GetString("CORS_ENABLED") == "true" {
 		l.Info("CORS is enabled")

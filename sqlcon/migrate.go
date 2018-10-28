@@ -11,10 +11,13 @@ import (
 	"github.com/spf13/viper"
 )
 
+// SchemaCreator is an interface that allows SQL schemas to be created and migrated.
 type SchemaCreator interface {
+	// CreateSchemas migrates or creates one or more SQL schemas.
 	CreateSchemas(db *sqlx.DB) (int, error)
 }
 
+// MigratorSQLCmd returns a *cobra.Command executing SQL schema migrations.
 func MigratorSQLCmd(path, name string, logger logrus.FieldLogger, runners map[string]SchemaCreator) *cobra.Command {
 	c := &cobra.Command{
 		Use:   name + " <database-url>",

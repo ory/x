@@ -18,6 +18,7 @@
  * @license 	Apache-2.0
  */
 
+// Package sqlcon provides helpers for dealing with SQL connectivity.
 package sqlcon
 
 import (
@@ -29,6 +30,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ory/x/resilience"
+
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
@@ -38,6 +41,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// SQLConnection represents a connection to a SQL database.
 type SQLConnection struct {
 	db  *sqlx.DB
 	URL *url.URL
@@ -45,6 +49,7 @@ type SQLConnection struct {
 	options
 }
 
+// NewSQLConnection returns a new SQLConnection.
 func NewSQLConnection(db string, l logrus.FieldLogger, opts ...Opt) (*SQLConnection, error) {
 	u, err := url.Parse(db)
 	if err != nil {
@@ -86,8 +91,9 @@ func cleanURLQuery(c *url.URL) *url.URL {
 	return cleanurl
 }
 
+// GetDatabaseRetry tries to connect to a database and fails after failAfter.
 func (c *SQLConnection) GetDatabaseRetry(maxWait time.Duration, failAfter time.Duration) (*sqlx.DB, error) {
-	if err := retry(c.L, maxWait, failAfter, func() error {
+	if err := resilience.Retry(c.L, maxWait, failAfter, func() error {
 		if err := c.GetDatabase().Ping(); err != nil {
 			return errors.WithStack(err)
 		}
@@ -99,6 +105,7 @@ func (c *SQLConnection) GetDatabaseRetry(maxWait time.Duration, failAfter time.D
 	return c.db, nil
 }
 
+// GetDatabase retrusn a database instance.
 func (c *SQLConnection) GetDatabase() *sqlx.DB {
 	if c.db != nil {
 		return c.db
@@ -112,7 +119,7 @@ func (c *SQLConnection) GetDatabase() *sqlx.DB {
 		c.L.Fatalf("Could not register driver: %s", err)
 	}
 
-	if err = retry(c.L, time.Second*15, time.Minute*2, func() error {
+	if err = resilience.Retry(c.L, time.Second*15, time.Minute*2, func() error {
 		c.L.Infof("Connecting with %s", c.URL.Scheme+"://*:*@"+c.URL.Host+c.URL.Path+"?"+clean.RawQuery)
 
 		u := connectionString(clean)

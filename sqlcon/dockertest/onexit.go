@@ -9,18 +9,21 @@ import (
 
 const interruptedExitCode = 130
 
+// OnExit helps with cleaning up docker test.
 type OnExit struct {
 	sync.Mutex
 	once     sync.Once
 	handlers []func()
 }
 
+// NewOnExit create a new OnExit instance.
 func NewOnExit() *OnExit {
 	return &OnExit{
 		handlers: make([]func(), 0),
 	}
 }
 
+// Add adds a task that is executed on SIGINT, SIGKILL, SIGTERM.
 func (at *OnExit) Add(f func()) {
 	at.Lock()
 	defer at.Unlock()
@@ -35,6 +38,7 @@ func (at *OnExit) Add(f func()) {
 	})
 }
 
+// Exit wraps os.Exit
 func (at *OnExit) Exit(status int) {
 	at.execute()
 	os.Exit(status)

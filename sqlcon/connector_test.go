@@ -45,10 +45,10 @@ import (
 )
 
 var (
-	mysqlUrl    *url.URL
-	postgresUrl *url.URL
+	mysqlURL    *url.URL
+	postgresURL *url.URL
+	resources   []*dockertest.Resource
 )
-var resources []*dockertest.Resource
 
 func TestMain(m *testing.M) {
 	flag.Parse()
@@ -74,43 +74,46 @@ func merge(u *url.URL, params map[string]string) *url.URL {
 }
 
 func TestDistributedTracing(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
 	for _, testCase := range []struct {
 		description   string
 		sqlConnection *SQLConnection
 	}{
 		{
 			description: "mysql: when tracing has been configured - spans should be created",
-			sqlConnection: mustSQL(t, mysqlUrl.String(),
+			sqlConnection: mustSQL(t, mysqlURL.String(),
 				WithDistributedTracing(),
 				WithRandomDriverName(), // this test option is set to ensure a unique driver name is registered
 				WithAllowRoot()),
 		},
 		{
 			description: "postgres: when tracing has been configured - spans should be created",
-			sqlConnection: mustSQL(t, postgresUrl.String(),
+			sqlConnection: mustSQL(t, postgresURL.String(),
 				WithDistributedTracing(),
 				WithRandomDriverName(), // this test option is set to ensure a unique driver name is registered
 				WithAllowRoot()),
 		},
 		{
 			description: "mysql: no spans should be created if parent span is missing from context when `WithAllowRoot` has NOT been set",
-			sqlConnection: mustSQL(t, mysqlUrl.String(),
+			sqlConnection: mustSQL(t, mysqlURL.String(),
 				WithDistributedTracing(), // Notice that the WithAllowRoot() option has NOT been set
 				WithRandomDriverName()),  // this test option is set to ensure a unique driver name is registered
 		},
 		{
 			description: "postgres: no spans should be created if parent span is missing from context when `WithAllowRoot` has NOT been set",
-			sqlConnection: mustSQL(t, postgresUrl.String(),
+			sqlConnection: mustSQL(t, postgresURL.String(),
 				WithDistributedTracing(), // Notice that the WithAllowRoot() option has NOT been set
 				WithRandomDriverName()),  // this test option is set to ensure a unique driver name is registered
 		},
 		{
 			description:   "mysql: when tracing has NOT been configured - NO spans should be created",
-			sqlConnection: mustSQL(t, mysqlUrl.String()), // Notice that the WithDistributedTracing() option has NOT been set
+			sqlConnection: mustSQL(t, mysqlURL.String()), // Notice that the WithDistributedTracing() option has NOT been set
 		},
 		{
 			description:   "postgres: when tracing has NOT been configured - NO spans should be created",
-			sqlConnection: mustSQL(t, postgresUrl.String()), // Notice that the WithDistributedTracing() option has NOT been set
+			sqlConnection: mustSQL(t, postgresURL.String()), // Notice that the WithDistributedTracing() option has NOT been set
 		},
 	} {
 		t.Run(fmt.Sprintf("case=%s", testCase.description), func(t *testing.T) {
@@ -210,27 +213,27 @@ func TestSQLConnection(t *testing.T) {
 	}{
 		{
 			d: "mysql raw",
-			s: mustSQL(t, mysqlUrl.String()),
+			s: mustSQL(t, mysqlURL.String()),
 		},
 		{
 			d: "mysql max_conn_lifetime",
-			s: mustSQL(t, merge(mysqlUrl, map[string]string{"max_conn_lifetime": "1h"}).String()),
+			s: mustSQL(t, merge(mysqlURL, map[string]string{"max_conn_lifetime": "1h"}).String()),
 		},
 		{
 			d: "mysql max_conn_lifetime",
-			s: mustSQL(t, merge(mysqlUrl, map[string]string{"max_conn_lifetime": "1h", "max_idle_conns": "10", "max_conns": "10"}).String()),
+			s: mustSQL(t, merge(mysqlURL, map[string]string{"max_conn_lifetime": "1h", "max_idle_conns": "10", "max_conns": "10"}).String()),
 		},
 		{
 			d: "pg raw",
-			s: mustSQL(t, postgresUrl.String()),
+			s: mustSQL(t, postgresURL.String()),
 		},
 		{
 			d: "pg max_conn_lifetime",
-			s: mustSQL(t, merge(postgresUrl, map[string]string{"max_conn_lifetime": "1h"}).String()),
+			s: mustSQL(t, merge(postgresURL, map[string]string{"max_conn_lifetime": "1h"}).String()),
 		},
 		{
 			d: "pg max_conn_lifetime",
-			s: mustSQL(t, merge(postgresUrl, map[string]string{"max_conn_lifetime": "1h", "max_idle_conns": "10", "max_conns": "10"}).String()),
+			s: mustSQL(t, merge(postgresURL, map[string]string{"max_conn_lifetime": "1h", "max_idle_conns": "10", "max_conns": "10"}).String()),
 		},
 	} {
 		t.Run(fmt.Sprintf("case=%s", tc.d), func(t *testing.T) {
@@ -268,13 +271,9 @@ func bootstrapMySQL() {
 			log.Fatalf("Could not connect to bootstrapped database: %s", err)
 		}
 		u, _ := url.Parse("mysql://" + uu)
-		mysqlUrl = u
+		mysqlURL = u
 		return
 	}
-
-	var db *sqlx.DB
-	var err error
-	var urls string
 
 	pool, err := dockertest.NewPool("")
 	pool.MaxWait = time.Minute * 5
@@ -287,23 +286,10 @@ func bootstrapMySQL() {
 		log.Fatalf("Could not start resource: %s", err)
 	}
 
-	if err = pool.Retry(func() error {
-		var err error
-		urls = fmt.Sprintf("root:secret@(localhost:%s)/mysql?parseTime=true", resource.GetPort("3306/tcp"))
-		db, err = sqlx.Open("mysql", urls)
-		if err != nil {
-			return err
-		}
-
-		return db.Ping()
-	}); err != nil {
-		pool.Purge(resource)
-		log.Fatalf("Could not Connect to docker: %s", err)
-	}
-
+	urls := bootstrap("root:secret@(localhost:%s)/mysql?parseTime=true", "3306/tcp", "mysql", pool, resource)
 	resources = append(resources, resource)
 	u, _ := url.Parse("mysql://" + urls)
-	mysqlUrl = u
+	mysqlURL = u
 }
 
 func bootstrapPostgres() {
@@ -314,13 +300,9 @@ func bootstrapPostgres() {
 			log.Fatalf("Could not connect to bootstrapped database: %s", err)
 		}
 		u, _ := url.Parse(uu)
-		postgresUrl = u
+		postgresURL = u
 		return
 	}
-
-	var db *sqlx.DB
-	var err error
-	var urls string
 
 	pool, err := dockertest.NewPool("")
 	if err != nil {
@@ -332,10 +314,17 @@ func bootstrapPostgres() {
 		log.Fatalf("Could not start resource: %s", err)
 	}
 
-	if err = pool.Retry(func() error {
+	urls := bootstrap("postgres://postgres:secret@localhost:%s/hydra?sslmode=disable", "5432/tcp", "postgres", pool, resource)
+	resources = append(resources, resource)
+	u, _ := url.Parse(urls)
+	postgresURL = u
+}
+
+func bootstrap(u, port, driver string, pool *dockertest.Pool, resource *dockertest.Resource) (urls string) {
+	if err := pool.Retry(func() error {
 		var err error
-		urls = fmt.Sprintf("postgres://postgres:secret@localhost:%s/hydra?sslmode=disable", resource.GetPort("5432/tcp"))
-		db, err = sqlx.Open("postgres", urls)
+		urls = fmt.Sprintf(u, resource.GetPort(port))
+		db, err := sqlx.Open(driver, urls)
 		if err != nil {
 			return err
 		}
@@ -345,8 +334,6 @@ func bootstrapPostgres() {
 		pool.Purge(resource)
 		log.Fatalf("Could not Connect to docker: %s", err)
 	}
-
 	resources = append(resources, resource)
-	u, _ := url.Parse(urls)
-	postgresUrl = u
+	return
 }

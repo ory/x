@@ -17,6 +17,8 @@
  * @copyright 	2017-2018 Aeneas Rekkas <aeneas+oss@aeneas.io>
  * @license 	Apache-2.0
  */
+
+// Package pagination provides helpers for dealing with pagination.
 package pagination
 
 // Index uses limit, offset, and a slice's length to compute start and end indices for said slice.

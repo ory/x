@@ -33,22 +33,26 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ory/x/resilience"
+
 	"github.com/pborman/uuid"
 	"github.com/segmentio/analytics-go"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/negroni"
 )
 
+// MetricsManager helps with providing context on metrics.
 type MetricsManager struct {
-	sync.RWMutex    `json:"-"`
-	start           time.Time          `json:"-"`
-	Segment         analytics.Client   `json:"-"`
-	Logger          logrus.FieldLogger `json:"-"`
-	shouldCommit    bool               `json:"-"`
+	sync.RWMutex
+	start           time.Time
+	shouldCommit    bool
 	salt            string
-	whitelistedURLs []string  `json:"-"`
-	sampling        float64   `json:"-"`
-	rng             io.Reader `json:"-"`
+	whitelistedURLs []string
+	sampling        float64
+	rng             io.Reader
+
+	Segment analytics.Client   `json:"-"`
+	Logger  logrus.FieldLogger `json:"-"`
 
 	ID               string            `json:"id"`
 	UpTime           int64             `json:"uptime"`
@@ -60,12 +64,38 @@ type MetricsManager struct {
 	ServiceName      string            `json:"serviceName"`
 }
 
+// Hash returns a hashed string of the value.
 func Hash(value string) string {
 	hash := sha256.New()
 	hash.Write([]byte(value))
 	return hex.EncodeToString(hash.Sum(nil))
 }
 
+func newMetricsManager(
+	id string,
+	enable bool,
+	whitelistedURLs []string,
+	logger logrus.FieldLogger,
+	serviceName string,
+	sampling float64,
+	segment analytics.Client,
+) *MetricsManager {
+	return &MetricsManager{
+		InstanceID:       uuid.New(),
+		Segment:          segment,
+		Logger:           logger,
+		MemoryStatistics: &MemoryStatistics{},
+		ID:               id,
+		start:            time.Now().UTC(),
+		salt:             uuid.New(),
+		shouldCommit:     enable,
+		whitelistedURLs:  whitelistedURLs,
+		ServiceName:      serviceName,
+		sampling:         sampling,
+	}
+}
+
+// NewMetricsManager returns a new metrics manager.
 func NewMetricsManager(
 	id string,
 	enable bool,
@@ -86,22 +116,10 @@ func NewMetricsManager(
 		return nil
 	}
 
-	mm := &MetricsManager{
-		InstanceID:       uuid.New(),
-		Segment:          segment,
-		Logger:           logger,
-		MemoryStatistics: &MemoryStatistics{},
-		ID:               id,
-		start:            time.Now().UTC(),
-		salt:             uuid.New(),
-		shouldCommit:     enable,
-		whitelistedURLs:  whitelistedURLs,
-		ServiceName:      serviceName,
-		sampling:         sampling,
-	}
-	return mm
+	return newMetricsManager(id, enable, whitelistedURLs, logger, serviceName, sampling, segment)
 }
 
+// NewMetricsManagerWithConfig returns a new metrics manager and allows configuration.
 func NewMetricsManagerWithConfig(
 	id string,
 	enable bool,
@@ -119,22 +137,10 @@ func NewMetricsManagerWithConfig(
 		return nil
 	}
 
-	mm := &MetricsManager{
-		InstanceID:       uuid.New(),
-		Segment:          segment,
-		Logger:           logger,
-		MemoryStatistics: &MemoryStatistics{},
-		ID:               id,
-		start:            time.Now().UTC(),
-		salt:             uuid.New(),
-		shouldCommit:     enable,
-		whitelistedURLs:  whitelistedURLs,
-		ServiceName:      serviceName,
-		sampling:         sampling,
-	}
-	return mm
+	return newMetricsManager(id, enable, whitelistedURLs, logger, serviceName, sampling, segment)
 }
 
+// RegisterSegment enables reporting to segment.
 func (sw *MetricsManager) RegisterSegment(version, hash, buildTime string) {
 	sw.Lock()
 	defer sw.Unlock()
@@ -144,7 +150,7 @@ func (sw *MetricsManager) RegisterSegment(version, hash, buildTime string) {
 		return
 	}
 
-	if err := Retry(sw.Logger, time.Minute*5, time.Hour, func() error {
+	if err := resilience.Retry(sw.Logger, time.Minute*5, time.Hour, func() error {
 		return sw.Segment.Enqueue(analytics.Identify{
 			UserId: sw.ID,
 			Traits: analytics.NewTraits().
@@ -167,6 +173,7 @@ func (sw *MetricsManager) RegisterSegment(version, hash, buildTime string) {
 	sw.Logger.Debug("Transmitted anonymized environment information")
 }
 
+// CommitMemoryStatistics commits memory statistics to segment.
 func (sw *MetricsManager) CommitMemoryStatistics() {
 	if !sw.shouldCommit {
 		sw.Logger.Info("Detected local environment, skipping telemetry commit")
@@ -189,6 +196,7 @@ func (sw *MetricsManager) CommitMemoryStatistics() {
 	}
 }
 
+// ServeHTTP is a middleware for sending meta information to segment.
 func (sw *MetricsManager) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	start := time.Now()
 

@@ -8,6 +8,7 @@ import (
 	"os"
 )
 
+// Must fatals with the optional message if err is not nil.
 func Must(err error, message string, args ...interface{}) {
 	if err == nil {
 		return
@@ -17,6 +18,7 @@ func Must(err error, message string, args ...interface{}) {
 	os.Exit(1)
 }
 
+// CheckResponse fatals if err is nil or the response.StatusCode does not match the expectedStatusCode
 func CheckResponse(err error, expectedStatusCode int, response *http.Response) {
 	Must(err, "Command failed because error occurred: %s", err)
 
@@ -40,12 +42,14 @@ Response payload:
 	}
 }
 
-func FormatResponse(response interface{}) string {
-	out, err := json.MarshalIndent(response, "", "\t")
+// FormatResponse takes an object and prints a json.MarshalIdent version of it or fatals.
+func FormatResponse(o interface{}) string {
+	out, err := json.MarshalIndent(o, "", "\t")
 	Must(err, `Command failed because an error occurred while prettifying output: %s`, err)
 	return string(out)
 }
 
+// Fatalf prints to os.Stderr and exists with code 1.
 func Fatalf(message string, args ...interface{}) {
 	if len(args) > 0 {
 		fmt.Fprintf(os.Stderr, message+"\n", args...)

@@ -12,11 +12,13 @@ import (
 )
 
 var (
+	// ErrUniqueViolation is returned when^a SQL INSERT / UPDATE command returns a conflict.
 	ErrUniqueViolation = &herodot.DefaultError{
 		CodeField:   http.StatusConflict,
 		StatusField: http.StatusText(http.StatusConflict),
 		ErrorField:  "Unable to insert or update resource because a resource with that value exists already",
 	}
+	// ErrNoRows is returned when a SQL SELECT statement returns no rows.
 	ErrNoRows = &herodot.DefaultError{
 		CodeField:   http.StatusNotFound,
 		StatusField: http.StatusText(http.StatusNotFound),
@@ -24,6 +26,7 @@ var (
 	}
 )
 
+// HandleError returns the right sqlcon.Err* depending on the input error.
 func HandleError(err error) error {
 	if err == sql.ErrNoRows {
 		return errors.WithStack(ErrNoRows)

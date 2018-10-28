@@ -28,6 +28,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Version returns a *cobra.Command that handles the `version` command.
 func Version(gitTag, gitHash, buildTime *string) *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",

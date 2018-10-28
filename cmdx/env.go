@@ -1,5 +1,6 @@
 package cmdx
 
+// EnvVarExamplesHelpMessage returns a string containing documentation on how to use environment variables.
 func EnvVarExamplesHelpMessage(name string) string {
 	return `This command exposes a variety of controls via environment variables. Here are some examples on how to
 configure environment variables:
