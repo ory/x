@@ -1,9 +1,10 @@
 package dbal
 
 import (
-	"github.com/sirupsen/logrus"
 	"sort"
 	"testing"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

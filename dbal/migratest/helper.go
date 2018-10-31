@@ -13,6 +13,7 @@ import (
 	"github.com/ory/x/sqlcon/dockertest"
 )
 
+// RunPackrMigrationTests runs migration tests from packr migrations.
 func RunPackrMigrationTests(
 	t *testing.T, schema, data map[string]*migrate.PackrMigrationSource,
 	init, cleanup func(*testing.T, *sqlx.DB),
