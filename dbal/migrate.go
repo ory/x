@@ -35,7 +35,7 @@ func NewMustPackerMigrationSource(l logrus.FieldLogger, folder []string) *migrat
 	return m
 }
 
-// NewMustPackerMigrationSource create a new packr-based migration source or returns an error
+// NewPackerMigrationSource create a new packr-based migration source or returns an error
 func NewPackerMigrationSource(l logrus.FieldLogger, folder []string) (*migrate.PackrMigrationSource, error) {
 	b := packr.NewBox(migrationBasePath)
 	var files migrationFiles
@@ -57,6 +57,7 @@ func NewPackerMigrationSource(l logrus.FieldLogger, folder []string) (*migrate.P
 
 			l.WithField("file", abs).Debugf("Processing sql migration file")
 
+			/* #nosec G304 */
 			body, err := ioutil.ReadFile(abs)
 			if err != nil {
 				return errors.WithStack(err)
