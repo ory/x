@@ -13,18 +13,18 @@ import (
 )
 
 func TestNewPackerMigrationSource(t *testing.T) {
-	m, err := NewPackerMigrationSource(logrus.New(), AssetNames(), Asset, []string{"./stub/a", "./stub/b"})
+	m, err := NewPackerMigrationSource(logrus.New(), AssetNames(), Asset, []string{"stub/a", "stub/b"})
 	require.NoError(t, err)
-	assert.True(t, stringslice.Has(m.Box.List(), "migrations/sql/1.sql"))
-	assert.True(t, stringslice.Has(m.Box.List(), "migrations/sql/2.sql"))
-	assert.True(t, stringslice.Has(m.Box.List(), "migrations/sql/3.sql"))
+	assert.True(t, stringslice.Has(m.Box.List(), "/migrations/sql/1.sql"), "%v", m.Box.List())
+	assert.True(t, stringslice.Has(m.Box.List(), "/migrations/sql/2.sql"), "%v", m.Box.List())
+	assert.True(t, stringslice.Has(m.Box.List(), "/migrations/sql/3.sql"), "%v", m.Box.List())
 
-	m, err = NewPackerMigrationSource(logrus.New(), AssetNames(), Asset, []string{"./stub/a", "./stub/c"})
+	m, err = NewPackerMigrationSource(logrus.New(), AssetNames(), Asset, []string{"stub/a", "stub/c"})
 	require.NoError(t, err)
-	assert.True(t, stringslice.Has(m.Box.List(), "migrations/sql/1.sql"))
-	assert.True(t, stringslice.Has(m.Box.List(), "migrations/sql/2.sql"))
-	assert.True(t, stringslice.Has(m.Box.List(), "migrations/sql/3.sql"))
-	assert.True(t, stringslice.Has(m.Box.List(), "migrations/sql/4.sql"))
+	assert.True(t, stringslice.Has(m.Box.List(), "/migrations/sql/1.sql"), "%v", m.Box.List())
+	assert.True(t, stringslice.Has(m.Box.List(), "/migrations/sql/2.sql"), "%v", m.Box.List())
+	assert.True(t, stringslice.Has(m.Box.List(), "/migrations/sql/3.sql"), "%v", m.Box.List())
+	assert.True(t, stringslice.Has(m.Box.List(), "/migrations/sql/4.sql"), "%v", m.Box.List())
 }
 
 func TestMigrationFileSort(t *testing.T) {
