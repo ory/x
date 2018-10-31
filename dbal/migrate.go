@@ -50,22 +50,17 @@ func NewPackerMigrationSource(l logrus.FieldLogger, folder []string) (*migrate.P
 				return nil
 			}
 
-			abs, err := filepath.Abs(filepath.Clean(path))
-			if err != nil {
-				return errors.WithStack(err)
-			}
-
-			l.WithField("file", abs).Debugf("Processing sql migration file")
+			l.WithField("file", path).Debugf("Processing sql migration file")
 
 			/* #nosec G304 */
-			body, err := ioutil.ReadFile(abs)
+			body, err := ioutil.ReadFile(path)
 			if err != nil {
 				return errors.WithStack(err)
 			}
 
 			files = append(files, migrationFile{
 				Filename: filepath.Base(path),
-				Filepath: abs,
+				Filepath: path,
 				Content:  body,
 			})
 
