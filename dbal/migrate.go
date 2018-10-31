@@ -73,7 +73,6 @@ func NewPackerMigrationSource(l logrus.FieldLogger, sources []string, loader fun
 	sort.Sort(files)
 
 	for _, f := range files {
-		b.AddBytes(filepath.ToSlash(filepath.Join(migrationBasePath, f.Filename)), f.Content)
 		if err := b.AddBytes(filepath.ToSlash(filepath.Join(migrationBasePath, f.Filename)), f.Content); err != nil {
 			return nil, errors.WithStack(err)
 		}
