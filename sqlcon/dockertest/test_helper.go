@@ -5,6 +5,11 @@ import (
 	"log"
 	"os"
 	"sync"
+	"time"
+
+	"github.com/sirupsen/logrus"
+
+	"github.com/ory/x/resilience"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -112,7 +117,7 @@ func ConnectToTestMySQL() (*sqlx.DB, error) {
 }
 
 func bootstrap(u, port, d string, pool *dockertest.Pool, resource *dockertest.Resource) (db *sqlx.DB) {
-	if err := pool.Retry(func() error {
+	if err := resilience.Retry(logrus.New(), time.Second*5, time.Minute*5, func() error {
 		var err error
 		db, err = sqlx.Open(d, fmt.Sprintf(u, resource.GetPort(port)))
 		if err != nil {

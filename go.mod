@@ -14,9 +14,9 @@ require (
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.3.3 // indirect
 	github.com/go-sql-driver/mysql v1.4.0
+	github.com/gobuffalo/packr v1.16.0
 	github.com/google/martian v2.1.0+incompatible // indirect
 	github.com/gotestyourself/gotestyourself v2.1.0+incompatible // indirect
-	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jmoiron/sqlx v0.0.0-20180614180643-0dae4fefe7c0
 	github.com/julienschmidt/httprouter v0.0.0-20180715161854-348b672cd90d
 	github.com/kr/pretty v0.1.0 // indirect
@@ -36,6 +36,7 @@ require (
 	github.com/pkg/errors v0.8.0
 	github.com/pkg/profile v1.2.1
 	github.com/rs/cors v1.6.0
+	github.com/rubenv/sql-migrate v0.0.0-20180704111356-3f452fc0ebeb
 	github.com/segmentio/analytics-go v3.0.1+incompatible
 	github.com/segmentio/backo-go v0.0.0-20160424052352-204274ad699c // indirect
 	github.com/sirupsen/logrus v1.1.1
@@ -49,6 +50,7 @@ require (
 	go.opencensus.io v0.18.0 // indirect
 	golang.org/x/crypto v0.0.0-20181001203147-e3636079e1a4
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2 // indirect
+	gopkg.in/gorp.v1 v1.7.1 // indirect
 	gopkg.in/square/go-jose.v2 v2.1.9
 	gotest.tools v2.1.0+incompatible // indirect
 )
