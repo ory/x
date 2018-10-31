@@ -1,6 +1,7 @@
 package dbal
 
 import (
+	"github.com/sirupsen/logrus"
 	"sort"
 	"testing"
 
@@ -11,13 +12,13 @@ import (
 )
 
 func TestNewPackerMigrationSource(t *testing.T) {
-	m, err := NewPackerMigrationSource([]string{"./stub/a", "./stub/b"})
+	m, err := NewPackerMigrationSource(logrus.New(), []string{"./stub/a", "./stub/b"})
 	require.NoError(t, err)
 	assert.True(t, stringslice.Has(m.Box.List(), "/migrations/sql/1.sql"))
 	assert.True(t, stringslice.Has(m.Box.List(), "/migrations/sql/2.sql"))
 	assert.True(t, stringslice.Has(m.Box.List(), "/migrations/sql/3.sql"))
 
-	m, err = NewPackerMigrationSource([]string{"./stub/a", "./stub/c"})
+	m, err = NewPackerMigrationSource(logrus.New(), []string{"./stub/a", "./stub/c"})
 	require.NoError(t, err)
 	assert.True(t, stringslice.Has(m.Box.List(), "/migrations/sql/1.sql"))
 	assert.True(t, stringslice.Has(m.Box.List(), "/migrations/sql/2.sql"))

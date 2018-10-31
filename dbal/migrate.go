@@ -26,6 +26,7 @@ func (s migrationFiles) Len() int           { return len(s) }
 func (s migrationFiles) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s migrationFiles) Less(i, j int) bool { return s[i].Filename < s[j].Filename }
 
+// NewMustPackerMigrationSource create a new packr-based migration source or fatals.
 func NewMustPackerMigrationSource(l logrus.FieldLogger, folder []string) *migrate.PackrMigrationSource {
 	m, err := NewPackerMigrationSource(l, folder)
 	if err != nil {
@@ -34,6 +35,7 @@ func NewMustPackerMigrationSource(l logrus.FieldLogger, folder []string) *migrat
 	return m
 }
 
+// NewMustPackerMigrationSource create a new packr-based migration source or returns an error
 func NewPackerMigrationSource(l logrus.FieldLogger, folder []string) (*migrate.PackrMigrationSource, error) {
 	b := packr.NewBox(migrationBasePath)
 	var files migrationFiles
@@ -48,7 +50,7 @@ func NewPackerMigrationSource(l logrus.FieldLogger, folder []string) (*migrate.P
 				return nil
 			}
 
-			abs, err := filepath.Abs(path)
+			abs, err := filepath.Abs(filepath.Clean(path))
 			if err != nil {
 				return errors.WithStack(err)
 			}
@@ -75,7 +77,9 @@ func NewPackerMigrationSource(l logrus.FieldLogger, folder []string) (*migrate.P
 	sort.Sort(files)
 
 	for _, f := range files {
-		b.AddBytes(filepath.ToSlash(filepath.Join(migrationBasePath, f.Filename)), f.Content)
+		if err := b.AddBytes(filepath.ToSlash(filepath.Join(migrationBasePath, f.Filename)), f.Content); err != nil {
+			return nil, errors.WithStack(err)
+		}
 	}
 
 	return &migrate.PackrMigrationSource{
