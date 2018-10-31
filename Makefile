@@ -1,5 +1,6 @@
 init:
-		go get -u github.com/sqs/goreturns
+		go get -u github.com/sqs/goreturns \
+			github.com/go-bindata/go-bindata/...
 		go install ./tools/listx
 
 format:
@@ -7,3 +8,6 @@ format:
 
 test:
 		go test -race ./...
+
+gen:
+		cd dbal; go-bindata -o migrate_files.go -pkg dbal ./stub/a ./stub/b ./stub/c
