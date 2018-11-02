@@ -7,14 +7,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
-	"github.com/ory/x/resilience"
-
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 
 	"github.com/ory/dockertest"
+	"github.com/ory/x/resilience"
 )
 
 //atexit := atexit.NewOnExit()

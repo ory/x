@@ -30,8 +30,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ory/x/resilience"
-
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
@@ -39,6 +37,8 @@ import (
 	"github.com/luna-duclos/instrumentedsql/opentracing"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+
+	"github.com/ory/x/resilience"
 )
 
 // SQLConnection represents a connection to a SQL database.

@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/base64"
+	"encoding/pem"
 	"fmt"
 	"math/big"
 	"time"
@@ -95,6 +96,28 @@ func PublicKey(key interface{}) interface{} {
 	}
 }
 
+// CreateSelfSignedTLSCertificate creates a self-signed TLS certificate.
+func CreateSelfSignedTLSCertificate(key interface{}) (*tls.Certificate, error) {
+	c, err := CreateSelfSignedCertificate(key)
+	if err != nil {
+		return nil, err
+	}
+
+	block, err := PEMBlockForKey(key)
+	if err != nil {
+		return nil, err
+	}
+
+	pemCert := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: c.Raw})
+	pemKey := pem.EncodeToMemory(block)
+	cert, err := tls.X509KeyPair(pemCert, pemKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return &cert, nil
+}
+
 // CreateSelfSignedCertificate creates a self-signed x509 certificate.
 func CreateSelfSignedCertificate(key interface{}) (cert *x509.Certificate, err error) {
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
@@ -133,4 +156,20 @@ func CreateSelfSignedCertificate(key interface{}) (cert *x509.Certificate, err e
 		return cert, errors.Errorf("failed to encode private key: %s", err)
 	}
 	return cert, nil
+}
+
+// PEMBlockForKey returns a PEM-encoded block for key.
+func PEMBlockForKey(key interface{}) (*pem.Block, error) {
+	switch k := key.(type) {
+	case *rsa.PrivateKey:
+		return &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(k)}, nil
+	case *ecdsa.PrivateKey:
+		b, err := x509.MarshalECPrivateKey(k)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		return &pem.Block{Type: "EC PRIVATE KEY", Bytes: b}, nil
+	default:
+		return nil, errors.New("Invalid key type")
+	}
 }

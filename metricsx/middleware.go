@@ -34,12 +34,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ory/x/resilience"
-
 	"github.com/pborman/uuid"
 	"github.com/segmentio/analytics-go"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/negroni"
+
+	"github.com/ory/x/resilience"
 )
 
 // MetricsManager helps with providing context on metrics.

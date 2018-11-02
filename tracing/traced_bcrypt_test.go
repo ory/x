@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/ory/x/tracing"
-
 	"github.com/stretchr/testify/assert"
+
+	"github.com/ory/x/tracing"
 )
 
 func TestCompare(t *testing.T) {
