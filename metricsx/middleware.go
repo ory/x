@@ -39,7 +39,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/negroni"
 
-	"yijiu-tech.com/ory/x/resilience"
+	"github.com/ory/x/resilience"
 )
 
 // MetricsManager helps with providing context on metrics.
