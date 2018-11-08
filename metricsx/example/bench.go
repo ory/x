@@ -34,7 +34,7 @@ func main() {
 	defer api.Close()
 
 	n := negroni.New()
-	segmentMiddleware := metricsx.NewMetricsManagerWithConfig(
+	segmentMiddleware := metricsx.NewMetricsManagerWithClient(
 		"foo",
 		true,
 		wk,
@@ -42,9 +42,9 @@ func main() {
 		logrus.New(),
 		"metrics-middleware",
 		1.0,
-		analytics.Config{
+		analytics.Client{
 			Interval:  time.Second,
-			BatchSize: 1,
+			Size: 1,
 			Endpoint:  "https://ory-metrics-server.herokuapp.com",
 		},
 	)

@@ -39,7 +39,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/negroni"
 
-	"github.com/ory/x/resilience"
+	"yijiu-tech.com/ory/x/resilience"
 )
 
 // MetricsManager helps with providing context on metrics.
@@ -110,21 +110,15 @@ func NewMetricsManager(
 	sampling float64,
 	endpoint string,
 ) *MetricsManager {
-	segment, err := analytics.NewWithConfig(writeKey, analytics.Config{
-		Interval:  time.Hour * 24,
-		BatchSize: 100,
-	})
+	segment := analytics.New(writeKey)
+	segment.Interval = time.Minute * 10
+	segment.Size = 100
 
-	if err != nil {
-		logger.WithError(err).Fatalf("Unable to initialise segment.")
-		return nil
-	}
-
-	return newMetricsManager(id, enable, whitelistedURLs, logger, serviceName, sampling, segment)
+	return newMetricsManager(id, enable, whitelistedURLs, logger, serviceName, sampling, *segment)
 }
 
-// NewMetricsManagerWithConfig returns a new metrics manager and allows configuration.
-func NewMetricsManagerWithConfig(
+// NewMetricsManagerWithClient returns a new metrics manager and allows configuration.
+func NewMetricsManagerWithClient(
 	id string,
 	enable bool,
 	writeKey string,
@@ -132,16 +126,9 @@ func NewMetricsManagerWithConfig(
 	logger logrus.FieldLogger,
 	serviceName string,
 	sampling float64,
-	config analytics.Config,
+	client analytics.Client,
 ) *MetricsManager {
-	segment, err := analytics.NewWithConfig(writeKey, config)
-
-	if err != nil {
-		logger.WithError(err).Fatalf("Unable to initialise segment.")
-		return nil
-	}
-
-	return newMetricsManager(id, enable, whitelistedURLs, logger, serviceName, sampling, segment)
+	return newMetricsManager(id, enable, whitelistedURLs, logger, serviceName, sampling, client)
 }
 
 // RegisterSegment enables reporting to segment.
@@ -155,22 +142,40 @@ func (sw *MetricsManager) RegisterSegment(version, hash, buildTime string) {
 	}
 
 	if err := resilience.Retry(sw.Logger, time.Minute*5, time.Hour, func() error {
-		return sw.Segment.Enqueue(analytics.Identify{
+		return sw.Segment.Identify(&analytics.Identify{
 			UserId: sw.ID,
-			Traits: analytics.NewTraits().
-				Set("goarch", runtime.GOARCH).
-				Set("goos", runtime.GOOS).
-				Set("numCpu", runtime.NumCPU()).
-				Set("runtimeVersion", runtime.Version()).
-				Set("version", version).
-				Set("Hash", hash).
-				Set("buildTime", buildTime).
-				Set("service", sw.ServiceName).
-				Set("instanceId", sw.InstanceID),
-			Context: &analytics.Context{
-				IP: net.IPv4(0, 0, 0, 0),
+			Traits: map[string]interface{}{
+				"goarch": runtime.GOARCH,
+				"goos": runtime.GOOS,
+				"numCpu": runtime.NumCPU(),
+				"runtimeVersion": runtime.Version(),
+				"version": version,
+				"Hash": hash,
+				"buildTime": buildTime,
+				"service": sw.ServiceName,
+				"instanceId": sw.InstanceID,
+			},
+			Context: map[string]interface{}{
+				"ip": net.IPv4(0, 0, 0, 0),
 			},
 		})
+
+		//return sw.Segment.Enqueue(analytics.Identify{
+		//	UserId: sw.ID,
+		//	Traits: analytics.NewTraits().
+		//		Set("goarch", runtime.GOARCH).
+		//		Set("goos", runtime.GOOS).
+		//		Set("numCpu", runtime.NumCPU()).
+		//		Set("runtimeVersion", runtime.Version()).
+		//		Set("version", version).
+		//		Set("Hash", hash).
+		//		Set("buildTime", buildTime).
+		//		Set("service", sw.ServiceName).
+		//		Set("instanceId", sw.InstanceID),
+		//	Context: &analytics.Context{
+		//		IP: net.IPv4(0, 0, 0, 0),
+		//	},
+		//})
 	}); err != nil {
 		sw.Logger.WithError(err).Debug("Could not commit anonymized environment information")
 	}
@@ -186,16 +191,27 @@ func (sw *MetricsManager) CommitMemoryStatistics() {
 
 	for {
 		sw.MemoryStatistics.Update()
-		if err := sw.Segment.Enqueue(analytics.Track{
+		//if err := sw.Segment.Enqueue(analytics.Track{
+		//	UserId:     sw.ID,
+		//	Event:      "memstats",
+		//	Properties: analytics.Properties(sw.MemoryStatistics.ToMap()),
+		//	Context:    &analytics.Context{IP: net.IPv4(0, 0, 0, 0)},
+		//}); err != nil {
+		//	sw.Logger.WithError(err).Debug("Could not commit anonymized telemetry data")
+		//} else {
+		//	sw.Logger.Debug("Telemetry data transmitted")
+		//}
+		if err := sw.Segment.Track(&analytics.Track{
 			UserId:     sw.ID,
 			Event:      "memstats",
-			Properties: analytics.Properties(sw.MemoryStatistics.ToMap()),
-			Context:    &analytics.Context{IP: net.IPv4(0, 0, 0, 0)},
+			Properties: sw.MemoryStatistics.ToMap(),
+			Context:    map[string]interface{}{"ip": net.IPv4(0, 0, 0, 0)},
 		}); err != nil {
 			sw.Logger.WithError(err).Debug("Could not commit anonymized telemetry data")
 		} else {
 			sw.Logger.Debug("Telemetry data transmitted")
 		}
+
 		time.Sleep(time.Hour * 24)
 	}
 }
@@ -225,21 +241,37 @@ func (sw *MetricsManager) ServeHTTP(rw http.ResponseWriter, r *http.Request, nex
 	status := res.Status()
 	size := res.Size()
 
-	sw.Segment.Enqueue(analytics.Page{
+	//sw.Segment.Enqueue(analytics.Page{
+	//	UserId: sw.ID,
+	//	Name:   path,
+	//	Properties: analytics.
+	//		NewProperties().
+	//		SetURL(scheme+"//"+sw.ID+path+"?"+query).
+	//		SetPath(path).
+	//		SetName(path).
+	//		Set("status", status).
+	//		Set("size", size).
+	//		Set("latency", latency).
+	//		Set("instance", sw.InstanceID).
+	//		Set("service", sw.ServiceName).
+	//		Set("method", r.Method),
+	//	Context: &analytics.Context{IP: net.IPv4(0, 0, 0, 0)},
+	//})
+	sw.Segment.Page(&analytics.Page{
 		UserId: sw.ID,
 		Name:   path,
-		Properties: analytics.
-			NewProperties().
-			SetURL(scheme+"//"+sw.ID+path+"?"+query).
-			SetPath(path).
-			SetName(path).
-			Set("status", status).
-			Set("size", size).
-			Set("latency", latency).
-			Set("instance", sw.InstanceID).
-			Set("service", sw.ServiceName).
-			Set("method", r.Method),
-		Context: &analytics.Context{IP: net.IPv4(0, 0, 0, 0)},
+		Traits: map[string]interface{}{
+			"url": scheme+"//"+sw.ID+path+"?"+query,
+			"path": path,
+			"name": path,
+			"status": status,
+			"size": size,
+			"latency": latency,
+			"instance": sw.InstanceID,
+			"service": sw.ServiceName,
+			"method": r.Method,
+		},
+		Context: map[string]interface{}{"ip": net.IPv4(0, 0, 0, 0)},
 	})
 }
 
