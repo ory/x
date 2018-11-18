@@ -13,6 +13,7 @@ import (
 	"github.com/ory/x/sqlcon/dockertest"
 )
 
+// MigrationSchemas contains several schemas.
 type MigrationSchemas []map[string]*migrate.PackrMigrationSource
 
 // RunPackrMigrationTests runs migration tests from packr migrations.
