@@ -56,23 +56,46 @@ func Parallel(fs []func()) {
 	wg.Add(len(fs))
 	for _, f := range fs {
 		go func(f func()) {
+			defer wg.Done()
 			f()
-			wg.Done()
 		}(f)
 	}
 
 	wg.Wait()
 }
 
+func connect(driver, dsn string) (db *sqlx.DB, err error) {
+	err = resilience.Retry(
+		logrus.New(),
+		time.Second*5,
+		time.Minute*5,
+		func() (err error) {
+			db, err = sqlx.Open(driver, dsn)
+			if err != nil {
+				log.Printf("Connecting to database %s failed: %s", driver, err)
+				return err
+			}
+
+			if err := db.Ping(); err != nil {
+				log.Printf("Pinging database %s failed: %s", driver, err)
+				return err
+			}
+
+			return nil
+		},
+	)
+	if err != nil {
+		return nil, errors.Errorf("Unable to connect to %s (%s): %s", driver, dsn, err)
+	}
+	log.Printf("Connected to database %s", driver)
+	return db, nil
+}
+
 // ConnectToTestPostgreSQL connects to a PostgreSQL database.
 func ConnectToTestPostgreSQL() (*sqlx.DB, error) {
 	if url := os.Getenv("TEST_DATABASE_POSTGRESQL"); url != "" {
 		log.Println("Found postgresql test database config, skipping dockertest...")
-		db, err := sqlx.Open("postgres", url)
-		if err != nil {
-			return nil, errors.Wrap(err, "Could not connect to bootstrapped database")
-		}
-		return db, nil
+		return connect("postgres", url)
 	}
 
 	pool, err := dockertest.NewPool("")
@@ -93,11 +116,7 @@ func ConnectToTestPostgreSQL() (*sqlx.DB, error) {
 func ConnectToTestMySQL() (*sqlx.DB, error) {
 	if url := os.Getenv("TEST_DATABASE_MYSQL"); url != "" {
 		log.Println("Found mysql test database config, skipping dockertest...")
-		db, err := sqlx.Open("mysql", url)
-		if err != nil {
-			return nil, errors.Wrap(err, "Could not connect to bootstrapped database")
-		}
-		return db, nil
+		return connect("mysql", url)
 	}
 
 	pool, err := dockertest.NewPool("")
