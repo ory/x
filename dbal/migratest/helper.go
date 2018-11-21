@@ -13,8 +13,13 @@ import (
 	"github.com/ory/x/sqlcon/dockertest"
 )
 
+type packrBox interface {
+	migrate.MigrationSource
+	migrate.PackrBox
+}
+
 // MigrationSchemas contains several schemas.
-type MigrationSchemas []map[string]*migrate.PackrMigrationSource
+type MigrationSchemas []map[string]packrBox
 
 // RunPackrMigrationTests runs migration tests from packr migrations.
 func RunPackrMigrationTests(
