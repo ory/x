@@ -26,9 +26,32 @@ func (s migrationFiles) Len() int           { return len(s) }
 func (s migrationFiles) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s migrationFiles) Less(i, j int) bool { return s[i].Filename < s[j].Filename }
 
+// PackrMigrationSource is a wrapper around *migrate.PackrMigrationSource that allows to modify IDs.
+type PackrMigrationSource struct {
+	*migrate.PackrMigrationSource
+	omitExtension bool
+}
+
+// FindMigrations finds migrations in this source.
+func (p PackrMigrationSource) FindMigrations() ([]*migrate.Migration, error) {
+	migrations, err := p.PackrMigrationSource.FindMigrations()
+	if err != nil {
+		return nil, err
+	}
+
+	if p.omitExtension {
+		for k, m := range migrations {
+			m.Id = strings.TrimSuffix(m.Id, filepath.Ext(m.Id))
+			migrations[k] = m
+		}
+	}
+
+	return migrations, err
+}
+
 // NewMustPackerMigrationSource create a new packr-based migration source or fatals.
-func NewMustPackerMigrationSource(l logrus.FieldLogger, folder []string, loader func(string) ([]byte, error), filters []string) *migrate.PackrMigrationSource {
-	m, err := NewPackerMigrationSource(l, folder, loader, filters)
+func NewMustPackerMigrationSource(l logrus.FieldLogger, folder []string, loader func(string) ([]byte, error), filters []string, omitExtension bool) *PackrMigrationSource {
+	m, err := NewPackerMigrationSource(l, folder, loader, filters, omitExtension)
 	if err != nil {
 		l.WithError(err).WithField("stack", fmt.Sprintf("%+v", err)).Fatal("Unable to set up migration source")
 	}
@@ -36,7 +59,7 @@ func NewMustPackerMigrationSource(l logrus.FieldLogger, folder []string, loader 
 }
 
 // NewPackerMigrationSource create a new packr-based migration source or returns an error
-func NewPackerMigrationSource(l logrus.FieldLogger, sources []string, loader func(string) ([]byte, error), filters []string) (*migrate.PackrMigrationSource, error) {
+func NewPackerMigrationSource(l logrus.FieldLogger, sources []string, loader func(string) ([]byte, error), filters []string, omitExtension bool) (*PackrMigrationSource, error) {
 	b := packr.NewBox(migrationBasePath)
 	var files migrationFiles
 
@@ -77,8 +100,11 @@ func NewPackerMigrationSource(l logrus.FieldLogger, sources []string, loader fun
 		b.AddBytes(filepath.ToSlash(filepath.Join(migrationBasePath, f.Filename)), f.Content)
 	}
 
-	return &migrate.PackrMigrationSource{
-		Box: b,
-		Dir: migrationBasePath,
+	return &PackrMigrationSource{
+		PackrMigrationSource: &migrate.PackrMigrationSource{
+			Box: b,
+			Dir: migrationBasePath,
+		},
+		omitExtension: omitExtension,
 	}, nil
 }
