@@ -21,7 +21,7 @@ require (
 	github.com/julienschmidt/httprouter v0.0.0-20180715161854-348b672cd90d
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/lib/pq v1.0.0
-	github.com/luna-duclos/instrumentedsql v0.0.0-20181016211422-eae529699c8a
+	github.com/luna-duclos/instrumentedsql v0.0.0-20181107100131-f6e09e6fd233
 	github.com/mattn/go-sqlite3 v1.9.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opencontainers/image-spec v1.0.1 // indirect
