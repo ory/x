@@ -5,6 +5,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/ory/x/dbal"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/pborman/uuid"
 	"github.com/rubenv/sql-migrate"
@@ -14,7 +16,7 @@ import (
 )
 
 // MigrationSchemas contains several schemas.
-type MigrationSchemas []map[string]*migrate.PackrMigrationSource
+type MigrationSchemas []map[string]*dbal.PackrMigrationSource
 
 // RunPackrMigrationTests runs migration tests from packr migrations.
 func RunPackrMigrationTests(
