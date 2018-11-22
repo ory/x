@@ -105,6 +105,14 @@ func TestDistributedTracing(t *testing.T) {
 				description:   fmt.Sprintf("%s: when tracing has NOT been configured - NO spans should be created", driver),
 				sqlConnection: mustSQL(t, dsn), // Notice that the WithDistributedTracing() option has NOT been set
 			},
+			{
+				description: fmt.Sprintf("%s: no arg tag should be added to spans if `WithOmitArgsFromTraceSpans` has been set", driver),
+				sqlConnection: mustSQL(t, dsn,
+					WithDistributedTracing(),
+					WithRandomDriverName(), // this test option is set to ensure a unique driver name is registered
+					WithAllowRoot(),
+					WithOmitArgsFromTraceSpans()),
+			},
 		} {
 			t.Run(fmt.Sprintf("case=%s", testCase.description), func(t *testing.T) {
 				mockedTracer := mocktracer.New()
@@ -118,6 +126,13 @@ func TestDistributedTracing(t *testing.T) {
 				spans := mockedTracer.FinishedSpans()
 				if testCase.sqlConnection.UseTracedDriver && testCase.sqlConnection.AllowRoot {
 					assert.NotEmpty(t, spans)
+
+					spansContainArgsTag := spansContainTag(spans, "args")
+					if testCase.sqlConnection.OmitArgs {
+						assert.False(t, spansContainArgsTag)
+					} else {
+						assert.True(t, spansContainArgsTag)
+					}
 				} else {
 					assert.Empty(t, spans)
 				}
@@ -327,4 +342,16 @@ func bootstrap(u, port, driver string, pool *dockertest.Pool, resource *dockerte
 	}
 	resources = append(resources, resource)
 	return
+}
+
+func spansContainTag(spans []*mocktracer.MockSpan, tagName string) bool {
+	foundTag := false
+
+	for _, span := range spans {
+		if _, ok := span.Tags()[tagName]; ok {
+			return true
+		}
+	}
+
+	return foundTag
 }
