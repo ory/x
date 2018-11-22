@@ -77,61 +77,52 @@ func TestDistributedTracing(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
 	}
-	for _, testCase := range []struct {
-		description   string
-		sqlConnection *SQLConnection
-	}{
-		{
-			description: "mysql: when tracing has been configured - spans should be created",
-			sqlConnection: mustSQL(t, mysqlURL.String(),
-				WithDistributedTracing(),
-				WithRandomDriverName(), // this test option is set to ensure a unique driver name is registered
-				WithAllowRoot()),
-		},
-		{
-			description: "postgres: when tracing has been configured - spans should be created",
-			sqlConnection: mustSQL(t, postgresURL.String(),
-				WithDistributedTracing(),
-				WithRandomDriverName(), // this test option is set to ensure a unique driver name is registered
-				WithAllowRoot()),
-		},
-		{
-			description: "mysql: no spans should be created if parent span is missing from context when `WithAllowRoot` has NOT been set",
-			sqlConnection: mustSQL(t, mysqlURL.String(),
-				WithDistributedTracing(), // Notice that the WithAllowRoot() option has NOT been set
-				WithRandomDriverName()),  // this test option is set to ensure a unique driver name is registered
-		},
-		{
-			description: "postgres: no spans should be created if parent span is missing from context when `WithAllowRoot` has NOT been set",
-			sqlConnection: mustSQL(t, postgresURL.String(),
-				WithDistributedTracing(), // Notice that the WithAllowRoot() option has NOT been set
-				WithRandomDriverName()),  // this test option is set to ensure a unique driver name is registered
-		},
-		{
-			description:   "mysql: when tracing has NOT been configured - NO spans should be created",
-			sqlConnection: mustSQL(t, mysqlURL.String()), // Notice that the WithDistributedTracing() option has NOT been set
-		},
-		{
-			description:   "postgres: when tracing has NOT been configured - NO spans should be created",
-			sqlConnection: mustSQL(t, postgresURL.String()), // Notice that the WithDistributedTracing() option has NOT been set
-		},
-	} {
-		t.Run(fmt.Sprintf("case=%s", testCase.description), func(t *testing.T) {
-			mockedTracer := mocktracer.New()
-			defer mockedTracer.Reset()
-			opentracing.SetGlobalTracer(mockedTracer)
 
-			db := testCase.sqlConnection.GetDatabase()
-			// Notice how no parent span exists in the provided context!
-			db.QueryRowContext(context.TODO(), "SELECT NOW()")
+	databases := map[string]string{
+		"mysql":    mysqlURL.String(),
+		"postgres": postgresURL.String(),
+	}
 
-			spans := mockedTracer.FinishedSpans()
-			if testCase.sqlConnection.UseTracedDriver && testCase.sqlConnection.AllowRoot {
-				assert.NotEmpty(t, spans)
-			} else {
-				assert.Empty(t, spans)
-			}
-		})
+	for driver, dsn := range databases {
+		for _, testCase := range []struct {
+			description   string
+			sqlConnection *SQLConnection
+		}{
+			{
+				description: fmt.Sprintf("%s: when tracing has been configured - spans should be created", driver),
+				sqlConnection: mustSQL(t, dsn,
+					WithDistributedTracing(),
+					WithRandomDriverName(), // this test option is set to ensure a unique driver name is registered
+					WithAllowRoot()),
+			},
+			{
+				description: fmt.Sprintf("%s: no spans should be created if parent span is missing from context when `WithAllowRoot` has NOT been set", driver),
+				sqlConnection: mustSQL(t, dsn,
+					WithDistributedTracing(), // Notice that the WithAllowRoot() option has NOT been set
+					WithRandomDriverName()),  // this test option is set to ensure a unique driver name is registered
+			},
+			{
+				description:   fmt.Sprintf("%s: when tracing has NOT been configured - NO spans should be created", driver),
+				sqlConnection: mustSQL(t, dsn), // Notice that the WithDistributedTracing() option has NOT been set
+			},
+		} {
+			t.Run(fmt.Sprintf("case=%s", testCase.description), func(t *testing.T) {
+				mockedTracer := mocktracer.New()
+				defer mockedTracer.Reset()
+				opentracing.SetGlobalTracer(mockedTracer)
+
+				db := testCase.sqlConnection.GetDatabase()
+				// Notice how no parent span exists in the provided context!
+				db.QueryRowContext(context.TODO(), "SELECT NOW()")
+
+				spans := mockedTracer.FinishedSpans()
+				if testCase.sqlConnection.UseTracedDriver && testCase.sqlConnection.AllowRoot {
+					assert.NotEmpty(t, spans)
+				} else {
+					assert.Empty(t, spans)
+				}
+			})
+		}
 	}
 }
 
