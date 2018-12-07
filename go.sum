@@ -97,6 +97,8 @@ github.com/luna-duclos/instrumentedsql v0.0.0-20181016211422-eae529699c8a h1:c+X
 github.com/luna-duclos/instrumentedsql v0.0.0-20181016211422-eae529699c8a/go.mod h1:PWUIzhtavmOR965zfawVsHXbEuU1G29BPZ/CB3C7jXk=
 github.com/luna-duclos/instrumentedsql v0.0.0-20181107100131-f6e09e6fd233 h1:d1fTWBQrGrSBRgSpebswouMfBn2aY9HCpTE4zLKn5oM=
 github.com/luna-duclos/instrumentedsql v0.0.0-20181107100131-f6e09e6fd233/go.mod h1:PWUIzhtavmOR965zfawVsHXbEuU1G29BPZ/CB3C7jXk=
+github.com/luna-duclos/instrumentedsql v0.0.0-20181127104832-b7d587d28109 h1:SSbnT1UH/TdSedRIy8XVB1dsVUOFP8iHaa/+QE0/q2k=
+github.com/luna-duclos/instrumentedsql v0.0.0-20181127104832-b7d587d28109/go.mod h1:PWUIzhtavmOR965zfawVsHXbEuU1G29BPZ/CB3C7jXk=
 github.com/magiconair/properties v1.8.0 h1:LLgXmsheXeRoUOBOjtwPQCWIYqM/LU1ayDtDePerRcY=
 github.com/magiconair/properties v1.8.0/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=
 github.com/markbates/oncer v0.0.0-20181014194634-05fccaae8fc4 h1:Mlji5gkcpzkqTROyE4ZxZ8hN7osunMb2RuGVrbvMvCc=
