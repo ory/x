@@ -225,7 +225,7 @@ func (sw *MetricsManager) ServeHTTP(rw http.ResponseWriter, r *http.Request, nex
 	status := res.Status()
 	size := res.Size()
 
-	sw.Segment.Enqueue(analytics.Page{
+	if err := sw.Segment.Enqueue(analytics.Page{
 		UserId: sw.ID,
 		Name:   path,
 		Properties: analytics.
@@ -240,7 +240,9 @@ func (sw *MetricsManager) ServeHTTP(rw http.ResponseWriter, r *http.Request, nex
 			Set("service", sw.ServiceName).
 			Set("method", r.Method),
 		Context: &analytics.Context{IP: net.IPv4(0, 0, 0, 0)},
-	})
+	}); err != nil {
+		// do nothing...
+	}
 }
 
 func (sw *MetricsManager) anonymizePath(path string, salt string) string {
