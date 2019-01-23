@@ -198,7 +198,7 @@ func TestConnectionString(t *testing.T) {
 	a, _ := url.Parse("mysql://foo@bar:baz@qux/db")
 	b := connectionString(a)
 	assert.NotEqual(t, b, a.String())
-	assert.True(t, strings.HasPrefix(b, "foo@bar:baz@qux"))
+	assert.True(t, strings.HasPrefix(b, "foo%40bar:baz@qux"))
 }
 
 func mustSQL(t *testing.T, db string, opts ...Opt) *SQLConnection {
