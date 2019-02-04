@@ -3,10 +3,14 @@ package cmdx
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 	"os"
 )
+
+var	ErrNilDependency = errors.New("A dependency was expected to be defined but is nil. Please open an issue with the stack trace.")
 
 // Must fatals with the optional message if err is not nil.
 func Must(err error, message string, args ...interface{}) {
@@ -60,4 +64,15 @@ func Fatalf(message string, args ...interface{}) {
 		fmt.Fprintln(os.Stderr, message)
 	}
 	os.Exit(1)
+}
+
+func ExpectDependency(logger logrus.FieldLogger, dependencies ...interface{}) {
+	if logger == nil {
+		panic("missing logger for dependency check")
+	}
+	for _, d := range dependencies {
+		if d == nil {
+			logger.WithError(errors.WithStack(errNilDependency)).Fatalf("A fatal issue occurred.")
+		}
+	}
 }
