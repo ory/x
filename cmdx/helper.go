@@ -72,7 +72,7 @@ func ExpectDependency(logger logrus.FieldLogger, dependencies ...interface{}) {
 	}
 	for _, d := range dependencies {
 		if d == nil {
-			logger.WithError(errors.WithStack(errNilDependency)).Fatalf("A fatal issue occurred.")
+			logger.WithError(errors.WithStack(ErrNilDependency)).Fatalf("A fatal issue occurred.")
 		}
 	}
 }
