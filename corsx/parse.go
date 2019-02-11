@@ -8,7 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
-	"github.com/ory/go-convenience/stringsx"
+	"github.com/ory/x/stringsx"
 )
 
 // ParseOptions parses CORS settings by using the `viper` framework. The following options are parsed:

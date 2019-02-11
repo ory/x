@@ -3,20 +3,36 @@ package jwtx
 import (
 	"time"
 
-	"github.com/ory/go-convenience/mapx"
 	"github.com/pkg/errors"
+
+	"github.com/ory/x/mapx"
 )
 
+// Claims represents a JSON Web Token's standard claims.
 type Claims struct {
-	Audience  []string  `json:"aud"`
-	Issuer    string    `json:"iss"`
-	Subject   string    `json:"sub"`
+	// Audience identifies the recipients that the JWT is intended for.
+	Audience []string `json:"aud"`
+
+	// Issuer identifies the principal that issued the JWT.
+	Issuer string `json:"iss"`
+
+	// Subject identifies the principal that is the subject of the JWT.
+	Subject string `json:"sub"`
+
+	// ExpiresAt identifies the expiration time on or after which the JWT most not be accepted for processing.
 	ExpiresAt time.Time `json:"exp"`
-	IssuedAt  time.Time `json:"iat"`
+
+	// IssuedAt identifies the time at which the JWT was issued.
+	IssuedAt time.Time `json:"iat"`
+
+	// NotBefore identifies the time before which the JWT must not be accepted for processing.
 	NotBefore time.Time `json:"nbf"`
-	JTI       string    `json:"jti"`
+
+	// JTI provides a unique identifier for the JWT.
+	JTI string `json:"jti"`
 }
 
+// ParseMapStringInterfaceClaims converts map[string]interface{} to *Claims.
 func ParseMapStringInterfaceClaims(claims map[string]interface{}) *Claims {
 	c := make(map[interface{}]interface{})
 	for k, v := range claims {
@@ -25,6 +41,7 @@ func ParseMapStringInterfaceClaims(claims map[string]interface{}) *Claims {
 	return ParseMapInterfaceInterfaceClaims(c)
 }
 
+// ParseMapInterfaceInterfaceClaims converts map[interface{}]interface{} to *Claims.
 func ParseMapInterfaceInterfaceClaims(claims map[interface{}]interface{}) *Claims {
 	result := &Claims{
 		Issuer:  mapx.GetStringDefault(claims, "iss", ""),

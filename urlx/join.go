@@ -4,7 +4,6 @@ import (
 	"net/url"
 	"path"
 
-	"github.com/ory/go-convenience/urlx"
 	"github.com/ory/x/cmdx"
 )
 
@@ -14,7 +13,7 @@ func MustJoin(first string, parts ...string) string {
 	if err != nil {
 		cmdx.Fatalf("Unable to parse %s: %s", first, err)
 	}
-	return urlx.AppendPaths(u, parts...).String()
+	return AppendPaths(u, parts...).String()
 }
 
 // AppendPaths appends the provided paths to the url.

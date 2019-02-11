@@ -2,9 +2,10 @@ package urlx
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/require"
 	"net/url"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/stretchr/testify/assert"
 )

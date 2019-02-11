@@ -1,9 +1,10 @@
 package urlx
 
 import (
-	"github.com/bmizerany/assert"
 	"net/url"
 	"testing"
+
+	"github.com/bmizerany/assert"
 )
 
 func TestCopyWithQuery(t *testing.T) {
