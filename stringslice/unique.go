@@ -1,5 +1,6 @@
 package stringslice
 
+// Unique returns the given string slice with unique values.
 func Unique(i []string) []string {
 	u := make([]string, 0, len(i))
 	m := make(map[string]bool)

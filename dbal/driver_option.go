@@ -1,7 +1,9 @@
 package dbal
 
+// DriverOptionModifier is a function modifying a DriverOption.
 type DriverOptionModifier func(*DriverOption)
 
+// DriverOption encapsulates DBAL driver options.
 type DriverOption struct {
 	UseTracing bool
 
@@ -18,24 +20,23 @@ func WithTracing() DriverOptionModifier {
 	}
 }
 
-// this option is specifically for writing tests as you can't register a driver with the same name more than once
-func withRandomDriverName() DriverOptionModifier {
+// WithRandomDriverName is specifically for writing tests as you can't register a driver with the same name more than once
+func WithRandomDriverName() DriverOptionModifier {
 	return func(o *DriverOption) {
 		o.useRandomDriverName = true
 	}
 }
 
-// withAllowRoot will make it so that root spans will be created if a trace could not be found in the context
-func withAllowRootTraceSpans() DriverOptionModifier {
+// WithAllowRootTraceSpans will make it so that root spans will be created if a trace could not be found in the context
+func WithAllowRootTraceSpans() DriverOptionModifier {
 	return func(o *DriverOption) {
 		o.allowRootTracingSpans = true
 	}
 }
 
-// withOmitSQLArgsFromSpans will make it so that query arguments are omitted from tracing spans
-func withOmitSQLArgsFromSpans() DriverOptionModifier {
+// WithOmitSQLArgsFromSpans will make it so that query arguments are omitted from tracing spans
+func WithOmitSQLArgsFromSpans() DriverOptionModifier {
 	return func(o *DriverOption) {
 		o.omitSQLArgsFromSpans = true
 	}
 }
-

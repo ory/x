@@ -3,14 +3,16 @@ package cmdx
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 	"os"
+
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
-var	ErrNilDependency = errors.New("A dependency was expected to be defined but is nil. Please open an issue with the stack trace.")
+// ErrNilDependency is returned if a dependency is missing.
+var ErrNilDependency = errors.New("a dependency was expected to be defined but is nil. Please open an issue with the stack trace")
 
 // Must fatals with the optional message if err is not nil.
 func Must(err error, message string, args ...interface{}) {
@@ -18,7 +20,7 @@ func Must(err error, message string, args ...interface{}) {
 		return
 	}
 
-	fmt.Fprintf(os.Stderr, message+"\n", args...)
+	_, _ = fmt.Fprintf(os.Stderr, message+"\n", args...)
 	os.Exit(1)
 }
 
@@ -59,13 +61,14 @@ func FormatResponse(o interface{}) string {
 // Fatalf prints to os.Stderr and exists with code 1.
 func Fatalf(message string, args ...interface{}) {
 	if len(args) > 0 {
-		fmt.Fprintf(os.Stderr, message+"\n", args...)
+		_, _ = fmt.Fprintf(os.Stderr, message+"\n", args...)
 	} else {
-		fmt.Fprintln(os.Stderr, message)
+		_, _ = fmt.Fprintln(os.Stderr, message)
 	}
 	os.Exit(1)
 }
 
+// ExpectDependency expects every dependency to be not nil or it fatals.
 func ExpectDependency(logger logrus.FieldLogger, dependencies ...interface{}) {
 	if logger == nil {
 		panic("missing logger for dependency check")
