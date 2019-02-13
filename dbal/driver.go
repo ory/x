@@ -1,44 +1,42 @@
 package dbal
 
 import (
-	"sync"
-
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"sync"
 )
 
 var (
-	drivers = make(map[string]Driver)
+	drivers  = make([]Driver, 0)
 	dmtx    sync.Mutex
+	ErrNoResponsibleDriverFound = errors.New("no driver is capable of handling the given DSN")
 )
 
 // Driver represents a driver
 type Driver interface {
-	// Ping returns nil if the driver is alive or an error otherwise.
+	// CanHandle returns true if the driver is capable of handling the given DSN or false otherwise.
+	CanHandle(dsn string) bool
+
+	// Ping returns nil if the driver has connectivity and is healthy or an error otherwise.
 	Ping() error
 
-	// Schemes returns a list of schemes this driver supports (e.g. mysql, postgres).
-	Schemes() []string
-
-	// Init is used to initialize the driver (e.g. connect to the datastore).
+	// Init initializes the driver given the driver URL, a logger, and driver options.
 	Init(url string, l logrus.FieldLogger, opts ...DriverOptionModifier) error
 }
 
-// RegisterDriver registers a driver.
-func RegisterDriver(b Driver) {
+// RegisterDriver registers a driver
+func RegisterDriver(d Driver) {
 	dmtx.Lock()
-	for _, prefix := range b.Schemes() {
-		drivers[prefix] = b
-	}
+	drivers = append(drivers, d)
 	dmtx.Unlock()
 }
 
-// RegisteredDriverSchemes returns the registered driver schemes.
-func RegisteredDriverSchemes() []string {
-	keys := make([]string, len(drivers))
-	i := 0
-	for k := range drivers {
-		keys[i] = k
-		i++
+// GetDriverFor returns a driver for the given DSN or ErrNoResponsibleDriverFound if no driver was found.
+func GetDriverFor(dsn string) (Driver, error) {
+	for _, d := range drivers {
+		if d.CanHandle(dsn) {
+			return d, nil
+		}
 	}
-	return keys
+	return nil, ErrNoResponsibleDriverFound
 }
