@@ -1,9 +1,10 @@
 package dbal
 
 import (
+	"sync"
+
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"sync"
 )
 
 var (

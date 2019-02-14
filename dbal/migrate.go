@@ -8,7 +8,7 @@ import (
 
 	"github.com/gobuffalo/packr"
 	"github.com/pkg/errors"
-	"github.com/rubenv/sql-migrate"
+	migrate "github.com/rubenv/sql-migrate"
 	"github.com/sirupsen/logrus"
 )
 

@@ -9,7 +9,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pborman/uuid"
-	"github.com/rubenv/sql-migrate"
+	migrate "github.com/rubenv/sql-migrate"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ory/x/sqlcon/dockertest"
