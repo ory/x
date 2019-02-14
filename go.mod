@@ -29,13 +29,14 @@ require (
 	github.com/opentracing/opentracing-go v1.0.2
 	github.com/ory/dockertest v3.3.4+incompatible
 	github.com/ory/fosite v0.29.0
-	github.com/ory/herodot v0.5.0
+	github.com/ory/herodot v0.5.1
 	github.com/ory/sqlcon v0.0.7
 	github.com/pborman/uuid v1.2.0
 	github.com/pkg/errors v0.8.1
 	github.com/pkg/profile v1.2.1
+	github.com/rogpeppe/go-internal v1.2.2 // indirect
 	github.com/rs/cors v1.6.0
-	github.com/rubenv/sql-migrate v0.0.0-20181213081019-5a8808c14925
+	github.com/rubenv/sql-migrate v0.0.0-20190212093014-1007f53448d7
 	github.com/segmentio/analytics-go v3.0.1+incompatible
 	github.com/segmentio/backo-go v0.0.0-20160424052352-204274ad699c // indirect
 	github.com/sirupsen/logrus v1.3.0
@@ -51,10 +52,10 @@ require (
 	github.com/ziutek/mymysql v1.5.4 // indirect
 	go.opencensus.io v0.19.0 // indirect
 	go.uber.org/atomic v1.3.2 // indirect
-	golang.org/x/crypto v0.0.0-20190208162236-193df9c0f06f
-	golang.org/x/net v0.0.0-20190206173232-65e2d4e15006 // indirect
-	golang.org/x/oauth2 v0.0.0-20190130055435-99b60b757ec1 // indirect
-	golang.org/x/sys v0.0.0-20190209173611-3b5209105503 // indirect
+	golang.org/x/crypto v0.0.0-20190211182817-74369b46fc67
+	golang.org/x/net v0.0.0-20190213061140-3a22650c66bd // indirect
+	golang.org/x/oauth2 v0.0.0-20190212230446-3e8b2be13635 // indirect
+	golang.org/x/sys v0.0.0-20190213121743-983097b1a8a3 // indirect
 	google.golang.org/grpc v1.18.0 // indirect
 	gopkg.in/gorp.v1 v1.7.2 // indirect
 	gopkg.in/square/go-jose.v2 v2.2.2
