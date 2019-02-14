@@ -7,8 +7,10 @@ import (
 )
 
 var (
-	drivers  = make([]Driver, 0)
+	drivers = make([]Driver, 0)
 	dmtx    sync.Mutex
+
+	// ErrNoResponsibleDriverFound is returned when no driver was found for the provided DSN.
 	ErrNoResponsibleDriverFound = errors.New("no driver is capable of handling the given DSN")
 )
 
