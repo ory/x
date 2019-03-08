@@ -1,8 +1,9 @@
 package stringsx
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestToLowerInitial(t *testing.T) {
@@ -12,7 +13,6 @@ func TestToLowerInitial(t *testing.T) {
 	assert.Equal(t, "ab", ToLowerInitial("Ab"))
 	assert.Equal(t, "aA", ToLowerInitial("AA"))
 }
-
 
 func TestToUpperInitial(t *testing.T) {
 	assert.Equal(t, "", ToUpperInitial(""))
