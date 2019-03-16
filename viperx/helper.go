@@ -93,6 +93,22 @@ func GetString(l logrus.FieldLogger, key string, fallback string, deprecated ...
 	return v
 }
 
+func GetBool(l logrus.FieldLogger, key string, deprecated ...string) bool {
+	v := viper.GetBool(key)
+	for _, dk := range deprecated {
+		if v {
+			break
+		}
+
+		if vv := viper.GetBool(dk); vv {
+			d(l, dk, key)
+			v = vv
+		}
+	}
+
+	return v
+}
+
 func GetStringSlice(l logrus.FieldLogger, key string, fallback []string, deprecated ...string) []string {
 	v := viper.GetStringSlice(key)
 	for _, dk := range deprecated {

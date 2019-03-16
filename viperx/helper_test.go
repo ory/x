@@ -24,7 +24,6 @@ func setViper(key, value string) func(t *testing.T) {
 	}
 }
 
-
 func noop(t *testing.T) {
 }
 
@@ -99,7 +98,7 @@ func TestGetStringSlice(t *testing.T) {
 	} {
 		t.Run(fmt.Sprintf("case=%d/description=%s", k, tc.d), func(t *testing.T) {
 			tc.p(t)
-			assert.EqualValues(t, tc.e, GetStringSlice(logrus.New(), "viperx.get_string_slice",tc.f, "viperx.get_string_slice_legacy", "viperx.get_string_slice_legacy_legacy"))
+			assert.EqualValues(t, tc.e, GetStringSlice(logrus.New(), "viperx.get_string_slice", tc.f, "viperx.get_string_slice_legacy", "viperx.get_string_slice_legacy_legacy"))
 			tc.c(t)
 		})
 	}
@@ -147,7 +146,7 @@ func TestGetString(t *testing.T) {
 	} {
 		t.Run(fmt.Sprintf("case=%d/description=%s", k, tc.d), func(t *testing.T) {
 			tc.p(t)
-			assert.EqualValues(t, tc.e, GetString(logrus.New(), "viperx.get_string",tc.f, "viperx.get_string_legacy", "viperx.get_string_legacy_legacy"))
+			assert.EqualValues(t, tc.e, GetString(logrus.New(), "viperx.get_string", tc.f, "viperx.get_string_legacy", "viperx.get_string_legacy_legacy"))
 			tc.c(t)
 		})
 	}
@@ -244,6 +243,52 @@ func TestGetFloat64(t *testing.T) {
 		t.Run(fmt.Sprintf("case=%d/description=%s", k, tc.d), func(t *testing.T) {
 			tc.p(t)
 			assert.EqualValues(t, tc.e, GetFloat64(logrus.New(), "viperx.get_float64", tc.f, "viperx.get_float64_legacy", "viperx.get_float64_legacy_legacy"))
+			tc.c(t)
+		})
+	}
+}
+
+func TestGetBool(t *testing.T) {
+	for k, tc := range []struct {
+		d string
+		p func(t *testing.T)
+		e bool
+		c func(t *testing.T)
+	}{
+		{
+			d: "Load legacy environment variable",
+			p: setEnv("VIPERX_GET_BOOL_LEGACY_LEGACY", "1"),
+			c: setEnv("VIPERX_GET_BOOL_LEGACY_LEGACY", ""),
+			e: true,
+		},
+		{
+			d: "Load legacy environment",
+			p: setEnv("VIPERX_GET_BOOL_LEGACY", "1"),
+			c: setEnv("VIPERX_GET_BOOL_LEGACY", ""),
+			e: true,
+		},
+		{
+			d: "Load new environment variable",
+			p: setEnv("VIPERX_GET_BOOL", "1"),
+			c: setEnv("VIPERX_GET_BOOL", ""),
+			e: true,
+		},
+		{
+			d: "Load new viper variable",
+			p: setViper("viperx.get_bool", "1"),
+			c: setViper("viperx.get_bool", ""),
+			e: true,
+		},
+		{
+			d: "Use fallback",
+			p: noop,
+			c: noop,
+			e: false,
+		},
+	} {
+		t.Run(fmt.Sprintf("case=%d/description=%s", k, tc.d), func(t *testing.T) {
+			tc.p(t)
+			assert.EqualValues(t, tc.e, GetBool(logrus.New(), "viperx.get_bool", "viperx.get_bool_legacy", "viperx.get_bool_legacy_legacy"))
 			tc.c(t)
 		})
 	}
