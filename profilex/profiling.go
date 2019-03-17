@@ -17,21 +17,21 @@ func Profile() interface {
 } {
 	switch os.Getenv("PROFILING") {
 	case "cpu":
-		return profile.Start(profile.CPUProfile)
+		return profile.Start(profile.CPUProfile, profile.NoShutdownHook)
 	case "mem":
-		return profile.Start(profile.MemProfile)
+		return profile.Start(profile.MemProfile, profile.NoShutdownHook)
 	case "mutex":
-		return profile.Start(profile.MutexProfile)
+		return profile.Start(profile.MutexProfile, profile.NoShutdownHook)
 	case "block":
-		return profile.Start(profile.BlockProfile)
+		return profile.Start(profile.BlockProfile, profile.NoShutdownHook)
 	}
 	return new(noop)
 }
 
 // HelpMessage returns a string explaining how profiling works.
 func HelpMessage() string {
-	return `- PROFILING: Set "PROFILING=cpu" to enable cpu profiling and "PROFILING=memory" to enable memory profiling.
-	It is not possible to do both at the same time. DProfiling is disabled per default.
+	return `- PROFILING: Set "PROFILING=cpu" to enable cpu profiling and "PROFILING=mem" to enable memory profiling.
+	It is not possible to do both at the same time. Profiling is disabled per default.
 
 	Example: PROFILING=cpu`
 }
