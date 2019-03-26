@@ -24,8 +24,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"io"
-	"math/rand"
 	"net"
 	"net/http"
 	"net/url"
@@ -34,35 +32,33 @@ import (
 	"sync"
 	"time"
 
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+
+	"github.com/ory/x/cmdx"
+	"github.com/ory/x/resilience"
+
 	"github.com/pborman/uuid"
 	"github.com/segmentio/analytics-go"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/negroni"
-
-	"github.com/ory/x/resilience"
 )
 
-// MetricsManager helps with providing context on metrics.
-type MetricsManager struct {
-	sync.RWMutex
-	start           time.Time
-	shouldCommit    bool
-	salt            string
-	whitelistedURLs []string
-	sampling        float64
-	rng             io.Reader
+var instance *Service
+var lock sync.Mutex
 
-	Segment analytics.Client   `json:"-"`
-	Logger  logrus.FieldLogger `json:"-"`
+// Service helps with providing context on metrics.
+type Service struct {
+	optOut bool
+	salt   string
 
-	ID               string            `json:"id"`
-	UpTime           int64             `json:"uptime"`
-	MemoryStatistics *MemoryStatistics `json:"memory"`
-	BuildVersion     string            `json:"buildVersion"`
-	BuildHash        string            `json:"buildHash"`
-	BuildTime        string            `json:"buildTime"`
-	InstanceID       string            `json:"instanceId"`
-	ServiceName      string            `json:"serviceName"`
+	o       *Options
+	context *analytics.Context
+
+	c analytics.Client
+	l logrus.FieldLogger
+
+	mem *MemoryStatistics
 }
 
 // Hash returns a hashed string of the value.
@@ -75,138 +71,198 @@ func Hash(value string) string {
 	return hex.EncodeToString(hash.Sum(nil))
 }
 
-func newMetricsManager(
-	id string,
-	enable bool,
-	whitelistedURLs []string,
-	logger logrus.FieldLogger,
-	serviceName string,
-	sampling float64,
-	segment analytics.Client,
-) *MetricsManager {
-	return &MetricsManager{
-		InstanceID:       uuid.New(),
-		Segment:          segment,
-		Logger:           logger,
-		MemoryStatistics: &MemoryStatistics{},
-		ID:               id,
-		start:            time.Now().UTC(),
-		salt:             uuid.New(),
-		shouldCommit:     enable,
-		whitelistedURLs:  whitelistedURLs,
-		ServiceName:      serviceName,
-		sampling:         sampling,
-	}
+// Options configures the metrics service.
+type Options struct {
+	// Service represents the service name, for example "ory-hydra".
+	Service string
+
+	// ClusterID represents the cluster id, typically a hash of some unique configuration properties.
+	ClusterID string
+
+	// IsDevelopment should be true if we assume that we're in a development environment.
+	IsDevelopment bool
+
+	// WriteKey is the segment API key.
+	WriteKey string
+
+	// WhitelistedPaths represents a list of paths that can be transmitted in clear text to segment.
+	WhitelistedPaths []string
+
+	// BuildVersion represents the build version.
+	BuildVersion string
+
+	// BuildHash represents the build git hash.
+	BuildHash string
+
+	// BuildTime represents the build time.
+	BuildTime string
+
+	// Config overrides the analytics.Config. If nil, sensible defaults will be used.
+	Config *analytics.Config
+
+	// MemoryInterval sets how often memory statistics should be transmitted. Defaults to every 12 hours.
+	MemoryInterval time.Duration
 }
 
-// NewMetricsManager returns a new metrics manager.
-func NewMetricsManager(
-	id string,
-	enable bool,
-	writeKey string,
-	whitelistedURLs []string,
-	logger logrus.FieldLogger,
-	serviceName string,
-	sampling float64,
-	endpoint string,
-) *MetricsManager {
-	segment, err := analytics.NewWithConfig(writeKey, analytics.Config{
-		Interval:  time.Hour * 24,
-		BatchSize: 100,
-	})
+type void struct {
+}
 
+func (v *void) Logf(format string, args ...interface{}) {
+}
+
+func (v *void) Errorf(format string, args ...interface{}) {
+}
+
+// New returns a new metrics service. If one has been instantiated already, no new instance will be created.
+func New(
+	cmd *cobra.Command,
+	l logrus.FieldLogger,
+	n *negroni.Negroni,
+	o *Options,
+) *Service {
+	lock.Lock()
+	defer lock.Unlock()
+
+	if instance != nil {
+		n.Use(instance)
+		return instance
+	}
+
+	if o.BuildTime == "" {
+		o.BuildTime = "unknown"
+	}
+
+	if o.BuildVersion == "" {
+		o.BuildVersion = "unknown"
+	}
+
+	if o.BuildHash == "" {
+		o.BuildHash = "unknown"
+	}
+
+	if o.Config == nil {
+		o.Config = &analytics.Config{
+			Interval:  time.Hour * 24,
+			BatchSize: 100,
+		}
+	}
+
+	o.Config.Logger = new(void)
+
+	if o.MemoryInterval < time.Minute {
+		o.MemoryInterval = time.Hour * 12
+	}
+
+	segment, err := analytics.NewWithConfig(o.WriteKey, *o.Config)
 	if err != nil {
-		logger.WithError(err).Fatalf("Unable to initialise segment.")
+		l.WithError(err).Fatalf("Unable to initialise software quality assurance features.")
 		return nil
 	}
 
-	return newMetricsManager(id, enable, whitelistedURLs, logger, serviceName, sampling, segment)
-}
+	var oi analytics.OSInfo
 
-// NewMetricsManagerWithConfig returns a new metrics manager and allows configuration.
-func NewMetricsManagerWithConfig(
-	id string,
-	enable bool,
-	writeKey string,
-	whitelistedURLs []string,
-	logger logrus.FieldLogger,
-	serviceName string,
-	sampling float64,
-	config analytics.Config,
-) *MetricsManager {
-	segment, err := analytics.NewWithConfig(writeKey, config)
+	optOut, err := cmd.Flags().GetBool("sqa-opt-out")
+	if !optOut {
+		optOut, err = cmd.Flags().GetBool("disable-telemetry")
+		if optOut {
+			l.Warn(`Command line argument "--disable-telemetry" has been deprecated and will be removed in an upcoming release. Use "--sqa-opt-out" instead.`)
+		}
+	}
+	cmdx.Must(err, "Unable to get command line flag.")
 
-	if err != nil {
-		logger.WithError(err).Fatalf("Unable to initialise segment.")
-		return nil
+	if !optOut {
+		optOut = viper.GetBool("sqa.opt_out")
 	}
 
-	return newMetricsManager(id, enable, whitelistedURLs, logger, serviceName, sampling, segment)
-}
-
-// RegisterSegment enables reporting to segment.
-func (sw *MetricsManager) RegisterSegment(version, hash, buildTime string) {
-	sw.Lock()
-	defer sw.Unlock()
-
-	if !sw.shouldCommit {
-		sw.Logger.Info("Detected local environment, skipping telemetry commit")
-		return
+	if !optOut {
+		optOut = viper.GetBool("DISABLE_TELEMETRY")
+		if optOut {
+			l.Warn(`Environment variable "DISABLE_TELEMETRY" has been deprecated and will be removed in an upcoming release. Use configuration key "sqa.opt_out: true" or environment variable "SQA_OPT_OUT=true" instead.`)
+		}
 	}
 
-	if err := resilience.Retry(sw.Logger, time.Minute*5, time.Hour, func() error {
-		return sw.Segment.Enqueue(analytics.Identify{
-			UserId: sw.ID,
-			Traits: analytics.NewTraits().
-				Set("goarch", runtime.GOARCH).
-				Set("goos", runtime.GOOS).
-				Set("numCpu", runtime.NumCPU()).
-				Set("runtimeVersion", runtime.Version()).
-				Set("version", version).
-				Set("Hash", hash).
-				Set("buildTime", buildTime).
-				Set("service", sw.ServiceName).
-				Set("instanceId", sw.InstanceID),
-			Context: &analytics.Context{
-				IP: net.IPv4(0, 0, 0, 0),
+	if !optOut {
+		l.Info("Software quality assurance features are enabled. Learn more at: https://www.ory.sh/docs/ecosystem/sqa")
+		oi = analytics.OSInfo{
+			Version: fmt.Sprintf("%s-%s", runtime.GOOS, runtime.GOARCH),
+		}
+	}
+
+	m := &Service{
+		optOut: optOut,
+		salt:   uuid.New(),
+		o:      o,
+		c:      segment,
+		l:      l,
+		mem:    new(MemoryStatistics),
+		context: &analytics.Context{
+			IP: net.IPv4(0, 0, 0, 0),
+			App: analytics.AppInfo{
+				Name:    o.Service,
+				Version: o.BuildVersion,
+				Build:   fmt.Sprintf("%s/%s/%s", o.BuildVersion, o.BuildHash, o.BuildTime),
 			},
+			OS: oi,
+			Traits: analytics.NewTraits().
+				Set("optedOut", optOut).
+				Set("instanceId", uuid.New()).
+				Set("isDevelopment", o.IsDevelopment),
+			UserAgent: "github.com/ory/x/metricsx.Service/v0.0.1",
+		},
+	}
+
+	instance = m
+
+	go m.Identify()
+	go m.ObserveMemory()
+	n.Use(m)
+
+	return m
+}
+
+// Identify enables reporting to segment.
+func (sw *Service) Identify() {
+	if err := resilience.Retry(sw.l, time.Minute*5, time.Hour*24*30, func() error {
+		return sw.c.Enqueue(analytics.Identify{
+			UserId:  sw.o.ClusterID,
+			Traits:  sw.context.Traits,
+			Context: sw.context,
 		})
 	}); err != nil {
-		sw.Logger.WithError(err).Debug("Could not commit anonymized environment information")
+		sw.l.WithError(err).Debug("Could not commit anonymized environment information")
 	}
-	sw.Logger.Debug("Transmitted anonymized environment information")
 }
 
-// CommitMemoryStatistics commits memory statistics to segment.
-func (sw *MetricsManager) CommitMemoryStatistics() {
-	if !sw.shouldCommit {
-		sw.Logger.Info("Detected local environment, skipping telemetry commit")
+// ObserveMemory commits memory statistics to segment.
+func (sw *Service) ObserveMemory() {
+	if sw.optOut {
 		return
 	}
 
 	for {
-		sw.MemoryStatistics.Update()
-		if err := sw.Segment.Enqueue(analytics.Track{
-			UserId:     sw.ID,
+		sw.mem.Update()
+		if err := sw.c.Enqueue(analytics.Track{
+			UserId:     sw.o.ClusterID,
 			Event:      "memstats",
-			Properties: analytics.Properties(sw.MemoryStatistics.ToMap()),
-			Context:    &analytics.Context{IP: net.IPv4(0, 0, 0, 0)},
+			Properties: analytics.Properties(sw.mem.ToMap()),
+			Context:    sw.context,
 		}); err != nil {
-			sw.Logger.WithError(err).Debug("Could not commit anonymized telemetry data")
-		} else {
-			sw.Logger.Debug("Telemetry data transmitted")
+			sw.l.WithError(err).Debug("Could not commit anonymized telemetry data")
 		}
-		time.Sleep(time.Hour * 24)
+		time.Sleep(sw.o.MemoryInterval)
 	}
 }
 
 // ServeHTTP is a middleware for sending meta information to segment.
-func (sw *MetricsManager) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	start := time.Now()
+func (sw *Service) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	var start time.Time
+	if !sw.optOut {
+		start = time.Now()
+	}
 
 	next(rw, r)
 
-	if !sw.shouldCommit || rand.Float64() > sw.sampling {
+	if sw.optOut {
 		return
 	}
 
@@ -225,28 +281,27 @@ func (sw *MetricsManager) ServeHTTP(rw http.ResponseWriter, r *http.Request, nex
 	status := res.Status()
 	size := res.Size()
 
-	if err := sw.Segment.Enqueue(analytics.Page{
-		UserId: sw.ID,
+	if err := sw.c.Enqueue(analytics.Page{
+		UserId: sw.o.ClusterID,
 		Name:   path,
 		Properties: analytics.
 			NewProperties().
-			SetURL(scheme+"//"+sw.ID+path+"?"+query).
+			SetURL(scheme+"//"+sw.o.ClusterID+path+"?"+query).
 			SetPath(path).
 			SetName(path).
 			Set("status", status).
 			Set("size", size).
 			Set("latency", latency).
-			Set("instance", sw.InstanceID).
-			Set("service", sw.ServiceName).
 			Set("method", r.Method),
-		Context: &analytics.Context{IP: net.IPv4(0, 0, 0, 0)},
+		Context: sw.context,
 	}); err != nil {
+		sw.l.WithError(err).Debug("Could not commit anonymized telemetry data")
 		// do nothing...
 	}
 }
 
-func (sw *MetricsManager) anonymizePath(path string, salt string) string {
-	paths := sw.whitelistedURLs
+func (sw *Service) anonymizePath(path string, salt string) string {
+	paths := sw.o.WhitelistedPaths
 	path = strings.ToLower(path)
 
 	for _, p := range paths {
@@ -258,10 +313,10 @@ func (sw *MetricsManager) anonymizePath(path string, salt string) string {
 		}
 	}
 
-	return ""
+	return "/"
 }
 
-func (sw *MetricsManager) anonymizeQuery(query url.Values, salt string) string {
+func (sw *Service) anonymizeQuery(query url.Values, salt string) string {
 	for _, q := range query {
 		for i, s := range q {
 			if s != "" {
