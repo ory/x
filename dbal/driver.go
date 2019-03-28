@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -22,9 +21,6 @@ type Driver interface {
 
 	// Ping returns nil if the driver has connectivity and is healthy or an error otherwise.
 	Ping() error
-
-	// Init initializes the driver given the driver URL, a logger, and driver options.
-	Init(url string, l logrus.FieldLogger, opts ...DriverOptionModifier) error
 }
 
 // RegisterDriver registers a driver

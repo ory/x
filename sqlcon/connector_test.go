@@ -41,7 +41,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ory/dockertest"
-	dockertestd "github.com/ory/sqlcon/dockertest"
+	dockertestd "github.com/ory/x/sqlcon/dockertest"
 )
 
 var (
@@ -119,7 +119,9 @@ func TestDistributedTracing(t *testing.T) {
 				defer mockedTracer.Reset()
 				opentracing.SetGlobalTracer(mockedTracer)
 
-				db := testCase.sqlConnection.GetDatabase()
+				db, err := testCase.sqlConnection.GetDatabase()
+				require.NoError(t, err)
+
 				// Notice how no parent span exists in the provided context!
 				db.QueryRowContext(context.TODO(), "SELECT NOW()")
 
@@ -201,7 +203,7 @@ func TestConnectionString(t *testing.T) {
 	assert.True(t, strings.HasPrefix(b, "foo%40bar:baz@qux"))
 }
 
-func mustSQL(t *testing.T, db string, opts ...Opt) *SQLConnection {
+func mustSQL(t *testing.T, db string, opts ...OptionModifier) *SQLConnection {
 	c, err := NewSQLConnection(db, logrus.New(), opts...)
 	require.NoError(t, err)
 	return c
@@ -244,7 +246,9 @@ func TestSQLConnection(t *testing.T) {
 	} {
 		t.Run(fmt.Sprintf("case=%s", tc.d), func(t *testing.T) {
 			tc.s.L = logrus.New()
-			db := tc.s.GetDatabase()
+			db, err := tc.s.GetDatabase()
+			require.NoError(t, err)
+
 			require.Nil(t, db.Ping())
 
 			// Test for parseTime support in MySQL

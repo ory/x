@@ -78,9 +78,9 @@ func NewHandler(
 }
 
 // SetRoutes registers this handler's routes.
-func (h *Handler) SetRoutes(r *httprouter.Router) {
+func (h *Handler) SetRoutes(r *httprouter.Router, shareErrors bool) {
 	r.GET(AliveCheckPath, h.Alive)
-	r.GET(ReadyCheckPath, h.Ready)
+	r.GET(ReadyCheckPath, h.Ready(shareErrors))
 	r.GET(VersionPath, h.Version)
 }
 
@@ -132,25 +132,31 @@ func (h *Handler) Alive(rw http.ResponseWriter, r *http.Request, _ httprouter.Pa
 //     Responses:
 //       200: healthStatus
 //       503: healthNotReadyStatus
-func (h *Handler) Ready(rw http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	var notReady = swaggerNotReadyStatus{
-		Errors: map[string]string{},
-	}
-
-	for n, c := range h.ReadyChecks {
-		if err := c(); err != nil {
-			notReady.Errors[n] = err.Error()
+func (h *Handler) Ready(shareErrors bool) httprouter.Handle {
+	return func(rw http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		var notReady = swaggerNotReadyStatus{
+			Errors: map[string]string{},
 		}
-	}
 
-	if len(notReady.Errors) > 0 {
-		h.H.WriteCode(rw, r, http.StatusServiceUnavailable, notReady)
-		return
-	}
+		for n, c := range h.ReadyChecks {
+			if err := c(); err != nil {
+				if shareErrors {
+					notReady.Errors[n] = err.Error()
+				} else {
+					notReady.Errors[n] = "error may contain sensitive information and was obfuscated"
+				}
+			}
+		}
 
-	h.H.Write(rw, r, &swaggerHealthStatus{
-		Status: "ok",
-	})
+		if len(notReady.Errors) > 0 {
+			h.H.WriteCode(rw, r, http.StatusServiceUnavailable, notReady)
+			return
+		}
+
+		h.H.Write(rw, r, &swaggerHealthStatus{
+			Status: "ok",
+		})
+	}
 }
 
 // Version returns this service's versions.
