@@ -25,7 +25,11 @@ var ErrInvalidCertificateConfiguration = errors.New("tls configuration is invali
 
 // HTTPSCertificate returns loads a HTTP over TLS Certificate by looking at environment variables.
 func HTTPSCertificate() ([]tls.Certificate, error) {
-	return Certificate("HTTPS_TLS")
+	prefix := "HTTPS_TLS"
+	return Certificate(
+		viper.GetString(prefix+"_CERT"), viper.GetString(prefix+"_KEY"),
+		viper.GetString(prefix+"_CERT_PATH"), viper.GetString(prefix+"_KEY_PATH"),
+	)
 }
 
 // HTTPSCertificateHelpMessage returns a help message for configuring HTTP over TLS Certificates.
@@ -42,7 +46,7 @@ func CertificateHelpMessage(prefix string) string {
 	Example: ` + prefix + `_KEY_PATH=~/key.pem
 
 - ` + prefix + `_CERT: Base64 encoded (without padding) string of the TLS certificate (PEM encoded) to be used for HTTP over TLS (HTTPS).
-	Example: ` + prefix + `_CERT="-----BEGIN CERTIFICATE-----\nMIIDZTCCAk2gAwIBAgIEV5xOtDANBgkqhkiG9w0BAQ0FADA0MTIwMAYDVQQDDClP..."
+	Example: ` + prefix + `_CERT="HTTPSCertificate-----BEGIN CERTIFICATE-----\nMIIDZTCCAk2gAwIBAgIEV5xOtDANBgkqhkiG9w0BAQ0FADA0MTIwMAYDVQQDDClP..."
 
 - ` + prefix + `_KEY: Base64 encoded (without padding) string of the private key (PEM encoded) to be used for HTTP over TLS (HTTPS).
 	Example: ` + prefix + `_KEY="-----BEGIN ENCRYPTED PRIVATE KEY-----\nMIIFDjBABgkqhkiG9w0BBQ0wMzAbBgkqhkiG9w0BBQwwDg..."
@@ -50,10 +54,10 @@ func CertificateHelpMessage(prefix string) string {
 }
 
 // Certificate returns loads a TLS Certificate by looking at environment variables.
-func Certificate(prefix string) ([]tls.Certificate, error) {
-	certString, keyString := viper.GetString(prefix+"_CERT"), viper.GetString(prefix+"_KEY")
-	certPath, keyPath := viper.GetString(prefix+"_CERT_PATH"), viper.GetString(prefix+"_KEY_PATH")
-
+func Certificate(
+	certString, keyString string,
+	certPath, keyPath string,
+) ([]tls.Certificate, error) {
 	if certString == "" && keyString == "" && certPath == "" && keyPath == "" {
 		return nil, errors.WithStack(ErrNoCertificatesConfigured)
 	} else if certString != "" && keyString != "" {

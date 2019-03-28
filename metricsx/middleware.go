@@ -117,14 +117,12 @@ func (v *void) Errorf(format string, args ...interface{}) {
 func New(
 	cmd *cobra.Command,
 	l logrus.FieldLogger,
-	n *negroni.Negroni,
 	o *Options,
 ) *Service {
 	lock.Lock()
 	defer lock.Unlock()
 
 	if instance != nil {
-		n.Use(instance)
 		return instance
 	}
 
@@ -215,7 +213,6 @@ func New(
 
 	go m.Identify()
 	go m.ObserveMemory()
-	n.Use(m)
 
 	return m
 }

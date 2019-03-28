@@ -50,7 +50,7 @@ type SQLConnection struct {
 }
 
 // NewSQLConnection returns a new SQLConnection.
-func NewSQLConnection(db string, l logrus.FieldLogger, opts ...Opt) (*SQLConnection, error) {
+func NewSQLConnection(db string, l logrus.FieldLogger, opts ...OptionModifier) (*SQLConnection, error) {
 	u, err := url.Parse(db)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -93,9 +93,10 @@ func cleanURLQuery(c *url.URL) *url.URL {
 
 // GetDatabaseRetry tries to connect to a database and fails after failAfter.
 func (c *SQLConnection) GetDatabaseRetry(maxWait time.Duration, failAfter time.Duration) (*sqlx.DB, error) {
-	if err := resilience.Retry(c.L, maxWait, failAfter, func() error {
-		if err := c.GetDatabase().Ping(); err != nil {
-			return errors.WithStack(err)
+	if err := resilience.Retry(c.L, maxWait, failAfter, func() (err error) {
+		c.db, err = c.GetDatabase()
+		if err != nil {
+			return err
 		}
 		return nil
 	}); err != nil {
@@ -106,9 +107,9 @@ func (c *SQLConnection) GetDatabaseRetry(maxWait time.Duration, failAfter time.D
 }
 
 // GetDatabase retrusn a database instance.
-func (c *SQLConnection) GetDatabase() *sqlx.DB {
+func (c *SQLConnection) GetDatabase() (*sqlx.DB, error) {
 	if c.db != nil {
-		return c.db
+		return c.db, nil
 	}
 
 	var err error
@@ -116,29 +117,23 @@ func (c *SQLConnection) GetDatabase() *sqlx.DB {
 
 	clean := cleanURLQuery(c.URL)
 	if registeredDriver, err = c.registerDriver(); err != nil {
-		c.L.Fatalf("Could not register driver: %s", err)
+		return nil, errors.Wrap(err, "could not register driver")
 	}
 
-	if err = resilience.Retry(c.L, time.Second*15, time.Minute*2, func() error {
-		c.L.Infof("Connecting with %s", c.URL.Scheme+"://*:*@"+c.URL.Host+c.URL.Path+"?"+clean.RawQuery)
+	c.L.Infof("Connecting with %s", c.URL.Scheme+"://*:*@"+c.URL.Host+c.URL.Path+"?"+clean.RawQuery)
+	u := connectionString(clean)
 
-		u := connectionString(clean)
-
-		db, err := sql.Open(registeredDriver, u)
-		if err != nil {
-			return errors.Errorf("Could not Connect to SQL: %s", err)
-		}
-
-		c.db = sqlx.NewDb(db, clean.Scheme)
-		if err := c.db.Ping(); err != nil {
-			return errors.Errorf("Could not Connect to SQL: %s", err)
-		}
-
-		c.L.Infof("Connected to SQL!")
-		return nil
-	}); err != nil {
-		c.L.Fatalf("Could not Connect to SQL: %s", err)
+	db, err := sql.Open(registeredDriver, u)
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not open SQL connection")
 	}
+
+	c.db = sqlx.NewDb(db, clean.Scheme)
+	if err := c.db.Ping(); err != nil {
+		return nil, errors.Wrapf(err, "could not ping SQL connection")
+	}
+
+	c.L.Infof("Connected to SQL!")
 
 	maxConns := maxParallelism() * 2
 	if v := c.URL.Query().Get("max_conns"); v != "" {
@@ -174,7 +169,7 @@ func (c *SQLConnection) GetDatabase() *sqlx.DB {
 	c.db.SetMaxIdleConns(maxIdleConns)
 	c.db.SetConnMaxLifetime(maxConnLifetime)
 
-	return c.db
+	return c.db, nil
 }
 
 func maxParallelism() int {
