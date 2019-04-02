@@ -3,18 +3,28 @@ package logrusx
 import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+
+	"github.com/ory/x/stringsx"
 )
 
 // New initializes logrus with environment variable configuration LOG_LEVEL and LOG_FORMAT.
 func New() *logrus.Logger {
 	l := logrus.New()
-	ll, err := logrus.ParseLevel(viper.GetString("LOG_LEVEL"))
+	ll, err := logrus.ParseLevel(
+		stringsx.Coalesce(
+			viper.GetString("log.level"),
+			viper.GetString("LOG_LEVEL"),
+		),
+	)
 	if err != nil {
 		ll = logrus.InfoLevel
 	}
 	l.Level = ll
 
-	if viper.GetString("LOG_FORMAT") == "json" {
+	if stringsx.Coalesce(
+		viper.GetString("log.format"),
+		viper.GetString("LOG_FORMAT"),
+	) == "json" {
 		l.Formatter = new(logrus.JSONFormatter)
 	}
 
