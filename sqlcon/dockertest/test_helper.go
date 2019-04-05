@@ -3,7 +3,9 @@ package dockertest
 import (
 	"fmt"
 	"log"
+	"net/url"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -64,13 +66,23 @@ func Parallel(fs []func()) {
 	wg.Wait()
 }
 
-func connect(driver, dsn string) (db *sqlx.DB, err error) {
+func connect(dialect, driver, dsn string) (db *sqlx.DB, err error) {
+	clean, err := url.Parse(dsn)
+	if err != nil {
+		return nil, err
+	}
+	if clean.Scheme == "mysql" {
+		dsn = strings.Replace(dsn, "mysql://", "", -1)
+	}
+	if clean.Scheme == "cockroach" {
+		dsn = strings.Replace(dsn, "cockroach://", "postgres://", 1)
+	}
 	err = resilience.Retry(
 		logrus.New(),
 		time.Second*5,
 		time.Minute*5,
 		func() (err error) {
-			db, err = sqlx.Open(driver, dsn)
+			db, err = sqlx.Open(dialect, dsn)
 			if err != nil {
 				log.Printf("Connecting to database %s failed: %s", driver, err)
 				return err
@@ -93,9 +105,9 @@ func connect(driver, dsn string) (db *sqlx.DB, err error) {
 
 // ConnectToTestPostgreSQL connects to a PostgreSQL database.
 func ConnectToTestPostgreSQL() (*sqlx.DB, error) {
-	if url := os.Getenv("TEST_DATABASE_POSTGRESQL"); url != "" {
+	if dsn := os.Getenv("TEST_DATABASE_POSTGRESQL"); dsn != "" {
 		log.Println("Found postgresql test database config, skipping dockertest...")
-		return connect("postgres", url)
+		return connect("postgres", "postgres", dsn)
 	}
 
 	pool, err := dockertest.NewPool("")
@@ -114,9 +126,9 @@ func ConnectToTestPostgreSQL() (*sqlx.DB, error) {
 
 // ConnectToTestMySQL connects to a MySQL database.
 func ConnectToTestMySQL() (*sqlx.DB, error) {
-	if url := os.Getenv("TEST_DATABASE_MYSQL"); url != "" {
+	if dsn := os.Getenv("TEST_DATABASE_MYSQL"); dsn != "" {
 		log.Println("Found mysql test database config, skipping dockertest...")
-		return connect("mysql", url)
+		return connect("mysql", "mysql", dsn)
 	}
 
 	pool, err := dockertest.NewPool("")
@@ -130,6 +142,31 @@ func ConnectToTestMySQL() (*sqlx.DB, error) {
 	}
 
 	db := bootstrap("root:secret@(localhost:%s)/mysql?parseTime=true", "3306/tcp", "mysql", pool, resource)
+	return db, nil
+}
+
+// ConnectToTestCockroachDB connects to a CockroachDB database.
+func ConnectToTestCockroachDB() (*sqlx.DB, error) {
+	if dsn := os.Getenv("TEST_DATABASE_COCKROACHDB"); dsn != "" {
+		log.Println("Found cockroachdb test database config, skipping dockertest...")
+		return connect("postgres", "cockroach", dsn)
+	}
+
+	pool, err := dockertest.NewPool("")
+	if err != nil {
+		return nil, errors.Wrap(err, "Could not connect to docker")
+	}
+
+	resource, err := pool.RunWithOptions(&dockertest.RunOptions{
+		Repository: "cockroachdb/cockroach",
+		Tag:        "v2.1.6",
+		Cmd:        []string{"start --insecure"},
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "Could not start resource")
+	}
+
+	db := bootstrap("postgres://root@localhost:%s/defaultdb?sslmode=disable", "26257/tcp", "postgres", pool, resource)
 	return db, nil
 }
 

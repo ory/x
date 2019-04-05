@@ -8,7 +8,8 @@ jobs:
       - image: circleci/golang:1.11.5
         environment:
         - TEST_DATABASE_POSTGRESQL=postgres://test:test@localhost:5432/sqlcon?sslmode=disable
-        - TEST_DATABASE_MYSQL=root:test@(localhost:3306)/mysql?parseTime=true
+        - TEST_DATABASE_MYSQL=mysql://root:test@(localhost:3306)/mysql?parseTime=true
+        - TEST_DATABASE_COCKROACHDB=cockroach://root@localhost:26257/defaultdb?sslmode=disable
       - image: postgres:9.5
         environment:
         - POSTGRES_USER=test
@@ -17,6 +18,8 @@ jobs:
       - image: mysql:5.7
         environment:
         - MYSQL_ROOT_PASSWORD=test
+      - image: cockroachdb/cockroach:v2.1.6
+        command: start --insecure
     working_directory: /go/src/github.com/ory/sqlcon
     steps:
       - checkout
