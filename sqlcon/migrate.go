@@ -5,10 +5,11 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/ory/x/viperx"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // SchemaCreator is an interface that allows SQL schemas to be created and migrated.
@@ -35,14 +36,14 @@ Examples:
 
 	$ ` + path + ` postgres://hydra:secret@postgresd:5432/hydra?sslmode=disable
 
-	$ export DATABASE_URL=postgres://hydra:secret@postgresd:5432/hydra?sslmode=disable
+	$ export DSN=postgres://hydra:secret@postgresd:5432/hydra?sslmode=disable
 	$ ` + path + ` -e
 `,
 		Run: func(cmd *cobra.Command, args []string) {
 			var db string
 
 			if a, b := cmd.Flags().GetBool("read-from-env"); a && b == nil {
-				db = viper.GetString("DATABASE_URL")
+				db = viperx.GetString(logger, "DSN", "", "DATABASE_URL")
 			} else {
 				if len(args) == 0 {
 					fmt.Print(cmd.UsageString())
@@ -53,21 +54,21 @@ Examples:
 
 			dbu, err := url.Parse(db)
 			if err != nil {
-				logger.WithError(err).WithField("database_url", db).Fatal("Unable to parse DATABASE_URL, make sure it has the right format")
+				logger.WithError(err).WithField("dsn", db).Fatal(`Unable to parse configuration item "dsn", make sure it has the right format`)
 			}
 
 			if dbu.Scheme != "postgres" && dbu.Scheme != "mysql" {
-				logger.WithField("database_url", dbu.Scheme+"://*:*@"+dbu.Host+dbu.Path+"?"+dbu.RawQuery).Fatal("Migrations can only be run against PostgreSQL or MySQL databases")
+				logger.WithField("dsn", dbu.Scheme+"://*:*@"+dbu.Host+dbu.Path+"?"+dbu.RawQuery).Fatal("Migrations can only be run against PostgreSQL or MySQL databases")
 			}
 
 			sdb, err := NewSQLConnection(db, logger)
 			if err != nil {
-				logger.WithError(err).WithField("database_url", dbu.Scheme+"://*:*@"+dbu.Host+dbu.Path+"?"+dbu.RawQuery).Fatal("Unable to initialize database configuration")
+				logger.WithError(err).WithField("dsn", dbu.Scheme+"://*:*@"+dbu.Host+dbu.Path+"?"+dbu.RawQuery).Fatal("Unable to initialize database configuration")
 			}
 
 			dbx, err := sdb.GetDatabaseRetry(time.Second, time.Minute*5)
 			if err != nil {
-				logger.WithError(err).WithField("database_url", dbu.Scheme+"://*:*@"+dbu.Host+dbu.Path+"?"+dbu.RawQuery).Fatal("Unable to connect to the SQL database")
+				logger.WithError(err).WithField("dsn", dbu.Scheme+"://*:*@"+dbu.Host+dbu.Path+"?"+dbu.RawQuery).Fatal("Unable to connect to the SQL database")
 			}
 
 			for name, runner := range runners {
@@ -81,6 +82,6 @@ Examples:
 			}
 		},
 	}
-	c.Flags().BoolP("read-from-env", "e", false, "Read database DSN from environment variable DATABASE_URL")
+	c.Flags().BoolP("read-from-env", "e", false, `Read Data Source Name from configuration element "dsn"`)
 	return c
 }
