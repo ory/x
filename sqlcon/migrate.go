@@ -2,9 +2,10 @@ package sqlcon
 
 import (
 	"fmt"
-	"github.com/ory/x/viperx"
 	"net/url"
 	"time"
+
+	"github.com/ory/x/viperx"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
