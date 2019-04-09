@@ -28,11 +28,12 @@ func NewFetcher(remote string) *Fetcher {
 
 // GetKey retrieves a JSON Web Key from the cache, fetches it from a remote if it is not yet cached or returns an error.
 func (f *Fetcher) GetKey(kid string) (*jose.JSONWebKey, error) {
-	f.Lock()
+	f.RLock()
 	if k, ok := f.keys[kid]; ok {
+		f.RUnlock()
 		return &k, nil
 	}
-	f.Unlock()
+	f.RUnlock()
 
 	res, err := f.c.Get(f.remote)
 	if err != nil {
@@ -54,11 +55,11 @@ func (f *Fetcher) GetKey(kid string) (*jose.JSONWebKey, error) {
 		f.Unlock()
 	}
 
-	f.Lock()
+	f.RLock()
+	defer f.RUnlock()
 	if k, ok := f.keys[kid]; ok {
 		return &k, nil
 	}
-	f.Unlock()
 
 	return nil, errors.Errorf("unable to find JSON Web Key with ID: %s", kid)
 }

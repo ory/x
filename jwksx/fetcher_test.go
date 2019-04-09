@@ -19,17 +19,10 @@ const (
       "kid": "7d5f5ad0674ec2f2960b1a34f33370a0f71471fa0e3ef0c0a692977d276dafe8",
       "alg": "HS256",
       "k": "Y2hhbmdlbWVjaGFuZ2VtZWNoYW5nZW1lY2hhbmdlbWU"
-    },
-    {
-      "use": "sig",
-      "kty": "oct",
-      "kid": "another-key",
-      "alg": "HS256",
-      "k": "Y2hhbmdlbWVjaGFuZ2VtZWNoYW5nZW1lY2hhbmdlbWU"
     }
   ]
 }`
-	secret = "changemechangemechangemechange"
+	secret = "changemechangemechangemechangeme"
 )
 
 func TestFetcher(t *testing.T) {
@@ -53,8 +46,7 @@ func TestFetcher(t *testing.T) {
 	assert.EqualValues(t, secret, fmt.Sprintf("%s", k.Key))
 	assert.Equal(t, 1, called)
 
-	k, err = f.GetKey("another-key")
-	require.NoError(t, err)
-	assert.EqualValues(t, secret, fmt.Sprintf("%s", k.Key))
+	_, err = f.GetKey("does-not-exist")
+	require.Error(t, err)
 	assert.Equal(t, 2, called)
 }
