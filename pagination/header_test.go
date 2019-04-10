@@ -42,6 +42,21 @@ func TestHeaders(t *testing.T) {
 		}
 	})
 
+	t.Run("Create next and last, but not previous or first if on the first page", func(t *testing.T) {
+		h := Header(u, 120, 50, 10)
+
+		expect := http.Header{
+			"Link": []string{
+				"<http://example.com?limit=50&offset=50>; rel=\"next\"",
+				"<http://example.com?limit=50&offset=100>; rel=\"last\"",
+			},
+		}
+
+		if expect.Get("Link") != h.Get("Link") {
+			t.Fatalf("Unexpected response from Header. Expected %s, got %s", expect.Get("Link"), h.Get("Link"))
+		}
+	})
+
 	t.Run("Create previous, next, first, and last if in the middle", func(t *testing.T) {
 		h := Header(u, 300, 50, 150)
 
