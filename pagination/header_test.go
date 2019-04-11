@@ -24,7 +24,7 @@ func TestHeader(t *testing.T) {
 		}
 
 		if reflect.DeepEqual(expect, h) != true {
-			t.Fatalf("Unexpected response from Header. Expected %s, got %s", expect, h)
+			t.Fatalf("Unexpected response from Header. Expected %+v, got %+v", expect, h)
 		}
 	})
 
@@ -39,7 +39,7 @@ func TestHeader(t *testing.T) {
 		}
 
 		if reflect.DeepEqual(expect, h) != true {
-			t.Fatalf("Unexpected response from Header. Expected %s, got %s", expect, h)
+			t.Fatalf("Unexpected response from Header. Expected %+v, got %+v", expect, h)
 		}
 	})
 
@@ -54,7 +54,7 @@ func TestHeader(t *testing.T) {
 		}
 
 		if reflect.DeepEqual(expect, h) != true {
-			t.Fatalf("Unexpected response from Header. Expected %s, got %s", expect, h)
+			t.Fatalf("Unexpected response from Header. Expected %+v, got %+v", expect, h)
 		}
 	})
 
@@ -71,16 +71,24 @@ func TestHeader(t *testing.T) {
 		}
 
 		if expect.Get("Link") != h.Get("Link") {
-			t.Fatalf("Unexpected response from Header. Expected %s, got %s", expect.Get("Link"), h.Get("Link"))
+			t.Fatalf("Unexpected response from Header. Expected %+v, got %+v", expect.Get("Link"), h.Get("Link"))
 		}
 	})
-	t.Run("Header should return an empty http.Header if no limit was provided", func(t *testing.T) {
-		h := Header(u, 20, 0, 10)
 
-		expect := http.Header{}
+	t.Run("Header should default limit to 1 no limit was provided", func(t *testing.T) {
+		h := Header(u, 100, 0, 20)
+
+		expect := http.Header{
+			"Link": []string{
+				"<http://example.com?limit=1&offset=0>; rel=\"first\"",
+				"<http://example.com?limit=1&offset=21>; rel=\"next\"",
+				"<http://example.com?limit=1&offset=19>; rel=\"prev\"",
+				"<http://example.com?limit=1&offset=99>; rel=\"last\"",
+			},
+		}
 
 		if reflect.DeepEqual(expect, h) != true {
-			t.Fatalf("Unexpected response from Header. Expected %s, got %s", expect.Get("Link"), h.Get("Link"))
+			t.Fatalf("Unexpected response from Header. Expected %+v, got %+v", expect, h)
 		}
 	})
 
@@ -96,7 +104,7 @@ func TestHeader(t *testing.T) {
 		}
 
 		if reflect.DeepEqual(expect, h) != true {
-			t.Fatalf("Unexpected response from Header. Expected %s, got %s", expect, h)
+			t.Fatalf("Unexpected response from Header. Expected %+v, got %+v", expect, h)
 		}
 	})
 }

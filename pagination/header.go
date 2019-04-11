@@ -20,13 +20,18 @@ func header(u *url.URL, rel string, limit, offset int) string {
 // If total is not set, then no "last" page will be calculated.
 // If no limit is provided, then this function will return an empty map.
 func Header(u *url.URL, total int, limit, offset int) http.Header {
-	if limit == 0 {
-		return http.Header{}
+	if limit <= 0 {
+		limit = 1
 	}
 
-	// lastOffset will either equal the offset required to contain the remainer,
+	// lastOffset will either equal the offset required to contain the remainder,
 	// or the limit.
-	lastOffset := total + (limit - total%limit) - limit
+	var lastOffset int
+	if total%limit == 0 {
+		lastOffset = total - limit
+	} else {
+		lastOffset = ((total / limit) * limit)
+	}
 
 	// Check for last page
 	if offset >= lastOffset {
