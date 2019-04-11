@@ -3,10 +3,11 @@ package pagination
 import (
 	"net/http"
 	"net/url"
+	"reflect"
 	"testing"
 )
 
-func TestHeaders(t *testing.T) {
+func TestHeader(t *testing.T) {
 	u, err := url.Parse("http://example.com")
 	if err != nil {
 		t.Fatal(err)
@@ -22,8 +23,8 @@ func TestHeaders(t *testing.T) {
 			},
 		}
 
-		if expect.Get("Link") != h.Get("Link") {
-			t.Fatalf("Unexpected response from Header. Expected %s, got %s", expect.Get("Link"), h.Get("Link"))
+		if reflect.DeepEqual(expect, h) != true {
+			t.Fatalf("Unexpected response from Header. Expected %s, got %s", expect, h)
 		}
 	})
 
@@ -37,8 +38,8 @@ func TestHeaders(t *testing.T) {
 			},
 		}
 
-		if expect.Get("Link") != h.Get("Link") {
-			t.Fatalf("Unexpected response from Header. Expected %s, got %s", expect.Get("Link"), h.Get("Link"))
+		if reflect.DeepEqual(expect, h) != true {
+			t.Fatalf("Unexpected response from Header. Expected %s, got %s", expect, h)
 		}
 	})
 
@@ -52,8 +53,8 @@ func TestHeaders(t *testing.T) {
 			},
 		}
 
-		if expect.Get("Link") != h.Get("Link") {
-			t.Fatalf("Unexpected response from Header. Expected %s, got %s", expect.Get("Link"), h.Get("Link"))
+		if reflect.DeepEqual(expect, h) != true {
+			t.Fatalf("Unexpected response from Header. Expected %s, got %s", expect, h)
 		}
 	})
 
@@ -62,15 +63,40 @@ func TestHeaders(t *testing.T) {
 
 		expect := http.Header{
 			"Link": []string{
-				"<http://example.com?limit=50&offset=100>; rel=\"prev\"",
-				"<http://example.com?limit=50&offset=200>; rel=\"next\"",
 				"<http://example.com?limit=50&offset=0>; rel=\"first\"",
+				"<http://example.com?limit=50&offset=200>; rel=\"next\"",
+				"<http://example.com?limit=50&offset=100>; rel=\"prev\"",
 				"<http://example.com?limit=50&offset=250>; rel=\"last\"",
 			},
 		}
 
 		if expect.Get("Link") != h.Get("Link") {
 			t.Fatalf("Unexpected response from Header. Expected %s, got %s", expect.Get("Link"), h.Get("Link"))
+		}
+	})
+	t.Run("Header should return an empty http.Header if no limit was provided", func(t *testing.T) {
+		h := Header(u, 20, 0, 10)
+
+		expect := http.Header{}
+
+		if reflect.DeepEqual(expect, h) != true {
+			t.Fatalf("Unexpected response from Header. Expected %s, got %s", expect.Get("Link"), h.Get("Link"))
+		}
+	})
+
+	t.Run("Create previous, next, first, but not last if in the middle and no total was provided", func(t *testing.T) {
+		h := Header(u, 0, 50, 150)
+
+		expect := http.Header{
+			"Link": []string{
+				"<http://example.com?limit=50&offset=0>; rel=\"first\"",
+				"<http://example.com?limit=50&offset=200>; rel=\"next\"",
+				"<http://example.com?limit=50&offset=100>; rel=\"prev\"",
+			},
+		}
+
+		if reflect.DeepEqual(expect, h) != true {
+			t.Fatalf("Unexpected response from Header. Expected %s, got %s", expect, h)
 		}
 	})
 }
