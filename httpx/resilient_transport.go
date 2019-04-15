@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/cenkalti/backoff"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
-import "github.com/cenkalti/backoff"
-import "github.com/sirupsen/logrus"
-import "github.com/pkg/errors"
 
 var _ http.RoundTripper = new(ResilientRoundTripper)
 var errRetry = errors.New("retry")
