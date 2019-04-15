@@ -13,7 +13,8 @@ import "github.com/pkg/errors"
 var _ http.RoundTripper = new(ResilientRoundTripper)
 var errRetry = errors.New("retry")
 
-type retryPolicy func(*http.Response, error) (bool, bool)
+// RetryPolicy returns true if the request should be retried.
+type RetryPolicy func(*http.Response, error) (retry bool)
 
 // ResilientRoundTripper wraps a RoundTripper and retries requests on failure.
 type ResilientRoundTripper struct {
@@ -21,33 +22,35 @@ type ResilientRoundTripper struct {
 	http.RoundTripper
 
 	// ShouldRetry defines a strategy for retries.
-	ShouldRetry retryPolicy
+	ShouldRetry RetryPolicy
 
 	MaxInterval    time.Duration
 	MaxElapsedTime time.Duration
 }
 
-func defaultShouldRetry(res *http.Response, err error) (bool, bool) {
+func defaultShouldRetry(res *http.Response, err error) bool {
 	if err != nil || res.StatusCode == 0 || res.StatusCode >= 500 {
-		return true, false
+		return true
 	}
-	return false, false
+	return false
 }
 
-func LoggedShouldRetry(l logrus.FieldLogger) retryPolicy {
-	return func(res *http.Response, err error) (bool, bool) {
+// LoggedShouldRetry returns a RetryPolicy that logs erros.
+func LoggedShouldRetry(l logrus.FieldLogger) RetryPolicy {
+	return func(res *http.Response, err error) bool {
 		if err != nil {
 			l.WithError(err).Errorf("Unable to connect to URL: %s", res.Request.URL.String())
-			return true, false
+			return true
 		}
 		if res.StatusCode == 0 || res.StatusCode >= 500 {
 			l.WithError(errors.New(fmt.Sprintf("received error status code %d", res.StatusCode))).Errorf("Unable to connect to URL: %s", res.Request.URL.String())
-			return true, false
+			return true
 		}
-		return false, false
+		return false
 	}
 }
 
+// NewDefaultResilientRoundTripper returns a new ResilientRoundTripper with defaults.
 func NewDefaultResilientRoundTripper(
 	maxInterval time.Duration,
 	maxElapsedTime time.Duration,
@@ -60,6 +63,7 @@ func NewDefaultResilientRoundTripper(
 	}
 }
 
+// NewDefaultResilientRoundTripper returns a new ResilientRoundTripper.
 func NewResilientRoundTripper(
 	roundTripper http.RoundTripper,
 	maxInterval time.Duration,
@@ -73,11 +77,14 @@ func NewResilientRoundTripper(
 	}
 }
 
-func (rt *ResilientRoundTripper) WithShouldRetry(policy retryPolicy) *ResilientRoundTripper {
+// WithShouldRetry sets a RetryPolicy.
+func (rt *ResilientRoundTripper) WithShouldRetry(policy RetryPolicy) *ResilientRoundTripper {
 	rt.ShouldRetry = policy
 	return rt
 }
 
+// RoundTrip executes a single HTTP transaction, returning
+// a Response for the provided Request.
 func (rt *ResilientRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
 	ctx, cancel := context.WithCancel(r.Context())
 	bc := backoff.WithContext(&backoff.ExponentialBackOff{
@@ -93,7 +100,7 @@ func (rt *ResilientRoundTripper) RoundTrip(r *http.Request) (*http.Response, err
 	var res *http.Response
 	err := backoff.Retry(func() (err error) {
 		res, err = rt.RoundTripper.RoundTrip(r)
-		if retry, abort := rt.ShouldRetry(res, err); !abort && retry {
+		if rt.ShouldRetry(res, err) {
 			if err != nil {
 				return errors.WithStack(err)
 			}
