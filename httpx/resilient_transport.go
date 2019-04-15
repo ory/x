@@ -2,7 +2,6 @@ package httpx
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -44,7 +43,7 @@ func LoggedShouldRetry(l logrus.FieldLogger) RetryPolicy {
 			return true
 		}
 		if res.StatusCode == 0 || res.StatusCode >= 500 {
-			l.WithError(errors.New(fmt.Sprintf("received error status code %d", res.StatusCode))).Errorf("Unable to connect to URL: %s", res.Request.URL.String())
+			l.WithError(errors.Errorf("received error status code %d", res.StatusCode)).Errorf("Unable to connect to URL: %s", res.Request.URL.String())
 			return true
 		}
 		return false
@@ -64,7 +63,7 @@ func NewDefaultResilientRoundTripper(
 	}
 }
 
-// NewDefaultResilientRoundTripper returns a new ResilientRoundTripper.
+// NewResilientRoundTripper returns a new ResilientRoundTripper.
 func NewResilientRoundTripper(
 	roundTripper http.RoundTripper,
 	maxInterval time.Duration,
