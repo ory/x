@@ -90,6 +90,10 @@ func TestGetInt32(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestKeyStringToInterface(t *testing.T) {
+	assert.EqualValues(t, map[interface{}]interface{}{"foo": "bar", "baz": 1234, "baz2": int32(1234)}, KeyStringToInterface(map[string]interface{}{"foo": "bar", "baz": 1234, "baz2": int32(1234)}))
+}
+
 func TestGetInt(t *testing.T) {
 	m := map[interface{}]interface{}{"foo": "bar", "baz": 1234, "baz2": int32(1234)}
 	v, err := GetInt32(m, "baz")
