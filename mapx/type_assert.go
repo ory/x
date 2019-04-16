@@ -139,3 +139,12 @@ func GetStringSliceDefault(values map[interface{}]interface{}, key interface{}, 
 	}
 	return defaultValue
 }
+
+// KeyStringToInterface converts map[string]interface{} to map[interface{}]interface{}
+func KeyStringToInterface(i map[string]interface{}) map[interface{}]interface{} {
+	o := make(map[interface{}]interface{})
+	for k, v := range i {
+		o[k] = v
+	}
+	return o
+}
