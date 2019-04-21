@@ -33,6 +33,7 @@ var DefaultNotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *htt
 		"application/xhtml+xml",
 		"application/xml",
 	}) {
+		w.Header().Set("Content-Type", "text/html")
 		_, _ = w.Write([]byte(`<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -53,9 +54,11 @@ var DefaultNotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *htt
 	} else if matchesContentTypes(r, []string{
 		"text/plain",
 	}) {
+		w.Header().Set("Content-Type", "text/plain")
 		_, _ = w.Write([]byte(`Error 404 - The requested route does not exist. Make sure you are using the right path, domain, and port.`)) // #nosec
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	_, _ = w.Write([]byte(`{"error": "Error 404 - The requested route does not exist. Make sure you are using the right path, domain, and port."}`)) // #nosec
 })
