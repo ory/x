@@ -20,7 +20,6 @@ jobs:
     working_directory: /go/src/github.com/ory/sqlcon
     steps:
       - checkout
-      - run: go get github.com/mattn/goveralls github.com/ory/go-acc
       - run: curl -L https://git.io/vp6lP | sh
       - run: mv ./bin/* $GOPATH/bin
       - run:
@@ -29,9 +28,7 @@ jobs:
             echo 'export GO111MODULE=on' >> $BASH_ENV
             source $BASH_ENV
       - run: go mod download
-#      - run: gometalinter --disable-all --enable=goimports --enable=gosec --enable=dupl --enable=vet --enable=golint --vendor ./...
-      - run: gometalinter --disable-all --enable=goimports --enable=gosec --enable=vet --enable=golint --deadline=3m --vendor ./...
-      - run: rm -rf ./vendor
-      - run: go test -short -race ./...
+      - run: make init
+      - run: make lint
       - run: go-acc -v -o coverage.txt ./...
       - run: test -z "$CIRCLE_PR_NUMBER" && goveralls -service=circle-ci -coverprofile=coverage.txt -repotoken=$COVERALLS_REPO_TOKEN || echo "forks are not allowed to push to coveralls"
