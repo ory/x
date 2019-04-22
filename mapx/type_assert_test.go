@@ -65,6 +65,56 @@ func TestGetFloat64(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestGetGetFloat64Default(t *testing.T) {
+	m := map[interface{}]interface{}{"foo": "bar", "baz": float64(1234)}
+	v := GetFloat64Default(m, "baz", 0)
+	assert.EqualValues(t, float64(1234), v)
+	v = GetFloat64Default(m, "foo", float64(1))
+	assert.EqualValues(t, float64(1), v)
+	v = GetFloat64Default(m, "bar", float64(2))
+	assert.EqualValues(t, float64(2), v)
+}
+
+func TestGetGetFloat32Default(t *testing.T) {
+	m := map[interface{}]interface{}{"foo": "bar", "baz": float32(1234)}
+	v := GetFloat32Default(m, "baz", 0)
+	assert.EqualValues(t, float32(1234), v)
+	v = GetFloat32Default(m, "foo", float32(1))
+	assert.EqualValues(t, float32(1), v)
+	v = GetFloat32Default(m, "bar", float32(2))
+	assert.EqualValues(t, float32(2), v)
+}
+
+func TestGetGetInt32Default(t *testing.T) {
+	m := map[interface{}]interface{}{"foo": "bar", "baz": int32(1234)}
+	v := GetInt32Default(m, "baz", 0)
+	assert.EqualValues(t, int32(1234), v)
+	v = GetInt32Default(m, "foo", int32(1))
+	assert.EqualValues(t, int32(1), v)
+	v = GetInt32Default(m, "bar", int32(2))
+	assert.EqualValues(t, int32(2), v)
+}
+
+func TestGetGetInt64Default(t *testing.T) {
+	m := map[interface{}]interface{}{"foo": "bar", "baz": int64(1234)}
+	v := GetInt64Default(m, "baz", 0)
+	assert.EqualValues(t, int64(1234), v)
+	v = GetInt64Default(m, "foo", int64(1))
+	assert.EqualValues(t, int64(1), v)
+	v = GetInt64Default(m, "bar", int64(2))
+	assert.EqualValues(t, int64(2), v)
+}
+
+func TestGetGetIntDefault(t *testing.T) {
+	m := map[interface{}]interface{}{"foo": "bar", "baz": int(1234)}
+	v := GetIntDefault(m, "baz", 0)
+	assert.EqualValues(t, int(1234), v)
+	v = GetIntDefault(m, "foo", int(1))
+	assert.EqualValues(t, int(1), v)
+	v = GetIntDefault(m, "bar", int(2))
+	assert.EqualValues(t, int(2), v)
+}
+
 func TestGetInt64(t *testing.T) {
 	m := map[interface{}]interface{}{"foo": "bar", "baz": int64(1234)}
 	v, err := GetInt64(m, "baz")
