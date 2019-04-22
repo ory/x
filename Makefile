@@ -1,7 +1,6 @@
 .PHONY: init
 init:
-		go get github.com/go-bindata/go-bindata/... github.com/mattn/goveralls github.com/ory/go-acc
-		go install ./tools/listx
+		GO111MODULE=on go install ./tools/listx github.com/ory/go-acc github.com/mattn/goveralls github.com/go-bindata/go-bindata/go-bindata
 
 .PHONY: format
 format:

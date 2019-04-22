@@ -11,6 +11,7 @@ require (
 	github.com/containerd/continuity v0.0.0-20181203112020-004b46473808 // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.3.3 // indirect
+	github.com/go-bindata/go-bindata v3.1.1+incompatible
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/gobuffalo/envy v1.6.15 // indirect
 	github.com/gobuffalo/packr v1.22.0
@@ -23,12 +24,14 @@ require (
 	github.com/lib/pq v1.0.0
 	github.com/luna-duclos/instrumentedsql v0.0.0-20181127104832-b7d587d28109
 	github.com/mattn/go-sqlite3 v1.10.0 // indirect
+	github.com/mattn/goveralls v0.0.2
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/opencontainers/runc v0.1.1 // indirect
 	github.com/opentracing/opentracing-go v1.0.2
 	github.com/ory/dockertest v3.3.4+incompatible
 	github.com/ory/fosite v0.29.0
+	github.com/ory/go-acc v0.0.0-20181118080137-ddc355013f90
 	github.com/ory/herodot v0.5.1
 	github.com/pborman/uuid v1.2.0
 	github.com/pkg/errors v0.8.1
