@@ -47,6 +47,7 @@ type SQLConnection struct {
 	URL *url.URL
 	L   logrus.FieldLogger
 	options
+	driverName string
 }
 
 // NewSQLConnection returns a new SQLConnection.
@@ -208,6 +209,10 @@ func connectionString(clean *url.URL) string {
 }
 
 func (c *SQLConnection) registerDriver() (string, error) {
+	if c.driverName != "" {
+		return c.driverName, nil
+	}
+
 	driverName := c.URL.Scheme
 	if c.UseTracedDriver {
 		driverName = "instrumented-sql-driver"
@@ -234,5 +239,6 @@ func (c *SQLConnection) registerDriver() (string, error) {
 		}
 	}
 
+	c.driverName = driverName
 	return driverName, nil
 }
