@@ -1,6 +1,6 @@
 // +build tools
 
-package main
+package x
 
 import (
 	_ "github.com/go-bindata/go-bindata/go-bindata"
@@ -8,5 +8,3 @@ import (
 
 	_ "github.com/ory/go-acc"
 )
-
-func main() {}
