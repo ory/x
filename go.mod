@@ -11,6 +11,7 @@ require (
 	github.com/containerd/continuity v0.0.0-20181203112020-004b46473808 // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.3.3 // indirect
+	github.com/fatih/structs v1.1.0
 	github.com/go-bindata/go-bindata v3.1.1+incompatible
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/gobuffalo/envy v1.6.15 // indirect
