@@ -5,14 +5,16 @@ import (
 	"strings"
 
 	"github.com/fatih/structs"
+
+	"github.com/ory/x/stringslice"
 )
 
-func keys(t interface{}) []string {
+func keys(t interface{}, exclude []string ) []string {
 	s := structs.New(t)
 	var keys []string
 	for _, field := range s.Fields() {
 		key := strings.Split(field.Tag("db"), ",")[0]
-		if len(key) > 0 && key != "-" {
+		if len(key) > 0 && key != "-" && !stringslice.Has(exclude, key) {
 			keys = append(keys, key)
 		}
 	}
@@ -32,8 +34,8 @@ func keys(t interface{}) []string {
 //	columns, arguments := NamedInsertArguments(new(st))
 //	query := fmt.Sprintf("INSERT INTO foo (%s) VALUES (%s)", columns, arguments)
 //	// INSERT INTO foo (foo, bar) VALUES (:foo, :bar)
-func NamedInsertArguments(t interface{}) (columns string, arguments string) {
-	keys := keys(t)
+func NamedInsertArguments(t interface{}, exclude ...string) (columns string, arguments string) {
+	keys := keys(t, exclude)
 	return strings.Join(keys, ", "),
 		":" + strings.Join(keys, ", :")
 }
@@ -49,8 +51,8 @@ func NamedInsertArguments(t interface{}) (columns string, arguments string) {
 // 	}
 //	query := fmt.Sprintf("UPDATE foo SET %s", NamedUpdateArguments(new(st)))
 //	// UPDATE foo SET foo=:foo, bar=:bar
-func NamedUpdateArguments(t interface{}) string {
-	keys := keys(t)
+func NamedUpdateArguments(t interface{}, exclude ...string) string {
+	keys := keys(t, exclude)
 	statements := make([]string, len(keys))
 
 	for k, key := range keys {
