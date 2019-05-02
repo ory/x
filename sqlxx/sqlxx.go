@@ -9,7 +9,7 @@ import (
 	"github.com/ory/x/stringslice"
 )
 
-func keys(t interface{}, exclude []string ) []string {
+func keys(t interface{}, exclude []string) []string {
 	s := structs.New(t)
 	var keys []string
 	for _, field := range s.Fields() {

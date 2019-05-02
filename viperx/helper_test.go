@@ -254,8 +254,23 @@ func TestGetBool(t *testing.T) {
 		d string
 		p func(t *testing.T)
 		e bool
+		f bool
 		c func(t *testing.T)
 	}{
+		{
+			d: "Use fallback",
+			p: noop,
+			c: noop,
+			e: false,
+			f: false,
+		},
+		{
+			d: "Use fallback",
+			p: noop,
+			c: noop,
+			e: true,
+			f: true,
+		},
 		{
 			d: "Load legacy environment variable",
 			p: setEnv("VIPERX_GET_BOOL_LEGACY_LEGACY", "1"),
@@ -280,16 +295,10 @@ func TestGetBool(t *testing.T) {
 			c: setViper("viperx.get_bool", ""),
 			e: true,
 		},
-		{
-			d: "Use fallback",
-			p: noop,
-			c: noop,
-			e: false,
-		},
 	} {
 		t.Run(fmt.Sprintf("case=%d/description=%s", k, tc.d), func(t *testing.T) {
 			tc.p(t)
-			assert.EqualValues(t, tc.e, GetBool(logrus.New(), "viperx.get_bool", "viperx.get_bool_legacy", "viperx.get_bool_legacy_legacy"))
+			assert.EqualValues(t, tc.e, GetBool(logrus.New(), "viperx.get_bool", tc.f, "viperx.get_bool_legacy", "viperx.get_bool_legacy_legacy"))
 			tc.c(t)
 		})
 	}
