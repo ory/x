@@ -8,11 +8,11 @@ import (
 )
 
 type st struct {
-	Foo string `db:"foo"`
-	Bar string `db:"bar,omitempty"`
+	Foo  string `db:"foo"`
+	Bar  string `db:"bar,omitempty"`
 	Barn string `db:"barn,omitempty"`
-	Baz string `db:"-"`
-	Zab string
+	Baz  string `db:"-"`
+	Zab  string
 }
 
 func TestNamedUpdateArguments(t *testing.T) {
