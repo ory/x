@@ -70,7 +70,7 @@ func NewPackerMigrationSource(l logrus.FieldLogger, sources []string, loader fun
 
 		var found bool
 		for _, f := range filters {
-			if strings.Contains(source, f) {
+			if filepath.Dir(source) == f {
 				found = true
 			}
 		}

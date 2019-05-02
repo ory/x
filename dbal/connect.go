@@ -27,6 +27,8 @@ func Connect(db string, logger logrus.FieldLogger, memf func() error, sqlf func(
 	switch u.Scheme {
 	case "postgres":
 		fallthrough
+	case "cockroach":
+		fallthrough
 	case "mysql":
 		c, err := sqlcon.NewSQLConnection(db, logger)
 		if err != nil {

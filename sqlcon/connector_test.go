@@ -34,7 +34,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
-	"github.com/opentracing/opentracing-go"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/mocktracer"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -45,9 +45,10 @@ import (
 )
 
 var (
-	mysqlURL    *url.URL
-	postgresURL *url.URL
-	resources   []*dockertest.Resource
+	mysqlURL     *url.URL
+	postgresURL  *url.URL
+	cockroachURL *url.URL
+	resources    []*dockertest.Resource
 )
 
 func TestMain(m *testing.M) {
@@ -56,6 +57,7 @@ func TestMain(m *testing.M) {
 		dockertestd.Parallel([]func(){
 			bootstrapMySQL,
 			bootstrapPostgres,
+			bootstrapCockroach,
 		})
 	}
 
@@ -79,8 +81,9 @@ func TestDistributedTracing(t *testing.T) {
 	}
 
 	databases := map[string]string{
-		"mysql":    mysqlURL.String(),
-		"postgres": postgresURL.String(),
+		"mysql":     mysqlURL.String(),
+		"postgres":  postgresURL.String(),
+		"cockroach": cockroachURL.String(),
 	}
 
 	for driver, dsn := range databases {
@@ -144,9 +147,6 @@ func TestDistributedTracing(t *testing.T) {
 }
 
 func TestRegisterDriver(t *testing.T) {
-	unsupportedDSN := "unsupported://unsupported:secret@localhost:1337/mydb"
-	supportedDSN := "mysql://foo@bar:baz@qux/db"
-
 	for _, testCase := range []struct {
 		description        string
 		sqlConnection      *SQLConnection
@@ -155,20 +155,20 @@ func TestRegisterDriver(t *testing.T) {
 	}{
 		{
 			description:        "should return error if supplied DSN is unsupported for tracing",
-			sqlConnection:      mustSQL(t, unsupportedDSN, WithDistributedTracing()),
+			sqlConnection:      mustSQL(t, "unsupported://unsupported:secret@localhost:1337/mydb", WithDistributedTracing()),
 			expectedDriverName: "",
 			shouldError:        true,
 		},
 		{
 			description:        "should return registered driver name if supplied DSN is valid for tracing",
-			sqlConnection:      mustSQL(t, supportedDSN, WithDistributedTracing()),
+			sqlConnection:      mustSQL(t, "mysql://foo@bar:baz@qux/db", WithDistributedTracing()),
 			expectedDriverName: "instrumented-sql-driver",
 			shouldError:        false,
 		},
 		{
-			description:        "should return registered driver name if tracing is NOT configured",
-			sqlConnection:      mustSQL(t, supportedDSN),
-			expectedDriverName: "mysql",
+			description:        "should return cockroach driver if a valid cockroach DSN is supplied",
+			sqlConnection:      mustSQL(t, "cockroach://foo@bar:baz@qux/db"),
+			expectedDriverName: "cockroach",
 			shouldError:        false,
 		},
 	} {
@@ -243,6 +243,18 @@ func TestSQLConnection(t *testing.T) {
 			d: "pg max_conn_lifetime",
 			s: mustSQL(t, merge(postgresURL, map[string]string{"max_conn_lifetime": "1h", "max_idle_conns": "10", "max_conns": "10"}).String()),
 		},
+		{
+			d: "crdb raw",
+			s: mustSQL(t, cockroachURL.String()),
+		},
+		{
+			d: "crdb max_conn_lifetime",
+			s: mustSQL(t, merge(cockroachURL, map[string]string{"max_conn_lifetime": "1h"}).String()),
+		},
+		{
+			d: "crdb max_conn_lifetime",
+			s: mustSQL(t, merge(cockroachURL, map[string]string{"max_conn_lifetime": "1h", "max_idle_conns": "10", "max_conns": "10"}).String()),
+		},
 	} {
 		t.Run(fmt.Sprintf("case=%s", tc.d), func(t *testing.T) {
 			tc.s.L = logrus.New()
@@ -276,11 +288,11 @@ func killAll() {
 func bootstrapMySQL() {
 	if uu := os.Getenv("TEST_DATABASE_MYSQL"); uu != "" {
 		log.Println("Found mysql test database config, skipping dockertest...")
-		_, err := sqlx.Open("postgres", uu)
+		_, err := sqlx.Open("mysql", uu)
 		if err != nil {
 			log.Fatalf("Could not connect to bootstrapped database: %s", err)
 		}
-		u, _ := url.Parse("mysql://" + uu)
+		u, _ := url.Parse(uu)
 		mysqlURL = u
 		return
 	}
@@ -328,6 +340,38 @@ func bootstrapPostgres() {
 	resources = append(resources, resource)
 	u, _ := url.Parse(urls)
 	postgresURL = u
+}
+
+func bootstrapCockroach() {
+	if uu := os.Getenv("TEST_DATABASE_COCKROACHDB"); uu != "" {
+		log.Println("Found cockroachdb test database config, skipping dockertest...")
+		_, err := sqlx.Open("postgres", uu)
+		if err != nil {
+			log.Fatalf("Could not connect to bootstrapped database: %s", err)
+		}
+		u, _ := url.Parse(uu)
+		cockroachURL = u
+		return
+	}
+
+	pool, err := dockertest.NewPool("")
+	if err != nil {
+		log.Fatalf("Could not Connect to docker: %s", err)
+	}
+
+	resource, err := pool.RunWithOptions(&dockertest.RunOptions{
+		Repository: "cockroachdb/cockroach",
+		Tag:        "v2.1.6",
+		Cmd:        []string{"start --insecure"},
+	})
+	if err != nil {
+		log.Fatalf("Could not start resource: %s", err)
+	}
+
+	urls := bootstrap("postgres://root@localhost:%s/defaultdb?sslmode=disable", "26257/tcp", "postgres", pool, resource)
+	resources = append(resources, resource)
+	u, _ := url.Parse(strings.Replace(urls, "postgres://", "cockroach://", 1))
+	cockroachURL = u
 }
 
 func bootstrap(u, port, driver string, pool *dockertest.Pool, resource *dockertest.Resource) (urls string) {
