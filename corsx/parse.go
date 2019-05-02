@@ -36,7 +36,7 @@ func ParseOptions(l logrus.FieldLogger, prefix string) cors.Options {
 // IsEnabled returns true when CORS is enabled.
 func IsEnabled(l logrus.FieldLogger, prefix string) bool {
 	prefix = p(prefix)
-	return viperx.GetBool(l, prefix+"cors.enabled", "CORS_ENABLED")
+	return viperx.GetBool(l, prefix+"cors.enabled", false, "CORS_ENABLED")
 }
 
 // Initialize starts the CORS middleware for a http.Handler when cors is enabled.
