@@ -265,43 +265,13 @@ func (sw *Service) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.
 
 	latency := time.Now().UTC().Sub(start.UTC()) / time.Millisecond
 
-	scheme := "https:"
-	if r.TLS == nil {
-		scheme = "http:"
-	}
-
-	path := sw.anonymizePath(r.URL.Path, sw.salt)
-	query := sw.anonymizeQuery(r.URL.Query(), sw.salt)
-
-	// Collecting request info
-	res := rw.(negroni.ResponseWriter)
-	status := res.Status()
-	size := res.Size()
-
-	if err := sw.c.Enqueue(analytics.Page{
-		UserId: sw.o.ClusterID,
-		Name:   path,
-		Properties: analytics.
-			NewProperties().
-			SetURL(scheme+"//"+sw.o.ClusterID+path+"?"+query).
-			SetPath(path).
-			SetName(path).
-			Set("status", status).
-			Set("size", size).
-			Set("latency", latency).
-			Set("method", r.Method),
-		Context: sw.context,
-	}); err != nil {
-		sw.l.WithError(err).Debug("Could not commit anonymized telemetry data")
-		// do nothing...
-	}
+	enqueue(rw, r, sw.c, sw.l, sw.o.WhitelistedPaths, latency, sw.salt, sw.o.ClusterID, sw.context)
 }
 
-func (sw *Service) anonymizePath(path string, salt string) string {
-	paths := sw.o.WhitelistedPaths
+func anonymizePath(whitelist []string, path string, salt string) string {
 	path = strings.ToLower(path)
 
-	for _, p := range paths {
+	for _, p := range whitelist {
 		p = strings.ToLower(p)
 		if len(path) == len(p) && path[:len(p)] == strings.ToLower(p) {
 			return p
@@ -313,7 +283,7 @@ func (sw *Service) anonymizePath(path string, salt string) string {
 	return "/"
 }
 
-func (sw *Service) anonymizeQuery(query url.Values, salt string) string {
+func anonymizeQuery(query url.Values, salt string) string {
 	for _, q := range query {
 		for i, s := range q {
 			if s != "" {
@@ -323,4 +293,37 @@ func (sw *Service) anonymizeQuery(query url.Values, salt string) string {
 		}
 	}
 	return query.Encode()
+}
+
+func enqueue(rw http.ResponseWriter, r *http.Request, client analytics.Client, log logrus.FieldLogger, whitelist []string, latency time.Duration, salt string, userID string, ctx *analytics.Context) {
+	scheme := "https:"
+	if r.TLS == nil {
+		scheme = "http:"
+	}
+
+	path := anonymizePath(whitelist, r.URL.Path, salt)
+	query := anonymizeQuery(r.URL.Query(), salt)
+
+	// Collecting request info
+	res := rw.(negroni.ResponseWriter)
+	status := res.Status()
+	size := res.Size()
+
+	if err := client.Enqueue(analytics.Page{
+		UserId: userID,
+		Name:   path,
+		Properties: analytics.
+			NewProperties().
+			SetURL(scheme+"//"+userID+path+"?"+query).
+			SetPath(path).
+			SetName(path).
+			Set("status", status).
+			Set("size", size).
+			Set("latency", latency).
+			Set("method", r.Method),
+		Context: ctx,
+	}); err != nil {
+		log.WithError(err).Debug("Could not commit anonymized telemetry data")
+		// do nothing...
+	}
 }
