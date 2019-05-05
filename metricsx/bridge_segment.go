@@ -6,9 +6,7 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"net/url"
 	"runtime"
-	"strings"
 	"time"
 
 	"github.com/pborman/uuid"
@@ -25,7 +23,8 @@ type analyticsProperties struct {
 	app      analytics.Properties
 }
 
-// the []string key in this map is the list of
+// This map is for converting Prometheus metrics (by name) to segment keys that were
+// previously sent from ory/x/metricsx
 var memStats = map[string]string{
 	"go_memstats_heap_alloc_bytes":    "alloc",
 	"go_memstats_alloc_bytes_total":   "totalAlloc",
@@ -120,6 +119,8 @@ type SegmentOptions struct {
 	BuildTime string
 }
 
+// A FormattedSegmentBridge is a bridge to the segment.io service, which follows an existing format
+// defined in ory/x/metricsx, as the type `Metrics`.
 type FormattedSegmentBridge struct {
 	o       *SegmentOptions
 	client  analytics.Client
@@ -130,6 +131,7 @@ type FormattedSegmentBridge struct {
 	salt string
 }
 
+// Push will enqueue the formatted metrics (for memory statistics, as "memstats") and service-specific metrics separately
 func (s *FormattedSegmentBridge) Push(ctx context.Context) error {
 	mfs, err := s.g.Gather()
 	if err != nil {
@@ -187,34 +189,6 @@ func (s *FormattedSegmentBridge) ServeHTTP(rw http.ResponseWriter, r *http.Reque
 	latency := time.Now().UTC().Sub(start.UTC()) / time.Millisecond
 
 	enqueue(rw, r, s.client, s.l, s.o.WhitelistedPaths, latency, s.salt, s.o.ClusterID, s.context)
-}
-
-func (s *FormattedSegmentBridge) anonymizePath(path string, salt string) string {
-	paths := s.o.WhitelistedPaths
-	path = strings.ToLower(path)
-
-	for _, p := range paths {
-		p = strings.ToLower(p)
-		if len(path) == len(p) && path[:len(p)] == strings.ToLower(p) {
-			return p
-		} else if len(path) > len(p) && path[:len(p)+1] == strings.ToLower(p)+"/" {
-			return path[:len(p)] + "/" + Hash(path[len(p):]+"|"+salt)
-		}
-	}
-
-	return "/"
-}
-
-func (s *FormattedSegmentBridge) anonymizeQuery(query url.Values, salt string) string {
-	for _, q := range query {
-		for i, s := range q {
-			if s != "" {
-				s = Hash(s + "|" + salt)
-				q[i] = s
-			}
-		}
-	}
-	return query.Encode()
 }
 
 func NewFormattedSegmentBridge(ctx context.Context, o *SegmentOptions, logger logrus.FieldLogger, gatherer prometheus.Gatherer) (*FormattedSegmentBridge, error) {

@@ -17,7 +17,7 @@ type Prometheus struct {
 	HTTPResponseSizeBytes *prometheus.HistogramVec
 }
 
-// NewMetrics registers our metrics and their labels to the prometheus Registry.
+// NewPrometheus uses an existing prometheus.Registy, registers the provided collectors and HTTP metrics, and returns the Prometheus object (which contains the provided registry)
 func NewPrometheus(registry *prometheus.Registry, collectors ...prometheus.Collector) *Prometheus {
 	pm := &Prometheus{
 		Registry: registry,
@@ -50,13 +50,13 @@ func NewPrometheus(registry *prometheus.Registry, collectors ...prometheus.Colle
 			pm.HTTPRequestDuration,
 			pm.HTTPResponseSizeBytes,
 		)
-		for _, v := range collectors {
-			pm.Registry.MustRegister(v)
-		}
+
+		pm.Registry.MustRegister(collectors...)
 	}
 	return pm
 }
 
+// ServeHTTP serves the instrumented middleware for collecting request count, duration, and size
 func (p *Prometheus) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	nextHandler := http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		nrw := negroni.NewResponseWriter(rw)
