@@ -52,28 +52,28 @@ func LoggedShouldRetry(l logrus.FieldLogger) RetryPolicy {
 
 // NewDefaultResilientRoundTripper returns a new ResilientRoundTripper with defaults.
 func NewDefaultResilientRoundTripper(
-	maxInterval time.Duration,
-	maxElapsedTime time.Duration,
+	backOffMaxInterval time.Duration,
+	backOffDieAfter time.Duration,
 ) *ResilientRoundTripper {
 	return &ResilientRoundTripper{
 		RoundTripper:   http.DefaultTransport,
 		ShouldRetry:    defaultShouldRetry,
-		MaxInterval:    maxInterval,
-		MaxElapsedTime: maxElapsedTime,
+		MaxInterval:    backOffMaxInterval,
+		MaxElapsedTime: backOffDieAfter,
 	}
 }
 
 // NewResilientRoundTripper returns a new ResilientRoundTripper.
 func NewResilientRoundTripper(
 	roundTripper http.RoundTripper,
-	maxInterval time.Duration,
-	maxElapsedTime time.Duration,
+	backOffMaxInterval time.Duration,
+	backOffDieAfter time.Duration,
 ) *ResilientRoundTripper {
 	return &ResilientRoundTripper{
 		RoundTripper:   roundTripper,
 		ShouldRetry:    defaultShouldRetry,
-		MaxInterval:    maxInterval,
-		MaxElapsedTime: maxElapsedTime,
+		MaxInterval:    backOffMaxInterval,
+		MaxElapsedTime: backOffDieAfter,
 	}
 }
 
