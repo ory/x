@@ -66,3 +66,31 @@ func TestMigrationFileSort(t *testing.T) {
 		{Filename: "6.sql"},
 	}, m)
 }
+
+func TestFindMatchingTestMigrations(t *testing.T) {
+	m := map[string]*PackrMigrationSource{
+		DriverMySQL:       NewMustPackerMigrationSource(logrus.New(), AssetNames(), Asset, []string{"stub/a"}, false),
+		DriverPostgreSQL:  NewMustPackerMigrationSource(logrus.New(), AssetNames(), Asset, []string{"stub/a", "stub/b"}, false),
+		DriverCockroachDB: NewMustPackerMigrationSource(logrus.New(), AssetNames(), Asset, []string{"stub/a", "stub/c"}, false),
+	}
+
+	result := FindMatchingTestMigrations("stub/d/", m, AssetNames(), Asset)
+
+	mysql := result[DriverMySQL]
+	assert.True(t, stringslice.Has(mysql.Box.List(), "/migrations/sql/1_test.sql"), "%v", mysql.Box.List())
+	assert.True(t, stringslice.Has(mysql.Box.List(), "/migrations/sql/3_test.sql"), "%v", mysql.Box.List())
+	assert.True(t, len(mysql.Box.List()) == 2, "%v", len(mysql.Box.List()))
+
+	postgres := result[DriverPostgreSQL]
+	assert.True(t, stringslice.Has(postgres.Box.List(), "/migrations/sql/1_test.sql"), "%v", postgres.Box.List())
+	assert.True(t, stringslice.Has(postgres.Box.List(), "/migrations/sql/2_test.sql"), "%v", postgres.Box.List())
+	assert.True(t, stringslice.Has(postgres.Box.List(), "/migrations/sql/3_test.sql"), "%v", postgres.Box.List())
+	assert.True(t, len(postgres.Box.List()) == 3, "%v", len(postgres.Box.List()))
+
+	cockroach := result[DriverCockroachDB]
+	assert.True(t, stringslice.Has(cockroach.Box.List(), "/migrations/sql/1_test.sql"), "%v", cockroach.Box.List())
+	assert.True(t, stringslice.Has(cockroach.Box.List(), "/migrations/sql/2_test.sql"), "%v", cockroach.Box.List())
+	assert.True(t, stringslice.Has(cockroach.Box.List(), "/migrations/sql/3_test.sql"), "%v", cockroach.Box.List())
+	assert.True(t, stringslice.Has(cockroach.Box.List(), "/migrations/sql/4_test.sql"), "%v", cockroach.Box.List())
+	assert.True(t, len(cockroach.Box.List()) == 4, "%v", len(cockroach.Box.List()))
+}
