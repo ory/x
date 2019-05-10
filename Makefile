@@ -16,4 +16,4 @@ test:
 
 .PHONY: gen
 gen:
-		cd dbal; go-bindata -o migrate_files.go -pkg dbal ./stub/a ./stub/b ./stub/c
+		cd dbal; go-bindata -o migrate_files.go -pkg dbal ./stub/a ./stub/b ./stub/c ./stub/d
