@@ -4,22 +4,18 @@ import (
 	"fmt"
 	"net"
 	"runtime"
-	"sync"
 	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
 	"github.com/ory/x/cmdx"
-	"github.com/ory/x/resilience"
 	"github.com/pborman/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/segmentio/analytics-go"
 	"github.com/sirupsen/logrus"
 )
 
-var lock sync.Mutex
-var segmentInstance *Service
 var DefaultWatchDuration = time.Hour * 12
 
 type void struct {
@@ -97,27 +93,8 @@ type Service struct {
 	mem *MemoryStatistics
 }
 
-// ObserveMemory commits memory statistics to segment.
-func (sw *Service) ObserveMemory() {
-	if sw.optOut {
-		return
-	}
-
-	for {
-		sw.mem.Update()
-		if err := sw.c.Enqueue(analytics.Track{
-			UserId:     sw.o.ClusterID,
-			Event:      "memstats",
-			Properties: analytics.Properties(sw.mem.ToMap()),
-			Context:    sw.context,
-		}); err != nil {
-			sw.l.WithError(err).Debug("Could not commit anonymized telemetry data")
-		}
-		time.Sleep(sw.o.MemoryInterval)
-	}
-}
-
 // New returns a new metrics service. If one has been instantiated already, no new instance will be created.
+// A lock is used because the value of the segmentInstance (a shared pointer) is being mutated.
 func New(
 	cmd *cobra.Command,
 	l logrus.FieldLogger,
@@ -201,19 +178,6 @@ func New(
 	go m.ObserveMemory()
 
 	return m
-}
-
-// Identify identifies a unique user to Segment
-func (sw *Service) Identify() {
-	if err := resilience.Retry(sw.l, time.Minute*5, time.Hour*24*30, func() error {
-		return sw.c.Enqueue(analytics.Identify{
-			UserId:  sw.o.ClusterID,
-			Traits:  sw.context.Traits,
-			Context: sw.context,
-		})
-	}); err != nil {
-		sw.l.WithError(err).Debug("Could not commit anonymized environment information")
-	}
 }
 
 // GaugeVec is an interface which prometheus.GaugeVec implements.

@@ -2,12 +2,17 @@ package metricsx
 
 import (
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/ory/x/resilience"
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/segmentio/analytics-go"
 )
+
+var lock sync.Mutex
+var segmentInstance *Service
 
 // A SegmentCounter is a prometheus Counter that sends data to Segment
 type SegmentCounter struct {
@@ -19,17 +24,50 @@ type SegmentCounter struct {
 // Inc sends a single metric to segment and increments the metric value by 1.
 func (c *SegmentCounter) Inc() {
 	if segmentInstance != nil {
-		go segmentCounterInc(c)
+		segmentCounterInc(c)
 	}
 
 	c.m.Inc()
+}
+
+// ObserveMemory commits memory statistics to segment.
+func (sw *Service) ObserveMemory() {
+	if sw.optOut {
+		return
+	}
+
+	for {
+		sw.mem.Update()
+		if err := sw.c.Enqueue(analytics.Track{
+			UserId:     sw.o.ClusterID,
+			Event:      "memstats",
+			Properties: analytics.Properties(sw.mem.ToMap()),
+			Context:    sw.context,
+		}); err != nil {
+			sw.l.WithError(err).Debug("Could not commit anonymized telemetry data")
+		}
+		time.Sleep(sw.o.MemoryInterval)
+	}
+}
+
+// Identify identifies a unique user to Segment
+func (sw *Service) Identify() {
+	if err := resilience.Retry(sw.l, time.Minute*5, time.Hour*24*30, func() error {
+		return sw.c.Enqueue(analytics.Identify{
+			UserId:  sw.o.ClusterID,
+			Traits:  sw.context.Traits,
+			Context: sw.context,
+		})
+	}); err != nil {
+		sw.l.WithError(err).Debug("Could not commit anonymized environment information")
+	}
 }
 
 // Add adds `val` to the total value of the metric, but calls sends n different "increment" metrics to segment, where n=val
 func (c *SegmentCounter) Add(val float64) {
 	if segmentInstance != nil {
 		for i := 0; i < int(val); i++ {
-			go segmentCounterInc(c)
+			segmentCounterInc(c)
 		}
 	}
 	c.m.Add(val)
@@ -78,74 +116,66 @@ type SegmentGauge struct {
 
 func (c *SegmentGauge) Inc() {
 	if segmentInstance != nil {
-		go func(c *SegmentGauge) {
-			v := &dto.Metric{}
-			if err := c.Write(v); err != nil {
-				segmentInstance.l.WithError(err).Debug("Could not commit read prometheus metric")
-			} else {
-				value := v.GetGauge().GetValue() + 1
-				segmentGaugeSet(c, value)
-			}
-		}(c)
+		v := &dto.Metric{}
+		if err := c.Write(v); err != nil {
+			segmentInstance.l.WithError(err).Debug("Could not commit read prometheus metric")
+		} else {
+			value := v.GetGauge().GetValue() + 1
+			segmentGaugeSet(c, value)
+		}
 	}
 	c.m.Inc()
 }
 
 func (c *SegmentGauge) Dec() {
 	if segmentInstance != nil {
-		go func(c *SegmentGauge) {
-			v := &dto.Metric{}
-			if err := c.Write(v); err != nil {
-				segmentInstance.l.WithError(err).Debug("Could not commit read prometheus metric")
-			} else {
-				value := v.GetGauge().GetValue() - 1
-				segmentGaugeSet(c, value)
-			}
-		}(c)
+		v := &dto.Metric{}
+		if err := c.Write(v); err != nil {
+			segmentInstance.l.WithError(err).Debug("Could not commit read prometheus metric")
+		} else {
+			value := v.GetGauge().GetValue() - 1
+			segmentGaugeSet(c, value)
+		}
 	}
 	c.m.Dec()
 }
 
 func (c *SegmentGauge) Set(val float64) {
 	if segmentInstance != nil {
-		go segmentGaugeSet(c, val)
+		segmentGaugeSet(c, val)
 	}
 	c.m.Set(val)
 }
 
 func (c *SegmentGauge) Add(val float64) {
 	if segmentInstance != nil {
-		go func(c *SegmentGauge) {
-			v := &dto.Metric{}
-			if err := c.Write(v); err != nil {
-				segmentInstance.l.WithError(err).Debug("Could not commit read prometheus metric")
-			} else {
-				value := v.GetGauge().GetValue() + val
-				segmentGaugeSet(c, value)
-			}
-		}(c)
+		v := &dto.Metric{}
+		if err := c.Write(v); err != nil {
+			segmentInstance.l.WithError(err).Debug("Could not commit read prometheus metric")
+		} else {
+			value := v.GetGauge().GetValue() + val
+			segmentGaugeSet(c, value)
+		}
 	}
 	c.m.Add(val)
 }
 
 func (c *SegmentGauge) Sub(val float64) {
 	if segmentInstance != nil {
-		go func(c *SegmentGauge) {
-			v := &dto.Metric{}
-			if err := c.Write(v); err != nil {
-				segmentInstance.l.WithError(err).Debug("Could not commit read prometheus metric")
-			} else {
-				value := v.GetGauge().GetValue() - val
-				segmentGaugeSet(c, value)
-			}
-		}(c)
+		v := &dto.Metric{}
+		if err := c.Write(v); err != nil {
+			segmentInstance.l.WithError(err).Debug("Could not commit read prometheus metric")
+		} else {
+			value := v.GetGauge().GetValue() - val
+			segmentGaugeSet(c, value)
+		}
 	}
 	c.m.Sub(val)
 }
 
 func (c *SegmentGauge) SetToCurrentTime() {
 	if segmentInstance != nil {
-		go segmentGaugeSet(c, float64(time.Now().Unix()))
+		segmentGaugeSet(c, float64(time.Now().Unix()))
 	}
 	c.m.SetToCurrentTime()
 }
@@ -263,6 +293,7 @@ func segmentCounterInc(c *SegmentCounter) {
 
 func segmentGaugeSet(c *SegmentGauge, value float64) {
 	c.l.Set("value", value)
+
 	if err := segmentInstance.c.Enqueue(analytics.Track{
 		UserId:     segmentInstance.o.ClusterID,
 		Event:      getGaugeName(c.o),
