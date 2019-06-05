@@ -196,7 +196,7 @@ func connectionString(clean *url.URL) string {
 	userinfo := username
 	password, hasPassword := clean.User.Password()
 	if hasPassword {
-		userinfo = url.QueryEscape(userinfo) + ":" + url.QueryEscape(password)
+		userinfo = userinfo + ":" + password
 	}
 	clean.User = nil
 	u := clean.String()
