@@ -196,7 +196,11 @@ func connectionString(clean *url.URL) string {
 	userinfo := username
 	password, hasPassword := clean.User.Password()
 	if hasPassword {
-		userinfo = userinfo + ":" + password
+		if clean.Scheme == "mysql" {
+			userinfo = userinfo + ":" + password
+		} else {
+			userinfo = url.QueryEscape(userinfo) + ":" + url.QueryEscape(password)
+		}
 	}
 	clean.User = nil
 	u := clean.String()
