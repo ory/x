@@ -132,7 +132,7 @@ func (c *SQLConnection) GetDatabase() (*sqlx.DB, error) {
 		return nil, errors.Wrapf(err, "could not open SQL connection")
 	}
 
-	c.db = sqlx.NewDb(db, registeredDriver)
+	c.db = sqlx.NewDb(db, clean.Scheme) // This must be clean.Scheme otherwise things like `Rebind()` won't work
 	if err := c.db.Ping(); err != nil {
 		return nil, errors.Wrapf(err, "could not ping SQL connection")
 	}
