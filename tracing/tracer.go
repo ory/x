@@ -28,6 +28,7 @@ type JaegerConfig struct {
 	SamplerType        string
 	SamplerValue       float64
 	SamplerServerURL   string
+	Propagation        string
 }
 
 // Setup sets up the tracer. Currently supports jaeger.
@@ -113,6 +114,10 @@ func HelpMessage(defaultName string) string {
 - TRACING_PROVIDER_JAEGER_LOCAL_AGENT_ADDRESS: The address of the jaeger-agent where spans should be sent to
 
 	Example: TRACING_PROVIDER_JAEGER_LOCAL_AGENT_ADDRESS=127.0.0.1:6831
+
+- TRACING_PROVIDER_JAEGER_PROPAGATION: The tracing header propagation format. Defaults to jaeger.
+
+	Example: TRACING_PROVIDER_JAEGER_PROPAGATION=b3
 
 - TRACING_SERVICE_NAME: Specifies the service name to use on the tracer.
 	Default: ORY Hydra
