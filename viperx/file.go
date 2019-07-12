@@ -14,7 +14,7 @@ import (
 var cfgFile string
 
 func RegisterConfigFlag(c *cobra.Command, applicationName string) {
-	c.PersistentFlags().StringVarP(&cfgFile, "config", "p", "", "Path to config file. Supports .json, .yaml, .yml, .toml. Default is $HOME/."+applicationName+".(yaml|yml|toml|json)")
+	c.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", `Path to config file. Supports .json, .yaml, .yml, .toml. Default is "$HOME/."+applicationName+".(yaml|yml|toml|json)"`)
 }
 
 func InitializeConfig(applicationName string, homeOverride string, l logrus.FieldLogger) {
