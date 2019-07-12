@@ -39,7 +39,6 @@ func InitializeConfig(applicationName string, homeOverride string, l logrus.Fiel
 		viper.SetConfigName("." + applicationName)
 	}
 
-	viper.SetDefault("LOG_LEVEL", "info")
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv() // read in environment variables that match
 
