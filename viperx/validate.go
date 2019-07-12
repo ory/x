@@ -15,6 +15,7 @@ func (err ValidationErrors) Error() string {
 	return fmt.Sprintf("%s", err[0])
 }
 
+// Validate validates the viper config. If env vars are supported, they must be bound using viper.BindEnv
 func Validate(schema gojsonschema.JSONLoader) error {
 	s, err := gojsonschema.NewSchema(schema)
 	if err != nil {
