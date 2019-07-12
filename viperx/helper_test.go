@@ -28,7 +28,8 @@ func setViper(key, value string) func(t *testing.T) {
 func noop(t *testing.T) {
 }
 
-func init() {
+func reset() {
+	viper.Reset()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 }
@@ -98,6 +99,8 @@ func TestGetStringSlice(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprintf("case=%d/description=%s", k, tc.d), func(t *testing.T) {
+			reset()
+
 			tc.p(t)
 			assert.EqualValues(t, tc.e, GetStringSlice(logrus.New(), "viperx.get_string_slice", tc.f, "viperx.get_string_slice_legacy", "viperx.get_string_slice_legacy_legacy"))
 			tc.c(t)
@@ -146,6 +149,8 @@ func TestGetString(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprintf("case=%d/description=%s", k, tc.d), func(t *testing.T) {
+			reset()
+
 			tc.p(t)
 			assert.EqualValues(t, tc.e, GetString(logrus.New(), "viperx.get_string", tc.f, "viperx.get_string_legacy", "viperx.get_string_legacy_legacy"))
 			tc.c(t)
@@ -194,6 +199,8 @@ func TestGetInt(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprintf("case=%d/description=%s", k, tc.d), func(t *testing.T) {
+			reset()
+
 			tc.p(t)
 			assert.EqualValues(t, tc.e, GetInt(logrus.New(), "viperx.get_int", tc.f, "viperx.get_int_legacy", "viperx.get_int_legacy_legacy"))
 			tc.c(t)
@@ -242,6 +249,8 @@ func TestGetFloat64(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprintf("case=%d/description=%s", k, tc.d), func(t *testing.T) {
+			reset()
+
 			tc.p(t)
 			assert.EqualValues(t, tc.e, GetFloat64(logrus.New(), "viperx.get_float64", tc.f, "viperx.get_float64_legacy", "viperx.get_float64_legacy_legacy"))
 			tc.c(t)
@@ -297,6 +306,8 @@ func TestGetBool(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprintf("case=%d/description=%s", k, tc.d), func(t *testing.T) {
+			reset()
+
 			tc.p(t)
 			assert.EqualValues(t, tc.e, GetBool(logrus.New(), "viperx.get_bool", tc.f, "viperx.get_bool_legacy", "viperx.get_bool_legacy_legacy"))
 			tc.c(t)
@@ -345,6 +356,8 @@ func TestGetDuration(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprintf("case=%d/description=%s", k, tc.d), func(t *testing.T) {
+			reset()
+
 			tc.p(t)
 			assert.EqualValues(t, tc.e, GetDuration(logrus.New(), "viperx.get_duration", tc.f, "viperx.get_duration_legacy", "viperx.get_duration_legacy_legacy"))
 			tc.c(t)
