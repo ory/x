@@ -9,6 +9,7 @@ import (
 	"github.com/ory/gojsonschema"
 )
 
+// ValidationErrors is a wrapper for []gojsonschema.ResultError that implements the error interface.
 type ValidationErrors []gojsonschema.ResultError
 
 func (err ValidationErrors) Error() string {
