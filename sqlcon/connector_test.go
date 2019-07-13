@@ -34,7 +34,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/mocktracer"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -197,10 +197,18 @@ func TestCleanQueryURL(t *testing.T) {
 }
 
 func TestConnectionString(t *testing.T) {
-	a, _ := url.Parse("mysql://foo@bar:baz@qux/db")
-	b := connectionString(a)
-	assert.NotEqual(t, b, a.String())
-	assert.True(t, strings.HasPrefix(b, "foo%40bar:baz@qux"))
+	testData := make(map[string]string)
+	testData["mysql://foo:baz@qux/db"] = "foo:baz@qux"
+	testData["mysql://foo@bar:baz@qux/db"] = "foo@bar:baz@qux"
+	testData["mysql://foo@bar:baz@baz/@qux/db"] = "foo@bar:baz@baz/@qux"
+	testData["mysql://foo@bar.com:baz@baz/@qux/db"] = "foo@bar.com:baz@baz/@qux"
+
+	for k, v := range testData {
+		a, _ := url.Parse(k)
+		b := connectionString(a)
+		assert.NotEqual(t, b, a.String())
+		assert.True(t, strings.HasPrefix(b, v))
+	}
 }
 
 func mustSQL(t *testing.T, db string, opts ...OptionModifier) *SQLConnection {

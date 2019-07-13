@@ -117,6 +117,7 @@ func (c *SQLConnection) GetDatabase() (*sqlx.DB, error) {
 	var registeredDriver string
 
 	clean := cleanURLQuery(c.URL)
+	sqlDriver := clean.Scheme
 	if registeredDriver, err = c.registerDriver(); err != nil {
 		return nil, errors.Wrap(err, "could not register driver")
 	}
@@ -132,7 +133,10 @@ func (c *SQLConnection) GetDatabase() (*sqlx.DB, error) {
 		return nil, errors.Wrapf(err, "could not open SQL connection")
 	}
 
-	c.db = sqlx.NewDb(db, registeredDriver)
+	if sqlDriver == "cockroach" {
+		sqlDriver = "postgres"
+	}
+	c.db = sqlx.NewDb(db, sqlDriver) // This must be clean.Scheme otherwise things like `Rebind()` won't work
 	if err := c.db.Ping(); err != nil {
 		return nil, errors.Wrapf(err, "could not ping SQL connection")
 	}
@@ -196,7 +200,11 @@ func connectionString(clean *url.URL) string {
 	userinfo := username
 	password, hasPassword := clean.User.Password()
 	if hasPassword {
-		userinfo = url.QueryEscape(userinfo) + ":" + url.QueryEscape(password)
+		if clean.Scheme == "mysql" {
+			userinfo = userinfo + ":" + password
+		} else {
+			userinfo = url.QueryEscape(userinfo) + ":" + url.QueryEscape(password)
+		}
 	}
 	clean.User = nil
 	u := clean.String()
