@@ -59,3 +59,21 @@ func TestValidate(t *testing.T) {
 		require.NoError(t, Validate(loader))
 	})
 }
+
+func TestToMapStringInterface(t *testing.T) {
+	assert.EqualValues(
+		t,
+		map[string]interface{}{
+			"foo": "bar",
+			"items": map[string]interface{}{
+				"foo": "bar",
+			},
+		},
+		toMapStringInterface(map[string]interface{}{
+			"foo": "bar",
+			"items": map[interface{}]interface{}{
+				"foo": "bar",
+			},
+		}),
+	)
+}
