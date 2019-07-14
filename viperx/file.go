@@ -3,6 +3,7 @@ package viperx
 import (
 	"strings"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/mitchellh/go-homedir"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -19,7 +20,7 @@ func RegisterConfigFlag(c *cobra.Command, applicationName string) {
 }
 
 // InitializeConfig initializes viper.
-func InitializeConfig(applicationName string, homeOverride string, l logrus.FieldLogger) {
+func InitializeConfig(applicationName string, homeOverride string, l logrus.FieldLogger, watch bool) {
 	if cfgFile != "" {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
@@ -67,5 +68,14 @@ func InitializeConfig(applicationName string, homeOverride string, l logrus.Fiel
 				WithError(err).
 				Fatal("Unable to open config file. Make sure it exists and the process has sufficient permissions to read it")
 		}
+		return
+	}
+
+	if watch {
+		viper.WatchConfig()
+		viper.OnConfigChange(func(in fsnotify.Event) {
+			l.WithField("file", in.Name).WithField("operator", in.Op.String()).Info("The configuration has changed and was reloaded")
+
+		})
 	}
 }

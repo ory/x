@@ -17,7 +17,7 @@ func (err ValidationErrors) Error() string {
 	for k, v := range err {
 		errs[k] = fmt.Sprintf("%s", v)
 	}
-	return fmt.Sprintf("%v", errs)
+	return fmt.Sprintf("%+v", errs)
 }
 
 // Validate validates the viper config. If env vars are supported, they must be bound using viper.BindEnv.
