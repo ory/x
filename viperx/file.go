@@ -2,6 +2,7 @@ package viperx
 
 import (
 	"strings"
+	"sync"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/mitchellh/go-homedir"
@@ -14,6 +15,8 @@ import (
 )
 
 var cfgFile string
+var watchers []func(event fsnotify.Event)
+var watcherLock sync.Mutex
 
 // RegisterConfigFlag registers the --config / -c flag.
 func RegisterConfigFlag(c *cobra.Command, applicationName string) {
@@ -28,10 +31,20 @@ type WatchOptions struct {
 	OnImmutableChange func(immutable string)
 }
 
+func AddWatcher(f func(event fsnotify.Event)) {
+	watcherLock.Lock()
+	defer watcherLock.Unlock()
+	watchers = append(watchers, f)
+}
+
 // WatchConfig is a helper makes watching configuration files easy.
 func WatchConfig(l logrus.FieldLogger, o *WatchOptions) {
 	if l == nil {
 		l = logrusx.New()
+	}
+
+	if o == nil {
+		o = new(WatchOptions)
 	}
 
 	for _, key := range o.Immutables {
@@ -39,9 +52,13 @@ func WatchConfig(l logrus.FieldLogger, o *WatchOptions) {
 		viper.Get(key)
 	}
 
+	watcherLock.Lock()
+	watchers = nil
+	watcherLock.Unlock()
+
 	viper.WatchConfig()
 	viper.OnConfigChange(func(in fsnotify.Event) {
-		l.WithField("file", in.Name).WithField("operator", in.Op.String()).Info("The configuration has changed and was reloaded")
+		l.WithField("file", in.Name).WithField("operator", in.Op.String()).Debug("The configuration has changed and was reloaded.")
 
 		if o.OnImmutableChange != nil {
 			for _, key := range o.Immutables {
@@ -50,6 +67,12 @@ func WatchConfig(l logrus.FieldLogger, o *WatchOptions) {
 				}
 			}
 		}
+
+		watcherLock.Lock()
+		for _, w := range watchers {
+			w(in)
+		}
+		watcherLock.Unlock()
 	})
 }
 
