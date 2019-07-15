@@ -33,7 +33,8 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
+
+	"github.com/ory/viper"
 
 	"github.com/ory/x/cmdx"
 	"github.com/ory/x/resilience"

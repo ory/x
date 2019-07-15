@@ -14,7 +14,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/spf13/viper"
+
+	"github.com/ory/viper"
 )
 
 // ErrNoCertificatesConfigured is returned when no TLS configuration was found.

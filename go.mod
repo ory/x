@@ -12,6 +12,7 @@ require (
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.3.3 // indirect
 	github.com/fatih/structs v1.1.0
+	github.com/fsnotify/fsnotify v1.4.7
 	github.com/go-bindata/go-bindata v3.1.1+incompatible
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/gobuffalo/envy v1.6.15 // indirect
@@ -26,7 +27,6 @@ require (
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/lib/pq v1.0.0
 	github.com/luna-duclos/instrumentedsql v0.0.0-20181127104832-b7d587d28109
-	github.com/magiconair/properties v1.8.1 // indirect
 	github.com/mattn/go-sqlite3 v1.10.0 // indirect
 	github.com/mattn/goveralls v0.0.2
 	github.com/mitchellh/go-homedir v1.1.0
@@ -39,6 +39,7 @@ require (
 	github.com/ory/go-acc v0.0.0-20181118080137-ddc355013f90
 	github.com/ory/gojsonschema v1.1.0
 	github.com/ory/herodot v0.5.1
+	github.com/ory/viper v1.5.3
 	github.com/pborman/uuid v1.2.0
 	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/pkg/errors v0.8.1
@@ -52,7 +53,7 @@ require (
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
-	github.com/spf13/viper v1.4.0
+	github.com/spf13/viper v1.4.0 // indirect
 	github.com/stretchr/testify v1.3.0
 	github.com/uber-go/atomic v1.3.2 // indirect
 	github.com/uber/jaeger-client-go v2.15.0+incompatible
@@ -70,6 +71,5 @@ require (
 	google.golang.org/grpc v1.22.0 // indirect
 	gopkg.in/gorp.v1 v1.7.2 // indirect
 	gopkg.in/square/go-jose.v2 v2.2.2
-	gopkg.in/yaml.v3 v3.0.0-20190709130402-674ba3eaed22
 	gotest.tools v2.2.0+incompatible // indirect
 )

@@ -7,7 +7,8 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
+
+	"github.com/ory/viper"
 
 	"github.com/ory/x/logrusx"
 )
@@ -19,8 +20,37 @@ func RegisterConfigFlag(c *cobra.Command, applicationName string) {
 	c.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", `Path to config file. Supports .json, .yaml, .yml, .toml. Default is "$HOME/.`+applicationName+`.(yaml|yml|toml|json)"`)
 }
 
+type WatchOptions struct {
+	Immutables        []string
+	OnImmutableChange func(immutable string)
+}
+
+func WatchConfig(l logrus.FieldLogger, o *WatchOptions) {
+	if l == nil {
+		l = logrusx.New()
+	}
+
+	for _, key := range o.Immutables {
+		// This ensures that the keys are all set
+		viper.Get(key)
+	}
+
+	viper.WatchConfig()
+	viper.OnConfigChange(func(in fsnotify.Event) {
+		l.WithField("file", in.Name).WithField("operator", in.Op.String()).Info("The configuration has changed and was reloaded")
+
+		if o.OnImmutableChange != nil {
+			for _, key := range o.Immutables {
+				if viper.HasChanged(key) {
+					o.OnImmutableChange(key)
+				}
+			}
+		}
+	})
+}
+
 // InitializeConfig initializes viper.
-func InitializeConfig(applicationName string, homeOverride string, l logrus.FieldLogger, watch bool) {
+func InitializeConfig(applicationName string, homeOverride string, l logrus.FieldLogger) {
 	if cfgFile != "" {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
@@ -69,13 +99,5 @@ func InitializeConfig(applicationName string, homeOverride string, l logrus.Fiel
 				Fatal("Unable to open config file. Make sure it exists and the process has sufficient permissions to read it")
 		}
 		return
-	}
-
-	if watch {
-		viper.WatchConfig()
-		viper.OnConfigChange(func(in fsnotify.Event) {
-			l.WithField("file", in.Name).WithField("operator", in.Op.String()).Info("The configuration has changed and was reloaded")
-
-		})
 	}
 }
