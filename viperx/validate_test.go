@@ -7,9 +7,10 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ory/viper"
 
 	"github.com/ory/gojsonschema"
 )
@@ -58,22 +59,4 @@ func TestValidate(t *testing.T) {
 
 		require.NoError(t, Validate(loader))
 	})
-}
-
-func TestToMapStringInterface(t *testing.T) {
-	assert.EqualValues(
-		t,
-		map[string]interface{}{
-			"foo": "bar",
-			"items": map[string]interface{}{
-				"foo": "bar",
-			},
-		},
-		toMapStringInterface(map[string]interface{}{
-			"foo": "bar",
-			"items": map[interface{}]interface{}{
-				"foo": "bar",
-			},
-		}),
-	)
 }

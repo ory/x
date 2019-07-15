@@ -5,8 +5,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/ory/viper"
 )
 
 func TestHTTPSCertificate(t *testing.T) {

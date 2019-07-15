@@ -2,7 +2,8 @@ package logrusx
 
 import (
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
+
+	"github.com/ory/viper"
 
 	"github.com/ory/x/stringsx"
 )
