@@ -20,8 +20,11 @@ func RegisterConfigFlag(c *cobra.Command, applicationName string) {
 	c.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", `Path to config file. Supports .json, .yaml, .yml, .toml. Default is "$HOME/.`+applicationName+`.(yaml|yml|toml|json)"`)
 }
 
+// WatchOptions configures WatchConfig.
 type WatchOptions struct {
-	Immutables        []string
+	// Immutables are keys that cause OnImmutableChange to be fired when modified.
+	Immutables []string
+	// OnImmutableChange - see Immutables.
 	OnImmutableChange func(immutable string)
 }
 
