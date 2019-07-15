@@ -25,6 +25,7 @@ type WatchOptions struct {
 	OnImmutableChange func(immutable string)
 }
 
+// WatchConfig is a helper makes watching configuration files easy.
 func WatchConfig(l logrus.FieldLogger, o *WatchOptions) {
 	if l == nil {
 		l = logrusx.New()
