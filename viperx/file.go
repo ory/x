@@ -31,6 +31,7 @@ type WatchOptions struct {
 	OnImmutableChange func(immutable string)
 }
 
+// AddWatcher adds a function callback to viper.OnConfigChange().
 func AddWatcher(f func(event fsnotify.Event)) {
 	watcherLock.Lock()
 	defer watcherLock.Unlock()
