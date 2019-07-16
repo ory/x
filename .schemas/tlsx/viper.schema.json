@@ -1,7 +1,7 @@
 {
   "$id": "https://raw.githubusercontent.com/ory/x/master/.schemas/tlsx/viper.schema.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "HTTPS Configuration",
+  "title": "HTTPS",
   "description": "Configure HTTP over TLS (HTTPS). All options can also be set using environment variables by replacing dots (`.`) with underscores (`_`) and uppercasing the key. For example, `some.prefix.tls.key.path` becomes `export SOME_PREFIX_TLS_KEY_PATH`. If all keys are left undefined, TLS will be disabled.",
   "type": "object",
   "additionalProperties": false,
@@ -30,13 +30,13 @@
   },
   "properties": {
     "key": {
-      "title": "Private Key (PEM) Configuration",
+      "title": "Private Key (PEM)",
       "allOf": [{
         "ref": "#/definitions/source"
       }]
     },
     "cert": {
-      "title": "TLS Certificate (PEM) Configuration",
+      "title": "TLS Certificate (PEM)",
       "allOf": [{
         "ref": "#/definitions/source"
       }]
