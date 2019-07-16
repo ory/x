@@ -96,9 +96,5 @@
       "description": "Set to true to debug server side CORS issues."
     }
   },
-  "required": [
-    "dsn",
-    "identity"
-  ],
   "additionalProperties": false
 }
