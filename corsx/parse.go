@@ -29,7 +29,7 @@ func ParseOptions(l logrus.FieldLogger, prefix string) cors.Options {
 		AllowCredentials:   viperx.GetBool(l, prefix+"cors.allow_credentials", true, "CORS_ALLOWED_CREDENTIALS"),
 		OptionsPassthrough: viperx.GetBool(l, prefix+"cors.options_passthrough", false),
 		MaxAge:             viperx.GetInt(l, prefix+"cors.max_age", 0, "CORS_MAX_AGE"),
-		Debug:              viperx.GetBool(l, prefix+"cors.allow_credentials", false, "CORS_DEBUG"),
+		Debug:              viperx.GetBool(l, prefix+"cors.debug", false, "CORS_DEBUG"),
 	}
 }
 
