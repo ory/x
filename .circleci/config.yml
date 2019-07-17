@@ -45,7 +45,7 @@ jobs:
       - run: git config --global user.email "hi@ory.sh"
       - run: git config --global user.name "ORY Continuous Integration"
       - run: "git clone https://arekkas:$DOCS_TOKEN_PUSH@github.com/ory/docs.git ../docs"
-      - run: "cp ./.schemas/* ../docs/schemas/lib"
+      - run: "mkdir -p ../docs/schemas/x; cp ./.schemas/* ../docs/schemas/x"
       - run: "(cd ../docs && git add -A && git commit -a -m \"Updates ory/x JSON Schemas\" && git push origin) || exit 0"
 
 workflows:
