@@ -3,7 +3,7 @@
 # Check https://circleci.com/docs/2.0/language-go/ for more details
 version: 2
 jobs:
-  build:
+  test:
     docker:
       - image: circleci/golang:1.12
         environment:
@@ -35,3 +35,25 @@ jobs:
       - run: make lint
       - run: go-acc -o coverage.txt ./... -- -v
       - run: test -z "$CIRCLE_PR_NUMBER" && goveralls -service=circle-ci -coverprofile=coverage.txt -repotoken=$COVERALLS_REPO_TOKEN || echo "forks are not allowed to push to coveralls"
+
+  docs:
+    docker:
+      - image: circleci/golang:1.12
+    working_directory: /go/src/github.com/ory/oathkeeper
+    steps:
+      - checkout
+      - run: git config --global user.email "hi@ory.sh"
+      - run: git config --global user.name "ORY Continuous Integration"
+      - run: "git clone https://arekkas:$DOCS_TOKEN_PUSH@github.com/ory/docs.git ../docs"
+      - run: "cp ./.schemas/* ../docs/schemas/lib"
+      - run: "(cd ../docs && git add -A && git commit -a -m \"Updates ory/x JSON Schemas\" && git push origin) || exit 0"
+
+workflows:
+  version: 2
+  publish:
+    jobs:
+      - test
+      - docs:
+          filters:
+            branches:
+              only: master
