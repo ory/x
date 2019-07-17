@@ -39,7 +39,7 @@ require (
 	github.com/ory/go-acc v0.0.0-20181118080137-ddc355013f90
 	github.com/ory/gojsonschema v1.1.0
 	github.com/ory/herodot v0.5.1
-	github.com/ory/viper v1.5.3
+	github.com/ory/viper v1.5.4
 	github.com/pborman/uuid v1.2.0
 	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/pkg/errors v0.8.1
@@ -73,3 +73,5 @@ require (
 	gopkg.in/square/go-jose.v2 v2.2.2
 	gotest.tools v2.2.0+incompatible // indirect
 )
+
+replace github.com/ory/viper => ../viper

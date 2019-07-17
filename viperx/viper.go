@@ -4,6 +4,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/pkg/errors"
+
 	"github.com/fsnotify/fsnotify"
 	"github.com/mitchellh/go-homedir"
 	"github.com/sirupsen/logrus"
@@ -15,8 +17,11 @@ import (
 )
 
 var cfgFile string
-var watchers []func(event fsnotify.Event)
+var watchers []func(event fsnotify.Event) error
 var watcherLock sync.Mutex
+var all map[string]interface{}
+
+var ErrRollbackConfigurationChanges = errors.New("an error occurred and configuration changes should be reverted")
 
 // RegisterConfigFlag registers the --config / -c flag.
 func RegisterConfigFlag(c *cobra.Command, applicationName string) {
@@ -28,14 +33,21 @@ type WatchOptions struct {
 	// Immutables are keys that cause OnImmutableChange to be fired when modified.
 	Immutables []string
 	// OnImmutableChange - see Immutables.
-	OnImmutableChange func(immutable string)
+	OnImmutableChange func(key string)
 }
 
 // AddWatcher adds a function callback to viper.OnConfigChange().
-func AddWatcher(f func(event fsnotify.Event)) {
+func AddWatcher(f func(event fsnotify.Event) error) {
 	watcherLock.Lock()
 	defer watcherLock.Unlock()
 	watchers = append(watchers, f)
+}
+
+// ResetWatchers resets all the watchers.
+func ResetWatchers() {
+	watcherLock.Lock()
+	defer watcherLock.Unlock()
+	watchers = nil
 }
 
 // WatchConfig is a helper makes watching configuration files easy.
@@ -48,32 +60,49 @@ func WatchConfig(l logrus.FieldLogger, o *WatchOptions) {
 		o = new(WatchOptions)
 	}
 
+	watcherLock.Lock()
+	all = viper.AllSettings()
+	watcherLock.Unlock()
+
 	for _, key := range o.Immutables {
 		// This ensures that the keys are all set
 		viper.Get(key)
 	}
 
-	watcherLock.Lock()
-	watchers = nil
-	watcherLock.Unlock()
-
 	viper.WatchConfig()
 	viper.OnConfigChange(func(in fsnotify.Event) {
-		l.WithField("file", in.Name).WithField("operator", in.Op.String()).Debug("The configuration has changed and was reloaded.")
+		watcherLock.Lock()
+		defer watcherLock.Unlock()
 
-		if o.OnImmutableChange != nil {
-			for _, key := range o.Immutables {
-				if viper.HasChanged(key) {
+		l.WithField("file", in.Name).
+			WithField("operator", in.Op.String()).
+			Info("The configuration has changed and was reloaded.")
+
+		var didReset bool
+		for _, w := range watchers {
+			if err := w(in); errors.Cause(err) == ErrRollbackConfigurationChanges {
+				viper.SetRawConfig(all)
+				didReset = true
+				break
+			} else if err != nil {
+				l.WithError(err).Error("A configuration watcher returned an error code, stopping event propagation.")
+				return
+			}
+		}
+
+		for _, key := range o.Immutables {
+			if viper.HasChanged(key) {
+				viper.SetRawConfig(all)
+				didReset = true
+				if o.OnImmutableChange != nil {
 					o.OnImmutableChange(key)
 				}
 			}
 		}
 
-		watcherLock.Lock()
-		for _, w := range watchers {
-			w(in)
+		if !didReset {
+			all = viper.AllSettings()
 		}
-		watcherLock.Unlock()
 	})
 }
 
@@ -126,6 +155,5 @@ func InitializeConfig(applicationName string, homeOverride string, l logrus.Fiel
 				WithError(err).
 				Fatal("Unable to open config file. Make sure it exists and the process has sufficient permissions to read it")
 		}
-		return
 	}
 }
