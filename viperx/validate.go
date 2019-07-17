@@ -38,6 +38,7 @@ func Validate(schema gojsonschema.JSONLoader) error {
 	return nil
 }
 
+// LoggerWithValidationErrorFields adds all validation errors as fields to the logger.
 func LoggerWithValidationErrorFields(l logrus.FieldLogger, err error) logrus.FieldLogger {
 	if errs, ok := errors.Cause(err).(ValidationErrors); ok {
 		for k, err := range errs {

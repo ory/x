@@ -21,6 +21,7 @@ var watchers []func(event fsnotify.Event) error
 var watcherLock sync.Mutex
 var all map[string]interface{}
 
+// ErrRollbackConfigurationChanges should be used when a configuration is e.g. invalid and should be rolled back.
 var ErrRollbackConfigurationChanges = errors.New("an error occurred and configuration changes should be reverted")
 
 // RegisterConfigFlag registers the --config / -c flag.
