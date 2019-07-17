@@ -73,5 +73,3 @@ require (
 	gopkg.in/square/go-jose.v2 v2.2.2
 	gotest.tools v2.2.0+incompatible // indirect
 )
-
-replace github.com/ory/viper => ../viper
