@@ -37,7 +37,7 @@ require (
 	github.com/ory/dockertest v3.3.4+incompatible
 	github.com/ory/fosite v0.29.0
 	github.com/ory/go-acc v0.0.0-20181118080137-ddc355013f90
-	github.com/ory/gojsonschema v0.0.0-20190717131243-10dd98b8dd6f
+	github.com/ory/gojsonschema v0.0.0-20190717132251-f184856edacf
 	github.com/ory/herodot v0.5.1
 	github.com/ory/viper v1.5.6
 	github.com/pborman/uuid v1.2.0
