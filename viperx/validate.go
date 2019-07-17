@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 
 	"github.com/ory/viper"
 
@@ -15,11 +16,7 @@ type ValidationErrors []gojsonschema.ResultError
 
 // Error returns a string representation of the JSON Schema Validation Errors.
 func (err ValidationErrors) Error() string {
-	errs := make([]string, len(err))
-	for k, v := range err {
-		errs[k] = fmt.Sprintf("%s", v)
-	}
-	return fmt.Sprintf("%+v", errs)
+	return "an error occurred while validating the configuration"
 }
 
 // Validate validates the viper config. If env vars are supported, they must be bound using viper.BindEnv.
@@ -39,4 +36,15 @@ func Validate(schema gojsonschema.JSONLoader) error {
 	}
 
 	return nil
+}
+
+// LoggerWithValidationErrorFields adds all validation errors as fields to the logger.
+func LoggerWithValidationErrorFields(l logrus.FieldLogger, err error) logrus.FieldLogger {
+	if errs, ok := errors.Cause(err).(ValidationErrors); ok {
+		for k, err := range errs {
+			l = l.WithField(fmt.Sprintf("validation_error[%d]", k), fmt.Sprintf("%+v", err))
+		}
+	}
+
+	return l
 }

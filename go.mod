@@ -37,9 +37,9 @@ require (
 	github.com/ory/dockertest v3.3.4+incompatible
 	github.com/ory/fosite v0.29.0
 	github.com/ory/go-acc v0.0.0-20181118080137-ddc355013f90
-	github.com/ory/gojsonschema v1.1.0
+	github.com/ory/gojsonschema v0.0.0-20190717132251-f184856edacf
 	github.com/ory/herodot v0.5.1
-	github.com/ory/viper v1.5.3
+	github.com/ory/viper v1.5.6
 	github.com/pborman/uuid v1.2.0
 	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/pkg/errors v0.8.1
@@ -59,8 +59,6 @@ require (
 	github.com/uber/jaeger-client-go v2.15.0+incompatible
 	github.com/uber/jaeger-lib v1.5.0 // indirect
 	github.com/urfave/negroni v1.0.0
-	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
-	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
 	github.com/ziutek/mymysql v1.5.4 // indirect
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
