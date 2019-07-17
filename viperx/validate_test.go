@@ -35,9 +35,7 @@ func TestValidate(t *testing.T) {
 
 		InitializeConfig(uuid.New().String(), "", nil)
 
-		err := Validate(loader)
 		require.Error(t, Validate(loader))
-		assert.Contains(t, err.Error(), "dsn")
 	})
 
 	t.Run("case=env", func(t *testing.T) {
