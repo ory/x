@@ -16,7 +16,7 @@
         "info",
         "debug"
       ],
-      "title": "Log Level",
+      "title": "Level",
       "description": "Debug enables stack traces on errors. Can also be set using environment variable LOG_LEVEL."
     },
     "format": {
@@ -26,7 +26,7 @@
         "text",
         "json"
       ],
-      "title": "Log Format",
+      "title": "Format",
       "description": "The log format can either be text or JSON."
     }
   },

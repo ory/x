@@ -18,7 +18,7 @@
           ]
         },
         "base64": {
-          "title": "Base64 Encoded",
+          "title": "Base64 Encoded Inline",
           "description": "The base64 string of the PEM-encoded file content. Can be generated using for example `base64 -i path/to/file.pem`.",
           "type": "string",
           "examples": [
@@ -32,13 +32,13 @@
     "key": {
       "title": "Private Key (PEM)",
       "allOf": [{
-        "ref": "#/definitions/source"
+        "$ref": "#/definitions/source"
       }]
     },
     "cert": {
       "title": "TLS Certificate (PEM)",
       "allOf": [{
-        "ref": "#/definitions/source"
+        "$ref": "#/definitions/source"
       }]
     }
   }
