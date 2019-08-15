@@ -5,8 +5,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	"github.com/pborman/uuid"
 	migrate "github.com/rubenv/sql-migrate"
 	"github.com/stretchr/testify/require"
 
@@ -30,37 +30,54 @@ func RunPackrMigrationTests(
 
 	var m sync.Mutex
 	var dbs = map[string]*sqlx.DB{}
-	var mid = uuid.New()
+	var mid = uuid.New().String()
 
-	dockertest.Parallel([]func(){
-		func() {
-			db, err := dockertest.ConnectToTestPostgreSQL()
-			if err != nil {
-				t.Fatalf("Could not connect to database: %v", err)
-			}
-			m.Lock()
-			dbs["postgres"] = db
-			m.Unlock()
-		},
-		func() {
-			db, err := dockertest.ConnectToTestMySQL()
-			if err != nil {
-				t.Fatalf("Could not connect to database: %v", err)
-			}
-			m.Lock()
-			dbs["mysql"] = db
-			m.Unlock()
-		},
-		func() {
-			db, err := dockertest.ConnectToTestCockroachDB()
-			if err != nil {
-				t.Fatalf("Could not connect to database: %v", err)
-			}
-			m.Lock()
-			dbs["cockroach"] = db
-			m.Unlock()
-		},
-	})
+	var dbnames = map[string]bool{}
+	for _, ms := range schema {
+		for dbname := range ms {
+			dbnames[dbname] = true
+		}
+	}
+
+	var connectors []func()
+	for dbname := range dbnames {
+		switch dbname {
+		case dbal.DriverPostgreSQL:
+			connectors = append(connectors, func() {
+				db, err := dockertest.ConnectToTestPostgreSQL()
+				if err != nil {
+					t.Fatalf("Could not connect to database: %v", err)
+				}
+				m.Lock()
+				dbs[dbal.DriverPostgreSQL] = db
+				m.Unlock()
+			})
+		case dbal.DriverMySQL:
+			connectors = append(connectors, func() {
+				db, err := dockertest.ConnectToTestMySQL()
+				if err != nil {
+					t.Fatalf("Could not connect to database: %v", err)
+				}
+				m.Lock()
+				dbs[dbal.DriverMySQL] = db
+				m.Unlock()
+			})
+		case dbal.DriverCockroachDB:
+			connectors = append(connectors, func() {
+				db, err := dockertest.ConnectToTestCockroachDB()
+				if err != nil {
+					t.Fatalf("Could not connect to database: %v", err)
+				}
+				m.Lock()
+				dbs[dbal.DriverCockroachDB] = db
+				m.Unlock()
+			})
+		default:
+			panic(fmt.Sprintf("Database name %s unknown", dbname))
+		}
+	}
+
+	dockertest.Parallel(connectors)
 
 	if data != nil {
 		require.Equal(t, len(schema), len(data))
@@ -90,7 +107,7 @@ func RunPackrMigrationTests(
 								migrate.SetTable(fmt.Sprintf("%s_%d_data", mid, sk))
 								n, err = migrate.ExecMax(db.DB, dialect, data[sk][name], migrate.Up, 1)
 								require.NoError(t, err)
-								require.Equal(t, n, 1)
+								require.Equal(t, 1, n)
 							})
 						})
 					}
@@ -114,7 +131,7 @@ func RunPackrMigrationTests(
 						t.Run(fmt.Sprintf("down=%d", step), func(t *testing.T) {
 							n, err := migrate.ExecMax(db.DB, dialect, ss[name], migrate.Down, 1)
 							require.NoError(t, err)
-							require.Equal(t, n, 1)
+							require.Equal(t, 1, n)
 						})
 					}
 				})

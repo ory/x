@@ -97,6 +97,7 @@ func (c *SQLConnection) GetDatabaseRetry(maxWait time.Duration, failAfter time.D
 	if err := resilience.Retry(c.L, maxWait, failAfter, func() (err error) {
 		c.db, err = c.GetDatabase()
 		if err != nil {
+			c.L.WithError(err).Error("Unable to connect to database, retrying...")
 			return err
 		}
 		return nil
@@ -107,7 +108,7 @@ func (c *SQLConnection) GetDatabaseRetry(maxWait time.Duration, failAfter time.D
 	return c.db, nil
 }
 
-// GetDatabase retrusn a database instance.
+// GetDatabase returns a database instance.
 func (c *SQLConnection) GetDatabase() (*sqlx.DB, error) {
 	if c.db != nil {
 		return c.db, nil
