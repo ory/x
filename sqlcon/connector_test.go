@@ -50,7 +50,7 @@ var (
 	postgresURL  *url.URL
 	cockroachURL *url.URL
 	resources    []*dockertest.Resource
-	lock sync.RWMutex
+	lock         sync.RWMutex
 )
 
 func TestMain(m *testing.M) {
