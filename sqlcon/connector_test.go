@@ -43,6 +43,7 @@ import (
 
 	"github.com/ory/dockertest"
 	dockertestd "github.com/ory/x/sqlcon/dockertest"
+	"github.com/ory/x/urlx"
 )
 
 var (
@@ -80,6 +81,7 @@ func merge(u *url.URL, params map[string]string) *url.URL {
 func TestDistributedTracing(t *testing.T) {
 	if testing.Short() {
 		t.SkipNow()
+		return
 	}
 
 	databases := map[string]string{
@@ -304,8 +306,7 @@ func bootstrapMySQL() {
 		if err != nil {
 			log.Fatalf("Could not connect to bootstrapped database: %s", err)
 		}
-		u, _ := url.Parse(uu)
-		mysqlURL = u
+		mysqlURL = urlx.ParseOrPanic(uu)
 		return
 	}
 
@@ -324,8 +325,7 @@ func bootstrapMySQL() {
 	defer lock.Unlock()
 	urls := bootstrap("root:secret@(localhost:%s)/mysql?parseTime=true", "3306/tcp", "mysql", pool, resource)
 	resources = append(resources, resource)
-	u, _ := url.Parse("mysql://" + urls)
-	mysqlURL = u
+	mysqlURL = urlx.ParseOrPanic("mysql://" + urls)
 }
 
 func bootstrapPostgres() {
@@ -337,8 +337,7 @@ func bootstrapPostgres() {
 		if err != nil {
 			log.Fatalf("Could not connect to bootstrapped database: %s", err)
 		}
-		u, _ := url.Parse(uu)
-		postgresURL = u
+		postgresURL = urlx.ParseOrPanic(uu)
 		return
 	}
 
@@ -356,8 +355,7 @@ func bootstrapPostgres() {
 	defer lock.Unlock()
 	urls := bootstrap("postgres://postgres:secret@localhost:%s/hydra?sslmode=disable", "5432/tcp", "postgres", pool, resource)
 	resources = append(resources, resource)
-	u, _ := url.Parse(urls)
-	postgresURL = u
+	postgresURL = urlx.ParseOrPanic(urls)
 }
 
 func bootstrapCockroach() {
@@ -369,8 +367,7 @@ func bootstrapCockroach() {
 		if err != nil {
 			log.Fatalf("Could not connect to bootstrapped database: %s", err)
 		}
-		u, _ := url.Parse(uu)
-		cockroachURL = u
+		cockroachURL = urlx.ParseOrPanic(uu)
 		return
 	}
 
@@ -392,8 +389,7 @@ func bootstrapCockroach() {
 	defer lock.Unlock()
 	urls := bootstrap("postgres://root@localhost:%s/defaultdb?sslmode=disable", "26257/tcp", "postgres", pool, resource)
 	resources = append(resources, resource)
-	u, _ := url.Parse(strings.Replace(urls, "postgres://", "cockroach://", 1))
-	cockroachURL = u
+	cockroachURL = urlx.ParseOrPanic(strings.Replace(urls, "postgres://", "cockroach://", 1))
 }
 
 func bootstrap(u, port, driver string, pool *dockertest.Pool, resource *dockertest.Resource) (urls string) {
