@@ -28,6 +28,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -49,6 +50,7 @@ var (
 	postgresURL  *url.URL
 	cockroachURL *url.URL
 	resources    []*dockertest.Resource
+	lock sync.RWMutex
 )
 
 func TestMain(m *testing.M) {
@@ -295,6 +297,8 @@ func killAll() {
 
 func bootstrapMySQL() {
 	if uu := os.Getenv("TEST_DATABASE_MYSQL"); uu != "" {
+		lock.Lock()
+		defer lock.Unlock()
 		log.Println("Found mysql test database config, skipping dockertest...")
 		_, err := sqlx.Open("mysql", uu)
 		if err != nil {
@@ -308,7 +312,7 @@ func bootstrapMySQL() {
 	pool, err := dockertest.NewPool("")
 	pool.MaxWait = time.Minute * 5
 	if err != nil {
-		log.Fatalf("Could not Connect to docker: %s", err)
+		log.Fatalf("Could not connect to docker: %s", err)
 	}
 
 	resource, err := pool.Run("mysql", "5.7", []string{"MYSQL_ROOT_PASSWORD=secret"})
@@ -316,6 +320,8 @@ func bootstrapMySQL() {
 		log.Fatalf("Could not start resource: %s", err)
 	}
 
+	lock.Lock()
+	defer lock.Unlock()
 	urls := bootstrap("root:secret@(localhost:%s)/mysql?parseTime=true", "3306/tcp", "mysql", pool, resource)
 	resources = append(resources, resource)
 	u, _ := url.Parse("mysql://" + urls)
@@ -324,6 +330,8 @@ func bootstrapMySQL() {
 
 func bootstrapPostgres() {
 	if uu := os.Getenv("TEST_DATABASE_POSTGRESQL"); uu != "" {
+		lock.Lock()
+		defer lock.Unlock()
 		log.Println("Found postgresql test database config, skipping dockertest...")
 		_, err := sqlx.Open("postgres", uu)
 		if err != nil {
@@ -344,6 +352,8 @@ func bootstrapPostgres() {
 		log.Fatalf("Could not start resource: %s", err)
 	}
 
+	lock.Lock()
+	defer lock.Unlock()
 	urls := bootstrap("postgres://postgres:secret@localhost:%s/hydra?sslmode=disable", "5432/tcp", "postgres", pool, resource)
 	resources = append(resources, resource)
 	u, _ := url.Parse(urls)
@@ -352,6 +362,8 @@ func bootstrapPostgres() {
 
 func bootstrapCockroach() {
 	if uu := os.Getenv("TEST_DATABASE_COCKROACHDB"); uu != "" {
+		lock.Lock()
+		defer lock.Unlock()
 		log.Println("Found cockroachdb test database config, skipping dockertest...")
 		_, err := sqlx.Open("postgres", uu)
 		if err != nil {
@@ -364,7 +376,7 @@ func bootstrapCockroach() {
 
 	pool, err := dockertest.NewPool("")
 	if err != nil {
-		log.Fatalf("Could not Connect to docker: %s", err)
+		log.Fatalf("Could not connect to cockroach in docker: %s", err)
 	}
 
 	resource, err := pool.RunWithOptions(&dockertest.RunOptions{
@@ -376,6 +388,8 @@ func bootstrapCockroach() {
 		log.Fatalf("Could not start resource: %s", err)
 	}
 
+	lock.Lock()
+	defer lock.Unlock()
 	urls := bootstrap("postgres://root@localhost:%s/defaultdb?sslmode=disable", "26257/tcp", "postgres", pool, resource)
 	resources = append(resources, resource)
 	u, _ := url.Parse(strings.Replace(urls, "postgres://", "cockroach://", 1))

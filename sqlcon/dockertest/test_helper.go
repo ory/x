@@ -57,9 +57,9 @@ func Parallel(fs []func()) {
 
 	wg.Add(len(fs))
 	for _, f := range fs {
-		go func(f func()) {
+		go func(ff func()) {
 			defer wg.Done()
-			f()
+			ff()
 		}(f)
 	}
 
