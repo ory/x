@@ -91,10 +91,11 @@ func NewPackerMigrationSource(l logrus.FieldLogger, sources []string, loader fun
 		}
 
 		if !found {
+			l.WithField("file", source).WithField("filters", fmt.Sprintf("%v", filters)).Debug("Ignoring file because path does not match filters")
 			continue
 		}
 
-		l.WithField("file", source).Debugf("Processing sql migration file")
+		l.WithField("file", source).Debug("Processing sql migration file")
 
 		body, err := loader(source)
 		if err != nil {

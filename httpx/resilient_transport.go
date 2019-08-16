@@ -39,11 +39,11 @@ func defaultShouldRetry(res *http.Response, err error) bool {
 func LoggedShouldRetry(l logrus.FieldLogger) RetryPolicy {
 	return func(res *http.Response, err error) bool {
 		if err != nil {
-			l.WithError(err).Errorf("Unable to connect to URL: %s", res.Request.URL.String())
+			l.WithError(err).Errorf("Unable to connect to DSN: %s", res.Request.URL.String())
 			return true
 		}
 		if res.StatusCode == 0 || res.StatusCode >= 500 {
-			l.WithError(errors.Errorf("received error status code %d", res.StatusCode)).Errorf("Unable to connect to URL: %s", res.Request.URL.String())
+			l.WithError(errors.Errorf("received error status code %d", res.StatusCode)).Errorf("Unable to connect to DSN: %s", res.Request.URL.String())
 			return true
 		}
 		return false
