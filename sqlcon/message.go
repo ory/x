@@ -2,7 +2,7 @@ package sqlcon
 
 // HelpMessage returns a string explaining how to set up SQL using environment variables.
 func HelpMessage() string {
-	return `- DATABASE_URL: A URL to a persistent backend. Various backends are supported:
+	return `- DATABASE_URL: A DSN to a persistent backend. Various backends are supported:
 
   - Changes are lost on process death (ephemeral storage):
 

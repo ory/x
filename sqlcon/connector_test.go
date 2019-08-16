@@ -42,14 +42,14 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ory/dockertest"
+
 	dockertestd "github.com/ory/x/sqlcon/dockertest"
-	"github.com/ory/x/urlx"
 )
 
 var (
-	mysqlURL     *url.URL
-	postgresURL  *url.URL
-	cockroachURL *url.URL
+	mysqlURL     string
+	postgresURL  string
+	cockroachURL string
 	resources    []*dockertest.Resource
 	lock         sync.RWMutex
 )
@@ -69,13 +69,24 @@ func TestMain(m *testing.M) {
 	os.Exit(s)
 }
 
-func merge(u *url.URL, params map[string]string) *url.URL {
-	b := new(url.URL)
-	*b = *u
-	for k, v := range params {
-		b.Query().Add(k, v)
+func merge(u string, query url.Values) string {
+	if strings.Contains(u, "?") {
+		return u + "&" + query.Encode()
 	}
-	return b
+	return u + "?" + query.Encode()
+}
+
+func TestClassifyDSN(t *testing.T) {
+	for k, tc := range [][]string{
+		{"mysql://foo:bar@tcp(baz:1234)/db?foo=bar", "mysql://*:*@tcp(baz:1234)/db?foo=bar"},
+		{"mysql://foo@email.com:bar@tcp(baz:1234)/db?foo=bar", "mysql://*:*@tcp(baz:1234)/db?foo=bar"},
+		{"postgres://foo:bar@baz:1234/db?foo=bar", "postgres://*:*@baz:1234/db?foo=bar"},
+		{"postgres://foo@email.com:bar@baz:1234/db?foo=bar", "postgres://*:*@baz:1234/db?foo=bar"},
+	} {
+		t.Run(fmt.Sprintf("case=%d", k), func(t *testing.T) {
+			assert.Equal(t, tc[1], classifyDSN(tc[0]))
+		})
+	}
 }
 
 func TestDistributedTracing(t *testing.T) {
@@ -85,9 +96,9 @@ func TestDistributedTracing(t *testing.T) {
 	}
 
 	databases := map[string]string{
-		"mysql":     mysqlURL.String(),
-		"postgres":  postgresURL.String(),
-		"cockroach": cockroachURL.String(),
+		"mysql":     mysqlURL,
+		"postgres":  postgresURL,
+		"cockroach": cockroachURL,
 	}
 
 	for driver, dsn := range databases {
@@ -126,7 +137,7 @@ func TestDistributedTracing(t *testing.T) {
 				defer mockedTracer.Reset()
 				opentracing.SetGlobalTracer(mockedTracer)
 
-				db, err := testCase.sqlConnection.GetDatabase()
+				db, err := testCase.sqlConnection.GetDatabaseRetry(time.Second, time.Minute*2)
 				require.NoError(t, err)
 
 				// Notice how no parent span exists in the provided context!
@@ -151,35 +162,45 @@ func TestDistributedTracing(t *testing.T) {
 }
 
 func TestRegisterDriver(t *testing.T) {
-	for _, testCase := range []struct {
-		description        string
-		sqlConnection      *SQLConnection
-		expectedDriverName string
-		shouldError        bool
+	for k, testCase := range []struct {
+		description           string
+		sqlConnection         *SQLConnection
+		expectedDriverName    string
+		expectedDriverPackage string
+		shouldError           bool
 	}{
 		{
-			description:        "should return error if supplied DSN is unsupported for tracing",
-			sqlConnection:      mustSQL(t, "unsupported://unsupported:secret@localhost:1337/mydb", WithDistributedTracing()),
-			expectedDriverName: "",
-			shouldError:        true,
+			description:   "should return error if supplied DSN is unsupported for tracing",
+			sqlConnection: mustSQL(t, "unsupported://unsupported:secret@localhost:1337/mydb", WithDistributedTracing()),
+			shouldError:   true,
 		},
 		{
-			description:        "should return registered driver name if supplied DSN is valid for tracing",
-			sqlConnection:      mustSQL(t, "mysql://foo@bar:baz@qux/db", WithDistributedTracing()),
-			expectedDriverName: "instrumented-sql-driver",
-			shouldError:        false,
+			description:           "should return registered driver name if supplied DSN is valid for tracing",
+			sqlConnection:         mustSQL(t, "mysql://foo@bar:baz@qux/db", WithDistributedTracing()),
+			expectedDriverName:    "instrumented-sql-driver",
+			expectedDriverPackage: "mysql",
+			shouldError:           false,
 		},
 		{
-			description:        "should return cockroach driver if a valid cockroach DSN is supplied",
-			sqlConnection:      mustSQL(t, "cockroach://foo@bar:baz@qux/db"),
-			expectedDriverName: "cockroach",
-			shouldError:        false,
+			description:           "should return cockroach driver if a valid cockroach DSN is supplied",
+			sqlConnection:         mustSQL(t, "cockroach://foo@bar:baz@qux/db"),
+			expectedDriverName:    "postgres",
+			expectedDriverPackage: "postgres",
+			shouldError:           false,
+		},
+		{
+			description:           "should return cockroach driver if a valid cockroach DSN is supplied",
+			sqlConnection:         mustSQL(t, "cockroach://foo@bar:baz@qux/db", WithDistributedTracing()),
+			expectedDriverName:    "instrumented-sql-driver",
+			expectedDriverPackage: "postgres",
+			shouldError:           false,
 		},
 	} {
-		t.Run(fmt.Sprintf("case=%s", testCase.description), func(t *testing.T) {
+		t.Run(fmt.Sprintf("k=%d/case=%s", k, testCase.description), func(t *testing.T) {
 			testCase.sqlConnection.L = logrus.New()
-			driverName, err := testCase.sqlConnection.registerDriver()
+			driverName, driverPackage, err := testCase.sqlConnection.registerDriver()
 			assert.Equal(t, testCase.expectedDriverName, driverName)
+			assert.Equal(t, testCase.expectedDriverPackage, driverPackage)
 			if testCase.shouldError {
 				assert.Error(t, err)
 				assert.Empty(t, driverName)
@@ -192,12 +213,14 @@ func TestRegisterDriver(t *testing.T) {
 }
 
 func TestCleanQueryURL(t *testing.T) {
-	a, _ := url.Parse("mysql://foo:bar@baz/db?max_conn_lifetime=1h&max_idle_conns=10&max_conns=10")
+	a, err := url.ParseQuery("max_conn_lifetime=1h&max_idle_conns=10&max_conns=10")
+	require.NoError(t, err)
+
 	b := cleanURLQuery(a)
 	assert.NotEqual(t, a, b)
-	assert.NotEqual(t, a.String(), b.String())
-	assert.Equal(t, true, strings.Contains(a.String(), "max_conn_lifetime"))
-	assert.Equal(t, false, strings.Contains(b.String(), "max_conn_lifetime"))
+	assert.NotEqual(t, a.Encode(), b.Encode())
+	assert.Equal(t, true, strings.Contains(a.Encode(), "max_conn_lifetime"))
+	assert.Equal(t, false, strings.Contains(b.Encode(), "max_conn_lifetime"))
 }
 
 func TestConnectionString(t *testing.T) {
@@ -208,9 +231,9 @@ func TestConnectionString(t *testing.T) {
 	testData["mysql://foo@bar.com:baz@baz/@qux/db"] = "foo@bar.com:baz@baz/@qux"
 
 	for k, v := range testData {
-		a, _ := url.Parse(k)
-		b := connectionString(a)
-		assert.NotEqual(t, b, a.String())
+		b, err := connectionString(k)
+		require.NoError(t, err)
+		assert.NotEqual(t, b, k)
 		assert.True(t, strings.HasPrefix(b, v))
 	}
 }
@@ -233,44 +256,44 @@ func TestSQLConnection(t *testing.T) {
 	}{
 		{
 			d: "mysql raw",
-			s: mustSQL(t, mysqlURL.String()),
+			s: mustSQL(t, mysqlURL),
 		},
 		{
 			d: "mysql max_conn_lifetime",
-			s: mustSQL(t, merge(mysqlURL, map[string]string{"max_conn_lifetime": "1h"}).String()),
+			s: mustSQL(t, merge(mysqlURL, url.Values{"max_conn_lifetime": {"1h"}})),
 		},
 		{
 			d: "mysql max_conn_lifetime",
-			s: mustSQL(t, merge(mysqlURL, map[string]string{"max_conn_lifetime": "1h", "max_idle_conns": "10", "max_conns": "10"}).String()),
+			s: mustSQL(t, merge(mysqlURL, url.Values{"max_conn_lifetime": {"1h"}, "max_idle_conns": {"10"}, "max_conns": {"10"}})),
 		},
 		{
 			d: "pg raw",
-			s: mustSQL(t, postgresURL.String()),
+			s: mustSQL(t, postgresURL),
 		},
 		{
 			d: "pg max_conn_lifetime",
-			s: mustSQL(t, merge(postgresURL, map[string]string{"max_conn_lifetime": "1h"}).String()),
+			s: mustSQL(t, merge(postgresURL, url.Values{"max_conn_lifetime": {"1h"}})),
 		},
 		{
 			d: "pg max_conn_lifetime",
-			s: mustSQL(t, merge(postgresURL, map[string]string{"max_conn_lifetime": "1h", "max_idle_conns": "10", "max_conns": "10"}).String()),
+			s: mustSQL(t, merge(postgresURL, url.Values{"max_conn_lifetime": {"1h"}, "max_idle_conns": {"10"}, "max_conns": {"10"}})),
 		},
 		{
 			d: "crdb raw",
-			s: mustSQL(t, cockroachURL.String()),
+			s: mustSQL(t, cockroachURL),
 		},
 		{
 			d: "crdb max_conn_lifetime",
-			s: mustSQL(t, merge(cockroachURL, map[string]string{"max_conn_lifetime": "1h"}).String()),
+			s: mustSQL(t, merge(cockroachURL, url.Values{"max_conn_lifetime": {"1h"}})),
 		},
 		{
 			d: "crdb max_conn_lifetime",
-			s: mustSQL(t, merge(cockroachURL, map[string]string{"max_conn_lifetime": "1h", "max_idle_conns": "10", "max_conns": "10"}).String()),
+			s: mustSQL(t, merge(cockroachURL, url.Values{"max_conn_lifetime": {"1h"}, "max_idle_conns": {"10"}, "max_conns": {"10"}})),
 		},
 	} {
-		t.Run(fmt.Sprintf("case=%s", tc.d), func(t *testing.T) {
+		t.Run(fmt.Sprintf("case=%s/connection=%s", tc.d, tc.s.DSN), func(t *testing.T) {
 			tc.s.L = logrus.New()
-			db, err := tc.s.GetDatabase()
+			db, err := tc.s.GetDatabaseRetry(time.Second, time.Minute*2)
 			require.NoError(t, err)
 
 			require.Nil(t, db.Ping())
@@ -306,7 +329,7 @@ func bootstrapMySQL() {
 		if err != nil {
 			log.Fatalf("Could not connect to bootstrapped database: %s", err)
 		}
-		mysqlURL = urlx.ParseOrPanic(uu)
+		mysqlURL = uu
 		return
 	}
 
@@ -325,7 +348,7 @@ func bootstrapMySQL() {
 	defer lock.Unlock()
 	urls := bootstrap("root:secret@(localhost:%s)/mysql?parseTime=true", "3306/tcp", "mysql", pool, resource)
 	resources = append(resources, resource)
-	mysqlURL = urlx.ParseOrPanic("mysql://" + urls)
+	mysqlURL = "mysql://" + urls
 }
 
 func bootstrapPostgres() {
@@ -337,7 +360,7 @@ func bootstrapPostgres() {
 		if err != nil {
 			log.Fatalf("Could not connect to bootstrapped database: %s", err)
 		}
-		postgresURL = urlx.ParseOrPanic(uu)
+		postgresURL = uu
 		return
 	}
 
@@ -355,7 +378,7 @@ func bootstrapPostgres() {
 	defer lock.Unlock()
 	urls := bootstrap("postgres://postgres:secret@localhost:%s/hydra?sslmode=disable", "5432/tcp", "postgres", pool, resource)
 	resources = append(resources, resource)
-	postgresURL = urlx.ParseOrPanic(urls)
+	postgresURL = urls
 }
 
 func bootstrapCockroach() {
@@ -367,7 +390,7 @@ func bootstrapCockroach() {
 		if err != nil {
 			log.Fatalf("Could not connect to bootstrapped database: %s", err)
 		}
-		cockroachURL = urlx.ParseOrPanic(uu)
+		cockroachURL = uu
 		return
 	}
 
@@ -389,7 +412,7 @@ func bootstrapCockroach() {
 	defer lock.Unlock()
 	urls := bootstrap("postgres://root@localhost:%s/defaultdb?sslmode=disable", "26257/tcp", "postgres", pool, resource)
 	resources = append(resources, resource)
-	cockroachURL = urlx.ParseOrPanic(strings.Replace(urls, "postgres://", "cockroach://", 1))
+	cockroachURL = strings.Replace(urls, "postgres://", "cockroach://", 1)
 }
 
 func bootstrap(u, port, driver string, pool *dockertest.Pool, resource *dockertest.Resource) (urls string) {

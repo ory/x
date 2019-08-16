@@ -39,38 +39,32 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/ory/x/resilience"
+	"github.com/ory/x/stringslice"
 )
 
 // SQLConnection represents a connection to a SQL database.
 type SQLConnection struct {
-	db  *sqlx.DB
-	URL *url.URL
+	DSN string
 	L   logrus.FieldLogger
+
+	db            *sqlx.DB
+	driverName    string
+	driverPackage string
 	options
-	driverName string
 }
 
 // NewSQLConnection returns a new SQLConnection.
-func NewSQLConnection(db string, l logrus.FieldLogger, opts ...OptionModifier) (*SQLConnection, error) {
-	u, err := url.Parse(db)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
+func NewSQLConnection(dsn string, l logrus.FieldLogger, opts ...OptionModifier) (*SQLConnection, error) {
 	if l == nil {
 		logger := logrus.New()
 
 		// Basically avoids any logging because no one uses panics
-		logger.Level = logrus.PanicLevel
+		// logger.Level = logrus.PanicLevel
 
 		l = logger
 	}
 
-	connection := &SQLConnection{
-		URL: u,
-		L:   l,
-	}
-
+	connection := &SQLConnection{DSN: dsn, L: l}
 	for _, opt := range opts {
 		opt(&connection.options)
 	}
@@ -78,18 +72,13 @@ func NewSQLConnection(db string, l logrus.FieldLogger, opts ...OptionModifier) (
 	return connection, nil
 }
 
-func cleanURLQuery(c *url.URL) *url.URL {
-	cleanurl := new(url.URL)
-	*cleanurl = *c
-
-	q := cleanurl.Query()
-	q.Del("max_conns")
-	q.Del("max_idle_conns")
-	q.Del("max_conn_lifetime")
-	q.Del("parseTime")
-
-	cleanurl.RawQuery = q.Encode()
-	return cleanurl
+func cleanURLQuery(in url.Values) (out url.Values) {
+	out, _ = url.ParseQuery(in.Encode())
+	out.Del("max_conns")
+	out.Del("max_idle_conns")
+	out.Del("max_conn_lifetime")
+	out.Del("parseTime")
+	return out
 }
 
 // GetDatabaseRetry tries to connect to a database and fails after failAfter.
@@ -108,67 +97,77 @@ func (c *SQLConnection) GetDatabaseRetry(maxWait time.Duration, failAfter time.D
 	return c.db, nil
 }
 
+func classifyDSN(dsn string) string {
+	scheme := strings.Split(dsn, "://")[0]
+	parts := strings.Split(dsn, "@")
+	host := parts[len(parts)-1]
+	return fmt.Sprintf("%s://*:*@%s", scheme, host)
+}
+
 // GetDatabase returns a database instance.
 func (c *SQLConnection) GetDatabase() (*sqlx.DB, error) {
 	if c.db != nil {
 		return c.db, nil
 	}
 
-	var err error
-	var registeredDriver string
-
-	clean := cleanURLQuery(c.URL)
-	sqlDriver := clean.Scheme
-	if registeredDriver, err = c.registerDriver(); err != nil {
+	driverName, driverPackage, err := c.registerDriver()
+	if err != nil {
 		return nil, errors.Wrap(err, "could not register driver")
 	}
 
-	c.L.Infof("Connecting with %s", c.URL.Scheme+"://*:*@"+c.URL.Host+c.URL.Path+"?"+clean.RawQuery)
-	u := connectionString(clean)
-
-	if registeredDriver == "cockroach" {
-		registeredDriver = "postgres"
-	}
-	db, err := sql.Open(registeredDriver, u)
+	dsn, err := connectionString(c.DSN)
 	if err != nil {
+		return nil, err
+	}
+
+	classifiedDSN := classifyDSN(dsn)
+	c.L.WithField("dsn", classifiedDSN).Info("Establishing connection with SQL database backend")
+
+	db, err := sql.Open(driverName, dsn)
+	if err != nil {
+		c.L.WithError(err).WithField("dsn", classifiedDSN).Error("Unable to open SQL connection")
 		return nil, errors.Wrapf(err, "could not open SQL connection")
 	}
 
-	if sqlDriver == "cockroach" {
-		sqlDriver = "postgres"
-	}
-	c.db = sqlx.NewDb(db, sqlDriver) // This must be clean.Scheme otherwise things like `Rebind()` won't work
+	c.db = sqlx.NewDb(db, driverPackage) // This must be clean.Scheme otherwise things like `Rebind()` won't work
 	if err := c.db.Ping(); err != nil {
+		c.L.WithError(err).WithField("dsn", classifiedDSN).Error("Unable to ping SQL database backend")
 		return nil, errors.Wrapf(err, "could not ping SQL connection")
 	}
 
-	c.L.Infof("Connected to SQL!")
+	c.L.WithField("dsn", classifiedDSN).Info("Successfully connected to SQL database backend")
+
+	_, query, err := parseQuery(c.DSN)
+	if err != nil {
+		return nil, err
+	}
 
 	maxConns := maxParallelism() * 2
-	if v := c.URL.Query().Get("max_conns"); v != "" {
+	if v := query.Get("max_conns"); v != "" {
 		s, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
-			c.L.Warnf("max_conns value %s could not be parsed to int: %s", v, err)
+			c.L.WithError(err).Warnf(`Query parameter "max_conns" value %v could not be parsed to int, falling back to default value %d`, v, maxConns)
 		} else {
 			maxConns = int(s)
 		}
 	}
 
 	maxIdleConns := maxParallelism()
-	if v := c.URL.Query().Get("max_idle_conns"); v != "" {
+	if v := query.Get("max_idle_conns"); v != "" {
 		s, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
 			c.L.Warnf("max_idle_conns value %s could not be parsed to int: %s", v, err)
+			c.L.WithError(err).Warnf(`Query parameter "max_idle_conns" value %v could not be parsed to int, falling back to default value %d`, v, maxIdleConns)
 		} else {
 			maxIdleConns = int(s)
 		}
 	}
 
 	maxConnLifetime := time.Duration(0)
-	if v := c.URL.Query().Get("max_conn_lifetime"); v != "" {
+	if v := query.Get("max_conn_lifetime"); v != "" {
 		s, err := time.ParseDuration(v)
 		if err != nil {
-			c.L.Warnf("max_conn_lifetime value %s could not be parsed to int: %s", v, err)
+			c.L.WithError(err).Warnf(`Query parameter "max_conn_lifetime" value %v could not be parsed to int, falling back to default value %d`, v, maxConnLifetime)
 		} else {
 			maxConnLifetime = s
 		}
@@ -190,45 +189,48 @@ func maxParallelism() int {
 	return numCPU
 }
 
-func connectionString(clean *url.URL) string {
-	if clean.Scheme == "mysql" {
-		q := clean.Query()
-		q.Set("parseTime", "true")
-		clean.RawQuery = q.Encode()
-	}
-
-	username := clean.User.Username()
-	userinfo := username
-	password, hasPassword := clean.User.Password()
-	if hasPassword {
-		if clean.Scheme == "mysql" {
-			userinfo = userinfo + ":" + password
-		} else {
-			userinfo = url.QueryEscape(userinfo) + ":" + url.QueryEscape(password)
+func parseQuery(dsn string) (clean string, query url.Values, err error) {
+	query = url.Values{}
+	parts := strings.Split(dsn, "?")
+	clean = parts[0]
+	if len(parts) == 2 {
+		if query, err = url.ParseQuery(parts[1]); err != nil {
+			return "", query, errors.WithStack(err)
 		}
 	}
-	clean.User = nil
-	u := clean.String()
-	clean.User = url.UserPassword(username, password)
-
-	if strings.HasPrefix(u, clean.Scheme+"://") {
-		u = strings.Replace(u, clean.Scheme+"://", clean.Scheme+"://"+userinfo+"@", 1)
-	}
-	if clean.Scheme == "mysql" {
-		u = strings.Replace(u, "mysql://", "", -1)
-	}
-	if clean.Scheme == "cockroach" {
-		u = strings.Replace(u, "cockroach://", "postgres://", 1)
-	}
-	return u
+	return
 }
 
-func (c *SQLConnection) registerDriver() (string, error) {
-	if c.driverName != "" {
-		return c.driverName, nil
+func connectionString(dsn string) (string, error) {
+	dsn, query, err := parseQuery(dsn)
+	if err != nil {
+		return "", err
 	}
 
-	driverName := c.URL.Scheme
+	query = cleanURLQuery(query)
+	if strings.HasPrefix(dsn, "mysql://") {
+		query.Set("parseTime", "true")
+		dsn = strings.TrimPrefix(dsn, "mysql://")
+	}
+
+	if strings.HasPrefix(dsn, "cockroach://") {
+		dsn = strings.Replace(dsn, "cockroach://", "postgres://", -1)
+	}
+
+	return dsn + "?" + query.Encode(), nil
+}
+
+// registerDriver checks if tracing is enabled and registers a custom "instrumented-sql-driver" driver that internally
+// wraps the proper driver (mysql/postgres) with an instrumented driver.
+func (c *SQLConnection) registerDriver() (string, string, error) {
+	if c.driverName != "" {
+		return c.driverName, c.driverPackage, nil
+	}
+
+	scheme := strings.Split(c.DSN, "://")[0]
+	driverName := scheme
+	driverPackage := scheme
+
 	if c.UseTracedDriver {
 		driverName = "instrumented-sql-driver"
 		if len(c.options.forcedDriverName) > 0 {
@@ -240,22 +242,34 @@ func (c *SQLConnection) registerDriver() (string, error) {
 			tracingOpts = append(tracingOpts, instrumentedsql.WithOmitArgs())
 		}
 
-		switch c.URL.Scheme {
-		case "mysql":
-			sql.Register(driverName,
-				instrumentedsql.WrapDriver(mysql.MySQLDriver{}, tracingOpts...))
-		case "cockroach":
-			fallthrough
-		case "postgres":
-			// Why does this have to be a pointer? Because the Open method for postgres has a pointer receiver
-			// and does not satisfy the driver.Driver interface.
-			sql.Register(driverName,
-				instrumentedsql.WrapDriver(&pq.Driver{}, tracingOpts...))
-		default:
-			return "", fmt.Errorf("unsupported scheme (%s) in DSN", c.URL.Scheme)
+		if !stringslice.Has(sql.Drivers(), driverName) {
+			switch scheme {
+			case "mysql":
+				sql.Register(driverName,
+					instrumentedsql.WrapDriver(mysql.MySQLDriver{}, tracingOpts...))
+			case "cockroach":
+				sql.Register(driverName,
+					instrumentedsql.WrapDriver(&pq.Driver{}, tracingOpts...))
+			case "postgres":
+				// Why does this have to be a pointer? Because the Open method for postgres has a pointer receiver
+				// and does not satisfy the driver.Driver interface.
+				sql.Register(driverName,
+					instrumentedsql.WrapDriver(&pq.Driver{}, tracingOpts...))
+			default:
+				return "", "", fmt.Errorf("unsupported scheme (%s) in DSN", scheme)
+			}
 		}
+	} else if driverName == "cockroach" {
+		// If we're not using the instrumented driver, we need to replace "cockroach" with "postgres"
+		driverName = "postgres"
+	}
+
+	switch scheme {
+	case "cockroach":
+		driverPackage = "postgres"
 	}
 
 	c.driverName = driverName
-	return driverName, nil
+	c.driverPackage = driverPackage
+	return driverName, driverPackage, nil
 }
