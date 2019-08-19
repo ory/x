@@ -3,7 +3,6 @@ package dockertest
 import (
 	"fmt"
 	"log"
-	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -14,6 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/ory/dockertest"
+
 	"github.com/ory/x/resilience"
 )
 
@@ -67,14 +67,9 @@ func Parallel(fs []func()) {
 }
 
 func connect(dialect, driver, dsn string) (db *sqlx.DB, err error) {
-	clean, err := url.Parse(dsn)
-	if err != nil {
-		return nil, err
-	}
-	if clean.Scheme == "mysql" {
+	if scheme := strings.Split(dsn, "://")[0]; scheme == "mysql" {
 		dsn = strings.Replace(dsn, "mysql://", "", -1)
-	}
-	if clean.Scheme == "cockroach" {
+	} else if scheme == "cockroach" {
 		dsn = strings.Replace(dsn, "cockroach://", "postgres://", 1)
 	}
 	err = resilience.Retry(
