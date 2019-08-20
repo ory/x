@@ -98,7 +98,7 @@ func (m *Middleware) ExcludePaths(paths ...string) *Middleware {
 		m.silencePaths[path] = true
 		m.Unlock()
 	}
-	return nil
+	return m
 }
 
 func (m *Middleware) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
