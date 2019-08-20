@@ -1,4 +1,4 @@
-package negronilogrus
+package reqlog
 
 import (
 	"fmt"
