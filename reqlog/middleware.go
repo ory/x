@@ -63,9 +63,9 @@ func NewCustomMiddleware(level logrus.Level, formatter logrus.Formatter, name st
 		Before: DefaultBefore,
 		After:  DefaultAfter,
 
-		logLevel:    logrus.InfoLevel,
-		logStarting: true,
-		clock:       &realClock{},
+		logLevel:     logrus.InfoLevel,
+		logStarting:  true,
+		clock:        &realClock{},
 		silencePaths: map[string]bool{},
 	}
 }
@@ -78,9 +78,9 @@ func NewMiddlewareFromLogger(logger *logrus.Logger, name string) *Middleware {
 		Before: DefaultBefore,
 		After:  DefaultAfter,
 
-		logLevel:    logrus.InfoLevel,
-		logStarting: true,
-		clock:       &realClock{},
+		logLevel:     logrus.InfoLevel,
+		logStarting:  true,
+		clock:        &realClock{},
 		silencePaths: map[string]bool{},
 	}
 }

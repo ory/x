@@ -103,9 +103,7 @@ func setupServeHTTP(t *testing.T) (*Middleware, negroni.ResponseWriter, *http.Re
 	}
 	mw.Logger.Out = &bytes.Buffer{}
 	mw.clock = &testClock{}
-	if err := mw.ExcludeURL("/ping"); err != nil {
-		t.Fatalf("Can't exclude URL %q: %q", "/ping", err)
-	}
+	mw.ExcludePaths("/ping")
 
 	return mw, negroni.NewResponseWriter(httptest.NewRecorder()), req
 }
@@ -204,9 +202,7 @@ func TestMiddleware_ServeHTTP_logStartingFalse(t *testing.T) {
 
 func TestServeHTTPWithURLExcluded(t *testing.T) {
 	mw, rec, req := setupServeHTTP(t)
-	if err := mw.ExcludeURL(req.URL.Path); err != nil {
-		t.Fatalf("Can't exclude URL %q: %q", "req.URL.Path", err)
-	}
+	mw.ExcludePaths(req.URL.Path)
 
 	nextHandlerCalled := false
 	mw.ServeHTTP(rec, req, func(w http.ResponseWriter, r *http.Request) {
