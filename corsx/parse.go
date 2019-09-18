@@ -10,6 +10,7 @@ import (
 	"github.com/ory/x/viperx"
 )
 
+<<<<<<< Updated upstream
 func p(prefix string) string {
 	if len(prefix) > 0 {
 		prefix = strings.TrimRight(prefix, ".") + "."
@@ -21,6 +22,32 @@ func p(prefix string) string {
 // ParseOptions parses CORS settings by using the `viper` framework.
 func ParseOptions(l logrus.FieldLogger, prefix string) cors.Options {
 	prefix = p(prefix)
+=======
+// ParseOptions parses CORS settings by using the `viper` framework. The following options are parsed:
+//
+//  - CORS_ALLOWED_CREDENTIALS
+//  - CORS_DEBUG
+//  - CORS_MAX_AGE
+//  - CORS_ALLOWED_ORIGINS
+//  - CORS_ALLOWED_METHODS
+//  - CORS_ALLOWED_HEADERS
+func ParseOptions() cors.Options {
+	allowCredentials, err := strconv.ParseBool(viper.GetString("CORS_ALLOWED_CREDENTIALS"))
+	if err != nil {
+		allowCredentials = false
+	}
+
+	debug, err := strconv.ParseBool(viper.GetString("CORS_DEBUG"))
+	if err != nil {
+		debug = false
+	}
+
+	maxAge, err := strconv.Atoi(viper.GetString("CORS_MAX_AGE"))
+	if err != nil {
+		maxAge = 0
+	}
+
+>>>>>>> Stashed changes
 	return cors.Options{
 		AllowedOrigins:     viperx.GetStringSlice(l, prefix+"cors.allowed_origins", []string{}, "CORS_ALLOWED_ORIGINS"),
 		AllowedMethods:     viperx.GetStringSlice(l, prefix+"cors.allowed_methods", []string{"GET", "POST", "PUT", "PATCH", "DELETE"}, "CORS_ALLOWED_METHODS"),

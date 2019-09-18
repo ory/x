@@ -18,7 +18,7 @@ func Connect(db string, logger logrus.FieldLogger, memf func() error, sqlf func(
 		return errors.New("No database DSN provided")
 	}
 
-	scheme := sqlcon.GetDriverName(dsn)
+	scheme := sqlcon.GetDriverName(db)
 	switch scheme {
 	case "postgres":
 		fallthrough
