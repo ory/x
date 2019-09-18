@@ -97,6 +97,11 @@ func (c *SQLConnection) GetDatabaseRetry(maxWait time.Duration, failAfter time.D
 	return c.db, nil
 }
 
+// GetDriverName returns the driver name of a given DSN.
+func GetDriverName(dsn string) string {
+	return strings.Split(dsn, "://")[0]
+}
+
 func classifyDSN(dsn string) string {
 	scheme := strings.Split(dsn, "://")[0]
 	parts := strings.Split(dsn, "@")

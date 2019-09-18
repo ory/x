@@ -1,7 +1,6 @@
 package dbal
 
 import (
-	"net/url"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -19,12 +18,8 @@ func Connect(db string, logger logrus.FieldLogger, memf func() error, sqlf func(
 		return errors.New("No database DSN provided")
 	}
 
-	u, err := url.Parse(db)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	switch u.Scheme {
+	scheme := sqlcon.GetDriverName(dsn)
+	switch scheme {
 	case "postgres":
 		fallthrough
 	case "cockroach":
