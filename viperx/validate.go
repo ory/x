@@ -16,7 +16,7 @@ type ValidationErrors []gojsonschema.ResultError
 
 // Error returns a string representation of the JSON Schema Validation Errors.
 func (err ValidationErrors) Error() string {
-	return "an error occurred while validating the configuration"
+	return fmt.Sprintf("one or more errors occurred while validating the configuration: %+v", err)
 }
 
 // Validate validates the viper config. If env vars are supported, they must be bound using viper.BindEnv.
