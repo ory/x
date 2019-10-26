@@ -33,6 +33,7 @@ func Validate(schema gojsonschema.JSONLoader) error {
 	if err := BindEnvsToSchema(b.Bytes()); err != nil {
 		return errors.WithStack(err)
 	}
+	viper.SetTypeByDefaultValue(true)
 
 	res, err := s.Validate(gojsonschema.NewGoLoader(viper.AllSettings()))
 	if err != nil {
