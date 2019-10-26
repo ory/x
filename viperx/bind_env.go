@@ -37,7 +37,14 @@ func BindEnvsToSchema(schema json.RawMessage) error {
 	if err != nil {
 		return err
 	}
-	return viper.BindEnv(keys...)
+
+	for _, key := range keys {
+		if err := viper.BindEnv(key); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func getSchemaKeys(root, current string, parents []string, traversed []string) ([]string, error) {
