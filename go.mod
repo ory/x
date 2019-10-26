@@ -73,6 +73,4 @@ require (
 
 replace github.com/spf13/viper => github.com/ory/viper v1.5.6
 
-replace github.com/ory/viper => ../viper
-
 go 1.13
