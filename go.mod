@@ -71,6 +71,4 @@ require (
 	gotest.tools v2.2.0+incompatible // indirect
 )
 
-replace github.com/spf13/viper => github.com/ory/viper v1.5.6
-
 go 1.13
