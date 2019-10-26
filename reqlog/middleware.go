@@ -113,7 +113,7 @@ func (m *Middleware) ServeHTTP(rw http.ResponseWriter, r *http.Request, next htt
 	logLevel := m.logLevel
 	m.RLock()
 	if _, ok := m.silencePaths[r.URL.Path]; ok {
-		logLevel = logrus.DebugLevel
+		logLevel = logrus.TraceLevel
 	}
 	m.RUnlock()
 

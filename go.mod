@@ -53,7 +53,6 @@ require (
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
-	github.com/spf13/viper v1.4.0 // indirect
 	github.com/stretchr/testify v1.3.0
 	github.com/uber-go/atomic v1.3.2 // indirect
 	github.com/uber/jaeger-client-go v2.15.0+incompatible
@@ -71,5 +70,9 @@ require (
 	gopkg.in/square/go-jose.v2 v2.2.2
 	gotest.tools v2.2.0+incompatible // indirect
 )
+
+replace github.com/spf13/viper => github.com/ory/viper v1.5.6
+
+replace github.com/ory/viper => ../viper
 
 go 1.13
