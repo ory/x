@@ -125,7 +125,12 @@ func (c *SQLConnection) GetDatabase() (*sqlx.DB, error) {
 		return nil, err
 	}
 
-	classifiedDSN := classifyDSN(dsn)
+	// fulfil classifyDSN()'s format, which must starts with schema://
+	dsnToClassify := dsn
+	if driverName == "mysql" {
+		dsnToClassify = "mysql://" + strings.TrimPrefix(dsnToClassify, "mysql://")
+	}
+	classifiedDSN := classifyDSN(dsnToClassify)
 	c.L.WithField("dsn", classifiedDSN).Info("Establishing connection with SQL database backend")
 
 	db, err := sql.Open(driverName, dsn)
