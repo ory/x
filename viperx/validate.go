@@ -1,6 +1,8 @@
 package viperx
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -15,6 +17,20 @@ import (
 func Validate(schema gojsonschema.JSONLoader) error {
 	s, err := gojsonschema.NewSchema(schema)
 	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	var b bytes.Buffer
+	raw, err := schema.LoadJSON()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	if err := json.NewEncoder(&b).Encode(raw); err != nil {
+		return errors.WithStack(err)
+	}
+
+	if err := BindEnvsToSchema(b.Bytes()); err != nil {
 		return errors.WithStack(err)
 	}
 
