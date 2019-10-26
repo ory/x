@@ -33,21 +33,19 @@ var keys = []string{
 
 // BindEnvsToSchema uses all keys it can find from ``
 func BindEnvsToSchema(schema json.RawMessage) error {
-	keys, err := getSchemaKeys(string(schema), string(schema), []string{}, []string{})
+	_, defaults, err := getSchemaKeys(string(schema), string(schema), []string{}, []string{})
 	if err != nil {
 		return err
 	}
 
-	for _, key := range keys {
-		if err := viper.BindEnv(key); err != nil {
-			return err
-		}
+	for key, def := range defaults {
+		viper.SetDefault(key, def)
 	}
 
 	return nil
 }
 
-func getSchemaKeys(root, current string, parents []string, traversed []string) ([]string, error) {
+func getSchemaKeys(root, current string, parents []string, traversed []string) ([]string, map[string]interface{}, error) {
 	var foundKey = -1
 	var result gjson.Result
 	for i, value := range gjson.GetMany(
@@ -62,9 +60,10 @@ func getSchemaKeys(root, current string, parents []string, traversed []string) (
 	}
 
 	if foundKey == none {
-		return nil, nil
+		return nil, nil, nil
 	}
 
+	defaults := map[string]interface{}{}
 	var paths []string
 	var err error
 
@@ -74,11 +73,33 @@ func getSchemaKeys(root, current string, parents []string, traversed []string) (
 		result.ForEach(func(k, v gjson.Result) bool {
 			this := append(parents, k.String())
 			paths = append(paths, strings.Join(this, "."))
+			joined := strings.Join(this, ".")
+
+			if d := v.Get("default"); d.Exists() {
+				defaults[strings.Join(this, ".")] = d.Value()
+			} else if t := v.Get("type"); t.Exists() {
+				switch t.String() {
+				case "array":
+					defaults[joined] = []interface{}{}
+				case "boolean":
+					defaults[joined] = false
+				case "string":
+					defaults[joined] = ""
+				case "number":
+					defaults[joined] = 0
+				case "object":
+					defaults[joined] = map[string]interface{}{}
+				}
+			}
+
 			if v.IsObject() {
-				merge, innerErr := getSchemaKeys(root, v.Raw, this, traversed)
+				merge, def, innerErr := getSchemaKeys(root, v.Raw, this, traversed)
 				if innerErr != nil {
 					err = innerErr
 					return false // break out
+				}
+				for k, v := range def {
+					defaults[k] = v
 				}
 				paths = append(paths, merge...)
 			}
@@ -87,15 +108,18 @@ func getSchemaKeys(root, current string, parents []string, traversed []string) (
 	case ref:
 		defpath := result.String()
 		if !strings.HasPrefix(defpath, "#/definitions/") {
-			return nil, errors.New("only references to #/definitions/ are supported")
+			return nil, nil, errors.New("only references to #/definitions/ are supported")
 		}
 		path := strings.ReplaceAll(strings.TrimPrefix(defpath, "#/"), "/", ".")
 		if stringslice.HasI(traversed, path) {
-			return nil, errors.Errorf("detected circular dependency in schema path: %v", traversed)
+			return nil, nil, errors.Errorf("detected circular dependency in schema path: %v", traversed)
 		}
-		merge, err := getSchemaKeys(root, gjson.Get(root, path).Raw, parents, append(traversed, path))
+		merge, def, err := getSchemaKeys(root, gjson.Get(root, path).Raw, parents, append(traversed, path))
 		if err != nil {
-			return nil, err
+			return nil, nil, err
+		}
+		for k, v := range def {
+			defaults[k] = v
 		}
 		paths = append(paths, merge...)
 	case allOf:
@@ -104,9 +128,12 @@ func getSchemaKeys(root, current string, parents []string, traversed []string) (
 		fallthrough
 	case anyOf:
 		for _, item := range result.Array() {
-			merge, err := getSchemaKeys(root, item.Raw, parents, traversed)
+			merge, def, err := getSchemaKeys(root, item.Raw, parents, traversed)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
+			}
+			for k, v := range def {
+				defaults[k] = v
 			}
 			paths = append(paths, merge...)
 		}
@@ -115,8 +142,8 @@ func getSchemaKeys(root, current string, parents []string, traversed []string) (
 	}
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return stringslice.Unique(paths), err
+	return stringslice.Unique(paths), defaults, err
 }
