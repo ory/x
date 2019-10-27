@@ -5,8 +5,7 @@
   "type": "object",
   "properties": {
     "dsn": {
-      "type": "string",
-      "minLength": 1
+      "type": "string"
     }
   },
   "required": [
