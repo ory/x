@@ -41,7 +41,6 @@ func TestValidate(t *testing.T) {
 		viper.Reset()
 
 		require.NoError(t, os.Setenv("DSN", "memory"))
-
 		InitializeConfig(uuid.New().String(), "", nil)
 
 		require.NoError(t, Validate(loader))

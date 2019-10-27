@@ -33,12 +33,23 @@ var keys = []string{
 
 // BindEnvsToSchema uses all keys it can find from ``
 func BindEnvsToSchema(schema json.RawMessage) error {
-	_, defaults, err := getSchemaKeys(string(schema), string(schema), []string{}, []string{})
+	keys, defaults, err := getSchemaKeys(string(schema), string(schema), []string{}, []string{})
 	if err != nil {
 		return err
 	}
 
+	viper.AutomaticEnv()
+	viper.SetTypeByDefaultValue(true)
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	for _, key := range keys {
+		if err := viper.BindEnv(key); err != nil {
+			return errors.WithStack(err)
+		}
+	}
+
 	for key, def := range defaults {
+		fmt.Printf("%s: %+v %T\n", key, def, def)
 		viper.SetDefault(key, def)
 	}
 
@@ -59,11 +70,25 @@ func getSchemaKeys(root, current string, parents []string, traversed []string) (
 		}
 	}
 
+	defaults := map[string]interface{}{}
 	if foundKey == none {
-		return nil, nil, nil
+		if def := gjson.Get(current, "default"); def.Exists() {
+			defaults[strings.Join(parents, ".")] = def.Value()
+		}
+		if gjson.Get(current, "type").String() == "array" {
+			switch gjson.Get(current, "items.type").String() {
+			case "number":
+				defaults[strings.Join(parents, ".")] = []float64{}
+			case "string":
+				defaults[strings.Join(parents, ".")] = []string{}
+			default:
+				defaults[strings.Join(parents, ".")] = []interface{}{}
+			}
+		}
+
+		return []string{strings.Join(parents, ".")}, defaults, nil
 	}
 
-	defaults := map[string]interface{}{}
 	var paths []string
 	var err error
 
@@ -76,20 +101,7 @@ func getSchemaKeys(root, current string, parents []string, traversed []string) (
 			joined := strings.Join(this, ".")
 
 			if d := v.Get("default"); d.Exists() {
-				defaults[strings.Join(this, ".")] = d.Value()
-			} else if t := v.Get("type"); t.Exists() {
-				switch t.String() {
-				case "array":
-					defaults[joined] = []interface{}{}
-				case "boolean":
-					defaults[joined] = false
-				case "string":
-					defaults[joined] = ""
-				case "number":
-					defaults[joined] = 0
-				case "object":
-					defaults[joined] = map[string]interface{}{}
-				}
+				defaults[joined] = d.Value()
 			}
 
 			if v.IsObject() {
