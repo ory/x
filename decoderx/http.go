@@ -155,11 +155,35 @@ func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecod
 				case []string:
 					raw, err = sjson.SetBytes(raw, path.Name, r.PostForm[key])
 				case []float64:
+					vv := make([]float64, len(r.PostForm[key]))
+					for k, v := range r.PostForm[key] {
+						f, err := strconv.ParseFloat(v, 64)
+						if err != nil {
+							return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Expected value to be a number.").
+								WithDetail("parse_error", err.Error()).
+								WithDetail("name", key).
+								WithDetail("index", k).
+								WithDetail("value",v))
+						}
+						vv[k] = f
+					}
+					raw, err = sjson.SetBytes(raw, path.Name, vv)
 				case []bool:
-				case []map[string]interface{}:
+					vv := make([]bool, len(r.PostForm[key]))
+					for k, v := range r.PostForm[key] {
+						f, err := strconv.ParseBool(v)
+						if err != nil {
+							return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Expected value to be a boolean.").
+								WithDetail("parse_error", err.Error()).
+								WithDetail("name", key).
+								WithDetail("index", k).
+								WithDetail("value",v))
+						}
+						vv[k] = f
+					}
+					raw, err = sjson.SetBytes(raw, path.Name, vv)
 				case []interface{}:
 					raw, err = sjson.SetBytes(raw, path.Name, r.PostForm[key])
-				case map[string]interface{}:
 				case bool:
 					v, err := strconv.ParseBool(r.PostForm.Get(key))
 					if err != nil {
@@ -180,6 +204,10 @@ func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecod
 					raw, err = sjson.SetBytes(raw, path.Name, v)
 				case string:
 					raw, err = sjson.SetBytes(raw, path.Name, r.PostForm.Get(key))
+				case map[string]interface{}:
+					raw, err = sjson.SetBytes(raw, path.Name, r.PostForm.Get(key))
+				case []map[string]interface{}:
+					raw, err = sjson.SetBytes(raw, path.Name, r.PostForm[key])
 				}
 
 				if err != nil {
@@ -188,6 +216,10 @@ func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecod
 				break
 			}
 		}
+	}
+
+	if err := json.NewDecoder(raw).Decode(destination); err != nil {
+		return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Unable to decode JSON payload: %s", err))
 	}
 
 	return t.validatePayload(destination, o)
