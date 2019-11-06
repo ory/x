@@ -49,7 +49,6 @@ func BindEnvsToSchema(schema json.RawMessage) error {
 	}
 
 	for key, def := range defaults {
-		fmt.Printf("%s: %+v %T\n", key, def, def)
 		viper.SetDefault(key, def)
 	}
 
