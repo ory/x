@@ -1,0 +1,31 @@
+package httpx
+
+import (
+	"mime"
+	"net/http"
+	"strings"
+
+	"github.com/ory/x/stringslice"
+)
+
+// Determine whether the request `content-type` includes a
+// server-acceptable mime-type
+//
+// Failure should yield an HTTP 415 (`http.StatusUnsupportedMediaType`)
+func HasContentType(r *http.Request, mimetypes ...string) bool {
+	contentType := r.Header.Get("Content-type")
+	if contentType == "" {
+		return stringslice.Has(mimetypes, "application/octet-stream")
+	}
+
+	for _, v := range strings.Split(contentType, ",") {
+		t, _, err := mime.ParseMediaType(strings.TrimSpace(v))
+		if err != nil {
+			break
+		}
+		if stringslice.Has(mimetypes, t) {
+			return true
+		}
+	}
+	return false
+}
