@@ -8,7 +8,7 @@ import (
 	"github.com/ory/x/stringslice"
 )
 
-// Determine whether the request `content-type` includes a
+// HasContentType determines whether the request `content-type` includes a
 // server-acceptable mime-type
 //
 // Failure should yield an HTTP 415 (`http.StatusUnsupportedMediaType`)

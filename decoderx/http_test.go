@@ -10,9 +10,10 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/ory/gojsonschema"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ory/gojsonschema"
 )
 
 func newRequest(t *testing.T, method, url string, body io.Reader, ct string) *http.Request {
@@ -118,12 +119,29 @@ func TestHTTPFormDecoder(t *testing.T) {
 		},
 		{
 			d:       "should fail form request when schema does not validate request",
-			request: newRequest(t, "POST", "/", bytes.NewBufferString(url.Values{"foo": {"bar"}}.Encode()), httpContentTypeURLEncodedForm),
+			request: newRequest(t, "POST", "/", bytes.NewBufferString(url.Values{"bar": {"bar"}}.Encode()), httpContentTypeURLEncodedForm),
 			options: []HTTPDecoderOption{HTTPJSONSchema(
 				gojsonschema.NewReferenceLoader("file://./stub/schema.json")),
 			},
+			expectedError: "foo is required",
+		},
+		{
+			d: "should pass form request and type assert data",
+			request: newRequest(t, "POST", "/", bytes.NewBufferString(url.Values{
+				"name.first": {"Aeneas"},
+				"name.last":  {"Rekkas"},
+				"age":        {"29"},
+				"ratio":      {"0.9"},
+				"consent":    {"true"},
+			}.Encode()), httpContentTypeURLEncodedForm),
+			options: []HTTPDecoderOption{HTTPJSONSchema(
+				gojsonschema.NewReferenceLoader("file://./stub/person.json")),
+			},
 			expected: `{
-	"foo": "bar"
+	"name": {"first": "Aeneas", "last": "Rekkas"},
+	"age": 29,
+	"consent": true,
+	"ratio": 0.9
 }`,
 		},
 	} {

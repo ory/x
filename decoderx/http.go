@@ -20,6 +20,7 @@ import (
 )
 
 type (
+	// HTTP decodes json and form-data from HTTP Request Bodies.
 	HTTP struct{}
 
 	httpDecoderOptions struct {
@@ -28,6 +29,7 @@ type (
 		jsonSchema          gojsonschema.JSONLoader
 	}
 
+	// HTTPDecoderOption configures the HTTP decoder.
 	HTTPDecoderOption func(*httpDecoderOptions)
 )
 
@@ -37,18 +39,24 @@ const (
 	httpContentTypeJSON           = "application/json"
 )
 
+// HTTPFormDecoder configures the HTTP decoder to only accept form-data
+// (application/x-www-form-urlencoded, multipart/form-data)
 func HTTPFormDecoder() HTTPDecoderOption {
 	return func(o *httpDecoderOptions) {
 		o.allowedContentTypes = []string{httpContentTypeMultipartForm, httpContentTypeURLEncodedForm}
 	}
 }
 
+// HTTPJSONDecoder configures the HTTP decoder to only accept form-data
+// (application/json)
 func HTTPJSONDecoder() HTTPDecoderOption {
 	return func(o *httpDecoderOptions) {
 		o.allowedContentTypes = []string{httpContentTypeJSON}
 	}
 }
 
+// HTTPJSONSchema sets a JSON schema to be used for validation and type assertion of
+// incoming requests.
 func HTTPJSONSchema(jl gojsonschema.JSONLoader) HTTPDecoderOption {
 	return func(o *httpDecoderOptions) {
 		o.jsonSchema = jl
@@ -70,6 +78,7 @@ func newHTTPDecoderOptions(fs []HTTPDecoderOption) *httpDecoderOptions {
 	return o
 }
 
+// NewHTTP creates a new HTTP decoder.
 func NewHTTP() *HTTP {
 	return new(HTTP)
 }
@@ -114,6 +123,7 @@ func (t *HTTP) validatePayload(raw json.RawMessage, c *httpDecoderOptions) error
 	return nil
 }
 
+// Decode takes a HTTP Request Body and decodes it into destination.
 func (t *HTTP) Decode(r *http.Request, destination interface{}, opts ...HTTPDecoderOption) error {
 	c := newHTTPDecoderOptions(opts)
 	if err := t.validateRequest(r, c); err != nil {

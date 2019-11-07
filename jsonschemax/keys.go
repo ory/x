@@ -27,16 +27,26 @@ var keys = []string{
 	"oneOf",
 }
 
+// Path represents a JSON Schema Path.
 type Path struct {
-	Name    string
+	// Name is the JSON path name.
+	Name string
+
+	// Default is the default value of that path.
 	Default interface{}
-	Type    interface{}
+
+	// Type is a prototype (e.g. float64(0)) of the path type.
+	Type interface{}
 }
 
+// ListPaths lists all paths of a JSON Schema. Will return an error
+// if circular dependencies are found.
 func ListPaths(root string) ([]Path, error) {
 	return listPaths(root, root, nil, nil)
 }
 
+// ListPathsBytes lists all paths of a JSON Schema (typed as []byte). Will return an error
+// if circular dependencies are found.
 func ListPathsBytes(root []byte) ([]Path, error) {
 	return listPaths(string(root), string(root), nil, nil)
 }
