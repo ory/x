@@ -69,6 +69,8 @@ func parsePrimitiveType(current gjson.Result, path string) (interface{}, error) 
 	switch t.String() {
 	case "string":
 		return "", nil
+	case "integer":
+		fallthrough
 	case "number":
 		return float64(0), nil
 	case "boolean":
@@ -105,6 +107,8 @@ func parsePrimitiveType(current gjson.Result, path string) (interface{}, error) 
 		switch it.String() {
 		case "string":
 			return []string{}, nil
+		case "integer":
+			fallthrough
 		case "number":
 			return []float64{}, nil
 		case "boolean":

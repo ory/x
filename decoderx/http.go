@@ -130,7 +130,7 @@ func (t *HTTP) Decode(r *http.Request, destination interface{}, opts ...HTTPDeco
 }
 
 func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecoderOptions) error {
-	if o.jsonSchema != nil {
+	if o.jsonSchema == nil {
 		return errors.WithStack(herodot.ErrInternalServerError.WithReasonf("Unable to decode HTTP Form Body because no validation schema was provided. This is a code bug."))
 	}
 
@@ -153,7 +153,7 @@ func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecod
 		return errors.WithStack(herodot.ErrInternalServerError.WithTrace(err).WithReasonf("Unable to prepare JSON Schema for HTTP Post Body Form parsing: %s", err).WithDebugf("%+v", err))
 	}
 
-	var raw json.RawMessage
+	raw := json.RawMessage(`{}`)
 	for key := range r.PostForm {
 		for _, path := range paths {
 			if key == path.Name {

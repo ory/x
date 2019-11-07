@@ -67,7 +67,7 @@ func TestHTTPFormDecoder(t *testing.T) {
 			d:             "should fail json if content type is not accepted",
 			request:       newRequest(t, "POST", "/", bytes.NewBufferString(`{"foo":"bar"}`), httpContentTypeJSON),
 			options:       []HTTPDecoderOption{HTTPFormDecoder()},
-			expectedError: "application/json",
+			expectedError: "Content-Type: application/json",
 		},
 		{
 			d:       "should fail json if validation fails",
@@ -99,21 +99,32 @@ func TestHTTPFormDecoder(t *testing.T) {
 			"type": "string"
 		}
 	}
-}`),
-			)},
+}`,
+				)),
+			},
 			expected: `{"foo":"bar"}`,
 		},
 		{
-			d:             "should fail json request when only form is allowed",
-			request:       newRequest(t, "POST", "/", bytes.NewBufferString(`"foo"`), httpContentTypeJSON),
-			options:       []HTTPDecoderOption{HTTPFormDecoder()},
-			expectedError: "application/json",
-		},
-		{
-			d:             "should fail form request when ",
+			d:             "should fail form request when form is used but only json is allowed",
 			request:       newRequest(t, "POST", "/", bytes.NewBufferString(url.Values{"foo": {"bar"}}.Encode()), httpContentTypeURLEncodedForm),
 			options:       []HTTPDecoderOption{HTTPJSONDecoder()},
-			expectedError: "application/json",
+			expectedError: "Content-Type: application/x-www-form-urlencoded",
+		},
+		{
+			d:             "should fail form request when schema is missing",
+			request:       newRequest(t, "POST", "/", bytes.NewBufferString(url.Values{"foo": {"bar"}}.Encode()), httpContentTypeURLEncodedForm),
+			options:       []HTTPDecoderOption{},
+			expectedError: "no validation schema was provided",
+		},
+		{
+			d:       "should fail form request when schema does not validate request",
+			request: newRequest(t, "POST", "/", bytes.NewBufferString(url.Values{"foo": {"bar"}}.Encode()), httpContentTypeURLEncodedForm),
+			options: []HTTPDecoderOption{HTTPJSONSchema(
+				gojsonschema.NewReferenceLoader("file://./stub/schema.json")),
+			},
+			expected: `{
+	"foo": "bar"
+}`,
 		},
 	} {
 		t.Run(fmt.Sprintf("case=%d/description=%s", k, tc.d), func(t *testing.T) {
