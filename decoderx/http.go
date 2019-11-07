@@ -3,6 +3,7 @@ package decoderx
 import (
 	"bytes"
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
@@ -48,6 +49,12 @@ func HTTPJSONDecoder() HTTPDecoderOption {
 	}
 }
 
+func HTTPJSONSchema(jl gojsonschema.JSONLoader) HTTPDecoderOption {
+	return func(o *httpDecoderOptions) {
+		o.jsonSchema = jl
+	}
+}
+
 func newHTTPDecoderOptions(fs []HTTPDecoderOption) *httpDecoderOptions {
 	o := &httpDecoderOptions{
 		allowedContentTypes: []string{
@@ -85,12 +92,12 @@ func (t *HTTP) validateRequest(r *http.Request, c *httpDecoderOptions) error {
 	return nil
 }
 
-func (t *HTTP) validatePayload(destination interface{}, c *httpDecoderOptions) error {
+func (t *HTTP) validatePayload(raw json.RawMessage, c *httpDecoderOptions) error {
 	if c.jsonSchema == nil {
 		return nil
 	}
 
-	res, err := gojsonschema.Validate(c.jsonSchema, gojsonschema.NewGoLoader(destination))
+	res, err := gojsonschema.Validate(c.jsonSchema, gojsonschema.NewBytesLoader(raw))
 	if err != nil {
 		return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Unable to load JSON Schema for validation: %s", err).WithDebug(err.Error()))
 	}
@@ -163,7 +170,7 @@ func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecod
 								WithDetail("parse_error", err.Error()).
 								WithDetail("name", key).
 								WithDetail("index", k).
-								WithDetail("value",v))
+								WithDetail("value", v))
 						}
 						vv[k] = f
 					}
@@ -177,7 +184,7 @@ func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecod
 								WithDetail("parse_error", err.Error()).
 								WithDetail("name", key).
 								WithDetail("index", k).
-								WithDetail("value",v))
+								WithDetail("value", v))
 						}
 						vv[k] = f
 					}
@@ -218,17 +225,30 @@ func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecod
 		}
 	}
 
-	if err := json.NewDecoder(raw).Decode(destination); err != nil {
+	if err := t.validatePayload(raw, o); err != nil {
+		return err
+	}
+
+	if err := json.NewDecoder(bytes.NewReader(raw)).Decode(destination); err != nil {
 		return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Unable to decode JSON payload: %s", err))
 	}
 
-	return t.validatePayload(destination, o)
+	return nil
 }
 
 func (t *HTTP) decodeJSON(r *http.Request, destination interface{}, o *httpDecoderOptions) error {
-	if err := json.NewDecoder(r.Body).Decode(destination); err != nil {
+	raw, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Unable to read HTTP POST body: %s", err))
+	}
+
+	if err := t.validatePayload(raw, o); err != nil {
+		return err
+	}
+
+	if err := json.NewDecoder(bytes.NewReader(raw)).Decode(destination); err != nil {
 		return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Unable to decode JSON payload: %s", err))
 	}
 
-	return t.validatePayload(destination, o)
+	return nil
 }
