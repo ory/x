@@ -47,6 +47,8 @@ require (
 	github.com/rogpeppe/go-internal v1.2.2 // indirect
 	github.com/rs/cors v1.6.0
 	github.com/rubenv/sql-migrate v0.0.0-20190212093014-1007f53448d7
+	github.com/santhosh-tekuri/jsonschema v1.2.4
+	github.com/santhosh-tekuri/jsonschema/v2 v2.1.0
 	github.com/segmentio/analytics-go v3.0.1+incompatible
 	github.com/segmentio/backo-go v0.0.0-20160424052352-204274ad699c // indirect
 	github.com/sirupsen/logrus v1.4.2

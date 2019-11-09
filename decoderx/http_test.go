@@ -110,7 +110,7 @@ func TestHTTPFormDecoder(t *testing.T) {
 		{
 			d:             "should fail form request when schema does not validate request",
 			request:       newRequest(t, "POST", "/", bytes.NewBufferString(url.Values{"bar": {"bar"}}.Encode()), httpContentTypeURLEncodedForm),
-			options:       []HTTPDecoderOption{HTTPJSONSchemaCompiler("file://./stub/schema.json", nil)},
+			options:       []HTTPDecoderOption{HTTPJSONSchemaCompiler("stub/schema.json", nil)},
 			expectedError: `missing properties: "foo"`,
 		},
 		{
@@ -122,7 +122,7 @@ func TestHTTPFormDecoder(t *testing.T) {
 				"ratio":      {"0.9"},
 				"consent":    {"true"},
 			}.Encode()), httpContentTypeURLEncodedForm),
-			options: []HTTPDecoderOption{HTTPJSONSchemaCompiler("file://./stub/person.json", nil)},
+			options: []HTTPDecoderOption{HTTPJSONSchemaCompiler("stub/person.json", nil)},
 			expected: `{
 	"name": {"first": "Aeneas", "last": "Rekkas"},
 	"age": 29,
