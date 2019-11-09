@@ -5,15 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"testing"
 
+	"github.com/pkg/errors"
+	"github.com/santhosh-tekuri/jsonschema/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/ory/gojsonschema"
 )
 
 func newRequest(t *testing.T, method, url string, body io.Reader, ct string) *http.Request {
@@ -23,14 +22,7 @@ func newRequest(t *testing.T, method, url string, body io.Reader, ct string) *ht
 	return req
 }
 
-func readFile(t *testing.T, path string) string {
-	f, err := ioutil.ReadFile(path)
-	require.NoError(t, err)
-	return string(f)
-}
-
 func TestHTTPFormDecoder(t *testing.T) {
-	dec := NewHTTP()
 	for k, tc := range []struct {
 		d             string
 		request       *http.Request
@@ -73,8 +65,7 @@ func TestHTTPFormDecoder(t *testing.T) {
 		{
 			d:       "should fail json if validation fails",
 			request: newRequest(t, "POST", "/", bytes.NewBufferString(`{"foo":"bar"}`), httpContentTypeJSON),
-			options: []HTTPDecoderOption{HTTPJSONDecoder(), HTTPJSONSchema(
-				gojsonschema.NewStringLoader(`{
+			options: []HTTPDecoderOption{HTTPJSONDecoder(), MustHTTPRawJSONSchemaCompiler([]byte(`{
 	"$id": "https://example.com/config.schema.json",
 	"$schema": "http://json-schema.org/draft-07/schema#",
 	"type": "object",
@@ -85,13 +76,12 @@ func TestHTTPFormDecoder(t *testing.T) {
 	}
 }`),
 			)},
-			expectedError: "Invalid type",
+			expectedError: "expected number, but got string",
 		},
 		{
 			d:       "should pass json with validation",
 			request: newRequest(t, "POST", "/", bytes.NewBufferString(`{"foo":"bar"}`), httpContentTypeJSON),
-			options: []HTTPDecoderOption{HTTPJSONDecoder(), HTTPJSONSchema(
-				gojsonschema.NewStringLoader(`{
+			options: []HTTPDecoderOption{HTTPJSONDecoder(), MustHTTPRawJSONSchemaCompiler([]byte(`{
 	"$id": "https://example.com/config.schema.json",
 	"$schema": "http://json-schema.org/draft-07/schema#",
 	"type": "object",
@@ -100,8 +90,8 @@ func TestHTTPFormDecoder(t *testing.T) {
 			"type": "string"
 		}
 	}
-}`,
-				)),
+}`),
+			),
 			},
 			expected: `{"foo":"bar"}`,
 		},
@@ -118,12 +108,10 @@ func TestHTTPFormDecoder(t *testing.T) {
 			expectedError: "no validation schema was provided",
 		},
 		{
-			d:       "should fail form request when schema does not validate request",
-			request: newRequest(t, "POST", "/", bytes.NewBufferString(url.Values{"bar": {"bar"}}.Encode()), httpContentTypeURLEncodedForm),
-			options: []HTTPDecoderOption{HTTPJSONSchema(
-				gojsonschema.NewReferenceLoader("file://./stub/schema.json")),
-			},
-			expectedError: "foo is required",
+			d:             "should fail form request when schema does not validate request",
+			request:       newRequest(t, "POST", "/", bytes.NewBufferString(url.Values{"bar": {"bar"}}.Encode()), httpContentTypeURLEncodedForm),
+			options:       []HTTPDecoderOption{HTTPJSONSchemaCompiler("file://./stub/schema.json", nil)},
+			expectedError: `missing properties: "foo"`,
 		},
 		{
 			d: "should pass form request and type assert data",
@@ -134,9 +122,7 @@ func TestHTTPFormDecoder(t *testing.T) {
 				"ratio":      {"0.9"},
 				"consent":    {"true"},
 			}.Encode()), httpContentTypeURLEncodedForm),
-			options: []HTTPDecoderOption{HTTPJSONSchema(
-				gojsonschema.NewReferenceLoader("file://./stub/person.json")),
-			},
+			options: []HTTPDecoderOption{HTTPJSONSchemaCompiler("file://./stub/person.json", nil)},
 			expected: `{
 	"name": {"first": "Aeneas", "last": "Rekkas"},
 	"age": 29,
@@ -146,9 +132,13 @@ func TestHTTPFormDecoder(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprintf("case=%d/description=%s", k, tc.d), func(t *testing.T) {
+			dec := NewHTTP()
 			var destination json.RawMessage
 			err := dec.Decode(tc.request, &destination, tc.options...)
 			if tc.expectedError != "" {
+				if e, ok := errors.Cause(err).(*jsonschema.ValidationError); ok {
+					t.Logf("%+v", e)
+				}
 				require.Error(t, err)
 				require.Contains(t, fmt.Sprintf("%+v", err), tc.expectedError)
 				return

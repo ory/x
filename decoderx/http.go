@@ -2,16 +2,18 @@ package decoderx
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/santhosh-tekuri/jsonschema/v2"
 	"github.com/tidwall/sjson"
 
-	"github.com/ory/gojsonschema"
 	"github.com/ory/herodot"
 
 	"github.com/ory/x/httpx"
@@ -26,7 +28,9 @@ type (
 	httpDecoderOptions struct {
 		allowedContentTypes []string
 		allowedHTTPMethods  []string
-		jsonSchema          gojsonschema.JSONLoader
+		jsonSchemaRef       string
+		jsonSchemaCompiler  *jsonschema.Compiler
+		jsonSchemaValidate  bool
 	}
 
 	// HTTPDecoderOption configures the HTTP decoder.
@@ -48,19 +52,56 @@ func HTTPFormDecoder() HTTPDecoderOption {
 }
 
 // HTTPJSONDecoder configures the HTTP decoder to only accept form-data
-// (application/json)
+// (application/json).
 func HTTPJSONDecoder() HTTPDecoderOption {
 	return func(o *httpDecoderOptions) {
 		o.allowedContentTypes = []string{httpContentTypeJSON}
 	}
 }
 
-// HTTPJSONSchema sets a JSON schema to be used for validation and type assertion of
-// incoming requests.
-func HTTPJSONSchema(jl gojsonschema.JSONLoader) HTTPDecoderOption {
+// HTTPDecoderSetValidatePayloads sets if payloads should be validated or not.
+func HTTPDecoderSetValidatePayloads(validate bool) HTTPDecoderOption {
 	return func(o *httpDecoderOptions) {
-		o.jsonSchema = jl
+		o.jsonSchemaValidate = validate
 	}
+}
+
+// HTTPJSONSchemaCompiler sets a JSON schema to be used for validation and type assertion of
+// incoming requests.
+func HTTPJSONSchemaCompiler(ref string, compiler *jsonschema.Compiler) HTTPDecoderOption {
+	return func(o *httpDecoderOptions) {
+		if compiler == nil {
+			compiler = jsonschema.NewCompiler()
+		}
+		compiler.ExtractAnnotations = true
+		o.jsonSchemaCompiler = compiler
+		o.jsonSchemaRef = ref
+		o.jsonSchemaValidate = true
+	}
+}
+
+// HTTPRawJSONSchemaCompiler uses a JSON Schema Compiler with the provided JSON Schema in raw byte form.
+func HTTPRawJSONSchemaCompiler(raw []byte) (HTTPDecoderOption, error) {
+	compiler := jsonschema.NewCompiler()
+	id := fmt.Sprintf("%x.json", sha256.Sum256(raw))
+	if err := compiler.AddResource(id, bytes.NewReader(raw)); err != nil {
+		return nil, err
+	}
+	compiler.ExtractAnnotations = true
+
+	return func(o *httpDecoderOptions) {
+		o.jsonSchemaCompiler = compiler
+		o.jsonSchemaRef = id
+	}, nil
+}
+
+// MustHTTPRawJSONSchemaCompiler uses HTTPRawJSONSchemaCompiler and panics on error.
+func MustHTTPRawJSONSchemaCompiler(raw []byte) HTTPDecoderOption {
+	f, err := HTTPRawJSONSchemaCompiler(raw)
+	if err != nil {
+		panic(err)
+	}
+	return f
 }
 
 func newHTTPDecoderOptions(fs []HTTPDecoderOption) *httpDecoderOptions {
@@ -102,21 +143,20 @@ func (t *HTTP) validateRequest(r *http.Request, c *httpDecoderOptions) error {
 }
 
 func (t *HTTP) validatePayload(raw json.RawMessage, c *httpDecoderOptions) error {
-	if c.jsonSchema == nil {
+	if !c.jsonSchemaValidate {
 		return nil
 	}
 
-	res, err := gojsonschema.Validate(c.jsonSchema, gojsonschema.NewBytesLoader(raw))
-	if err != nil {
-		return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Unable to load JSON Schema for validation: %s", err).WithDebug(err.Error()))
+	if c.jsonSchemaCompiler == nil {
+		return errors.WithStack(herodot.ErrInternalServerError.WithReasonf("JSON Schema Validation is required but no compiler was provided."))
 	}
 
-	if !res.Valid() {
-		err := herodot.ErrBadRequest.WithReasonf("HTTP Request Body contains invalid or malformed data")
-		for _, e := range res.Errors() {
-			err = err.WithDetail(e.Field(), e.Description())
-		}
+	schema, err := c.jsonSchemaCompiler.Compile(c.jsonSchemaRef)
+	if err != nil {
+		return errors.WithStack(herodot.ErrInternalServerError.WithReasonf("Unable to load JSON Schema from location: %s", err).WithDebug(err.Error()))
+	}
 
+	if err := schema.Validate(bytes.NewBuffer(raw)); err != nil {
 		return errors.WithStack(err)
 	}
 
@@ -140,7 +180,7 @@ func (t *HTTP) Decode(r *http.Request, destination interface{}, opts ...HTTPDeco
 }
 
 func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecoderOptions) error {
-	if o.jsonSchema == nil {
+	if o.jsonSchemaCompiler == nil {
 		return errors.WithStack(herodot.ErrInternalServerError.WithReasonf("Unable to decode HTTP Form Body because no validation schema was provided. This is a code bug."))
 	}
 
@@ -148,19 +188,10 @@ func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecod
 		return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Unable to decode HTTP %s form body: %s", strings.ToUpper(r.Method), err).WithDebug(err.Error()))
 	}
 
-	doc, err := o.jsonSchema.LoadJSON()
+	paths, err := jsonschemax.ListPaths(o.jsonSchemaRef, o.jsonSchemaCompiler)
 	if err != nil {
-		return errors.WithStack(herodot.ErrInternalServerError.WithReasonf("Unable to load JSON Schema.").WithDebug(err.Error()))
-	}
-
-	var b bytes.Buffer
-	if err := json.NewEncoder(&b).Encode(doc); err != nil {
-		return errors.WithStack(herodot.ErrInternalServerError.WithReasonf("Unable to encode JSON Schema.").WithDebug(err.Error()))
-	}
-
-	paths, err := jsonschemax.ListPathsBytes(b.Bytes())
-	if err != nil {
-		return errors.WithStack(herodot.ErrInternalServerError.WithTrace(err).WithReasonf("Unable to prepare JSON Schema for HTTP Post Body Form parsing: %s", err).WithDebugf("%+v", err))
+		return errors.WithStack(err)
+		// return errors.WithStack(herodot.ErrInternalServerError.WithTrace(err).WithReasonf("Unable to prepare JSON Schema for HTTP Post Body Form parsing: %s", err).WithDebugf("%+v", err))
 	}
 
 	raw := json.RawMessage(`{}`)
