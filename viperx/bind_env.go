@@ -1,10 +1,14 @@
 package viperx
 
 import (
+	"bytes"
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/santhosh-tekuri/jsonschema/v2"
 
 	"github.com/ory/viper"
 
@@ -13,7 +17,14 @@ import (
 
 // BindEnvsToSchema uses all keys it can find from ``
 func BindEnvsToSchema(schema json.RawMessage) error {
-	keys, err := jsonschemax.ListPathsBytes(schema)
+	compiler := jsonschema.NewCompiler()
+	id := fmt.Sprintf("%x.json", sha256.Sum256(schema))
+	if err := compiler.AddResource(id, bytes.NewReader(schema)); err != nil {
+		return errors.WithStack(err)
+	}
+	compiler.ExtractAnnotations = true
+
+	keys, err := jsonschemax.ListPaths(id, compiler)
 	if err != nil {
 		return err
 	}

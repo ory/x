@@ -92,6 +92,7 @@ func HTTPRawJSONSchemaCompiler(raw []byte) (HTTPDecoderOption, error) {
 	return func(o *httpDecoderOptions) {
 		o.jsonSchemaCompiler = compiler
 		o.jsonSchemaRef = id
+		o.jsonSchemaValidate = true
 	}, nil
 }
 
@@ -153,11 +154,14 @@ func (t *HTTP) validatePayload(raw json.RawMessage, c *httpDecoderOptions) error
 
 	schema, err := c.jsonSchemaCompiler.Compile(c.jsonSchemaRef)
 	if err != nil {
-		return errors.WithStack(herodot.ErrInternalServerError.WithReasonf("Unable to load JSON Schema from location: %s", err).WithDebug(err.Error()))
+		return errors.WithStack(herodot.ErrInternalServerError.WithReasonf("Unable to load JSON Schema from location: %s", c.jsonSchemaRef).WithDebug(err.Error()))
 	}
 
 	if err := schema.Validate(bytes.NewBuffer(raw)); err != nil {
-		return errors.WithStack(err)
+		if _, ok := err.(*jsonschema.ValidationError); ok {
+			return errors.WithStack(err)
+		}
+		return errors.WithStack(herodot.ErrInternalServerError.WithReasonf("Unable to process JSON Schema and input: %s", err).WithDebug(err.Error()))
 	}
 
 	return nil
@@ -190,8 +194,7 @@ func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecod
 
 	paths, err := jsonschemax.ListPaths(o.jsonSchemaRef, o.jsonSchemaCompiler)
 	if err != nil {
-		return errors.WithStack(err)
-		// return errors.WithStack(herodot.ErrInternalServerError.WithTrace(err).WithReasonf("Unable to prepare JSON Schema for HTTP Post Body Form parsing: %s", err).WithDebugf("%+v", err))
+		return errors.WithStack(herodot.ErrInternalServerError.WithTrace(err).WithReasonf("Unable to prepare JSON Schema for HTTP Post Body Form parsing: %s", err).WithDebugf("%+v", err))
 	}
 
 	raw := json.RawMessage(`{}`)

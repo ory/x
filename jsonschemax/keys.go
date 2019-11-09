@@ -8,6 +8,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/santhosh-tekuri/jsonschema/v2"
+
+	"github.com/ory/x/stringslice"
 )
 
 const (
@@ -142,6 +144,31 @@ func listPaths(schema *jsonschema.Schema, parents []string, pointers map[string]
 			pathType = ""
 		case "array":
 			pathType = []interface{}{}
+			if schema.Items != nil {
+				var types []string
+				switch t := schema.Items.(type) {
+				case []*jsonschema.Schema:
+					for _, tt := range t {
+						types = append(types, tt.Types...)
+					}
+				case *jsonschema.Schema:
+					types = append(types, t.Types...)
+				}
+				types = stringslice.Unique(types)
+				if len(types) == 1 {
+					switch types[0] {
+					case "boolean":
+						pathType = []bool{}
+					case "number":
+						fallthrough
+					case "integer":
+						pathType = []float64{}
+					case "string":
+						pathType = []string{}
+					}
+				}
+			}
+
 		case "object":
 			// Only store paths for objects that have properties
 			if len(schema.Properties) == 0 {
