@@ -30,8 +30,8 @@ type Error struct {
 // NewFromSanthoshError converts github.com/santhosh-tekuri/jsonschema.ValidationError to Error.
 func NewFromSanthoshError(validationError jsonschema.ValidationError) *Error {
 	return &Error{
-		DocumentPointer:   JSONPointerToDotNotation(validationError.InstancePtr),
-		SchemaPointer:     JSONPointerToDotNotation(validationError.SchemaPtr),
-		DocumentFieldName: JSONPointerToDotNotation(validationError.InstancePtr),
+		// DocumentPointer:   JSONPointerToDotNotation(validationError.InstancePtr),
+		// SchemaPointer:     JSONPointerToDotNotation(validationError.SchemaPtr),
+		// DocumentFieldName: JSONPointerToDotNotation(validationError.InstancePtr),
 	}
 }
