@@ -26,11 +26,12 @@ type (
 	HTTP struct{}
 
 	httpDecoderOptions struct {
-		allowedContentTypes []string
-		allowedHTTPMethods  []string
-		jsonSchemaRef       string
-		jsonSchemaCompiler  *jsonschema.Compiler
-		jsonSchemaValidate  bool
+		allowedContentTypes       []string
+		allowedHTTPMethods        []string
+		jsonSchemaRef             string
+		jsonSchemaCompiler        *jsonschema.Compiler
+		jsonSchemaValidate        bool
+		maxCircularReferenceDepth uint8
 	}
 
 	// HTTPDecoderOption configures the HTTP decoder.
@@ -63,6 +64,13 @@ func HTTPJSONDecoder() HTTPDecoderOption {
 func HTTPDecoderSetValidatePayloads(validate bool) HTTPDecoderOption {
 	return func(o *httpDecoderOptions) {
 		o.jsonSchemaValidate = validate
+	}
+}
+
+// HTTPDecoderSetMaxCircularReferenceDepth sets the maximum recursive reference resolution depth.
+func HTTPDecoderSetMaxCircularReferenceDepth(depth uint8) HTTPDecoderOption {
+	return func(o *httpDecoderOptions) {
+		o.maxCircularReferenceDepth = depth
 	}
 }
 
@@ -110,7 +118,8 @@ func newHTTPDecoderOptions(fs []HTTPDecoderOption) *httpDecoderOptions {
 		allowedContentTypes: []string{
 			httpContentTypeMultipartForm, httpContentTypeURLEncodedForm, httpContentTypeJSON,
 		},
-		allowedHTTPMethods: []string{"POST", "PUT", "PATCH"},
+		allowedHTTPMethods:        []string{"POST", "PUT", "PATCH"},
+		maxCircularReferenceDepth: 5,
 	}
 
 	for _, f := range fs {
@@ -192,7 +201,7 @@ func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecod
 		return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Unable to decode HTTP %s form body: %s", strings.ToUpper(r.Method), err).WithDebug(err.Error()))
 	}
 
-	paths, err := jsonschemax.ListPaths(o.jsonSchemaRef, o.jsonSchemaCompiler)
+	paths, err := jsonschemax.ListPathsWithRecursion(o.jsonSchemaRef, o.jsonSchemaCompiler, o.maxCircularReferenceDepth)
 	if err != nil {
 		return errors.WithStack(herodot.ErrInternalServerError.WithTrace(err).WithReasonf("Unable to prepare JSON Schema for HTTP Post Body Form parsing: %s", err).WithDebugf("%+v", err))
 	}
