@@ -11,10 +11,67 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const recursiveSchema = `{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "test.json",
+  "definitions": {
+    "foo": {
+      "type": "object",
+      "properties": {
+		"bars": {"type": "string"},
+        "bar": {
+          "$ref": "#/definitions/bar"
+        }
+      }
+    },
+    "bar": {
+      "type": "object",
+      "properties": {
+		"foos": {"type": "string"},
+        "foo": {
+          "$ref": "#/definitions/foo"
+        }
+      }
+    }
+  },
+  "type": "object",
+  "properties": {
+    "bar": {
+      "$ref": "#/definitions/bar"
+    }
+  }
+}`
+
 func readFile(t *testing.T, path string) string {
 	schema, err := ioutil.ReadFile(path)
 	require.NoError(t, err)
 	return string(schema)
+}
+
+func TestListPathsWithRecursion(t *testing.T) {
+	for k, tc := range []struct {
+		recursion uint8
+		expected  byName
+	}{
+		{
+			recursion: 5,
+			expected: byName{
+				Path{Name: "bar.foo.bar.foo.bar.foos", Default: interface{}(nil), Type: ""},
+				Path{Name: "bar.foo.bar.foo.bars", Default: interface{}(nil), Type: ""},
+				Path{Name: "bar.foo.bar.foos", Default: interface{}(nil), Type: ""},
+				Path{Name: "bar.foo.bars", Default: interface{}(nil), Type: ""},
+				Path{Name: "bar.foos", Default: interface{}(nil), Type: ""},
+			},
+		},
+	} {
+		t.Run(fmt.Sprintf("case=%d", k), func(t *testing.T) {
+			c := jsonschema.NewCompiler()
+			require.NoError(t, c.AddResource("test.json", bytes.NewBufferString(recursiveSchema)))
+			actual, err := ListPathsWithRecursion("test.json", c, tc.recursion)
+			require.NoError(t, err)
+			assert.EqualValues(t, tc.expected, actual)
+		})
+	}
 }
 
 func TestListPaths(t *testing.T) {
@@ -140,33 +197,7 @@ func TestListPaths(t *testing.T) {
 		},
 		{
 			// this should fail because of recursion
-			schema: `{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "test.json",
-  "definitions": {
-    "foo": {
-      "type": "object",
-      "properties": {
-        "bar": {
-          "$ref": "#/definitions/bar"
-        }
-      }
-    },
-    "bar": {
-      "properties": {
-        "foo": {
-          "$ref": "#/definitions/foo"
-        }
-      }
-    }
-  },
-  "type": "object",
-  "properties": {
-    "bar": {
-      "$ref": "#/definitions/bar"
-    }
-  }
-}`,
+			schema:    recursiveSchema,
 			expectErr: true,
 		},
 		{
