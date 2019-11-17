@@ -1,6 +1,8 @@
 package jsonschemax
 
 import (
+	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -45,6 +47,18 @@ type Path struct {
 
 	// Type is a prototype (e.g. float64(0)) of the path type.
 	Type interface{}
+}
+
+// ListPathsBytes works like ListPathsWithRecursion but prepares the JSON Schema itself.
+func ListPathsBytes(raw json.RawMessage, maxRecursion int16) ([]Path, error) {
+	compiler := jsonschema.NewCompiler()
+	compiler.ExtractAnnotations = true
+	id := fmt.Sprintf("%x.json", sha256.Sum256(raw))
+	if err := compiler.AddResource(id, bytes.NewReader(raw)); err != nil {
+		return nil, err
+	}
+	compiler.ExtractAnnotations = true
+	return runPaths(id, compiler, maxRecursion)
 }
 
 // ListPathsWithRecursion will follow circular references until maxRecursion is reached, without
@@ -196,7 +210,6 @@ func listPaths(schema *jsonschema.Schema, parents []string, pointers map[string]
 		})
 	}
 
-	fmt.Printf("current: %d!=%d (%T) %+v %+v \n\t %+v \n", currentRecursion, maxRecursion, pathType, schema.Types, paths, schema)
 	if isCircular {
 		if maxRecursion == -1 {
 			return nil, errors.Errorf("detected circular dependency in schema path: %s", strings.Join(parents, "."))
