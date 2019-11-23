@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// NewRequestJSON returns a new JSON *http.Request.
 func NewRequestJSON(method, url string, data interface{}) (*http.Request, error) {
 	var b bytes.Buffer
 	if err := json.NewEncoder(&b).Encode(data); err != nil {
@@ -23,7 +24,7 @@ func NewRequestJSON(method, url string, data interface{}) (*http.Request, error)
 	req.Header.Set("Content-Type", "application/json")
 	return req, nil
 }
-
+// NewRequestForm returns a new POST Form *http.Request.
 func NewRequestForm(method, url string, data url.Values) (*http.Request, error) {
 	req, err := http.NewRequest(method, url, strings.NewReader(data.Encode()))
 	if err != nil {
@@ -33,6 +34,7 @@ func NewRequestForm(method, url string, data url.Values) (*http.Request, error) 
 	return req, nil
 }
 
+// MustNewRequest returns a new *http.Request or fatals.
 func MustNewRequest(method, url string, body io.Reader, contentType string) *http.Request {
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
