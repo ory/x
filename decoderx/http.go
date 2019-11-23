@@ -32,16 +32,33 @@ type (
 		jsonSchemaCompiler        *jsonschema.Compiler
 		jsonSchemaValidate        bool
 		maxCircularReferenceDepth uint8
+		handleParseErrors         parseErrorStrategy
 	}
 
 	// HTTPDecoderOption configures the HTTP decoder.
 	HTTPDecoderOption func(*httpDecoderOptions)
+
+	parseErrorStrategy uint8
 )
 
 const (
 	httpContentTypeMultipartForm  = "multipart/form-data"
 	httpContentTypeURLEncodedForm = "application/x-www-form-urlencoded"
 	httpContentTypeJSON           = "application/json"
+)
+
+const (
+	// ParseErrorIgnore will ignore any parse errors caused by strconv.Parse* and use the
+	// raw form field value, which is a string, when such a parse error occurs.
+	ParseErrorIgnore parseErrorStrategy = iota + 1
+
+	// ParseErrorDefault will ignore any parse errors caused by strconv.Parse* and use the
+	// default value of the type to be casted, e.g. float64(0), string("").
+	ParseErrorDefault
+
+	// ParseErrorReturn will abort and return with an error if strconv.Parse* returns
+	// an error.
+	ParseErrorReturn
 )
 
 // HTTPFormDecoder configures the HTTP decoder to only accept form-data
@@ -64,6 +81,20 @@ func HTTPJSONDecoder() HTTPDecoderOption {
 func HTTPDecoderSetValidatePayloads(validate bool) HTTPDecoderOption {
 	return func(o *httpDecoderOptions) {
 		o.jsonSchemaValidate = validate
+	}
+}
+
+// HTTPDecoderSetIgnoreParseErrorsStrategy sets a strategy for dealing with strconv.Parse* errors:
+//
+// - decoderx.ParseErrorIgnore will ignore any parse errors caused by strconv.Parse* and use the
+// raw form field value, which is a string, when such a parse error occurs. (default)
+// - decoderx.ParseErrorDefault will ignore any parse errors caused by strconv.Parse* and use the
+// default value of the type to be casted, e.g. float64(0), string("").
+// - decoderx.ParseErrorReturn will abort and return with an error if strconv.Parse* returns
+// an error.
+func HTTPDecoderSetIgnoreParseErrorsStrategy(strategy parseErrorStrategy) HTTPDecoderOption {
+	return func(o *httpDecoderOptions) {
+		o.handleParseErrors = strategy
 	}
 }
 
@@ -120,6 +151,7 @@ func newHTTPDecoderOptions(fs []HTTPDecoderOption) *httpDecoderOptions {
 		},
 		allowedHTTPMethods:        []string{"POST", "PUT", "PATCH"},
 		maxCircularReferenceDepth: 5,
+		handleParseErrors:         ParseErrorIgnore,
 	}
 
 	for _, f := range fs {
@@ -215,53 +247,79 @@ func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecod
 				case []string:
 					raw, err = sjson.SetBytes(raw, path.Name, r.PostForm[key])
 				case []float64:
-					vv := make([]float64, len(r.PostForm[key]))
 					for k, v := range r.PostForm[key] {
-						f, err := strconv.ParseFloat(v, 64)
-						if err != nil {
-							return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Expected value to be a number.").
-								WithDetail("parse_error", err.Error()).
-								WithDetail("name", key).
-								WithDetail("index", k).
-								WithDetail("value", v))
+						if f, err := strconv.ParseFloat(v, 64); err != nil {
+							switch o.handleParseErrors {
+							case ParseErrorIgnore:
+								raw, err = sjson.SetBytes(raw, path.Name+"."+strconv.Itoa(k), v)
+							case ParseErrorDefault:
+								raw, err = sjson.SetBytes(raw, path.Name+"."+strconv.Itoa(k), f)
+							case ParseErrorReturn:
+								return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Expected value to be a number.").
+									WithDetail("parse_error", err.Error()).
+									WithDetail("name", key).
+									WithDetail("index", k).
+									WithDetail("value", v))
+							}
+						} else {
+							raw, err = sjson.SetBytes(raw, path.Name+"."+strconv.Itoa(k), f)
 						}
-						vv[k] = f
 					}
-					raw, err = sjson.SetBytes(raw, path.Name, vv)
 				case []bool:
-					vv := make([]bool, len(r.PostForm[key]))
 					for k, v := range r.PostForm[key] {
-						f, err := strconv.ParseBool(v)
-						if err != nil {
-							return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Expected value to be a boolean.").
-								WithDetail("parse_error", err.Error()).
-								WithDetail("name", key).
-								WithDetail("index", k).
-								WithDetail("value", v))
+						if f, err := strconv.ParseBool(v); err != nil {
+							switch o.handleParseErrors {
+							case ParseErrorIgnore:
+								raw, err = sjson.SetBytes(raw, path.Name+"."+strconv.Itoa(k), v)
+							case ParseErrorDefault:
+								raw, err = sjson.SetBytes(raw, path.Name+"."+strconv.Itoa(k), f)
+							case ParseErrorReturn:
+								return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Expected value to be a boolean.").
+									WithDetail("parse_error", err.Error()).
+									WithDetail("name", key).
+									WithDetail("index", k).
+									WithDetail("value", v))
+							}
+						} else {
+							raw, err = sjson.SetBytes(raw, path.Name+"."+strconv.Itoa(k), f)
 						}
-						vv[k] = f
 					}
-					raw, err = sjson.SetBytes(raw, path.Name, vv)
 				case []interface{}:
 					raw, err = sjson.SetBytes(raw, path.Name, r.PostForm[key])
 				case bool:
-					v, err := strconv.ParseBool(r.PostForm.Get(key))
-					if err != nil {
-						return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Expected value to be a boolean.").
-							WithDetail("parse_error", err.Error()).
-							WithDetail("name", key).
-							WithDetail("value", r.PostForm.Get(key)))
+					v := r.PostForm[key][len(r.PostForm[key])-1]
+					if f, err := strconv.ParseBool(v); err != nil {
+						switch o.handleParseErrors {
+						case ParseErrorIgnore:
+							raw, err = sjson.SetBytes(raw, path.Name, v)
+						case ParseErrorDefault:
+							raw, err = sjson.SetBytes(raw, path.Name, f)
+						case ParseErrorReturn:
+							return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Expected value to be a boolean.").
+								WithDetail("parse_error", err.Error()).
+								WithDetail("name", key).
+								WithDetail("value", r.PostForm.Get(key)))
+						}
+					} else {
+						raw, err = sjson.SetBytes(raw, path.Name, f)
 					}
-					raw, err = sjson.SetBytes(raw, path.Name, v)
 				case float64:
-					v, err := strconv.ParseFloat(r.PostForm.Get(key), 64)
-					if err != nil {
-						return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Expected value to be a number.").
-							WithDetail("parse_error", err.Error()).
-							WithDetail("name", key).
-							WithDetail("value", r.PostForm.Get(key)))
+					v := r.PostForm.Get(key)
+					if f, err := strconv.ParseFloat(v, 64); err != nil {
+						switch o.handleParseErrors {
+						case ParseErrorIgnore:
+							raw, err = sjson.SetBytes(raw, path.Name, v)
+						case ParseErrorDefault:
+							raw, err = sjson.SetBytes(raw, path.Name, f)
+						case ParseErrorReturn:
+							return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Expected value to be a number.").
+								WithDetail("parse_error", err.Error()).
+								WithDetail("name", key).
+								WithDetail("value", r.PostForm.Get(key)))
+						}
+					} else {
+						raw, err = sjson.SetBytes(raw, path.Name, f)
 					}
-					raw, err = sjson.SetBytes(raw, path.Name, v)
 				case string:
 					raw, err = sjson.SetBytes(raw, path.Name, r.PostForm.Get(key))
 				case map[string]interface{}:
@@ -278,12 +336,12 @@ func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecod
 		}
 	}
 
-	if err := t.validatePayload(raw, o); err != nil {
-		return err
-	}
-
 	if err := json.NewDecoder(bytes.NewReader(raw)).Decode(destination); err != nil {
 		return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Unable to decode JSON payload: %s", err))
+	}
+
+	if err := t.validatePayload(raw, o); err != nil {
+		return err
 	}
 
 	return nil
@@ -295,12 +353,12 @@ func (t *HTTP) decodeJSON(r *http.Request, destination interface{}, o *httpDecod
 		return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Unable to read HTTP POST body: %s", err))
 	}
 
-	if err := t.validatePayload(raw, o); err != nil {
-		return err
-	}
-
 	if err := json.NewDecoder(bytes.NewReader(raw)).Decode(destination); err != nil {
 		return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Unable to decode JSON payload: %s", err))
+	}
+
+	if err := t.validatePayload(raw, o); err != nil {
+		return err
 	}
 
 	return nil
