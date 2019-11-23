@@ -23,6 +23,9 @@
     },
     "consent": {
       "type": "boolean"
+    },
+    "newsletter": {
+      "type": "boolean"
     }
   }
 }

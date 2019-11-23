@@ -60,3 +60,12 @@ func RuneSequence(l int, allowedRunes []rune) (seq []rune, err error) {
 
 	return seq, nil
 }
+
+// MustString returns a random string sequence using the defined runes. Panics on error.
+func MustString(l int, allowedRunes []rune) string {
+	seq, err := RuneSequence(l, allowedRunes)
+	if err != nil {
+		panic(err)
+	}
+	return string(seq)
+}

@@ -121,14 +121,49 @@ func TestHTTPFormDecoder(t *testing.T) {
 				"age":        {"29"},
 				"ratio":      {"0.9"},
 				"consent":    {"true"},
+
+				// newsletter represents a special case for checkbox input with true/false and raw HTML.
+				"newsletter": {
+					"false", // comes from <input type="hidden" name="newsletter" value="false">
+					"true",  // comes from <input type="checkbox" name="newsletter" value="true" checked>
+				},
 			}.Encode()), httpContentTypeURLEncodedForm),
 			options: []HTTPDecoderOption{HTTPJSONSchemaCompiler("stub/person.json", nil)},
 			expected: `{
 	"name": {"first": "Aeneas", "last": "Rekkas"},
 	"age": 29,
+	"newsletter": true,
 	"consent": true,
 	"ratio": 0.9
 }`,
+		},
+		{
+			d: "should work with ParseErrorIgnore",
+			request: newRequest(t, "POST", "/", bytes.NewBufferString(url.Values{
+				"ratio": {"foobar"},
+			}.Encode()), httpContentTypeURLEncodedForm),
+			options: []HTTPDecoderOption{
+				HTTPJSONSchemaCompiler("stub/person.json", nil),
+				HTTPDecoderSetIgnoreParseErrorsStrategy(ParseErrorIgnore),
+				HTTPDecoderSetValidatePayloads(false),
+			},
+			expected: `{"ratio": "foobar"}`,
+		},
+		{
+			d: "should work with ParseErrorIgnore",
+			request: newRequest(t, "POST", "/", bytes.NewBufferString(url.Values{
+				"ratio": {"foobar"},
+			}.Encode()), httpContentTypeURLEncodedForm),
+			options:  []HTTPDecoderOption{HTTPJSONSchemaCompiler("stub/person.json", nil), HTTPDecoderSetIgnoreParseErrorsStrategy(ParseErrorDefault)},
+			expected: `{"ratio": 0.0}`,
+		},
+		{
+			d: "should work with ParseErrorIgnore",
+			request: newRequest(t, "POST", "/", bytes.NewBufferString(url.Values{
+				"ratio": {"foobar"},
+			}.Encode()), httpContentTypeURLEncodedForm),
+			options:       []HTTPDecoderOption{HTTPJSONSchemaCompiler("stub/person.json", nil), HTTPDecoderSetIgnoreParseErrorsStrategy(ParseErrorReturn)},
+			expectedError: `strconv.ParseFloat: parsing "foobar"`,
 		},
 	} {
 		t.Run(fmt.Sprintf("case=%d/description=%s", k, tc.d), func(t *testing.T) {
