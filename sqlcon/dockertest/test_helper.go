@@ -6,24 +6,26 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"testing"
 	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/require"
 
 	"github.com/ory/dockertest"
 
 	"github.com/ory/x/resilience"
 )
 
-//atexit := atexit.NewOnExit()
-//atexit.Add(func() {
+// atexit := atexit.NewOnExit()
+// atexit.Add(func() {
 //	dockertest.KillAll()
-//})
-//atexit.Exit(testMain(m))
+// })
+// atexit.Exit(testMain(m))
 
-//func WrapCleanup
+// func WrapCleanup
 
 var resources = []*dockertest.Resource{}
 var pool *dockertest.Pool
@@ -98,25 +100,67 @@ func connect(dialect, driver, dsn string) (db *sqlx.DB, err error) {
 	return db, nil
 }
 
-// ConnectToTestPostgreSQL connects to a PostgreSQL database.
-func ConnectToTestPostgreSQL() (*sqlx.DB, error) {
-	if dsn := os.Getenv("TEST_DATABASE_POSTGRESQL"); dsn != "" {
-		log.Println("Found postgresql test database config, skipping dockertest...")
-		return connect("postgres", "postgres", dsn)
-	}
+// ## PostgreSQL ##
 
+func startPostgreSQL() (*dockertest.Resource, error) {
 	pool, err := dockertest.NewPool("")
 	if err != nil {
 		return nil, errors.Wrap(err, "Could not connect to docker")
 	}
 
-	resource, err := pool.Run("postgres", "9.6", []string{"POSTGRES_PASSWORD=secret", "POSTGRES_DB=hydra"})
+	return pool.Run("postgres", "9.6", []string{"POSTGRES_PASSWORD=secret", "POSTGRES_DB=postgres"})
+}
+
+// RunTestPostgreSQL runs a PostgreSQL database and returns the URL to it.
+func RunTestPostgreSQL(t *testing.T) string {
+	if dsn := os.Getenv("TEST_DATABASE_POSTGRESQL"); dsn != "" {
+		t.Logf("Skipping Docker setup because environment variable TEST_DATABASE_POSTGRESQL is set to: %s", dsn)
+		return dsn
+	}
+
+	resource, err := startPostgreSQL()
+	require.NoError(t, err)
+
+	return fmt.Sprintf("postgres://postgres:secret@127.0.0.1:%s/postgres?sslmode=disable", resource.GetPort("5432/tcp"))
+}
+
+// ConnectToTestPostgreSQL connects to a PostgreSQL database.
+func ConnectToTestPostgreSQL() (*sqlx.DB, error) {
+	if dsn := os.Getenv("TEST_DATABASE_POSTGRESQL"); dsn != "" {
+		return connect("postgres", "postgres", dsn)
+	}
+
+	resource, err := startPostgreSQL()
 	if err != nil {
 		return nil, errors.Wrap(err, "Could not start resource")
 	}
 
-	db := bootstrap("postgres://postgres:secret@localhost:%s/hydra?sslmode=disable", "5432/tcp", "postgres", pool, resource)
+	db := bootstrap("postgres://postgres:secret@localhost:%s/postgres?sslmode=disable", "5432/tcp", "postgres", pool, resource)
 	return db, nil
+}
+
+// ## MySQL ##
+
+func startMySQL() (*dockertest.Resource, error) {
+	pool, err := dockertest.NewPool("")
+	if err != nil {
+		return nil, errors.Wrap(err, "Could not connect to docker")
+	}
+
+	return pool.Run("mysql", "5.7", []string{"MYSQL_ROOT_PASSWORD=secret"})
+}
+
+// RunTestMySQL runs a MySQL database and returns the URL to it.
+func RunTestMySQL(t *testing.T) string {
+	if dsn := os.Getenv("TEST_DATABASE_MYSQL"); dsn != "" {
+		t.Logf("Skipping Docker setup because environment variable TEST_DATABASE_MYSQL is set to: %s", dsn)
+		return dsn
+	}
+
+	resource, err := startMySQL()
+	require.NoError(t, err)
+
+	return fmt.Sprintf("mysql://root:secret@(localhost:%s)/mysql?parseTime=true&multiStatements=true", resource.GetPort("3306/tcp"))
 }
 
 // ConnectToTestMySQL connects to a MySQL database.
@@ -126,18 +170,41 @@ func ConnectToTestMySQL() (*sqlx.DB, error) {
 		return connect("mysql", "mysql", dsn)
 	}
 
-	pool, err := dockertest.NewPool("")
-	if err != nil {
-		return nil, errors.Wrap(err, "Could not connect to docker")
-	}
-
-	resource, err := pool.Run("mysql", "5.7", []string{"MYSQL_ROOT_PASSWORD=secret"})
+	resource, err := startMySQL()
 	if err != nil {
 		return nil, errors.Wrap(err, "Could not start resource")
 	}
 
 	db := bootstrap("root:secret@(localhost:%s)/mysql?parseTime=true", "3306/tcp", "mysql", pool, resource)
 	return db, nil
+}
+
+// ## CockroachDB
+
+func startCockroachDB() (*dockertest.Resource, error) {
+	pool, err := dockertest.NewPool("")
+	if err != nil {
+		return nil, errors.Wrap(err, "Could not connect to docker")
+	}
+
+	return pool.RunWithOptions(&dockertest.RunOptions{
+		Repository: "cockroachdb/cockroach",
+		Tag:        "v19.2.0",
+		Cmd:        []string{"start", "--insecure"},
+	})
+}
+
+// RunTestCockroachDB runs a CockroachDB database and returns the URL to it.
+func RunTestCockroachDB(t *testing.T) string {
+	if dsn := os.Getenv("TEST_DATABASE_COCKROACHDB"); dsn != "" {
+		t.Logf("Skipping Docker setup because environment variable TEST_DATABASE_COCKROACHDB is set to: %s", dsn)
+		return dsn
+	}
+
+	resource, err := startCockroachDB()
+	require.NoError(t, err)
+
+	return fmt.Sprintf("cockroach://root@localhost:%s/defaultdb?sslmode=disable", resource.GetPort("26257/tcp"))
 }
 
 // ConnectToTestCockroachDB connects to a CockroachDB database.
@@ -147,16 +214,7 @@ func ConnectToTestCockroachDB() (*sqlx.DB, error) {
 		return connect("postgres", "cockroach", dsn)
 	}
 
-	pool, err := dockertest.NewPool("")
-	if err != nil {
-		return nil, errors.Wrap(err, "Could not connect to docker")
-	}
-
-	resource, err := pool.RunWithOptions(&dockertest.RunOptions{
-		Repository: "cockroachdb/cockroach",
-		Tag:        "v2.1.6",
-		Cmd:        []string{"start --insecure"},
-	})
+	resource, err := startCockroachDB()
 	if err != nil {
 		return nil, errors.Wrap(err, "Could not start resource")
 	}

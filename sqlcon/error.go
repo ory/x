@@ -3,12 +3,15 @@ package sqlcon
 import (
 	"database/sql"
 	"net/http"
+	"strings"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
 
 	"github.com/ory/herodot"
+
+	"github.com/ory/x/errorsx"
 )
 
 var (
@@ -28,11 +31,15 @@ var (
 
 // HandleError returns the right sqlcon.Err* depending on the input error.
 func HandleError(err error) error {
-	if err == sql.ErrNoRows {
+	if err == nil {
+		return nil
+	}
+
+	if errorsx.Cause(err) == sql.ErrNoRows {
 		return errors.WithStack(ErrNoRows)
 	}
 
-	if err, ok := err.(*pq.Error); ok {
+	if err, ok := errorsx.Cause(err).(*pq.Error); ok {
 		switch err.Code.Name() {
 		case "unique_violation":
 			return errors.Wrap(ErrUniqueViolation, err.Error())
@@ -40,12 +47,17 @@ func HandleError(err error) error {
 		return errors.WithStack(err)
 	}
 
-	if err, ok := err.(*mysql.MySQLError); ok {
+	if err, ok := errorsx.Cause(err).(*mysql.MySQLError); ok {
 		switch err.Number {
 		case 1062:
 			return errors.Wrap(ErrUniqueViolation, err.Error())
 		}
 		return errors.WithStack(err)
+	}
+
+	// Try other detections, for example for SQLite (we don't want to enforce CGO here!)
+	if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+		return errors.Wrap(ErrUniqueViolation, err.Error())
 	}
 
 	return errors.WithStack(err)
