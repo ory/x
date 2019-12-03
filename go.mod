@@ -26,7 +26,7 @@ require (
 	github.com/julienschmidt/httprouter v1.2.0
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/lib/pq v1.0.0
-	github.com/luna-duclos/instrumentedsql v0.0.0-20181127104832-b7d587d28109
+	github.com/luna-duclos/instrumentedsql v1.1.2
 	github.com/mattn/go-sqlite3 v1.10.0 // indirect
 	github.com/mattn/goveralls v0.0.2
 	github.com/mitchellh/go-homedir v1.1.0
