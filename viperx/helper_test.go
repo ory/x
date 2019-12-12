@@ -365,3 +365,69 @@ func TestGetDuration(t *testing.T) {
 		})
 	}
 }
+
+func TestGetStringMapConfig(t *testing.T) {
+	l := logrus.New()
+	l.ExitFunc = func(code int) {
+		panic(code)
+	}
+
+	t.Run("suite=with-config-path", func(t *testing.T) {
+		for k, tc := range []struct {
+			f      string
+			fatals bool
+		}{
+			{f: "./stub/json/.project-stub-name.json"},
+			{f: "./stub/toml/.project-stub-name.toml"},
+			{f: "./stub/yaml/.project-stub-name.yaml"},
+			{f: "./stub/yml/.project-stub-name.yml"},
+			{f: "./stub/does-not-exist/foo.yml", fatals: true},
+		} {
+			t.Run(fmt.Sprintf("case=%d/path=%s", k, tc.f), func(t *testing.T) {
+				viper.Reset()
+
+				cfgFile = tc.f
+				if tc.fatals {
+					assert.Panics(t, func() {
+						InitializeConfig("project-stub-name", "", l)
+					})
+				} else {
+					InitializeConfig("project-stub-name", "", l)
+					config := GetStringMapConfig("authenticators", "oauth2_introspection")
+
+					assert.Equal(t, "http://myurl", config["introspection_url"])
+				}
+			})
+		}
+	})
+
+	t.Run("suite=with-env-var", func(t *testing.T) {
+		for k, tc := range []struct {
+			f      string
+			fatals bool
+		}{
+			{f: "./stub/json/.project-stub-name.json"},
+			{f: "./stub/toml/.project-stub-name.toml"},
+			{f: "./stub/yaml/.project-stub-name.yaml"},
+			{f: "./stub/yml/.project-stub-name.yml"},
+			{f: "./stub/does-not-exist/foo.yml", fatals: true},
+		} {
+			t.Run(fmt.Sprintf("case=%d/path=%s", k, tc.f), func(t *testing.T) {
+				viper.Reset()
+				viper.Set("authenticators.oauth2_introspection.config.introspection_url", "http://envurl")
+
+				cfgFile = tc.f
+				if tc.fatals {
+					assert.Panics(t, func() {
+						InitializeConfig("project-stub-name", "", l)
+					})
+				} else {
+					InitializeConfig("project-stub-name", "", l)
+					config := GetStringMapConfig("authenticators", "oauth2_introspection")
+
+					assert.Equal(t, "http://envurl", config["introspection_url"])
+				}
+			})
+		}
+	})
+}

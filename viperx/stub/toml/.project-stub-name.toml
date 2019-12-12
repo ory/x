@@ -2,3 +2,8 @@
 
   [serve.admin]
   port = "2"
+
+[authenticators]
+
+  [authenticators.oauth2_introspection.config]
+  introspection_url = "http://myurl"
