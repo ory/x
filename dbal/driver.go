@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	drivers = make([]Driver, 0)
+	drivers = make([]func() Driver, 0)
 	dmtx    sync.Mutex
 
 	// ErrNoResponsibleDriverFound is returned when no driver was found for the provided DSN.
@@ -24,7 +24,7 @@ type Driver interface {
 }
 
 // RegisterDriver registers a driver
-func RegisterDriver(d Driver) {
+func RegisterDriver(d func() Driver) {
 	dmtx.Lock()
 	drivers = append(drivers, d)
 	dmtx.Unlock()
@@ -32,9 +32,10 @@ func RegisterDriver(d Driver) {
 
 // GetDriverFor returns a driver for the given DSN or ErrNoResponsibleDriverFound if no driver was found.
 func GetDriverFor(dsn string) (Driver, error) {
-	for _, d := range drivers {
-		if d.CanHandle(dsn) {
-			return d, nil
+	for _, f := range drivers {
+		driver := f()
+		if driver.CanHandle(dsn) {
+			return driver, nil
 		}
 	}
 	return nil, ErrNoResponsibleDriverFound
