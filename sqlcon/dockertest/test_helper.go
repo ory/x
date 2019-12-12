@@ -108,7 +108,11 @@ func startPostgreSQL() (*dockertest.Resource, error) {
 		return nil, errors.Wrap(err, "Could not connect to docker")
 	}
 
-	return pool.Run("postgres", "9.6", []string{"POSTGRES_PASSWORD=secret", "POSTGRES_DB=postgres"})
+	resource, err := pool.Run("postgres", "9.6", []string{"POSTGRES_PASSWORD=secret", "POSTGRES_DB=postgres"})
+	if err == nil {
+		resources = append(resources, resource)
+	}
+	return resource, err
 }
 
 // RunTestPostgreSQL runs a PostgreSQL database and returns the URL to it.
@@ -147,7 +151,11 @@ func startMySQL() (*dockertest.Resource, error) {
 		return nil, errors.Wrap(err, "Could not connect to docker")
 	}
 
-	return pool.Run("mysql", "5.7", []string{"MYSQL_ROOT_PASSWORD=secret"})
+	resource, err := pool.Run("mysql", "5.7", []string{"MYSQL_ROOT_PASSWORD=secret"})
+	if err == nil {
+		resources = append(resources, resource)
+	}
+	return resource, err
 }
 
 // RunTestMySQL runs a MySQL database and returns the URL to it.
@@ -187,11 +195,15 @@ func startCockroachDB() (*dockertest.Resource, error) {
 		return nil, errors.Wrap(err, "Could not connect to docker")
 	}
 
-	return pool.RunWithOptions(&dockertest.RunOptions{
+	resource, err := pool.RunWithOptions(&dockertest.RunOptions{
 		Repository: "cockroachdb/cockroach",
 		Tag:        "v19.2.0",
 		Cmd:        []string{"start", "--insecure"},
 	})
+	if err == nil {
+		resources = append(resources, resource)
+	}
+	return resource, err
 }
 
 // RunTestCockroachDB runs a CockroachDB database and returns the URL to it.
@@ -238,6 +250,5 @@ func bootstrap(u, port, d string, pool *dockertest.Pool, resource *dockertest.Re
 		}
 		log.Fatalf("Could not connect to docker: %s", err)
 	}
-	resources = append(resources, resource)
 	return
 }
