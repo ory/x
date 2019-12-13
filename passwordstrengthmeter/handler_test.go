@@ -46,11 +46,11 @@ func TestPasswordStrengthMeter(t *testing.T) {
 	ts := httptest.NewServer(router)
 	c := http.DefaultClient
 
-	var passwordStrengthPath swaggerPasswordStrengthMeter
+	var passwordStrengthh swaggerPasswordStrengthMeter
 	response, err := c.Get(ts.URL + PasswordStrengthPath)
 	require.NoError(t, err)
 	require.EqualValues(t, http.StatusOK, response.StatusCode)
-	require.NoError(t, json.NewDecoder(response.Body).Decode(&passwordStrengthPath))
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&passwordStrengthh))
 	// TO-DO : Write logic to verify test
 
 }
