@@ -49,17 +49,14 @@ func RoutesToObserve() []string {
 // Handler handles HTTP requests to password strength .
 type Handler struct {
 	H             herodot.Writer
-	VersionString string
 }
 
 // NewHandler instantiates a handler.
 func NewHandler(
 	h herodot.Writer,
-	version string,
 ) *Handler {
 	return &Handler{
 		H:             h,
-		VersionString: version,
 	}
 }
 
