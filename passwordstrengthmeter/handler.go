@@ -65,10 +65,10 @@ func NewHandler(
 
 // SetRoutes registers this handler's routes.
 func (h *Handler) SetRoutes(r *httprouter.Router, shareErrors bool) {
-	r.POST(PasswordStrengthPath, h.PasswordStrengthPath)
+	r.POST(PasswordStrengthPath, h.PasswordStrength)
 }
 
-// PasswordStrengthPath returns a number from 0-10 
+// PasswordStrength returns a number from 0-10 
 //
 // swagger:route GET /password/strength/meter  strength of a password
 //
@@ -84,7 +84,7 @@ func (h *Handler) SetRoutes(r *httprouter.Router, shareErrors bool) {
 //     Responses:
 //       200: passwordStrength
 //       500: genericError
-func (h *Handler) PasswordStrengthPath(rw http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (h *Handler) PasswordStrength(rw http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var p swaggerPasswordStrengthMeterBody
 	if err := errors.WithStack(jsonx.NewStrictDecoder(r.Body).Decode(&p)); err != nil {
 		h.r.Writer().WriteError(w, r, err)
