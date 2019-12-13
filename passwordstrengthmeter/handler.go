@@ -26,6 +26,12 @@ import (
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/ory/herodot"
+
+	"github.com/pkg/errors"
+
+	"github.com/ory/x/jsonx"
+
+	"github.com/nbutton23/zxcvbn-go"
 )
 
 const (
@@ -79,6 +85,10 @@ func (h *Handler) SetRoutes(r *httprouter.Router, shareErrors bool) {
 //       200: passwordStrength
 //       500: genericError
 func (h *Handler) PasswordStrengthPath(rw http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-
+	var p swaggerPasswordStrengthMeterBody
+	if err := errors.WithStack(jsonx.NewStrictDecoder(r.Body).Decode(&p)); err != nil {
+		h.r.Writer().WriteError(w, r, err)
+		return
+	}
 }
 

@@ -18,13 +18,20 @@
  * @license 	Apache-2.0
  */
 
-// Package healthx providers helpers for returning health status information via HTTP.
+// Package passwordstrengthmeter providers helpers for returning password strength information via HTTP.
 package passwordstrengthmeter
 
-// swagger:model healthStatus
+// swagger:model PasswordStrengthMeter
 type swaggerPasswordStrengthMeter struct {
 	// Status always contains "ok".
 	Score string `json:"score"`
+}
+
+
+// swagger:model PasswordStrengthMeter Body
+type swaggerPasswordStrengthMeterBody struct {
+	// Status always contains "ok".
+	Password string `json:"password"`
 }
 
 
