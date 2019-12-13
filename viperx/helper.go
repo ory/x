@@ -164,23 +164,17 @@ func GetStringSlice(l logrus.FieldLogger, key string, fallback []string, depreca
 }
 
 // GetStringMapConfig returns a string map using all settings which will lookup env vars
-func GetStringMapConfig(prefix string, id string) map[string]interface{} {
-	allSettings := viper.AllSettings()
+func GetStringMapConfig(paths ...string) map[string]interface{} {
+	node := viper.AllSettings()
 
-	prefixSettings, ok := allSettings[prefix].(map[string]interface{})
-	if !ok {
-		return make(map[string]interface{})
+	for _, path := range paths {
+		subNode, ok := node[path].(map[string]interface{})
+		if !ok {
+			return make(map[string]interface{})
+		}
+
+		node = subNode
 	}
 
-	idSettings, ok := prefixSettings[id].(map[string]interface{})
-	if !ok {
-		return make(map[string]interface{})
-	}
-
-	config, ok := idSettings["config"]
-	if config == nil || !ok {
-		return make(map[string]interface{})
-	}
-
-	return config.(map[string]interface{})
+	return node
 }

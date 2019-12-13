@@ -393,7 +393,7 @@ func TestGetStringMapConfig(t *testing.T) {
 					})
 				} else {
 					InitializeConfig("project-stub-name", "", l)
-					config := GetStringMapConfig("authenticators", "oauth2_introspection")
+					config := GetStringMapConfig("authenticators", "oauth2_introspection", "config")
 
 					assert.Equal(t, "http://myurl", config["introspection_url"])
 				}
@@ -423,7 +423,7 @@ func TestGetStringMapConfig(t *testing.T) {
 					})
 				} else {
 					InitializeConfig("project-stub-name", "", l)
-					config := GetStringMapConfig("authenticators", "oauth2_introspection")
+					config := GetStringMapConfig("authenticators", "oauth2_introspection", "config")
 
 					assert.Equal(t, "http://envurl", config["introspection_url"])
 				}
