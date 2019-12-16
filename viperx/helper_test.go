@@ -397,6 +397,8 @@ func TestGetStringMapConfig(t *testing.T) {
 
 					assert.Equal(t, "http://myurl", config["introspection_url"])
 				}
+
+				cfgFile = ""
 			})
 		}
 	})
@@ -414,7 +416,8 @@ func TestGetStringMapConfig(t *testing.T) {
 		} {
 			t.Run(fmt.Sprintf("case=%d/path=%s", k, tc.f), func(t *testing.T) {
 				viper.Reset()
-				viper.Set("authenticators.oauth2_introspection.config.introspection_url", "http://envurl")
+
+				os.Setenv("AUTHENTICATORS_OAUTH2_INTROSPECTION_CONFIG_INTROSPECTION_URL", "http://envurl")
 
 				cfgFile = tc.f
 				if tc.fatals {
@@ -427,6 +430,8 @@ func TestGetStringMapConfig(t *testing.T) {
 
 					assert.Equal(t, "http://envurl", config["introspection_url"])
 				}
+
+				cfgFile = ""
 			})
 		}
 	})
