@@ -3,5 +3,12 @@
     "admin": {
       "port": 1
     }
+  },
+  "authenticators": {
+    "oauth2_introspection": {
+      "config":{
+        "introspection_url":"http://myurl"
+      }
+    }
   }
 }
