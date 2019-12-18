@@ -24,14 +24,11 @@ package passwordstrengthmeter
 // swagger:model PasswordStrengthMeter
 type swaggerPasswordStrengthMeter struct {
 	// Status always contains "ok".
-	Score string `json:"score"`
+	Score int `json:"score"`
 }
-
 
 // swagger:model PasswordStrengthMeter Body
 type swaggerPasswordStrengthMeterBody struct {
 	// Status always contains "ok".
 	Password string `json:"password"`
 }
-
-

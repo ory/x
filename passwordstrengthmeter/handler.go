@@ -30,36 +30,26 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/ory/x/jsonx"
-
+	
 	"github.com/nbutton23/zxcvbn-go"
 )
 
 const (
 	// PasswordStrengthPath is the path where you can check strength of password
-	PasswordStrengthPath = "/password/strength/meter"
+	PasswordStrengthPath = "/passwordstrength/meter"
 )
-
-// RoutesToObserve returns a string of all the available routes of this module.
-func RoutesToObserve() []string {
-	return []string{
-		PasswordStrengthPath,
-	}
-}
 
 // Handler handles HTTP requests to password strength .
 type Handler struct {
 	H             herodot.Writer
-	VersionString string
 }
 
 // NewHandler instantiates a handler.
 func NewHandler(
 	h herodot.Writer,
-	version string,
 ) *Handler {
 	return &Handler{
 		H:             h,
-		VersionString: version,
 	}
 }
 
@@ -68,11 +58,11 @@ func (h *Handler) SetRoutes(r *httprouter.Router, shareErrors bool) {
 	r.POST(PasswordStrengthPath, h.PasswordStrength)
 }
 
-// PasswordStrength returns a number from 0-10 
+// PasswordStrength returns a number from 0-10
 //
 // swagger:route GET /password/strength/meter  strength of a password
 //
-// Check password strength 
+// Check password strength
 //
 // This endpoint returns a 200 status code when the HTTP server is up running.
 //
@@ -85,10 +75,11 @@ func (h *Handler) SetRoutes(r *httprouter.Router, shareErrors bool) {
 //       200: passwordStrength
 //       500: genericError
 func (h *Handler) PasswordStrength(rw http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	var p swaggerPasswordStrengthMeterBody
-	if err := errors.WithStack(jsonx.NewStrictDecoder(r.Body).Decode(&p)); err != nil {
-		h.r.Writer().WriteError(w, r, err)
+	passwordStrengthMeterResponse := swaggerPasswordStrengthMeter{}
+	passwordStrengthBody := swaggerPasswordStrengthMeterBody{}
+	if err := errors.WithStack(jsonx.NewStrictDecoder(r.Body).Decode(&passwordStrengthBody)); err != nil {
+		passwordStrengthMeterResponse.Score = zxcvbn.PasswordStrength(passwordStrengthBody.Password, nil).Score
+		h.H.WriteCode(rw, r, http.StatusServiceUnavailable, passwordStrengthMeterResponse)
 		return
 	}
 }
-

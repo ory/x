@@ -22,35 +22,38 @@ package passwordstrengthmeter
 
 import (
 	"encoding/json"
-	"errors"
-	"io/ioutil"
+
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"bytes"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ory/herodot"
 )
 
 func TestPasswordStrengthMeter(t *testing.T) {
-	alive := errors.New("not alive")
 	handler := &Handler{
 		H:             herodot.NewJSONWriter(nil),
-		VersionString: "test version",
 	}
 	router := httprouter.New()
 	handler.SetRoutes(router, true)
 	ts := httptest.NewServer(router)
 	c := http.DefaultClient
 
-	var passwordStrengthh swaggerPasswordStrengthMeter
-	response, err := c.Get(ts.URL + PasswordStrengthPath)
+	 var passwordStrength swaggerPasswordStrengthMeter
+	passwordStrengthBody := swaggerPasswordStrengthMeterBody{
+			Password  : "HelloIsItOkPassword",
+	}
+
+	var buf bytes.Buffer
+	err := json.NewEncoder(&buf).Encode(passwordStrengthBody)
+	require.NoError(t, err)
+	response, err := c.Post(ts.URL + PasswordStrengthPath, "application/json", &buf )
 	require.NoError(t, err)
 	require.EqualValues(t, http.StatusOK, response.StatusCode)
-	require.NoError(t, json.NewDecoder(response.Body).Decode(&passwordStrengthh))
 	// TO-DO : Write logic to verify test
 
 }
