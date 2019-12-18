@@ -43,7 +43,7 @@ func TestPasswordStrengthMeter(t *testing.T) {
 	ts := httptest.NewServer(router)
 	c := http.DefaultClient
 
-	 var passwordStrength swaggerPasswordStrengthMeter
+	// var passwordStrength swaggerPasswordStrengthMeter
 	passwordStrengthBody := swaggerPasswordStrengthMeterBody{
 			Password  : "HelloIsItOkPassword",
 	}
