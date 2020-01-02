@@ -61,3 +61,16 @@ func NewResilientClientLatencyToleranceExtreme(rt http.RoundTripper) *http.Clien
 		Transport: transport,
 	}
 }
+
+// NewResilientClientLatencyToleranceConfigurable creates a new http.Client for environments with configurable latency tolerance.
+// If transport is set (not nil) it will be wrapped by NewDefaultResilientRoundTripper.
+func NewResilientClientLatencyToleranceConfigurable(rt http.RoundTripper, timeout time.Duration, backOffDieAfter time.Duration) *http.Client {
+	transport := NewDefaultResilientRoundTripper(timeout, backOffDieAfter)
+	if rt != nil {
+		transport = NewResilientRoundTripper(rt, timeout, backOffDieAfter)
+	}
+	return &http.Client{
+		Timeout:   timeout,
+		Transport: transport,
+	}
+}
