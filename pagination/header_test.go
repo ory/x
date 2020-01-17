@@ -102,4 +102,15 @@ func TestHeader(t *testing.T) {
 			t.Fatalf("Unexpected response from Header. Expected %+v, got %+v", expect, r.Result().Header.Get("Link"))
 		}
 	})
+
+	t.Run("Create only first if the limits provided exceeds the number of clients found", func(t *testing.T) {
+		r := httptest.NewRecorder()
+		Header(r, u, 5, 50, 0)
+
+		expect := "<http://example.com?limit=5&offset=0>; rel=\"first\""
+
+		if reflect.DeepEqual(expect, r.Result().Header.Get("Link")) != true {
+			t.Fatalf("Unexpected response from Header. Expected %+v, got %+v", expect, r.Result().Header.Get("Link"))
+		}
+	})
 }
