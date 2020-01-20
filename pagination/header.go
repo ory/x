@@ -31,7 +31,7 @@ func Header(w http.ResponseWriter, u *url.URL, total int, limit, offset int) {
 	if total%limit == 0 {
 		lastOffset = total - limit
 	} else {
-		lastOffset = ((total / limit) * limit)
+		lastOffset = (total / limit) * limit
 	}
 
 	// Check for last page
@@ -44,6 +44,12 @@ func Header(w http.ResponseWriter, u *url.URL, total int, limit, offset int) {
 			}, ","))
 			return
 		}
+
+		if total < limit {
+			w.Header().Set("link", header(u, "first", total, 0))
+			return
+		}
+
 		w.Header().Set("Link", strings.Join([]string{
 			header(u, "first", limit, 0),
 			header(u, "prev", limit, lastOffset-limit),
