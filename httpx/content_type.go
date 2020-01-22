@@ -13,7 +13,7 @@ import (
 //
 // Failure should yield an HTTP 415 (`http.StatusUnsupportedMediaType`)
 func HasContentType(r *http.Request, mimetypes ...string) bool {
-	contentType := r.Header.Get("Content-type")
+	contentType := r.Header.Get("Content-Type")
 	if contentType == "" {
 		return stringslice.Has(mimetypes, "application/octet-stream")
 	}
