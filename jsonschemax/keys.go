@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -47,6 +48,12 @@ type Path struct {
 
 	// Type is a prototype (e.g. float64(0)) of the path type.
 	Type interface{}
+
+	// Format is the format of the path if defined
+	Format string
+
+	// Pattern is the pattern of the path if defined
+	Pattern *regexp.Regexp
 }
 
 // ListPathsBytes works like ListPathsWithRecursion but prepares the JSON Schema itself.
@@ -207,6 +214,8 @@ func listPaths(schema *jsonschema.Schema, parents []string, pointers map[string]
 			Name:    strings.Join(parents, "."),
 			Default: def,
 			Type:    pathType,
+			Format:  schema.Format,
+			Pattern: schema.Pattern,
 		})
 	}
 
