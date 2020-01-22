@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  nancy: ory/nancy@0.0.6
+  nancy: ory/nancy@0.0.7
 
 jobs:
   test:
