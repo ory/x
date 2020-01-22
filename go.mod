@@ -28,7 +28,7 @@ require (
 	github.com/mattn/goveralls v0.0.2
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/opencontainers/image-spec v1.0.1 // indirect
-	github.com/opencontainers/runc v0.1.1 // indirect
+	github.com/opencontainers/runc v0.1.1-rc.9 // indirect
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/ory/dockertest v3.3.5+incompatible
 	github.com/ory/fosite v0.29.0
