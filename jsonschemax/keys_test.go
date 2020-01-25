@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"regexp"
 	"testing"
 
 	"github.com/santhosh-tekuri/jsonschema/v2"
@@ -18,7 +19,11 @@ const recursiveSchema = `{
     "foo": {
       "type": "object",
       "properties": {
-		"bars": {"type": "string"},
+		"bars": {
+			"type": "string",
+			"format": "email",
+			"pattern": ".*"
+		},
         "bar": {
           "$ref": "#/definitions/bar"
         }
@@ -48,6 +53,18 @@ func readFile(t *testing.T, path string) string {
 	return string(schema)
 }
 
+func assertEqualPaths(t *testing.T, expected byName, actual byName) {
+	for i := range expected {
+		e := expected[i]
+		a := actual[i]
+		assert.Equal(t, e.Pattern, a.Pattern, fmt.Sprintf("path: %s\n", e.Name))
+
+		e.Pattern = nil
+		a.Pattern = nil
+		assert.Equal(t, e, a)
+	}
+}
+
 func TestListPathsWithRecursion(t *testing.T) {
 	for k, tc := range []struct {
 		recursion uint8
@@ -56,11 +73,35 @@ func TestListPathsWithRecursion(t *testing.T) {
 		{
 			recursion: 5,
 			expected: byName{
-				Path{Name: "bar.foo.bar.foo.bar.foos", Default: interface{}(nil), Type: ""},
-				Path{Name: "bar.foo.bar.foo.bars", Default: interface{}(nil), Type: ""},
-				Path{Name: "bar.foo.bar.foos", Default: interface{}(nil), Type: ""},
-				Path{Name: "bar.foo.bars", Default: interface{}(nil), Type: ""},
-				Path{Name: "bar.foos", Default: interface{}(nil), Type: ""},
+				Path{
+					Name:    "bar.foo.bar.foo.bar.foos",
+					Default: interface{}(nil),
+					Type:    "",
+				},
+				Path{
+					Name:    "bar.foo.bar.foo.bars",
+					Default: interface{}(nil),
+					Type:    "",
+					Format:  "email",
+					Pattern: regexp.MustCompile(".*"),
+				},
+				Path{
+					Name:    "bar.foo.bar.foos",
+					Default: interface{}(nil),
+					Type:    "",
+				},
+				Path{
+					Name:    "bar.foo.bars",
+					Default: interface{}(nil),
+					Type:    "",
+					Format:  "email",
+					Pattern: regexp.MustCompile(".*"),
+				},
+				Path{
+					Name:    "bar.foos",
+					Default: interface{}(nil),
+					Type:    "",
+				},
 			},
 		},
 	} {
@@ -69,7 +110,7 @@ func TestListPathsWithRecursion(t *testing.T) {
 			require.NoError(t, c.AddResource("test.json", bytes.NewBufferString(recursiveSchema)))
 			actual, err := ListPathsWithRecursion("test.json", c, tc.recursion)
 			require.NoError(t, err)
-			assert.EqualValues(t, tc.expected, actual)
+			assertEqualPaths(t, tc.expected, actual)
 		})
 	}
 }
@@ -86,7 +127,7 @@ func TestListPaths(t *testing.T) {
 				Path{Name: "access_rules.repositories", Type: []string{}},
 				Path{Name: "authenticators.anonymous.config.subject", Default: "anonymous", Type: ""},
 				Path{Name: "authenticators.anonymous.enabled", Default: false, Type: false},
-				Path{Name: "authenticators.cookie_session.config.check_session_url", Type: ""},
+				Path{Name: "authenticators.cookie_session.config.check_session_url", Type: "", Format: "uri"},
 				Path{Name: "authenticators.cookie_session.config.only", Type: []string{}},
 				Path{Name: "authenticators.cookie_session.enabled", Default: false, Type: false},
 				Path{Name: "authenticators.jwt.config.allowed_algorithms", Type: []string{}},
@@ -100,14 +141,14 @@ func TestListPaths(t *testing.T) {
 				Path{Name: "authenticators.jwt.enabled", Default: false, Type: false},
 				Path{Name: "authenticators.noop.enabled", Default: false, Type: false},
 				Path{Name: "authenticators.oauth2_client_credentials.config.required_scope", Type: []string{}},
-				Path{Name: "authenticators.oauth2_client_credentials.config.token_url", Type: ""},
+				Path{Name: "authenticators.oauth2_client_credentials.config.token_url", Type: "", Format: "uri"},
 				Path{Name: "authenticators.oauth2_client_credentials.enabled", Default: false, Type: false},
-				Path{Name: "authenticators.oauth2_introspection.config.introspection_url", Type: ""},
+				Path{Name: "authenticators.oauth2_introspection.config.introspection_url", Type: "", Format: "uri"},
 				Path{Name: "authenticators.oauth2_introspection.config.pre_authorization.client_id", Type: ""},
 				Path{Name: "authenticators.oauth2_introspection.config.pre_authorization.client_secret", Type: ""},
 				Path{Name: "authenticators.oauth2_introspection.config.pre_authorization.enabled", Default: false, Type: false},
 				Path{Name: "authenticators.oauth2_introspection.config.pre_authorization.scope", Type: []string{}},
-				Path{Name: "authenticators.oauth2_introspection.config.pre_authorization.token_url", Type: ""},
+				Path{Name: "authenticators.oauth2_introspection.config.pre_authorization.token_url", Type: "", Format: "uri"},
 				Path{Name: "authenticators.oauth2_introspection.config.required_scope", Type: []string{}},
 				Path{Name: "authenticators.oauth2_introspection.config.scope_strategy", Default: "none", Type: ""},
 				Path{Name: "authenticators.oauth2_introspection.config.target_audience", Type: []string{}},
@@ -119,7 +160,7 @@ func TestListPaths(t *testing.T) {
 				Path{Name: "authenticators.unauthorized.enabled", Default: false, Type: false},
 				Path{Name: "authorizers.allow.enabled", Default: false, Type: false},
 				Path{Name: "authorizers.deny.enabled", Default: false, Type: false},
-				Path{Name: "authorizers.keto_engine_acp_ory.config.base_url", Type: ""},
+				Path{Name: "authorizers.keto_engine_acp_ory.config.base_url", Type: "", Format: "uri"},
 				Path{Name: "authorizers.keto_engine_acp_ory.config.flavor", Type: ""},
 				Path{Name: "authorizers.keto_engine_acp_ory.config.required_action", Default: "unset", Type: ""},
 				Path{Name: "authorizers.keto_engine_acp_ory.config.required_resource", Default: "unset", Type: ""},
@@ -135,12 +176,12 @@ func TestListPaths(t *testing.T) {
 				Path{Name: "mutators.hydrator.config.api.auth.basic.username", Type: ""},
 				Path{Name: "mutators.hydrator.config.api.retry.delay_in_milliseconds", Default: float64(3), Type: float64(0)},
 				Path{Name: "mutators.hydrator.config.api.retry.number_of_retries", Default: float64(100), Type: float64(0)},
-				Path{Name: "mutators.hydrator.config.api.url", Type: ""},
+				Path{Name: "mutators.hydrator.config.api.url", Type: "", Format: "uri"},
 				Path{Name: "mutators.hydrator.enabled", Default: false, Type: false},
 				Path{Name: "mutators.id_token.config.claims", Type: ""},
 				Path{Name: "mutators.id_token.config.issuer_url", Type: ""},
-				Path{Name: "mutators.id_token.config.jwks_url", Type: ""},
-				Path{Name: "mutators.id_token.config.ttl", Default: "1m", Type: ""},
+				Path{Name: "mutators.id_token.config.jwks_url", Type: "", Format: "uri"},
+				Path{Name: "mutators.id_token.config.ttl", Default: "1m", Type: "", Pattern: regexp.MustCompile("^[0-9]+(ns|us|ms|s|m|h)$")},
 				Path{Name: "mutators.id_token.enabled", Default: false, Type: false},
 				Path{Name: "mutators.noop.enabled", Default: false, Type: false},
 				Path{Name: "profiling", Type: ""},
@@ -176,9 +217,9 @@ func TestListPaths(t *testing.T) {
 				Path{Name: "serve.proxy.cors.max_age", Default: float64(0), Type: float64(0)},
 				Path{Name: "serve.proxy.host", Default: "", Type: ""},
 				Path{Name: "serve.proxy.port", Default: float64(4455), Type: float64(0)},
-				Path{Name: "serve.proxy.timeout.idle", Default: "120s", Type: ""},
-				Path{Name: "serve.proxy.timeout.read", Default: "5s", Type: ""},
-				Path{Name: "serve.proxy.timeout.write", Default: "120s", Type: ""},
+				Path{Name: "serve.proxy.timeout.idle", Default: "120s", Type: "", Pattern: regexp.MustCompile("^[0-9]+(ns|us|ms|s|m|h)$")},
+				Path{Name: "serve.proxy.timeout.read", Default: "5s", Type: "", Pattern: regexp.MustCompile("^[0-9]+(ns|us|ms|s|m|h)$")},
+				Path{Name: "serve.proxy.timeout.write", Default: "120s", Type: "", Pattern: regexp.MustCompile("^[0-9]+(ns|us|ms|s|m|h)$")},
 				Path{Name: "serve.proxy.tls.cert.base64", Type: ""},
 				Path{Name: "serve.proxy.tls.cert.path", Type: ""},
 				Path{Name: "serve.proxy.tls.key.base64", Type: ""},
@@ -261,7 +302,7 @@ func TestListPaths(t *testing.T) {
 				return
 			}
 			require.NoError(t, err)
-			assert.EqualValues(t, tc.expected, actual)
+			assertEqualPaths(t, tc.expected, actual)
 		})
 	}
 }
