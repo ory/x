@@ -14,7 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ory/dockertest"
+	"github.com/ory/dockertest/v3"
 
 	"github.com/ory/x/resilience"
 )

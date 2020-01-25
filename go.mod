@@ -1,15 +1,10 @@
 module github.com/ory/x
 
 require (
-	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
-	github.com/Microsoft/go-winio v0.4.14 // indirect
-	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/containerd/continuity v0.0.0-20200107194136-26c1120b8d41 // indirect
-	github.com/docker/go-connections v0.4.0 // indirect
-	github.com/docker/go-units v0.4.0 // indirect
 	github.com/fatih/structs v1.1.0
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/go-bindata/go-bindata v3.1.1+incompatible
@@ -22,15 +17,12 @@ require (
 	github.com/gotestyourself/gotestyourself v2.2.0+incompatible // indirect
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/julienschmidt/httprouter v1.2.0
-	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/lib/pq v1.0.0
 	github.com/luna-duclos/instrumentedsql v1.1.2
 	github.com/mattn/goveralls v0.0.2
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/opencontainers/image-spec v1.0.1 // indirect
-	github.com/opencontainers/runc v0.1.1-rc.9 // indirect
 	github.com/opentracing/opentracing-go v1.1.0
-	github.com/ory/dockertest v3.3.5+incompatible
+	github.com/ory/dockertest/v3 v3.5.4
 	github.com/ory/fosite v0.29.0
 	github.com/ory/go-acc v0.0.0-20181118080137-ddc355013f90
 	github.com/ory/gojsonschema v1.1.1-0.20190919112458-f254ca73d5e9
@@ -60,7 +52,7 @@ require (
 	github.com/urfave/negroni v1.0.0
 	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
 	github.com/ziutek/mymysql v1.5.4 // indirect
-	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
+	golang.org/x/crypto v0.0.0-20200117160349-530e935923ad
 	golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa // indirect
 	golang.org/x/sys v0.0.0-20200122134326-e047566fdf82 // indirect
 	golang.org/x/tools v0.0.0-20190711191110-9a621aea19f8 // indirect
