@@ -261,7 +261,7 @@ func listPaths(schema *jsonschema.Schema, parents []string, pointers map[string]
 	}
 
 	if schema.Else != nil {
-		path, err := listPaths(schema.Then, parents, appendPointer(pointers, schema), currentRecursion, maxRecursion)
+		path, err := listPaths(schema.Else, parents, appendPointer(pointers, schema), currentRecursion, maxRecursion)
 		if err != nil {
 			return nil, err
 		}
