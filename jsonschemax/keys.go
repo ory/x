@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"regexp"
 	"sort"
 	"strings"
@@ -54,6 +55,25 @@ type Path struct {
 
 	// Pattern is the pattern of the path if defined
 	Pattern *regexp.Regexp
+
+	// Enum are the allowed enum values
+	Enum []interface{}
+
+	// first element in slice is constant value. note: slice is used to capture nil constant.
+	Constant []interface{}
+
+	// Required is whether the value is required
+	// TODO
+	Required bool
+
+	// -1 if not specified
+	MinLength int
+	MaxLength int
+
+	Minimum *big.Float
+	Maximum *big.Float
+
+	MultipleOf *big.Float
 }
 
 // ListPathsBytes works like ListPathsWithRecursion but prepares the JSON Schema itself.
@@ -211,11 +231,18 @@ func listPaths(schema *jsonschema.Schema, parents []string, pointers map[string]
 	}
 	if (pathType != nil || schema.Default != nil) && len(parents) > 0 {
 		paths = append(paths, Path{
-			Name:    strings.Join(parents, "."),
-			Default: def,
-			Type:    pathType,
-			Format:  schema.Format,
-			Pattern: schema.Pattern,
+			Name:       strings.Join(parents, "."),
+			Default:    def,
+			Type:       pathType,
+			Format:     schema.Format,
+			Pattern:    schema.Pattern,
+			Enum:       schema.Enum,
+			Constant:   schema.Constant,
+			MinLength:  schema.MinLength,
+			MaxLength:  schema.MaxLength,
+			Minimum:    schema.Minimum,
+			Maximum:    schema.Maximum,
+			MultipleOf: schema.MultipleOf,
 		})
 	}
 
