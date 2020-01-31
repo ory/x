@@ -108,7 +108,7 @@ func WatchConfig(l logrus.FieldLogger, o *WatchOptions) {
 }
 
 // InitializeConfig initializes viper.
-func InitializeConfig(applicationName string, homeOverride string, l logrus.FieldLogger) {
+func InitializeConfig(applicationName string, homeOverride string) logrus.FieldLogger {
 	if cfgFile != "" {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
