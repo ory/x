@@ -8,9 +8,10 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/santhosh-tekuri/jsonschema/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ory/jsonschema/v3"
 )
 
 const recursiveSchema = `{

@@ -10,7 +10,7 @@ import (
 // JSONPointerToDotNotation converts JSON Pointer "#/foo/bar" to dot-notation "foo.bar".
 func JSONPointerToDotNotation(pointer string) (string, error) {
 	if !strings.HasPrefix(pointer, "#/") {
-		return "", errors.Errorf("remote JSON pointers are not supported: %s", pointer)
+		return pointer, errors.Errorf("remote JSON pointers are not supported: %s", pointer)
 	}
 
 	var path []string

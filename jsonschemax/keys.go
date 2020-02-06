@@ -11,7 +11,8 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/santhosh-tekuri/jsonschema/v2"
+
+	"github.com/ory/jsonschema/v3"
 
 	"github.com/ory/x/stringslice"
 )
