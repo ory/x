@@ -6,10 +6,6 @@ init:
 format:
 		goreturns -w -i -local github.com/ory $$(listx . | grep -v "mod_tools.go")
 
-.PHONY: lint
-lint:
-		gometalinter --disable-all --enable=goimports --enable=gosec --enable=vet --enable=golint --deadline=3m --vendor ./...
-
 .PHONY: test
 test:
 		make resetdb
@@ -30,3 +26,7 @@ resetdb:
 		docker run --rm --name hydra_test_database_mysql -p 3444:3306 -e MYSQL_ROOT_PASSWORD=secret -d mysql:5.7
 		docker run --rm --name hydra_test_database_postgres -p 3445:5432 -e POSTGRES_PASSWORD=secret -e POSTGRES_DB=hydra -d postgres:9.6
 		docker run --rm --name hydra_test_database_cockroach -p 3446:26257 -d cockroachdb/cockroach:v2.1.6 start --insecure
+
+.PHONY: lint
+lint:
+		GO111MODULE=on golangci-lint run -v ./...

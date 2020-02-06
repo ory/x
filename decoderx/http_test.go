@@ -10,9 +10,10 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
-	"github.com/santhosh-tekuri/jsonschema/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ory/jsonschema/v3"
 )
 
 func newRequest(t *testing.T, method, url string, body io.Reader, ct string) *http.Request {

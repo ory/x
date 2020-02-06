@@ -1,7 +1,7 @@
 package jsonschemax
 
 import (
-	"github.com/santhosh-tekuri/jsonschema"
+	"github.com/ory/jsonschema/v3"
 )
 
 // ErrorType is the schema error type.
