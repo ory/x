@@ -34,7 +34,12 @@ var keys = []string{
 	"oneOf",
 }
 
-type byName []Path
+type (
+	byName       []Path
+	PathEnhancer interface {
+		EnhancePath(Path) map[string]interface{}
+	}
+)
 
 func (s byName) Len() int           { return len(s) }
 func (s byName) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
@@ -75,6 +80,8 @@ type Path struct {
 	Maximum *big.Float
 
 	MultipleOf *big.Float
+
+	CustomProperties map[string]interface{}
 }
 
 // ListPathsBytes works like ListPathsWithRecursion but prepares the JSON Schema itself.
@@ -231,7 +238,7 @@ func listPaths(schema *jsonschema.Schema, parents []string, pointers map[string]
 		def, _ = v.Float64()
 	}
 	if (pathType != nil || schema.Default != nil) && len(parents) > 0 {
-		paths = append(paths, Path{
+		path := Path{
 			Name:       strings.Join(parents, "."),
 			Default:    def,
 			Type:       pathType,
@@ -244,7 +251,13 @@ func listPaths(schema *jsonschema.Schema, parents []string, pointers map[string]
 			Minimum:    schema.Minimum,
 			Maximum:    schema.Maximum,
 			MultipleOf: schema.MultipleOf,
-		})
+		}
+		for _, e := range schema.Extensions {
+			if enhancer, ok := e.(PathEnhancer); ok {
+				path.CustomProperties = enhancer.EnhancePath(path)
+			}
+		}
+		paths = append(paths, path)
 	}
 
 	if isCircular {
