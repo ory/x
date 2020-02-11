@@ -39,6 +39,8 @@ require (
 	golang.org/x/crypto v0.0.0-20200117160349-530e935923ad
 	golang.org/x/lint v0.0.0-20200130185559-910be7a94367 // indirect
 	golang.org/x/tools v0.0.0-20200203215610-ab391d50b528 // indirect
+	gonum.org/v1/netlib v0.0.0-20191229114700-bbb4dff026f8 // indirect
+	gonum.org/v1/plot v0.0.0-20200111075622-4abb28f724d5
 	gopkg.in/square/go-jose.v2 v2.2.2
 )
 
