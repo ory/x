@@ -83,6 +83,8 @@ func LoggerWithValidationErrorFields(l logrus.FieldLogger, err error) logrus.Fie
 				WithField(fmt.Sprintf("config_key[%d]", idx), pointer).
 				WithField(fmt.Sprintf("validation_error[%d]", idx), message)
 		}
+	default:
+		entry.WithError(err)
 	}
 
 	return entry
