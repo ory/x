@@ -31,8 +31,8 @@ import (
 	"time"
 
 	"github.com/go-sql-driver/mysql"
+	pgx "github.com/jackc/pgx/v4/stdlib"
 	"github.com/jmoiron/sqlx"
-	"github.com/lib/pq"
 	"github.com/luna-duclos/instrumentedsql"
 	"github.com/luna-duclos/instrumentedsql/opentracing"
 	"github.com/pkg/errors"
@@ -259,19 +259,19 @@ func (c *SQLConnection) registerDriver() (string, string, error) {
 					instrumentedsql.WrapDriver(mysql.MySQLDriver{}, tracingOpts...))
 			case "cockroach":
 				sql.Register(driverName,
-					instrumentedsql.WrapDriver(&pq.Driver{}, tracingOpts...))
+					instrumentedsql.WrapDriver(&pgx.Driver{}, tracingOpts...))
 			case "postgres":
 				// Why does this have to be a pointer? Because the Open method for postgres has a pointer receiver
 				// and does not satisfy the driver.Driver interface.
 				sql.Register(driverName,
-					instrumentedsql.WrapDriver(&pq.Driver{}, tracingOpts...))
+					instrumentedsql.WrapDriver(&pgx.Driver{}, tracingOpts...))
 			default:
 				return "", "", fmt.Errorf("unsupported scheme (%s) in DSN", scheme)
 			}
 		}
-	} else if driverName == "cockroach" {
+	} else if driverName == "cockroach" || driverName == "postgres" {
 		// If we're not using the instrumented driver, we need to replace "cockroach" with "postgres"
-		driverName = "postgres"
+		driverName = "pgx"
 	}
 
 	switch scheme {

@@ -33,8 +33,8 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/mocktracer"
 	"github.com/sirupsen/logrus"
@@ -184,7 +184,7 @@ func TestRegisterDriver(t *testing.T) {
 		{
 			description:           "should return cockroach driver if a valid cockroach DSN is supplied",
 			sqlConnection:         mustSQL(t, "cockroach://foo@bar:baz@qux/db"),
-			expectedDriverName:    "postgres",
+			expectedDriverName:    "pgx",
 			expectedDriverPackage: "postgres",
 			shouldError:           false,
 		},
@@ -239,6 +239,7 @@ func TestConnectionString(t *testing.T) {
 }
 
 func mustSQL(t *testing.T, db string, opts ...OptionModifier) *SQLConnection {
+	fmt.Fprintln(os.Stderr, db)
 	c, err := NewSQLConnection(db, logrus.New(), opts...)
 	require.NoError(t, err)
 	return c
@@ -356,7 +357,7 @@ func bootstrapPostgres() {
 		lock.Lock()
 		defer lock.Unlock()
 		log.Println("Found postgresql test database config, skipping dockertest...")
-		_, err := sqlx.Open("postgres", uu)
+		_, err := sqlx.Open("pgx", uu)
 		if err != nil {
 			log.Fatalf("Could not connect to bootstrapped database: %s", err)
 		}
@@ -376,7 +377,7 @@ func bootstrapPostgres() {
 
 	lock.Lock()
 	defer lock.Unlock()
-	urls := bootstrap("postgres://postgres:secret@localhost:%s/hydra?sslmode=disable", "5432/tcp", "postgres", pool, resource)
+	urls := bootstrap("postgres://postgres:secret@localhost:%s/hydra?sslmode=disable", "5432/tcp", "pgx", pool, resource)
 	resources = append(resources, resource)
 	postgresURL = urls
 }
@@ -386,7 +387,7 @@ func bootstrapCockroach() {
 		lock.Lock()
 		defer lock.Unlock()
 		log.Println("Found cockroachdb test database config, skipping dockertest...")
-		_, err := sqlx.Open("postgres", uu)
+		_, err := sqlx.Open("pgx", uu)
 		if err != nil {
 			log.Fatalf("Could not connect to bootstrapped database: %s", err)
 		}
@@ -410,7 +411,7 @@ func bootstrapCockroach() {
 
 	lock.Lock()
 	defer lock.Unlock()
-	urls := bootstrap("postgres://root@localhost:%s/defaultdb?sslmode=disable", "26257/tcp", "postgres", pool, resource)
+	urls := bootstrap("postgres://root@localhost:%s/defaultdb?sslmode=disable", "26257/tcp", "pgx", pool, resource)
 	resources = append(resources, resource)
 	cockroachURL = strings.Replace(urls, "postgres://", "cockroach://", 1)
 }
