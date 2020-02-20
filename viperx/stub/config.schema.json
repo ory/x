@@ -6,6 +6,9 @@
   "properties": {
     "dsn": {
       "type": "string"
+    },
+    "foo": {
+      "const": "bar"
     }
   },
   "required": [
