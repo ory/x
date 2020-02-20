@@ -92,8 +92,7 @@ func TestLoggerWithValidationErrorFields(t *testing.T) {
 		require.Error(t, err)
 
 		LoggerWithValidationErrorFields(l, err).WithError(err).Print("")
-		assert.EqualValues(t, "dsn", gjson.Get(buf.String(), "config_key").String(), "%s", buf.String())
-		assert.EqualValues(t, "one or more required properties are missing", gjson.Get(buf.String(), "validation_error").String(), "%s", buf.String())
+		assert.EqualValues(t, "one or more required properties are missing", gjson.Get(buf.String(), "\\[config_key=dsn\\]").String(), "%s", buf.String())
 	})
 
 	t.Run("case=type", func(t *testing.T) {
@@ -105,8 +104,7 @@ func TestLoggerWithValidationErrorFields(t *testing.T) {
 		require.Error(t, err)
 
 		LoggerWithValidationErrorFields(l, err).WithError(err).Print("")
-		assert.EqualValues(t, "dsn", gjson.Get(buf.String(), "config_key").String(), "%s", buf.String())
-		assert.EqualValues(t, "expected string, but got number", gjson.Get(buf.String(), "validation_error").String(), "%s", buf.String())
+		assert.EqualValues(t, "expected string, but got number", gjson.Get(buf.String(), "\\[config_key=dsn\\]").String(), "%s", buf.String())
 	})
 
 	t.Run("case=multiple errors", func(t *testing.T) {
