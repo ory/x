@@ -85,6 +85,9 @@ func RunPackrMigrationTests(
 
 	for name, db := range dbs {
 		dialect := db.DriverName()
+		if dialect == "pgx" {
+			dialect = "postgres"
+		}
 		t.Run(fmt.Sprintf("database=%s", name), func(t *testing.T) {
 			init(t, db)
 
