@@ -67,31 +67,31 @@ func Validate(name string, content []byte) error {
 
 // LoggerWithValidationErrorFields adds all validation errors as fields to the logger.
 func LoggerWithValidationErrorFields(l logrus.FieldLogger, err error) logrus.FieldLogger {
-	entry := l
+	entries := logrus.Fields{}
 
 	switch e := errorsx.Cause(err).(type) {
 	case *jsonschema.ValidationError:
 		pointer, message := jsonschemaFormatError(e)
-		entry = l.
-			WithField("config_file", viper.ConfigFileUsed()).
-			WithField("config_key", pointer).
-			WithField("validation_error", message)
+		entries["config_file"] = viper.ConfigFileUsed()
+		entries[pointer] = message
 
-		for idx, cause := range e.Causes {
+		for _, cause := range e.Causes {
 			pointer, message := jsonschemaFormatError(cause)
-			entry = l.
-				WithField(fmt.Sprintf("config_key[%d]", idx), pointer).
-				WithField(fmt.Sprintf("validation_error[%d]", idx), message)
+			entries[pointer] = message
 		}
 	default:
-		entry.WithError(err)
+		return l.WithError(err)
 	}
 
-	return entry
+	return l.WithFields(entries)
 }
 
-func jsonschemaFormatError(e *jsonschema.ValidationError) (pointer, message string) {
-	var err error
+func jsonschemaFormatError(e *jsonschema.ValidationError) (string, string) {
+	var (
+		err     error
+		pointer string
+		message string
+	)
 
 	pointer = e.InstancePtr
 	message = e.Message
@@ -109,5 +109,5 @@ func jsonschemaFormatError(e *jsonschema.ValidationError) (pointer, message stri
 		pointer = e.InstancePtr
 	}
 
-	return
+	return fmt.Sprintf("[config_key=%s]", pointer), message
 }
