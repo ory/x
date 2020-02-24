@@ -347,7 +347,8 @@ func TestListPaths(t *testing.T) {
         },
         "bar": {
           "type": "boolean",
-          "default": "asdf"
+          "default": "asdf",
+          "readOnly": true
         }
       }
     },
@@ -363,9 +364,10 @@ func TestListPaths(t *testing.T) {
 }`,
 			expected: byName{
 				{
-					Name:    "bar",
-					Default: "asdf",
-					Type:    false,
+					Name:     "bar",
+					Default:  "asdf",
+					Type:     false,
+					ReadOnly: true,
 				},
 				{
 					Name:    "foo",

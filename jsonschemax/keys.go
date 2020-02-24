@@ -68,9 +68,8 @@ type Path struct {
 	// first element in slice is constant value. note: slice is used to capture nil constant.
 	Constant []interface{}
 
-	// Required is whether the value is required
-	// TODO
-	Required bool
+	// ReadOnly is whether the value is readonly
+	ReadOnly bool
 
 	// -1 if not specified
 	MinLength int
@@ -251,6 +250,7 @@ func listPaths(schema *jsonschema.Schema, parents []string, pointers map[string]
 			Minimum:    schema.Minimum,
 			Maximum:    schema.Maximum,
 			MultipleOf: schema.MultipleOf,
+			ReadOnly:   schema.ReadOnly,
 		}
 		for _, e := range schema.Extensions {
 			if enhancer, ok := e.(PathEnhancer); ok {
