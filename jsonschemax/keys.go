@@ -251,7 +251,7 @@ func listPaths(schema *jsonschema.Schema, parents []string, pointers map[string]
 			Maximum:    schema.Maximum,
 			MultipleOf: schema.MultipleOf,
 			ReadOnly:   schema.ReadOnly,
-		})
+		}
 		for _, e := range schema.Extensions {
 			if enhancer, ok := e.(PathEnhancer); ok {
 				path.CustomProperties = enhancer.EnhancePath(path)
