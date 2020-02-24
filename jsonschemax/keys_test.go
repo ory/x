@@ -2,11 +2,14 @@ package jsonschemax
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math/big"
 	"regexp"
 	"testing"
+
+	"github.com/pkg/errors"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -98,6 +101,45 @@ func assertEqualPaths(t *testing.T, expected byName, actual byName) {
 	}
 }
 
+const fooExtensionName = "fooExtension"
+
+type (
+	extensionConfig struct {
+		NotAJSONSchemaKey string `json:"not-a-json-schema-key"`
+	}
+)
+
+func fooExtensionCompile(_ jsonschema.CompilerContext, m map[string]interface{}) (interface{}, error) {
+	if raw, ok := m[fooExtensionName]; ok {
+		var b bytes.Buffer
+		if err := json.NewEncoder(&b).Encode(raw); err != nil {
+			return nil, errors.WithStack(err)
+		}
+
+		var e extensionConfig
+		if err := json.NewDecoder(&b).Decode(&e); err != nil {
+			return nil, errors.WithStack(err)
+		}
+
+		return &e, nil
+	}
+	return nil, nil
+}
+
+func fooExtensionValidate(_ jsonschema.ValidationContext, _, _ interface{}) error {
+	return nil
+}
+
+func (ec *extensionConfig) EnhancePath(p Path) map[string]interface{} {
+	if ec.NotAJSONSchemaKey != "" {
+		fmt.Printf("enhancing path: %s with custom property %s\n", p.Name, ec.NotAJSONSchemaKey)
+		return map[string]interface{}{
+			ec.NotAJSONSchemaKey: p.Name,
+		}
+	}
+	return nil
+}
+
 func TestListPathsWithRecursion(t *testing.T) {
 	for k, tc := range []struct {
 		recursion uint8
@@ -163,6 +205,7 @@ func TestListPaths(t *testing.T) {
 		schema    string
 		expectErr bool
 		expected  byName
+		extension *jsonschema.Extension
 	}{
 		{
 			schema: readFile(t, "./stub/.oathkeeper.schema.json"),
@@ -337,9 +380,49 @@ func TestListPaths(t *testing.T) {
 				},
 			},
 		},
+		{
+			schema: `{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "test.json",
+  "type": "object",
+  "properties": {
+    "foo": {
+      "type": "boolean"
+    },
+    "bar": {
+      "type": "string",
+      "fooExtension": {
+        "not-a-json-schema-key": "foobar"
+      }
+    }
+  }
+}`,
+			extension: &jsonschema.Extension{
+				Meta:     nil,
+				Compile:  fooExtensionCompile,
+				Validate: fooExtensionValidate,
+			},
+			expected: byName{
+				{
+					Name: "bar",
+					Type: "",
+					CustomProperties: map[string]interface{}{
+						"foobar": "bar",
+					},
+				},
+				{
+					Name: "foo",
+					Type: false,
+				},
+			},
+		},
 	} {
 		t.Run(fmt.Sprintf("case=%d", k), func(t *testing.T) {
 			c := jsonschema.NewCompiler()
+			if tc.extension != nil {
+				c.Extensions[fooExtensionName] = *tc.extension
+			}
+
 			require.NoError(t, c.AddResource("test.json", bytes.NewBufferString(tc.schema)))
 			actual, err := ListPaths("test.json", c)
 			if tc.expectErr {

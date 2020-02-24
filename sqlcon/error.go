@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/go-sql-driver/mysql"
-	"github.com/lib/pq"
+	"github.com/jackc/pgconn"
 	"github.com/pkg/errors"
 
 	"github.com/ory/herodot"
@@ -39,9 +39,9 @@ func HandleError(err error) error {
 		return errors.WithStack(ErrNoRows)
 	}
 
-	if err, ok := errorsx.Cause(err).(*pq.Error); ok {
-		switch err.Code.Name() {
-		case "unique_violation":
+	if err, ok := errorsx.Cause(err).(*pgconn.PgError); ok {
+		switch err.Code {
+		case "23505": // "unique_violation"
 			return errors.Wrap(ErrUniqueViolation, err.Error())
 		}
 		return errors.WithStack(err)

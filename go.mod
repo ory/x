@@ -8,9 +8,10 @@ require (
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/gobuffalo/packr v1.22.0
 	github.com/google/uuid v1.1.0
+	github.com/jackc/pgconn v1.3.2
+	github.com/jackc/pgx/v4 v4.4.1
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/julienschmidt/httprouter v1.2.0
-	github.com/lib/pq v1.0.0
 	github.com/luna-duclos/instrumentedsql v1.1.2
 	github.com/mattn/goveralls v0.0.2
 	github.com/mitchellh/go-homedir v1.1.0
@@ -39,6 +40,8 @@ require (
 	golang.org/x/crypto v0.0.0-20200117160349-530e935923ad
 	golang.org/x/lint v0.0.0-20200130185559-910be7a94367 // indirect
 	golang.org/x/tools v0.0.0-20200203215610-ab391d50b528 // indirect
+	gonum.org/v1/netlib v0.0.0-20191229114700-bbb4dff026f8 // indirect
+	gonum.org/v1/plot v0.0.0-20200111075622-4abb28f724d5
 	gopkg.in/square/go-jose.v2 v2.2.2
 )
 

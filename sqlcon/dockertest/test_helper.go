@@ -131,7 +131,7 @@ func RunTestPostgreSQL(t *testing.T) string {
 // ConnectToTestPostgreSQL connects to a PostgreSQL database.
 func ConnectToTestPostgreSQL() (*sqlx.DB, error) {
 	if dsn := os.Getenv("TEST_DATABASE_POSTGRESQL"); dsn != "" {
-		return connect("postgres", "postgres", dsn)
+		return connect("pgx", "postgres", dsn)
 	}
 
 	resource, err := startPostgreSQL()
@@ -139,7 +139,7 @@ func ConnectToTestPostgreSQL() (*sqlx.DB, error) {
 		return nil, errors.Wrap(err, "Could not start resource")
 	}
 
-	db := bootstrap("postgres://postgres:secret@localhost:%s/postgres?sslmode=disable", "5432/tcp", "postgres", pool, resource)
+	db := bootstrap("postgres://postgres:secret@localhost:%s/postgres?sslmode=disable", "5432/tcp", "pgx", pool, resource)
 	return db, nil
 }
 
@@ -223,7 +223,7 @@ func RunTestCockroachDB(t *testing.T) string {
 func ConnectToTestCockroachDB() (*sqlx.DB, error) {
 	if dsn := os.Getenv("TEST_DATABASE_COCKROACHDB"); dsn != "" {
 		log.Println("Found cockroachdb test database config, skipping dockertest...")
-		return connect("postgres", "cockroach", dsn)
+		return connect("pgx", "cockroach", dsn)
 	}
 
 	resource, err := startCockroachDB()
@@ -231,7 +231,7 @@ func ConnectToTestCockroachDB() (*sqlx.DB, error) {
 		return nil, errors.Wrap(err, "Could not start resource")
 	}
 
-	db := bootstrap("postgres://root@localhost:%s/defaultdb?sslmode=disable", "26257/tcp", "postgres", pool, resource)
+	db := bootstrap("postgres://root@localhost:%s/defaultdb?sslmode=disable", "26257/tcp", "pgx", pool, resource)
 	return db, nil
 }
 
