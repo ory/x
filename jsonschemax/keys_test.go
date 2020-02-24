@@ -348,7 +348,7 @@ func TestListPaths(t *testing.T) {
         "bar": {
           "type": "boolean",
           "default": "asdf",
-		  "readOnly": true
+          "readOnly": true
         }
       }
     },
