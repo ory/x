@@ -2,7 +2,6 @@ package sqlcon
 
 import (
 	"fmt"
-	"net/url"
 	"time"
 
 	"github.com/ory/x/viperx"
@@ -52,23 +51,19 @@ Examples:
 				db = args[0]
 			}
 
-			dbu, err := url.Parse(db)
-			if err != nil {
-				logger.WithError(err).WithField("dsn", db).Fatal(`Unable to parse configuration item "dsn", make sure it has the right format`)
-			}
-
-			if dbu.Scheme != "postgres" && dbu.Scheme != "mysql" && dbu.Scheme != "cockroach" {
-				logger.WithField("dsn", dbu.Scheme+"://*:*@"+dbu.Host+dbu.Path+"?"+dbu.RawQuery).Fatal("Migrations can only be run against PostgreSQL, MySQL or CockroachDB databases")
+			driverName := GetDriverName(db)
+			if driverName != "postgres" && driverName != "mysql" && driverName != "cockroach" {
+				logger.WithField("dsn", classifyDSN(db)).Fatal("Migrations can only be run against PostgreSQL, MySQL or CockroachDB databases")
 			}
 
 			sdb, err := NewSQLConnection(db, logger)
 			if err != nil {
-				logger.WithError(err).WithField("dsn", dbu.Scheme+"://*:*@"+dbu.Host+dbu.Path+"?"+dbu.RawQuery).Fatal("Unable to initialize database configuration")
+				logger.WithError(err).WithField("dsn", classifyDSN(db)).Fatal("Unable to initialize database configuration")
 			}
 
 			dbx, err := sdb.GetDatabaseRetry(time.Second, time.Minute*5)
 			if err != nil {
-				logger.WithError(err).WithField("dsn", dbu.Scheme+"://*:*@"+dbu.Host+dbu.Path+"?"+dbu.RawQuery).Fatal("Unable to connect to the SQL database")
+				logger.WithError(err).WithField("dsn", classifyDSN(db)).Fatal("Unable to connect to the SQL database")
 			}
 
 			for name, runner := range runners {
