@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -39,11 +40,31 @@ func BindEnvsToSchema(schema json.RawMessage) error {
 			return errors.WithStack(err)
 		}
 
-		if key.Default != nil {
+		if key.Default == nil {
+			// we have to set a default this way so that viper can use it's type
+			viper.SetDefault(key.Name, key.Type)
+			continue
+		}
+
+		if fmt.Sprintf("%T", key.Type) == fmt.Sprintf("%T", key.Default) {
+			// key.Type and key.Default are of the same type, no conversion needed
 			viper.SetDefault(key.Name, key.Default)
-		} else {
-			if key.Type != "" {
-				viper.SetDefault(key.Name, key.Type)
+			continue
+		}
+
+		// this type conversion has to be improved
+		switch key.Type.(type) {
+		case []string:
+			if reflect.TypeOf(key.Default).Kind() == reflect.Slice {
+				var d []string
+				v := reflect.ValueOf(key.Default)
+
+				for i := 0; i < v.Len(); i++ {
+					d = append(d, fmt.Sprintf("%v", v.Index(i)))
+				}
+
+				viper.SetDefault(key.Name, d)
+				continue
 			}
 		}
 	}

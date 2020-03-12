@@ -20,6 +20,7 @@ func TestBindEnv(t *testing.T) {
 
 	t.Run("func=BindEnvsToSchema", func(t *testing.T) {
 		viper.Reset()
+		os.Clearenv()
 
 		require.NoError(t, os.Setenv("MUTATORS_ID_TOKEN_CONFIG_JWKS_URL", "foo"))
 		require.NoError(t, os.Setenv("MUTATORS_NOOP_ENABLED", "true"))
@@ -31,5 +32,77 @@ func TestBindEnv(t *testing.T) {
 		assert.Equal(t, true, viper.Get("mutators.noop.enabled"))
 		assert.Equal(t, "foo", viper.Get("mutators.id_token.config.jwks_url"))
 		assert.Equal(t, []string{"bar"}, viper.Get("authenticators.cookie_session.config.only"))
+	})
+
+	t.Run("case=string slice", func(t *testing.T) {
+		viper.Reset()
+		defer os.Clearenv()
+
+		schema := []byte(
+			`{
+"type": "object",
+"properties": {
+  "some_strings": {
+    "type": "array",
+    "items": {
+      "type": "string"
+    }
+  }
+}
+}`,
+		)
+
+		require.NoError(t, os.Setenv("SOME_STRINGS", "a b c"))
+
+		require.NoError(t, BindEnvsToSchema(schema))
+
+		assert.Equal(t, []string{"a", "b", "c"}, viper.Get("SOME_STRINGS"))
+	})
+
+	t.Run("case=string slice with default", func(t *testing.T) {
+		viper.Reset()
+		os.Clearenv()
+
+		schema := []byte(
+			`{
+"type": "object",
+"properties": {
+  "some_strings": {
+    "type": "array",
+    "items": {
+      "type": "string"
+    },
+    "default": ["foo"]
+  }
+}
+}`,
+		)
+
+		require.NoError(t, BindEnvsToSchema(schema))
+
+		assert.Equal(t, []string{"foo"}, viper.Get("SOME_STRINGS"))
+	})
+
+	t.Run("case=string slice without default or value", func(t *testing.T) {
+		viper.Reset()
+		os.Clearenv()
+
+		schema := []byte(
+			`{
+"type": "object",
+"properties": {
+  "some_strings": {
+    "type": "array",
+    "items": {
+      "type": "string"
+    }
+  }
+}
+}`,
+		)
+
+		require.NoError(t, BindEnvsToSchema(schema))
+
+		assert.Equal(t, []string{}, viper.Get("SOME_STRINGS"))
 	})
 }
