@@ -20,14 +20,16 @@ func TestBindEnv(t *testing.T) {
 
 	t.Run("func=BindEnvsToSchema", func(t *testing.T) {
 		viper.Reset()
-		os.Clearenv()
 
 		require.NoError(t, os.Setenv("MUTATORS_ID_TOKEN_CONFIG_JWKS_URL", "foo"))
+		defer require.NoError(t, os.Unsetenv("MUTATORS_ID_TOKEN_CONFIG_JWKS_URL"))
 		require.NoError(t, os.Setenv("MUTATORS_NOOP_ENABLED", "true"))
+		defer require.NoError(t, os.Unsetenv("MUTATORS_NOOP_ENABLED"))
 
 		require.NoError(t, BindEnvsToSchema([]byte(readFile("./stub/.oathkeeper.schema.json"))))
 
 		require.NoError(t, os.Setenv("AUTHENTICATORS_COOKIE_SESSION_CONFIG_ONLY", "bar"))
+		defer require.NoError(t, os.Unsetenv("AUTHENTICATORS_COOKIE_SESSION_CONFIG_ONLY"))
 
 		assert.Equal(t, true, viper.Get("mutators.noop.enabled"))
 		assert.Equal(t, "foo", viper.Get("mutators.id_token.config.jwks_url"))
@@ -36,7 +38,6 @@ func TestBindEnv(t *testing.T) {
 
 	t.Run("case=string slice", func(t *testing.T) {
 		viper.Reset()
-		defer os.Clearenv()
 
 		schema := []byte(
 			`{
@@ -53,6 +54,7 @@ func TestBindEnv(t *testing.T) {
 		)
 
 		require.NoError(t, os.Setenv("SOME_STRINGS", "a b c"))
+		defer require.NoError(t, os.Unsetenv("SOME_STRINGS"))
 
 		require.NoError(t, BindEnvsToSchema(schema))
 
@@ -61,7 +63,6 @@ func TestBindEnv(t *testing.T) {
 
 	t.Run("case=string slice with default", func(t *testing.T) {
 		viper.Reset()
-		os.Clearenv()
 
 		schema := []byte(
 			`{
@@ -85,7 +86,6 @@ func TestBindEnv(t *testing.T) {
 
 	t.Run("case=string slice without default or value", func(t *testing.T) {
 		viper.Reset()
-		os.Clearenv()
 
 		schema := []byte(
 			`{
