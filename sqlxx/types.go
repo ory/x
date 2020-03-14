@@ -94,6 +94,21 @@ func (ns *NullTime) Scan(value interface{}) error {
 	return nil
 }
 
+// MarshalJSON returns m as the JSON encoding of m.
+func (ns NullTime) MarshalJSON() ([]byte, error) {
+	return json.Marshal(time.Time(ns))
+}
+
+// UnmarshalJSON sets *m to a copy of data.
+func (ns *NullTime) UnmarshalJSON(data []byte) error {
+	var t time.Time
+	if err := json.Unmarshal(data, &t); err != nil {
+		return err
+	}
+	*ns = NullTime(t)
+	return nil
+}
+
 // Value implements the driver Valuer interface.
 func (ns NullTime) Value() (driver.Value, error) {
 	return sql.NullTime{Valid: !time.Time(ns).IsZero(), Time: time.Time(ns)}.Value()
