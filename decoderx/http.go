@@ -259,7 +259,7 @@ func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecod
 								return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Expected value to be a number.").
 									WithDetail("parse_error", err.Error()).
 									WithDetail("name", key).
-									WithDetail("index", k).
+									WithDetailf("index", "%d", k).
 									WithDetail("value", v))
 							}
 						} else {
@@ -278,7 +278,7 @@ func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecod
 								return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Expected value to be a boolean.").
 									WithDetail("parse_error", err.Error()).
 									WithDetail("name", key).
-									WithDetail("index", k).
+									WithDetailf("index", "%d", k).
 									WithDetail("value", v))
 							}
 						} else {
