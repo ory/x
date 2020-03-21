@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/spf13/cast"
+
 	"github.com/pkg/errors"
 
 	"github.com/ory/jsonschema/v3"
@@ -39,11 +41,38 @@ func BindEnvsToSchema(schema json.RawMessage) error {
 			return errors.WithStack(err)
 		}
 
+		viper.SetType(key.Name, key.Type)
 		if key.Default != nil {
-			viper.SetDefault(key.Name, key.Default)
-		} else {
-			if key.Type != "" {
-				viper.SetDefault(key.Name, key.Type)
+			// key.Default will be of type []interface{} whenever it is an array in the schema
+			switch key.Type.(type) {
+			case []string:
+				def, err := cast.ToStringSliceE(key.Default)
+				if err != nil {
+					return errors.WithStack(err)
+				}
+				viper.SetDefault(key.Name, def)
+			case []float64:
+				switch def := key.Default.(type) {
+				case []interface{}:
+					var r []float64
+					for _, i := range def {
+						// we first cast to string as json.Number is the type of numbers
+						s, err := cast.ToStringE(i)
+						if err != nil {
+							return errors.WithStack(err)
+						}
+						f, err := cast.ToFloat64E(s)
+						if err != nil {
+							return errors.WithStack(err)
+						}
+						r = append(r, f)
+					}
+					viper.SetDefault(key.Name, r)
+				default:
+					viper.SetDefault(key.Name, key.Default)
+				}
+			default:
+				viper.SetDefault(key.Name, key.Default)
 			}
 		}
 	}
