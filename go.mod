@@ -22,7 +22,7 @@ require (
 	github.com/ory/go-acc v0.0.0-20181118080137-ddc355013f90
 	github.com/ory/herodot v0.7.0
 	github.com/ory/jsonschema/v3 v3.0.1
-	github.com/ory/viper v1.6.0
+	github.com/ory/viper v1.7.1
 	github.com/pborman/uuid v1.2.0
 	github.com/pelletier/go-toml v1.6.0 // indirect
 	github.com/pkg/errors v0.9.1
@@ -49,7 +49,6 @@ require (
 	gonum.org/v1/plot v0.0.0-20200111075622-4abb28f724d5
 	gopkg.in/ini.v1 v1.55.0 // indirect
 	gopkg.in/square/go-jose.v2 v2.2.2
-	gopkg.in/yaml.v2 v2.2.8 // indirect
 )
 
 go 1.13
