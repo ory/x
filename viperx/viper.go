@@ -77,9 +77,20 @@ func WatchConfig(l logrus.FieldLogger, o *WatchOptions) {
 
 		l.WithField("file", in.Name).
 			WithField("operator", in.Op.String()).
+			WithField("immutables", o.Immutables).
 			Info("The configuration has changed and was reloaded.")
 
 		var didReset bool
+		for _, key := range o.Immutables {
+			if viper.HasChangedSinceInit(key) {
+				viper.SetRawConfig(all)
+				didReset = true
+				if o.OnImmutableChange != nil {
+					o.OnImmutableChange(key)
+				}
+			}
+		}
+
 		for _, w := range watchers {
 			if err := w(in); errors.Cause(err) == ErrRollbackConfigurationChanges {
 				viper.SetRawConfig(all)
@@ -88,16 +99,6 @@ func WatchConfig(l logrus.FieldLogger, o *WatchOptions) {
 			} else if err != nil {
 				l.WithError(err).Error("A configuration watcher returned an error code, stopping event propagation.")
 				return
-			}
-		}
-
-		for _, key := range o.Immutables {
-			if viper.HasChanged(key) {
-				viper.SetRawConfig(all)
-				didReset = true
-				if o.OnImmutableChange != nil {
-					o.OnImmutableChange(key)
-				}
 			}
 		}
 
