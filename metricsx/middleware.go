@@ -161,13 +161,13 @@ func New(
 	var oi analytics.OSInfo
 
 	optOut, err := cmd.Flags().GetBool("sqa-opt-out")
-	if !optOut {
+	if err != nil {
 		optOut, err = cmd.Flags().GetBool("disable-telemetry")
 		if optOut {
 			l.Warn(`Command line argument "--disable-telemetry" has been deprecated and will be removed in an upcoming release. Use "--sqa-opt-out" instead.`)
 		}
+		cmdx.Must(err, `Unable to get command line flag "sqa-opt-out" and "disable-telemetry": %s`, err)
 	}
-	cmdx.Must(err, "Unable to get command line flag.")
 
 	if !optOut {
 		optOut = viper.GetBool("sqa.opt_out")
