@@ -298,6 +298,10 @@ func (sw *Service) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.
 	}
 }
 
+func (sw *Service) Close() error {
+	return sw.c.Close()
+}
+
 func (sw *Service) anonymizePath(path string, salt string) string {
 	paths := sw.o.WhitelistedPaths
 	path = strings.ToLower(path)
