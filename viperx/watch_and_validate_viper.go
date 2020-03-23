@@ -25,7 +25,6 @@ func WatchAndValidateViper(l logrus.FieldLogger, schema []byte, productName stri
 	WatchConfig(l, &WatchOptions{
 		Immutables: immutables,
 		OnImmutableChange: func(key string) {
-			fmt.Print("immutable change !!!11!!1!!\n")
 			l.
 				WithField("key", key).
 				WithField("reset_to", fmt.Sprintf("%v", viper.Get(key))).

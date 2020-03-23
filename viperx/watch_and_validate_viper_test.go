@@ -25,7 +25,7 @@ func expectExit(t *testing.T) func(int) {
 	}
 }
 
-const serviceName = "Test"
+const productName = "Test"
 
 func tmpConfigFile(t *testing.T, dsn, foo string) *os.File {
 	config := fmt.Sprintf("dsn: %s\nfoo: %s\n", dsn, foo)
@@ -73,7 +73,7 @@ func TestWatchAndValidateViper(t *testing.T) {
 
 		l, hook := setup(t, failOnExit(t), configFile)
 
-		WatchAndValidateViper(l, schema, serviceName, []string{})
+		WatchAndValidateViper(l, schema, productName, []string{})
 		assert.Equal(t, []*logrus.Entry{}, hook.AllEntries())
 		assert.Equal(t, "memory", viper.Get("dsn"))
 		assert.Equal(t, "bar", viper.Get("foo"))
@@ -96,7 +96,7 @@ func TestWatchAndValidateViper(t *testing.T) {
 
 		l, hook := setup(t, failOnExit(t), configFile)
 
-		WatchAndValidateViper(l, schema, serviceName, []string{"dsn"})
+		WatchAndValidateViper(l, schema, productName, []string{"dsn"})
 		assert.Equal(t, []*logrus.Entry{}, hook.AllEntries())
 		assert.Equal(t, "memory", viper.Get("dsn"))
 		assert.Equal(t, "bar", viper.Get("foo"))
@@ -120,7 +120,7 @@ func TestWatchAndValidateViper(t *testing.T) {
 		viper.Set("dsn", "some string")
 		viper.Set("foo", "bar")
 
-		WatchAndValidateViper(l, schema, serviceName, []string{})
+		WatchAndValidateViper(l, schema, productName, []string{})
 
 		assert.Equal(t, []*logrus.Entry{}, hook.AllEntries())
 		assert.Equal(t, "some string", viper.Get("dsn"))
@@ -133,7 +133,7 @@ func TestWatchAndValidateViper(t *testing.T) {
 		viper.Set("foo", "not bar")
 		viper.Set("dsn", 0)
 
-		WatchAndValidateViper(l, schema, serviceName, []string{})
+		WatchAndValidateViper(l, schema, productName, []string{})
 
 		entries := hook.AllEntries()
 		require.Equal(t, 1, len(entries))
