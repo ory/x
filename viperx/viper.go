@@ -1,6 +1,7 @@
 package viperx
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 
@@ -77,6 +78,7 @@ func WatchConfig(l logrus.FieldLogger, o *WatchOptions) {
 
 		l.WithField("file", in.Name).
 			WithField("operator", in.Op.String()).
+			WithField("immutables", o.Immutables).
 			Info("The configuration has changed and was reloaded.")
 
 		var didReset bool
@@ -92,7 +94,9 @@ func WatchConfig(l logrus.FieldLogger, o *WatchOptions) {
 		}
 
 		for _, key := range o.Immutables {
-			if viper.HasChanged(key) {
+			fmt.Printf("key %s\n", key)
+			if viper.HasChangedSinceInit(key) {
+				fmt.Print("changed\n")
 				viper.SetRawConfig(all)
 				didReset = true
 				if o.OnImmutableChange != nil {
