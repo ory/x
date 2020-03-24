@@ -7,11 +7,9 @@ import (
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/jackc/pgconn"
-	"github.com/pkg/errors"
-
 	"github.com/ory/herodot"
-
 	"github.com/ory/x/errorsx"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -26,6 +24,12 @@ var (
 		CodeField:   http.StatusNotFound,
 		StatusField: http.StatusText(http.StatusNotFound),
 		ErrorField:  "Unable to locate the resource",
+	}
+	// ErrConcurrentUpdate is returned when the database is unable to serialize access due to a concurrent update.
+	ErrConcurrentUpdate = &herodot.DefaultError{
+		CodeField:   http.StatusBadRequest,
+		StatusField: http.StatusText(http.StatusBadRequest),
+		ErrorField:  "Unable to serialize access due to a concurrent update in another session",
 	}
 )
 
@@ -43,6 +47,8 @@ func HandleError(err error) error {
 		switch err.Code {
 		case "23505": // "unique_violation"
 			return errors.Wrap(ErrUniqueViolation, err.Error())
+		case "40001": // "serialization_failure"
+			return errors.Wrap(ErrConcurrentUpdate, err.Error())
 		}
 		return errors.WithStack(err)
 	}
