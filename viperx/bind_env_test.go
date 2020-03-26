@@ -50,7 +50,7 @@ func TestBindEnv(t *testing.T) {
 }`,
 		)
 
-		require.NoError(t, os.Setenv("SOME_STRINGS", "a b c"))
+		require.NoError(t, os.Setenv("SOME_STRINGS", "a,b,c"))
 
 		require.NoError(t, BindEnvsToSchema(schema))
 
