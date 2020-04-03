@@ -40,9 +40,10 @@ import (
 	"github.com/ory/x/resilience"
 
 	"github.com/pborman/uuid"
-	"github.com/segmentio/analytics-go"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/negroni"
+
+	analytics "github.com/ory/analytics-go/v4"
 )
 
 var instance *Service
@@ -142,7 +143,6 @@ func New(
 	if o.Config == nil {
 		o.Config = &analytics.Config{
 			Interval:  time.Hour * 24,
-			BatchSize: 100,
 		}
 	}
 
