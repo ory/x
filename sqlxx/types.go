@@ -146,6 +146,9 @@ func (m *JSONRawMessage) Scan(value interface{}) error {
 
 // Value implements the driver Valuer interface.
 func (m JSONRawMessage) Value() (driver.Value, error) {
+	if len(m) == 0 {
+		return "null", nil
+	}
 	return string(m), nil
 }
 
