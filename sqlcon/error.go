@@ -7,9 +7,10 @@ import (
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/jackc/pgconn"
+	"github.com/pkg/errors"
+
 	"github.com/ory/herodot"
 	"github.com/ory/x/errorsx"
-	"github.com/pkg/errors"
 )
 
 var (

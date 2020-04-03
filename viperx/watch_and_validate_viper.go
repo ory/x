@@ -2,9 +2,11 @@ package viperx
 
 import (
 	"fmt"
+
 	"github.com/fsnotify/fsnotify"
-	"github.com/ory/viper"
 	"github.com/sirupsen/logrus"
+
+	"github.com/ory/viper"
 )
 
 func WatchAndValidateViper(l logrus.FieldLogger, schema []byte, productName string, immutables []string) {
