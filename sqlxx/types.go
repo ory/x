@@ -146,12 +146,15 @@ func (m *JSONRawMessage) Scan(value interface{}) error {
 
 // Value implements the driver Valuer interface.
 func (m JSONRawMessage) Value() (driver.Value, error) {
+	if len(m) == 0 {
+		return "null", nil
+	}
 	return string(m), nil
 }
 
 // MarshalJSON returns m as the JSON encoding of m.
 func (m JSONRawMessage) MarshalJSON() ([]byte, error) {
-	if m == nil {
+	if len(m) == 0 {
 		return []byte("null"), nil
 	}
 	return m, nil
@@ -159,6 +162,43 @@ func (m JSONRawMessage) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON sets *m to a copy of data.
 func (m *JSONRawMessage) UnmarshalJSON(data []byte) error {
+	if m == nil {
+		return errors.New("json.RawMessage: UnmarshalJSON on nil pointer")
+	}
+	*m = append((*m)[0:0], data...)
+	return nil
+}
+
+// NullJSONRawMessage represents a json.RawMessage that works well with JSON, SQL, and Swagger and is NULLable-
+type NullJSONRawMessage json.RawMessage
+
+// Scan implements the Scanner interface.
+func (m *NullJSONRawMessage) Scan(value interface{}) error {
+	if value == nil {
+		value = "null"
+	}
+	*m = []byte(fmt.Sprintf("%s", value))
+	return nil
+}
+
+// Value implements the driver Valuer interface.
+func (m NullJSONRawMessage) Value() (driver.Value, error) {
+	if len(m) == 0 {
+		return nil, nil
+	}
+	return string(m), nil
+}
+
+// MarshalJSON returns m as the JSON encoding of m.
+func (m NullJSONRawMessage) MarshalJSON() ([]byte, error) {
+	if len(m) == 0 {
+		return []byte("null"), nil
+	}
+	return m, nil
+}
+
+// UnmarshalJSON sets *m to a copy of data.
+func (m *NullJSONRawMessage) UnmarshalJSON(data []byte) error {
 	if m == nil {
 		return errors.New("json.RawMessage: UnmarshalJSON on nil pointer")
 	}
