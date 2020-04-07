@@ -142,7 +142,7 @@ func New(
 
 	if o.Config == nil {
 		o.Config = &analytics.Config{
-			Interval:  time.Hour * 24,
+			Interval: time.Hour * 24,
 		}
 	}
 
