@@ -2,13 +2,14 @@ package dockertest
 
 import (
 	"fmt"
-	"github.com/gobuffalo/pop/v5"
 	"log"
 	"os"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/gobuffalo/pop/v5"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
