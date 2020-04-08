@@ -2,6 +2,7 @@ package dockertest
 
 import (
 	"fmt"
+	"github.com/gobuffalo/pop/v5"
 	"log"
 	"os"
 	"strings"
@@ -53,6 +54,14 @@ func Register() *OnExit {
 	return onexit
 }
 
+func cleanupResource(r *dockertest.Resource) func() {
+	return func() {
+		if err := r.Close(); err != nil {
+			log.Printf("Could not close container %s: %+v", r.Container.Name, err)
+		}
+	}
+}
+
 // Parallel runs tasks in parallel.
 func Parallel(fs []func()) {
 	wg := sync.WaitGroup{}
@@ -100,6 +109,26 @@ func connect(dialect, driver, dsn string) (db *sqlx.DB, err error) {
 	return db, nil
 }
 
+func connectPop(t *testing.T, url string) (c *pop.Connection) {
+	require.NoError(t, resilience.Retry(logrus.New(), time.Second*5, time.Minute*5, func() error {
+		var err error
+		c, err = pop.NewConnection(&pop.ConnectionDetails{
+			URL: url,
+		})
+		if err != nil {
+			log.Printf("could not create pop connection")
+			return err
+		}
+		if err := c.Open(); err != nil {
+			// an Open error probably means we have a problem with the connections config
+			log.Printf("could not open pop connection: %+v", err)
+			return err
+		}
+		return c.RawQuery("select version()").Exec()
+	}))
+	return
+}
+
 // ## PostgreSQL ##
 
 func startPostgreSQL() (*dockertest.Resource, error) {
@@ -124,6 +153,7 @@ func RunTestPostgreSQL(t *testing.T) string {
 
 	resource, err := startPostgreSQL()
 	require.NoError(t, err)
+	t.Cleanup(cleanupResource(resource))
 
 	return fmt.Sprintf("postgres://postgres:secret@127.0.0.1:%s/postgres?sslmode=disable", resource.GetPort("5432/tcp"))
 }
@@ -141,6 +171,11 @@ func ConnectToTestPostgreSQL() (*sqlx.DB, error) {
 
 	db := bootstrap("postgres://postgres:secret@localhost:%s/postgres?sslmode=disable", "5432/tcp", "pgx", pool, resource)
 	return db, nil
+}
+
+func ConnectToTestPostgreSQLPop(t *testing.T) *pop.Connection {
+	url := RunTestPostgreSQL(t)
+	return connectPop(t, url)
 }
 
 // ## MySQL ##
@@ -167,6 +202,7 @@ func RunTestMySQL(t *testing.T) string {
 
 	resource, err := startMySQL()
 	require.NoError(t, err)
+	t.Cleanup(cleanupResource(resource))
 
 	return fmt.Sprintf("mysql://root:secret@(localhost:%s)/mysql?parseTime=true&multiStatements=true", resource.GetPort("3306/tcp"))
 }
@@ -185,6 +221,11 @@ func ConnectToTestMySQL() (*sqlx.DB, error) {
 
 	db := bootstrap("root:secret@(localhost:%s)/mysql?parseTime=true", "3306/tcp", "mysql", pool, resource)
 	return db, nil
+}
+
+func ConnectToTestMySQLPop(t *testing.T) *pop.Connection {
+	url := RunTestMySQL(t)
+	return connectPop(t, url)
 }
 
 // ## CockroachDB
@@ -215,6 +256,7 @@ func RunTestCockroachDB(t *testing.T) string {
 
 	resource, err := startCockroachDB()
 	require.NoError(t, err)
+	t.Cleanup(cleanupResource(resource))
 
 	return fmt.Sprintf("cockroach://root@localhost:%s/defaultdb?sslmode=disable", resource.GetPort("26257/tcp"))
 }
@@ -233,6 +275,11 @@ func ConnectToTestCockroachDB() (*sqlx.DB, error) {
 
 	db := bootstrap("postgres://root@localhost:%s/defaultdb?sslmode=disable", "26257/tcp", "pgx", pool, resource)
 	return db, nil
+}
+
+func ConnectToTestCockroachDBPop(t *testing.T) *pop.Connection {
+	url := RunTestCockroachDB(t)
+	return connectPop(t, url)
 }
 
 func bootstrap(u, port, d string, pool *dockertest.Pool, resource *dockertest.Resource) (db *sqlx.DB) {

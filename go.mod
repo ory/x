@@ -8,6 +8,7 @@ require (
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gobuffalo/httptest v1.0.2
 	github.com/gobuffalo/packr v1.22.0
+	github.com/gobuffalo/pop/v5 v5.0.11
 	github.com/google/uuid v1.1.0
 	github.com/jackc/pgconn v1.5.0
 	github.com/jackc/pgx/v4 v4.4.1
