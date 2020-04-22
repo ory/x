@@ -55,14 +55,6 @@ func Register() *OnExit {
 	return onexit
 }
 
-func cleanupResource(r *dockertest.Resource) func() {
-	return func() {
-		if err := r.Close(); err != nil {
-			log.Printf("Could not close container %s: %+v", r.Container.Name, err)
-		}
-	}
-}
-
 // Parallel runs tasks in parallel.
 func Parallel(fs []func()) {
 	wg := sync.WaitGroup{}
@@ -154,7 +146,6 @@ func RunTestPostgreSQL(t *testing.T) string {
 
 	resource, err := startPostgreSQL()
 	require.NoError(t, err)
-	t.Cleanup(cleanupResource(resource))
 
 	return fmt.Sprintf("postgres://postgres:secret@127.0.0.1:%s/postgres?sslmode=disable", resource.GetPort("5432/tcp"))
 }
@@ -203,7 +194,6 @@ func RunTestMySQL(t *testing.T) string {
 
 	resource, err := startMySQL()
 	require.NoError(t, err)
-	t.Cleanup(cleanupResource(resource))
 
 	return fmt.Sprintf("mysql://root:secret@(localhost:%s)/mysql?parseTime=true&multiStatements=true", resource.GetPort("3306/tcp"))
 }
@@ -257,7 +247,6 @@ func RunTestCockroachDB(t *testing.T) string {
 
 	resource, err := startCockroachDB()
 	require.NoError(t, err)
-	t.Cleanup(cleanupResource(resource))
 
 	return fmt.Sprintf("cockroach://root@localhost:%s/defaultdb?sslmode=disable", resource.GetPort("26257/tcp"))
 }
