@@ -2,10 +2,11 @@ package sqlcon
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParseConnectionOptions(t *testing.T) {
