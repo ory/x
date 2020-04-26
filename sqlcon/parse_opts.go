@@ -1,6 +1,7 @@
 package sqlcon
 
 import (
+	"fmt"
 	"net/url"
 	"strconv"
 	"strings"
@@ -10,10 +11,12 @@ import (
 )
 
 // ParseConnectionOptions parses values for max_conns, max_idle_conns, max_conn_lifetime from DSNs.
-func ParseConnectionOptions(l logrus.FieldLogger, dsn string) (maxConns int, maxIdleConns int, maxConnLifetime time.Duration) {
+// It also returns the URI without those query parameters.
+func ParseConnectionOptions(l logrus.FieldLogger, dsn string) (maxConns int, maxIdleConns int, maxConnLifetime time.Duration, cleanedDSN string) {
 	maxConns = maxParallelism() * 2
 	maxIdleConns = maxParallelism()
 	maxConnLifetime = time.Duration(0)
+	cleanedDSN = dsn
 
 	parts := strings.Split(dsn, "?")
 	if len(parts) != 2 {
@@ -43,6 +46,7 @@ func ParseConnectionOptions(l logrus.FieldLogger, dsn string) (maxConns int, max
 		} else {
 			maxConns = int(s)
 		}
+		query.Del("max_conns")
 	}
 
 	if v := query.Get("max_idle_conns"); v != "" {
@@ -52,6 +56,7 @@ func ParseConnectionOptions(l logrus.FieldLogger, dsn string) (maxConns int, max
 		} else {
 			maxIdleConns = int(s)
 		}
+		query.Del("max_idle_conns")
 	}
 
 	if v := query.Get("max_conn_lifetime"); v != "" {
@@ -61,7 +66,9 @@ func ParseConnectionOptions(l logrus.FieldLogger, dsn string) (maxConns int, max
 		} else {
 			maxConnLifetime = s
 		}
+		query.Del("max_conn_lifetime")
 	}
+	cleanedDSN = fmt.Sprintf("%s?%s", parts[0], query.Encode())
 
 	return
 }
