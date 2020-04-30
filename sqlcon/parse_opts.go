@@ -72,3 +72,27 @@ func ParseConnectionOptions(l logrus.FieldLogger, dsn string) (maxConns int, max
 
 	return
 }
+
+// FinalizeDSN will return a finalized DSN URI.
+func FinalizeDSN(l logrus.FieldLogger, dsn string) string {
+	if strings.HasPrefix(dsn, "mysql://") {
+		var q url.Values
+		parts := strings.SplitN(dsn, "?", 2)
+
+		if len(parts) == 1 {
+			q = make(url.Values)
+		} else {
+			var err error
+			q, err = url.ParseQuery(parts[1])
+			if err != nil {
+				l.WithError(err).Warnf("Unable to parse SQL DSN query, could not finalize the DSN URI.")
+				return dsn
+			}
+		}
+
+		q.Set("multiStatements", "true")
+		return fmt.Sprintf("%s?%s", parts[0], q.Encode())
+	}
+
+	return dsn
+}

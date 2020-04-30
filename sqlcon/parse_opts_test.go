@@ -75,3 +75,26 @@ func TestParseConnectionOptions(t *testing.T) {
 		})
 	}
 }
+
+func TestFinalizeDSN(t *testing.T) {
+	for i, tc := range []struct {
+		dsn, expected string
+	}{
+		{
+			dsn:      "mysql://localhost",
+			expected: "mysql://localhost?multiStatements=true",
+		},
+		{
+			dsn:      "mysql://localhost?multiStatements=true",
+			expected: "mysql://localhost?multiStatements=true",
+		},
+		{
+			dsn:      "postgres://localhost",
+			expected: "postgres://localhost",
+		},
+	} {
+		t.Run(fmt.Sprintf("case=%d", i), func(t *testing.T) {
+			assert.Equal(t, tc.expected, FinalizeDSN(logrus.New(), tc.dsn))
+		})
+	}
+}
