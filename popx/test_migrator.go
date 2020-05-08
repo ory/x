@@ -12,17 +12,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// testMigrator is a modified pop.FileMigrator
-type testMigrator struct {
+// TestMigrator is a modified pop.FileMigrator
+type TestMigrator struct {
 	pop.Migrator
 }
 
-// Returns a new testMigrator
+// Returns a new TestMigrator
 // After running each migration it applies it's corresponding testData sql files.
 // They are identified by having the same version (= number in the front of the filename).
 // The filenames are expected to be of the format ([0-9]+).*(_testdata(\.[dbtype])?.sql
-func NewTestMigrator(t *testing.T, c *pop.Connection, migrationPath, testDataPath string) *testMigrator {
-	tm := testMigrator{
+func NewTestMigrator(t *testing.T, c *pop.Connection, migrationPath, testDataPath string) *TestMigrator {
+	tm := TestMigrator{
 		Migrator: pop.NewMigrator(c),
 	}
 	tm.SchemaPath = migrationPath
