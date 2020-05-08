@@ -1,14 +1,15 @@
 package popx
 
 import (
-	"github.com/gobuffalo/pop/v5"
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/gobuffalo/pop/v5"
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/require"
 )
 
 // testMigrator is a modified pop.FileMigrator
