@@ -9,6 +9,16 @@ import (
 	"github.com/pkg/errors"
 )
 
+type RawJSON json.RawMessage
+
+func (t *RawJSON) Scan(value interface{}) error {
+	return JSONScan(t, value)
+}
+
+func (t *RawJSON) Value() (driver.Value, error) {
+	return JSONValue(t)
+}
+
 func JSONScan(dst interface{}, value interface{}) error {
 	var b bytes.Buffer
 	switch v := value.(type) {
