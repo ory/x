@@ -6,10 +6,11 @@ import (
 	"strings"
 
 	"github.com/go-sql-driver/mysql"
-	"github.com/jackc/pgconn"
+	"github.com/lib/pq"
 	"github.com/pkg/errors"
 
 	"github.com/ory/herodot"
+
 	"github.com/ory/x/errorsx"
 )
 
@@ -44,7 +45,19 @@ func HandleError(err error) error {
 		return errors.WithStack(ErrNoRows)
 	}
 
-	if err, ok := errorsx.Cause(err).(*pgconn.PgError); ok {
+	if e, ok := errorsx.Cause(err).(interface{
+		SQLState() string
+	}); ok {
+		switch e.SQLState() {
+		case "23505": // "unique_violation"
+			return errors.Wrap(ErrUniqueViolation, err.Error())
+		case "40001": // "serialization_failure"
+			return errors.Wrap(ErrConcurrentUpdate, err.Error())
+		}
+		return errors.WithStack(err)
+	}
+
+	if err, ok := errorsx.Cause(err).(*pq.Error); ok {
 		switch err.Code {
 		case "23505": // "unique_violation"
 			return errors.Wrap(ErrUniqueViolation, err.Error())
