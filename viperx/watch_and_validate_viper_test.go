@@ -34,7 +34,7 @@ const productName = "Test"
 func tmpConfigFile(t *testing.T, dsn, foo string) *os.File {
 	config := fmt.Sprintf("dsn: %s\nfoo: %s\n", dsn, foo)
 
-	tdir := os.TempDir()+strconv.Itoa(time.Now().Nanosecond())
+	tdir := os.TempDir()+"/"+strconv.Itoa(time.Now().Nanosecond())
 	require.NoError(t,
 		os.MkdirAll(tdir, // DO NOT CHANGE THIS: https://github.com/fsnotify/fsnotify/issues/340
 			os.ModePerm))
