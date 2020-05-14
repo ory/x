@@ -5,7 +5,9 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/test"
@@ -32,8 +34,11 @@ const productName = "Test"
 func tmpConfigFile(t *testing.T, dsn, foo string) *os.File {
 	config := fmt.Sprintf("dsn: %s\nfoo: %s\n", dsn, foo)
 
-	configFile, err := ioutil.TempFile("", "config-*.yaml")
-	require.NoError(t, err)
+	tdir := os.TempDir()+"/"+strconv.Itoa(time.Now().Nanosecond())
+	require.NoError(t,
+		os.MkdirAll(tdir, // DO NOT CHANGE THIS: https://github.com/fsnotify/fsnotify/issues/340
+			os.ModePerm))
+	configFile, err := ioutil.TempFile(tdir,"config-*.yml")
 	_, err = io.WriteString(configFile, config)
 	require.NoError(t, err)
 	require.NoError(t, configFile.Sync())
@@ -61,6 +66,8 @@ func setup(t *testing.T, exitFunc func(int), configFile *os.File) (*logrus.Logge
 	if configFile != nil {
 		viper.SetConfigFile(configFile.Name())
 		require.NoError(t, viper.ReadInConfig())
+	} else {
+		t.Logf("Config file is nil")
 	}
 
 	return l, test.NewLocal(l)
@@ -85,6 +92,7 @@ func TestWatchAndValidateViper(t *testing.T) {
 		// viper needs some time to read the file
 		entries := hook.AllEntries()
 		for ; len(entries) < 2; entries = hook.AllEntries() {
+			time.Sleep(time.Millisecond)
 		}
 		require.Equal(t, 2, len(entries))
 		assert.Equal(t, "The configuration has changed and was reloaded.", entries[0].Message)
