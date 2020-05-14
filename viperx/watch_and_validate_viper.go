@@ -15,7 +15,7 @@ func WatchAndValidateViper(l logrus.FieldLogger, schema []byte, productName stri
 		l.WithField("config_file", viper.ConfigFileUsed()).Error("The provided configuration is invalid and could not be loaded. Check the output below to understand why.")
 		_, _ = fmt.Fprintln(os.Stderr, "")
 		PrintHumanReadableValidationErrors(os.Stderr, err)
-		os.Exit(1)
+		l.Fatalf("The services failed to start because the configuration is invalid. Check the output above for more details.")
 	}
 
 	AddWatcher(func(event fsnotify.Event) error {
