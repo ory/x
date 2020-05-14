@@ -95,8 +95,10 @@ func TestWatchAndValidateViper(t *testing.T) {
 			time.Sleep(time.Millisecond)
 		}
 		require.Equal(t, 2, len(entries))
+
 		assert.Equal(t, "The configuration has changed and was reloaded.", entries[0].Message)
 		assert.Equal(t, "The changed configuration is invalid and could not be loaded. Rolling back to the last working configuration revision. Please address the validation errors before restarting Test.", entries[1].Message)
+
 		assert.Equal(t, "memory", viper.Get("dsn"))
 		assert.Equal(t, "bar", viper.Get("foo"))
 	})
@@ -146,10 +148,8 @@ func TestWatchAndValidateViper(t *testing.T) {
 		WatchAndValidateViper(l, schema, productName, []string{})
 
 		entries := hook.AllEntries()
-		require.Equal(t, 1, len(entries))
-		assert.Equal(t, "The configuration is invalid and could not be loaded.", entries[0].Message)
-		assert.Equal(t, "validation failed", entries[0].Data["[config_key=#]"])
-		assert.Equal(t, "expected string, but got number", entries[0].Data["[config_key=dsn]"])
-		assert.Equal(t, "value must be \"bar\"", entries[0].Data["[config_key=foo]"])
+		require.Equal(t, 2, len(entries))
+		assert.Equal(t, "The provided configuration is invalid and could not be loaded. Check the output below to understand why.", entries[0].Message)
+		assert.Equal(t, "The services failed to start because the configuration is invalid. Check the output above for more details.", entries[1].Message)
 	})
 }
