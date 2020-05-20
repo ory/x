@@ -30,7 +30,7 @@ require (
 	github.com/pkg/profile v1.2.1
 	github.com/rs/cors v1.6.0
 	github.com/rubenv/sql-migrate v0.0.0-20190212093014-1007f53448d7
-	github.com/sirupsen/logrus v1.5.0
+	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cast v1.3.1
 	github.com/spf13/cobra v1.0.0
 	github.com/stretchr/testify v1.5.1

@@ -1,0 +1,31 @@
+{
+  "$id": "https://github.com/ory/x/logrusx/config.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Logger Configuration",
+  "type": "object",
+  "properties": {
+    "level": {
+      "title": "Log Level",
+      "type": "string",
+      "enum": [
+        "trace",
+        "debug",
+        "info",
+        "warning",
+        "error",
+        "fatal",
+        "panic"
+      ]
+    },
+    "format": {
+      "title": "Log Level",
+      "type": "string",
+      "enum": [
+        "json",
+        "json_pretty",
+        "text"
+      ]
+    }
+  },
+  "additionalProperties": false
+}
