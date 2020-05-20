@@ -22,11 +22,20 @@ func New() *logrus.Logger {
 	}
 	l.Level = ll
 
-	if stringsx.Coalesce(
+	switch stringsx.Coalesce(
 		viper.GetString("log.format"),
 		viper.GetString("LOG_FORMAT"),
-	) == "json" {
-		l.Formatter = new(logrus.JSONFormatter)
+	){
+	case "json":
+		l.Formatter = &logrus.JSONFormatter{}
+	case "json_pretty":
+		l.Formatter = &logrus.JSONFormatter{
+			PrettyPrint: true,
+		}
+	default:
+		l.Formatter = &logrus.TextFormatter{
+			DisableQuote: true,
+		}
 	}
 
 	return l
