@@ -64,6 +64,14 @@ Please follow these guidelines when formatting source code:
 
 - Go code should match the output of `gofmt -s`
 
+## Documentation Style
+
+Please follow these guidelines when writting in the documentation:
+
+- “ORY *productname*”: For example ORY Hydra or ORY Kratos. Always include ORY to improve searchability.
+
+- Title Case Headlines:  In title case, all major words are capitalized, while minor words are lowercase. A simple example would be "Lord of the Flies". For more examples/rules go to https://titlecaseconverter.com/
+
 ## Pull request procedure
 
 To make a pull request, you will need a GitHub account; if you are unclear on
