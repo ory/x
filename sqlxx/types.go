@@ -5,6 +5,7 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"github.com/gofrs/uuid"
 	"strings"
 	"time"
 
@@ -204,4 +205,23 @@ func (m *NullJSONRawMessage) UnmarshalJSON(data []byte) error {
 	}
 	*m = append((*m)[0:0], data...)
 	return nil
+}
+
+type NullUUID uuid.UUID
+
+func (u *NullUUID) Scan(value interface{}) error {
+	if value == nil {
+		*u = NullUUID(uuid.Nil)
+	}
+	var uid uuid.UUID
+	err := uid.Scan(value)
+	*u = NullUUID(uid)
+	return err
+}
+
+func (u *NullUUID) Value() (driver.Value, error) {
+	if *u == NullUUID(uuid.Nil) {
+		return nil, nil
+	}
+	return uuid.UUID(*u).Value()
 }
