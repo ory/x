@@ -5,9 +5,10 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
-	"github.com/gofrs/uuid"
 	"strings"
 	"time"
+
+	"github.com/gofrs/uuid"
 
 	"github.com/pkg/errors"
 
