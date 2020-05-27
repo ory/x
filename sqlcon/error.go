@@ -45,7 +45,7 @@ func HandleError(err error) error {
 		return errors.WithStack(ErrNoRows)
 	}
 
-	if e, ok := errorsx.Cause(err).(interface{
+	if e, ok := errorsx.Cause(err).(interface {
 		SQLState() string
 	}); ok {
 		switch e.SQLState() {

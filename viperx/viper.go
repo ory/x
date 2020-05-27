@@ -8,7 +8,6 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/mitchellh/go-homedir"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
 	"github.com/ory/viper"
@@ -52,9 +51,9 @@ func ResetWatchers() {
 }
 
 // WatchConfig is a helper makes watching configuration files easy.
-func WatchConfig(l logrus.FieldLogger, o *WatchOptions) {
+func WatchConfig(l *logrusx.Logger, o *WatchOptions) {
 	if l == nil {
-		l = logrusx.New()
+		l = logrusx.New("", "")
 	}
 
 	if o == nil {
@@ -109,7 +108,7 @@ func WatchConfig(l logrus.FieldLogger, o *WatchOptions) {
 }
 
 // InitializeConfig initializes viper.
-func InitializeConfig(applicationName string, homeOverride string, l logrus.FieldLogger) logrus.FieldLogger {
+func InitializeConfig(applicationName string, homeOverride string, l *logrusx.Logger) *logrusx.Logger {
 	if cfgFile != "" {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
@@ -117,7 +116,7 @@ func InitializeConfig(applicationName string, homeOverride string, l logrus.Fiel
 		// Find home directory.
 		home, err := homedir.Dir()
 		if err != nil {
-			logrusx.New().WithField("error", err.Error()).Fatal("Unable to locate home directory")
+			logrusx.New(applicationName, "").WithField("error", err.Error()).Fatal("Unable to locate home directory")
 		}
 
 		if homeOverride != "" {
@@ -134,7 +133,7 @@ func InitializeConfig(applicationName string, homeOverride string, l logrus.Fiel
 
 	err := viper.ReadInConfig()
 	if l == nil {
-		l = logrusx.New()
+		l = logrusx.New(applicationName, "")
 	}
 
 	if err == nil {

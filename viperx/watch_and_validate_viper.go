@@ -5,12 +5,12 @@ import (
 	"os"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/sirupsen/logrus"
-
 	"github.com/ory/viper"
+
+	"github.com/ory/x/logrusx"
 )
 
-func WatchAndValidateViper(l logrus.FieldLogger, schema []byte, productName string, immutables []string) {
+func WatchAndValidateViper(l *logrusx.Logger, schema []byte, productName string, immutables []string) {
 	if err := Validate("config.schema.json", schema); err != nil {
 		l.WithField("config_file", viper.ConfigFileUsed()).Error("The provided configuration is invalid and could not be loaded. Check the output below to understand why.")
 		_, _ = fmt.Fprintln(os.Stderr, "")
