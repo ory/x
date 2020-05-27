@@ -23,7 +23,7 @@ require (
 	github.com/ory/dockertest/v3 v3.5.4
 	github.com/ory/fosite v0.29.0
 	github.com/ory/go-acc v0.0.0-20181118080137-ddc355013f90
-	github.com/ory/herodot v0.7.0
+	github.com/ory/herodot v0.8.3
 	github.com/ory/jsonschema/v3 v3.0.1
 	github.com/ory/viper v1.7.5
 	github.com/pborman/uuid v1.2.0
