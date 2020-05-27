@@ -12,11 +12,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ory/viper"
+
+	"github.com/ory/x/logrusx"
 )
 
 func TestViperInit(t *testing.T) {
-	l := logrus.New()
-	l.ExitFunc = func(code int) {
+	l := logrusx.New("","")
+	l.Entry.Logger.ExitFunc = func(code int) {
 		panic(code)
 	}
 

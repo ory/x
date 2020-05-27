@@ -12,6 +12,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ory/viper"
+
+	"github.com/ory/x/logrusx"
 )
 
 func setEnv(key, value string) func(t *testing.T) {
@@ -367,8 +369,8 @@ func TestGetDuration(t *testing.T) {
 }
 
 func TestGetStringMapConfig(t *testing.T) {
-	l := logrus.New()
-	l.ExitFunc = func(code int) {
+	l := logrusx.New("","")
+	l.Entry.Logger.ExitFunc = func(code int) {
 		panic(code)
 	}
 

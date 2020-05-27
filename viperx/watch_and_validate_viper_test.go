@@ -15,6 +15,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ory/viper"
+
+	"github.com/ory/x/logrusx"
 )
 
 func failOnExit(t *testing.T) func(i int) {
@@ -58,9 +60,9 @@ func updateConfigFile(t *testing.T, configFile *os.File, dsn, foo string) {
 	require.NoError(t, configFile.Sync())
 }
 
-func setup(t *testing.T, exitFunc func(int), configFile *os.File) (*logrus.Logger, *test.Hook) {
-	l := logrus.New()
-	l.ExitFunc = exitFunc
+func setup(t *testing.T, exitFunc func(int), configFile *os.File) (*logrusx.Logger, *test.Hook) {
+	l := logrusx.New("","")
+	l.Entry.Logger.ExitFunc =exitFunc
 	viper.Reset()
 
 	if configFile != nil {
@@ -70,7 +72,7 @@ func setup(t *testing.T, exitFunc func(int), configFile *os.File) (*logrus.Logge
 		t.Logf("Config file is nil")
 	}
 
-	return l, test.NewLocal(l)
+	return l, test.NewLocal(l.Entry.Logger)
 }
 
 func TestWatchAndValidateViper(t *testing.T) {

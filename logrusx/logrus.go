@@ -8,46 +8,122 @@ import (
 	"github.com/ory/x/stringsx"
 )
 
-// New initializes logrus with environment variable configuration LOG_LEVEL and LOG_FORMAT.
-func New() *logrus.Logger {
-	l := logrus.New()
-	ll, err := logrus.ParseLevel(
-		stringsx.Coalesce(
+func newLogger(o *options) *logrus.Logger {
+
+	l := o.l
+	if l == nil {
+		l = logrus.New()
+	}
+
+	if o.exitFunc != nil {
+		l.ExitFunc = o.exitFunc
+	}
+
+	if o.level != nil {
+		l.Level = *o.level
+	} else {
+		var err error
+		l.Level, err = logrus.ParseLevel(stringsx.Coalesce(
 			viper.GetString("log.level"),
-			viper.GetString("LOG_LEVEL"),
-		),
-	)
-	if err != nil {
-		ll = logrus.InfoLevel
-	}
-	l.Level = ll
-
-	switch stringsx.Coalesce(
-		viper.GetString("log.format"),
-		viper.GetString("LOG_FORMAT"),
-	){
-	case "json":
-		l.Formatter = &logrus.JSONFormatter{}
-	case "json_pretty":
-		l.Formatter = &logrus.JSONFormatter{
-			PrettyPrint: true,
-		}
-	default:
-		l.Formatter = &logrus.TextFormatter{
-			DisableQuote: true,
+			viper.GetString("LOG_LEVEL")))
+		if err != nil {
+			l.Level = logrus.InfoLevel
 		}
 	}
 
+	if o.formatter != nil {
+		l.Formatter = o.formatter
+	} else {
+		switch stringsx.Coalesce(o.format, viper.GetString("log.formatter"), viper.GetString("LOG_FORMAT")) {
+		case "json":
+			l.Formatter = &logrus.JSONFormatter{
+				PrettyPrint: l.IsLevelEnabled(logrus.DebugLevel),
+			}
+		default:
+			l.Formatter = &logrus.TextFormatter{
+				DisableQuote:     true,
+				DisableTimestamp: false,
+				FullTimestamp:    true,
+			}
+		}
+	}
+
+	l.ReportCaller = o.reportCaller || l.IsLevelEnabled(logrus.TraceLevel)
 	return l
 }
 
-// HelpMessage returns a string containing a help message for setting up the logger.
-func HelpMessage() string {
-	return `- LOG_LEVEL: Set the log level, supports "panic", "fatal", "error", "warn", "info" and "debug". Defaults to "info".
+type options struct {
+	l             *logrus.Logger
+	level         *logrus.Level
+	formatter     *logrus.TextFormatter
+	format        string
+	reportCaller  bool
+	exitFunc      func(int)
+	leakSensitive bool
+}
 
-	Example: LOG_LEVEL=panic
+type Option func(*options)
 
-- LOG_FORMAT: Leave empty for text based log format, or set to "json" for JSON formatting.
+func ForceLevel(level logrus.Level) Option {
+	return func(o *options) {
+		o.level = &level
+	}
+}
 
-	Example: LOG_FORMAT=json`
+func ForceFormatter(formatter *logrus.TextFormatter) Option {
+	return func(o *options) {
+		o.formatter = formatter
+	}
+}
+func ForceFormat(format string) Option {
+	return func(o *options) {
+		o.format = format
+	}
+}
+
+func WithExitFunc(exitFunc func(int)) Option {
+	return func(o *options) {
+		o.exitFunc = exitFunc
+	}
+}
+
+func ReportCaller(reportCaller bool) Option {
+	return func(o *options) {
+		o.reportCaller = reportCaller
+	}
+}
+
+func UseLogger(l *logrus.Logger) Option {
+	return func(o *options) {
+		o.l = l
+	}
+}
+
+func LeakSensitive() Option {
+	return func(o *options) {
+		o.leakSensitive = true
+	}
+}
+
+func newOptions(opts []Option) *options {
+	o := new(options)
+	for _, f := range opts {
+		f(o)
+	}
+	return o
+}
+
+// New creates a new logger with all the important fields set.
+func New(name string, version string, opts ...Option) *Logger {
+	o := newOptions(opts)
+	return &Logger{
+		leakSensitive: o.leakSensitive ||
+			viper.GetBool("log.leak_sensitive_values") || viper.GetBool("LOG_LEAK_SENSITIVE_VALUES"),
+		Entry: newLogger(o).WithFields(logrus.Fields{
+			"audience": "application", "service_name": name, "service_version": version}),
+	}
+}
+
+func NewAudit(name string, version string, opts ...Option) *Logger {
+	return New(name,version,opts...).WithField("audience","audit")
 }
