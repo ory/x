@@ -2,7 +2,6 @@ module github.com/ory/x
 
 require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
-	github.com/davecgh/go-spew v1.1.1
 	github.com/fatih/structs v1.1.0
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/go-bindata/go-bindata v3.1.1+incompatible
@@ -11,6 +10,7 @@ require (
 	github.com/gobuffalo/packr v1.22.0
 	github.com/gobuffalo/pop/v5 v5.0.11
 	github.com/google/uuid v1.1.0
+	github.com/gorilla/websocket v1.4.2
 	github.com/jackc/pgx/v4 v4.4.1
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/julienschmidt/httprouter v1.2.0
