@@ -8,10 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ory/herodot"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/ory/herodot"
 
 	. "github.com/ory/x/logrusx"
 )
@@ -34,6 +35,11 @@ var fakeRequest = &http.Request{
 	RequestURI: "/foo/bar?bar=foo",
 }
 
+func TestOptions(t *testing.T) {
+	logger := New("", "", ForceLevel(logrus.DebugLevel))
+	assert.EqualValues(t, logrus.DebugLevel, logger.Logger.Level)
+}
+
 func TestJSONFormatter(t *testing.T) {
 	t.Run("pretty=true", func(t *testing.T) {
 		l := New("logrusx-audit", "v0.0.0", ForceFormat("json"), ForceLevel(logrus.DebugLevel))
@@ -51,7 +57,7 @@ func TestJSONFormatter(t *testing.T) {
 		l.Logrus().Out = &b
 
 		l.Info("foo bar")
-		assert.EqualValues(t,1,  strings.Count(b.String(), "\n"))
+		assert.EqualValues(t, 1, strings.Count(b.String(), "\n"))
 		assert.NotContains(t, b.String(), "  ")
 	})
 }

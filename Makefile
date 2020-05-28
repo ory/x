@@ -4,7 +4,7 @@ init:
 
 .PHONY: format
 format:
-		goreturns -w -i -local github.com/ory $$(listx . | grep -v "mod_tools.go")
+		goreturns -w -i -local github.com/ory $$(listx . | grep -v "go_mod_indirect_pins.go")
 
 .PHONY: test
 test:

@@ -7,7 +7,8 @@ import (
 
 	"github.com/cenkalti/backoff"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
+
+	"github.com/ory/x/logrusx"
 )
 
 var _ http.RoundTripper = new(ResilientRoundTripper)
@@ -36,7 +37,7 @@ func defaultShouldRetry(res *http.Response, err error) bool {
 }
 
 // LoggedShouldRetry returns a RetryPolicy that logs erros.
-func LoggedShouldRetry(l logrus.FieldLogger) RetryPolicy {
+func LoggedShouldRetry(l *logrusx.Logger) RetryPolicy {
 	return func(res *http.Response, err error) bool {
 		if err != nil {
 			l.WithError(err).Errorf("Unable to connect to DSN: %s", res.Request.URL.String())

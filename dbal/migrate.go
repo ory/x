@@ -9,7 +9,8 @@ import (
 	"github.com/gobuffalo/packr"
 	"github.com/pkg/errors"
 	migrate "github.com/rubenv/sql-migrate"
-	"github.com/sirupsen/logrus"
+
+	"github.com/ory/x/logrusx"
 )
 
 type migrationFile struct {
@@ -58,14 +59,14 @@ func FindMatchingTestMigrations(folder string, migrations map[string]*PackrMigra
 			f := folder + strings.Replace(filepath.Base(file), ".sql", "_test.sql", 1)
 			filter = append(filter, f)
 		}
-		testMigrations[name] = NewMustPackerMigrationSource(logrus.New(), assetNames, asset, filter, true)
+		testMigrations[name] = NewMustPackerMigrationSource(logrusx.New("", ""), assetNames, asset, filter, true)
 	}
 
 	return testMigrations
 }
 
 // NewMustPackerMigrationSource create a new packr-based migration source or fatals.
-func NewMustPackerMigrationSource(l logrus.FieldLogger, folder []string, loader func(string) ([]byte, error), filters []string, omitExtension bool) *PackrMigrationSource {
+func NewMustPackerMigrationSource(l *logrusx.Logger, folder []string, loader func(string) ([]byte, error), filters []string, omitExtension bool) *PackrMigrationSource {
 	m, err := NewPackerMigrationSource(l, folder, loader, filters, omitExtension)
 	if err != nil {
 		l.WithError(err).WithField("stack", fmt.Sprintf("%+v", err)).Fatal("Unable to set up migration source")
@@ -74,7 +75,7 @@ func NewMustPackerMigrationSource(l logrus.FieldLogger, folder []string, loader 
 }
 
 // NewPackerMigrationSource create a new packr-based migration source or returns an error
-func NewPackerMigrationSource(l logrus.FieldLogger, sources []string, loader func(string) ([]byte, error), filters []string, omitExtension bool) (*PackrMigrationSource, error) {
+func NewPackerMigrationSource(l *logrusx.Logger, sources []string, loader func(string) ([]byte, error), filters []string, omitExtension bool) (*PackrMigrationSource, error) {
 	b := packr.NewBox(migrationBasePath)
 	var files migrationFiles
 

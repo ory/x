@@ -25,11 +25,12 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
+
+	"github.com/ory/x/logrusx"
 )
 
 // Retry executes a f until no error is returned or failAfter is reached.
-func Retry(logger logrus.FieldLogger, maxWait time.Duration, failAfter time.Duration, f func() error) (err error) {
+func Retry(logger *logrusx.Logger, maxWait time.Duration, failAfter time.Duration, f func() error) (err error) {
 	var lastStart time.Time
 	err = errors.New("did not connect")
 	loopWait := time.Millisecond * 100

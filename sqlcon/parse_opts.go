@@ -7,12 +7,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"github.com/ory/x/logrusx"
 )
 
 // ParseConnectionOptions parses values for max_conns, max_idle_conns, max_conn_lifetime from DSNs.
 // It also returns the URI without those query parameters.
-func ParseConnectionOptions(l logrus.FieldLogger, dsn string) (maxConns int, maxIdleConns int, maxConnLifetime time.Duration, cleanedDSN string) {
+func ParseConnectionOptions(l *logrusx.Logger, dsn string) (maxConns int, maxIdleConns int, maxConnLifetime time.Duration, cleanedDSN string) {
 	maxConns = maxParallelism() * 2
 	maxIdleConns = maxParallelism()
 	maxConnLifetime = time.Duration(0)
@@ -74,7 +74,7 @@ func ParseConnectionOptions(l logrus.FieldLogger, dsn string) (maxConns int, max
 }
 
 // FinalizeDSN will return a finalized DSN URI.
-func FinalizeDSN(l logrus.FieldLogger, dsn string) string {
+func FinalizeDSN(l *logrusx.Logger, dsn string) string {
 	if strings.HasPrefix(dsn, "mysql://") {
 		var q url.Values
 		parts := strings.SplitN(dsn, "?", 2)

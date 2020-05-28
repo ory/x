@@ -55,7 +55,7 @@ func newLogger(o *options) *logrus.Logger {
 type options struct {
 	l             *logrus.Logger
 	level         *logrus.Level
-	formatter     *logrus.TextFormatter
+	formatter     logrus.Formatter
 	format        string
 	reportCaller  bool
 	exitFunc      func(int)
@@ -70,7 +70,7 @@ func ForceLevel(level logrus.Level) Option {
 	}
 }
 
-func ForceFormatter(formatter *logrus.TextFormatter) Option {
+func ForceFormatter(formatter logrus.Formatter) Option {
 	return func(o *options) {
 		o.formatter = formatter
 	}
@@ -125,5 +125,5 @@ func New(name string, version string, opts ...Option) *Logger {
 }
 
 func NewAudit(name string, version string, opts ...Option) *Logger {
-	return New(name,version,opts...).WithField("audience","audit")
+	return New(name, version, opts...).WithField("audience", "audit")
 }

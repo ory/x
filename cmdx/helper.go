@@ -8,7 +8,8 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
+
+	"github.com/ory/x/logrusx"
 )
 
 // ErrNilDependency is returned if a dependency is missing.
@@ -69,7 +70,7 @@ func Fatalf(message string, args ...interface{}) {
 }
 
 // ExpectDependency expects every dependency to be not nil or it fatals.
-func ExpectDependency(logger logrus.FieldLogger, dependencies ...interface{}) {
+func ExpectDependency(logger *logrusx.Logger, dependencies ...interface{}) {
 	if logger == nil {
 		panic("missing logger for dependency check")
 	}

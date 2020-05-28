@@ -37,10 +37,10 @@ import (
 	"github.com/ory/viper"
 
 	"github.com/ory/x/cmdx"
+	"github.com/ory/x/logrusx"
 	"github.com/ory/x/resilience"
 
 	"github.com/pborman/uuid"
-	"github.com/sirupsen/logrus"
 	"github.com/urfave/negroni"
 
 	analytics "github.com/ory/analytics-go/v4"
@@ -58,7 +58,7 @@ type Service struct {
 	context *analytics.Context
 
 	c analytics.Client
-	l logrus.FieldLogger
+	l *logrusx.Logger
 
 	mem *MemoryStatistics
 }
@@ -118,7 +118,7 @@ func (v *void) Errorf(format string, args ...interface{}) {
 // New returns a new metrics service. If one has been instantiated already, no new instance will be created.
 func New(
 	cmd *cobra.Command,
-	l logrus.FieldLogger,
+	l *logrusx.Logger,
 	o *Options,
 ) *Service {
 	lock.Lock()

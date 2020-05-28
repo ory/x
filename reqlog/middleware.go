@@ -1,13 +1,14 @@
 package reqlog
 
 import (
-	"fmt"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/negroni"
+
+	"github.com/ory/x/logrusx"
 )
 
 type timer interface {
@@ -28,11 +29,11 @@ func (rc *realClock) Since(t time.Time) time.Duration {
 // Middleware is a middleware handler that logs the request as it goes in and the response as it goes out.
 type Middleware struct {
 	// Logger is the log.Logger instance used to log messages with the Logger middleware
-	Logger *logrus.Logger
+	Logger *logrusx.Logger
 	// Name is the name of the application as recorded in latency metrics
 	Name   string
-	Before func(*logrus.Entry, *http.Request, string) *logrus.Entry
-	After  func(*logrus.Entry, negroni.ResponseWriter, time.Duration, string) *logrus.Entry
+	Before func(*logrusx.Logger, *http.Request, string) *logrusx.Logger
+	After  func(*logrusx.Logger, *http.Request, negroni.ResponseWriter, time.Duration, string) *logrusx.Logger
 
 	logStarting bool
 
@@ -53,10 +54,7 @@ func NewMiddleware() *Middleware {
 
 // NewCustomMiddleware builds a *Middleware with the given level and formatter
 func NewCustomMiddleware(level logrus.Level, formatter logrus.Formatter, name string) *Middleware {
-	log := logrus.New()
-	log.Level = level
-	log.Formatter = formatter
-
+	log := logrusx.New(name, "", logrusx.ForceFormatter(formatter), logrusx.ForceLevel(level))
 	return &Middleware{
 		Logger: log,
 		Name:   name,
@@ -71,7 +69,7 @@ func NewCustomMiddleware(level logrus.Level, formatter logrus.Formatter, name st
 }
 
 // NewMiddlewareFromLogger returns a new *Middleware which writes to a given logrus logger.
-func NewMiddlewareFromLogger(logger *logrus.Logger, name string) *Middleware {
+func NewMiddlewareFromLogger(logger *logrusx.Logger, name string) *Middleware {
 	return &Middleware{
 		Logger: logger,
 		Name:   name,
@@ -125,7 +123,7 @@ func (m *Middleware) ServeHTTP(rw http.ResponseWriter, r *http.Request, next htt
 		remoteAddr = realIP
 	}
 
-	entry := logrus.NewEntry(m.Logger)
+	entry := m.Logger.NewEntry()
 
 	if reqID := r.Header.Get("X-Request-Id"); reqID != "" {
 		entry = entry.WithField("request_id", reqID)
@@ -142,32 +140,27 @@ func (m *Middleware) ServeHTTP(rw http.ResponseWriter, r *http.Request, next htt
 	latency := m.clock.Since(start)
 	res := rw.(negroni.ResponseWriter)
 
-	m.After(entry, res, latency, m.Name).Log(logLevel, "completed handling request")
+	m.After(entry, r, res, latency, m.Name).Log(logLevel, "completed handling request")
 }
 
-// BeforeFunc is the func type used to modify or replace the *logrus.Entry prior
+// BeforeFunc is the func type used to modify or replace the *logrusx.Logger prior
 // to calling the next func in the middleware chain
-type BeforeFunc func(*logrus.Entry, *http.Request, string) *logrus.Entry
+type BeforeFunc func(*logrusx.Logger, *http.Request, string) *logrusx.Logger
 
-// AfterFunc is the func type used to modify or replace the *logrus.Entry after
+// AfterFunc is the func type used to modify or replace the *logrusx.Logger after
 // calling the next func in the middleware chain
-type AfterFunc func(*logrus.Entry, negroni.ResponseWriter, time.Duration, string) *logrus.Entry
+type AfterFunc func(*logrusx.Logger, negroni.ResponseWriter, time.Duration, string) *logrusx.Logger
 
 // DefaultBefore is the default func assigned to *Middleware.Before
-func DefaultBefore(entry *logrus.Entry, req *http.Request, remoteAddr string) *logrus.Entry {
-	return entry.WithFields(logrus.Fields{
-		"request": req.RequestURI,
-		"method":  req.Method,
-		"remote":  remoteAddr,
-	})
+func DefaultBefore(entry *logrusx.Logger, req *http.Request, remoteAddr string) *logrusx.Logger {
+	return entry.WithRequest(req)
 }
 
 // DefaultAfter is the default func assigned to *Middleware.After
-func DefaultAfter(entry *logrus.Entry, res negroni.ResponseWriter, latency time.Duration, name string) *logrus.Entry {
-	return entry.WithFields(logrus.Fields{
-		"status":                                res.Status(),
-		"text_status":                           http.StatusText(res.Status()),
-		"took":                                  latency,
-		fmt.Sprintf("measure#%s.latency", name): latency.Nanoseconds(),
+func DefaultAfter(entry *logrusx.Logger, req *http.Request, res negroni.ResponseWriter, latency time.Duration, name string) *logrusx.Logger {
+	return entry.WithRequest(req).WithField("http_response", map[string]interface{}{
+		"status":      res.Status(),
+		"text_status": http.StatusText(res.Status()),
+		"took":        latency,
 	})
 }

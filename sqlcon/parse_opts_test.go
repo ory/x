@@ -5,13 +5,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/ory/x/logrusx"
 )
 
 func TestParseConnectionOptions(t *testing.T) {
 	defaultMaxConns, defaultMaxIdleConns, defaultMaxConnLifetime := maxParallelism()*2, maxParallelism(), time.Duration(0)
-	logger := logrus.New()
+	logger := logrusx.New("", "")
 	for i, tc := range []struct {
 		name, dsn, cleanedDSN  string
 		maxConns, maxIdleConns int
@@ -94,7 +95,7 @@ func TestFinalizeDSN(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprintf("case=%d", i), func(t *testing.T) {
-			assert.Equal(t, tc.expected, FinalizeDSN(logrus.New(), tc.dsn))
+			assert.Equal(t, tc.expected, FinalizeDSN(logrusx.New("", ""), tc.dsn))
 		})
 	}
 }
