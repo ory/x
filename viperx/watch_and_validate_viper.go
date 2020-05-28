@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/fsnotify/fsnotify"
+
 	"github.com/ory/viper"
 
 	"github.com/ory/x/logrusx"

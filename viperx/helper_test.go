@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -105,7 +104,7 @@ func TestGetStringSlice(t *testing.T) {
 			reset()
 
 			tc.p(t)
-			assert.EqualValues(t, tc.e, GetStringSlice(logrus.New(), "viperx.get_string_slice", tc.f, "viperx.get_string_slice_legacy", "viperx.get_string_slice_legacy_legacy"))
+			assert.EqualValues(t, tc.e, GetStringSlice(logrusx.New("", ""), "viperx.get_string_slice", tc.f, "viperx.get_string_slice_legacy", "viperx.get_string_slice_legacy_legacy"))
 			tc.c(t)
 		})
 	}
@@ -155,7 +154,7 @@ func TestGetString(t *testing.T) {
 			reset()
 
 			tc.p(t)
-			assert.EqualValues(t, tc.e, GetString(logrus.New(), "viperx.get_string", tc.f, "viperx.get_string_legacy", "viperx.get_string_legacy_legacy"))
+			assert.EqualValues(t, tc.e, GetString(logrusx.New("", ""), "viperx.get_string", tc.f, "viperx.get_string_legacy", "viperx.get_string_legacy_legacy"))
 			tc.c(t)
 		})
 	}
@@ -205,7 +204,7 @@ func TestGetInt(t *testing.T) {
 			reset()
 
 			tc.p(t)
-			assert.EqualValues(t, tc.e, GetInt(logrus.New(), "viperx.get_int", tc.f, "viperx.get_int_legacy", "viperx.get_int_legacy_legacy"))
+			assert.EqualValues(t, tc.e, GetInt(logrusx.New("", ""), "viperx.get_int", tc.f, "viperx.get_int_legacy", "viperx.get_int_legacy_legacy"))
 			tc.c(t)
 		})
 	}
@@ -255,7 +254,7 @@ func TestGetFloat64(t *testing.T) {
 			reset()
 
 			tc.p(t)
-			assert.EqualValues(t, tc.e, GetFloat64(logrus.New(), "viperx.get_float64", tc.f, "viperx.get_float64_legacy", "viperx.get_float64_legacy_legacy"))
+			assert.EqualValues(t, tc.e, GetFloat64(logrusx.New("", ""), "viperx.get_float64", tc.f, "viperx.get_float64_legacy", "viperx.get_float64_legacy_legacy"))
 			tc.c(t)
 		})
 	}
@@ -312,7 +311,7 @@ func TestGetBool(t *testing.T) {
 			reset()
 
 			tc.p(t)
-			assert.EqualValues(t, tc.e, GetBool(logrus.New(), "viperx.get_bool", tc.f, "viperx.get_bool_legacy", "viperx.get_bool_legacy_legacy"))
+			assert.EqualValues(t, tc.e, GetBool(logrusx.New("", ""), "viperx.get_bool", tc.f, "viperx.get_bool_legacy", "viperx.get_bool_legacy_legacy"))
 			tc.c(t)
 		})
 	}
@@ -362,14 +361,14 @@ func TestGetDuration(t *testing.T) {
 			reset()
 
 			tc.p(t)
-			assert.EqualValues(t, tc.e, GetDuration(logrus.New(), "viperx.get_duration", tc.f, "viperx.get_duration_legacy", "viperx.get_duration_legacy_legacy"))
+			assert.EqualValues(t, tc.e, GetDuration(logrusx.New("", ""), "viperx.get_duration", tc.f, "viperx.get_duration_legacy", "viperx.get_duration_legacy_legacy"))
 			tc.c(t)
 		})
 	}
 }
 
 func TestGetStringMapConfig(t *testing.T) {
-	l := logrusx.New("","")
+	l := logrusx.New("", "")
 	l.Entry.Logger.ExitFunc = func(code int) {
 		panic(code)
 	}

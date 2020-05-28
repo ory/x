@@ -61,8 +61,8 @@ func updateConfigFile(t *testing.T, configFile *os.File, dsn, foo string) {
 }
 
 func setup(t *testing.T, exitFunc func(int), configFile *os.File) (*logrusx.Logger, *test.Hook) {
-	l := logrusx.New("","")
-	l.Entry.Logger.ExitFunc =exitFunc
+	l := logrusx.New("", "")
+	l.Entry.Logger.ExitFunc = exitFunc
 	viper.Reset()
 
 	if configFile != nil {

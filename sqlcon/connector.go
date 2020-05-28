@@ -36,8 +36,8 @@ import (
 	"github.com/luna-duclos/instrumentedsql"
 	"github.com/luna-duclos/instrumentedsql/opentracing"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 
+	"github.com/ory/x/logrusx"
 	"github.com/ory/x/resilience"
 	"github.com/ory/x/stringslice"
 )
@@ -45,7 +45,7 @@ import (
 // SQLConnection represents a connection to a SQL database.
 type SQLConnection struct {
 	DSN string
-	L   logrus.FieldLogger
+	L   *logrusx.Logger
 
 	db            *sqlx.DB
 	driverName    string
@@ -54,9 +54,9 @@ type SQLConnection struct {
 }
 
 // NewSQLConnection returns a new SQLConnection.
-func NewSQLConnection(dsn string, l logrus.FieldLogger, opts ...OptionModifier) (*SQLConnection, error) {
+func NewSQLConnection(dsn string, l *logrusx.Logger, opts ...OptionModifier) (*SQLConnection, error) {
 	if l == nil {
-		logger := logrus.New()
+		logger := logrusx.New("", "")
 
 		// Basically avoids any logging because no one uses panics
 		// logger.Level = logrus.PanicLevel

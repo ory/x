@@ -13,11 +13,11 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ory/dockertest/v3"
 
+	"github.com/ory/x/logrusx"
 	"github.com/ory/x/resilience"
 )
 
@@ -77,7 +77,7 @@ func connect(dialect, driver, dsn string) (db *sqlx.DB, err error) {
 		dsn = strings.Replace(dsn, "cockroach://", "postgres://", 1)
 	}
 	err = resilience.Retry(
-		logrus.New(),
+		logrusx.New("", ""),
 		time.Second*5,
 		time.Minute*5,
 		func() (err error) {
@@ -103,7 +103,7 @@ func connect(dialect, driver, dsn string) (db *sqlx.DB, err error) {
 }
 
 func connectPop(t *testing.T, url string) (c *pop.Connection) {
-	require.NoError(t, resilience.Retry(logrus.New(), time.Second*5, time.Minute*5, func() error {
+	require.NoError(t, resilience.Retry(logrusx.New("", ""), time.Second*5, time.Minute*5, func() error {
 		var err error
 		c, err = pop.NewConnection(&pop.ConnectionDetails{
 			URL: url,
@@ -273,7 +273,7 @@ func ConnectToTestCockroachDBPop(t *testing.T) *pop.Connection {
 }
 
 func bootstrap(u, port, d string, pool *dockertest.Pool, resource *dockertest.Resource) (db *sqlx.DB) {
-	if err := resilience.Retry(logrus.New(), time.Second*5, time.Minute*5, func() error {
+	if err := resilience.Retry(logrusx.New("", ""), time.Second*5, time.Minute*5, func() error {
 		var err error
 		db, err = sqlx.Open(d, fmt.Sprintf(u, resource.GetPort(port)))
 		if err != nil {

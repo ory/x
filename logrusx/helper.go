@@ -1,6 +1,7 @@
 package logrusx
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -19,6 +20,18 @@ type Logger struct {
 
 func (l *Logger) Logrus() *logrus.Logger {
 	return l.Entry.Logger
+}
+
+func (l *Logger) NewEntry() *Logger {
+	ll := *l
+	ll.Entry = logrus.NewEntry(l.Logger)
+	return &ll
+}
+
+func (l *Logger) WithContext(ctx context.Context) *Logger {
+	ll := *l
+	ll.Entry = l.Logger.WithContext(ctx)
+	return &ll
 }
 
 func (l *Logger) WithRequest(r *http.Request) *Logger {
@@ -50,7 +63,7 @@ func (l *Logger) WithRequest(r *http.Request) *Logger {
 	return l.WithField("http_request", map[string]interface{}{
 		"remote":  r.RemoteAddr,
 		"method":  r.Method,
-		"path":     r.URL.EscapedPath(),
+		"path":    r.URL.EscapedPath(),
 		"query":   l.maybeRedact(r.URL.RawQuery),
 		"scheme":  scheme,
 		"host":    r.Host,

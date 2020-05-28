@@ -4,20 +4,19 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/ory/viper"
 
+	"github.com/ory/x/logrusx"
 	"github.com/ory/x/stringslice"
 	"github.com/ory/x/stringsx"
 )
 
-func d(l logrus.FieldLogger, new, old string) {
+func d(l *logrusx.Logger, new, old string) {
 	l.Warnf("Configuration key %s is deprecated and will be removed in a future release. Use key %s instead!", new, old)
 }
 
 // GetFloat64 returns a float64 value from viper config or the fallback value.
-func GetFloat64(l logrus.FieldLogger, key string, fallback float64, deprecated ...string) float64 {
+func GetFloat64(l *logrusx.Logger, key string, fallback float64, deprecated ...string) float64 {
 	v := viper.GetFloat64(key)
 	for _, dk := range deprecated {
 		if v != 0 {
@@ -38,7 +37,7 @@ func GetFloat64(l logrus.FieldLogger, key string, fallback float64, deprecated .
 }
 
 // GetInt returns an int value from viper config or the fallback value.
-func GetInt(l logrus.FieldLogger, key string, fallback int, deprecated ...string) int {
+func GetInt(l *logrusx.Logger, key string, fallback int, deprecated ...string) int {
 	v := viper.GetInt(key)
 	for _, dk := range deprecated {
 		if v != 0 {
@@ -59,7 +58,7 @@ func GetInt(l logrus.FieldLogger, key string, fallback int, deprecated ...string
 }
 
 // GetDuration returns a duration from viper config or the fallback value.
-func GetDuration(l logrus.FieldLogger, key string, fallback time.Duration, deprecated ...string) time.Duration {
+func GetDuration(l *logrusx.Logger, key string, fallback time.Duration, deprecated ...string) time.Duration {
 	v := viper.GetDuration(key)
 	for _, dk := range deprecated {
 		if v != 0 {
@@ -80,7 +79,7 @@ func GetDuration(l logrus.FieldLogger, key string, fallback time.Duration, depre
 }
 
 // GetString returns a string from viper config or the fallback value.
-func GetString(l logrus.FieldLogger, key string, fallback string, deprecated ...string) string {
+func GetString(l *logrusx.Logger, key string, fallback string, deprecated ...string) string {
 	v := viper.GetString(key)
 	for _, dk := range deprecated {
 		if len(v) > 0 {
@@ -101,7 +100,7 @@ func GetString(l logrus.FieldLogger, key string, fallback string, deprecated ...
 }
 
 // GetBool returns a bool from viper config or false.
-func GetBool(l logrus.FieldLogger, key string, fallback bool, deprecated ...string) bool {
+func GetBool(l *logrusx.Logger, key string, fallback bool, deprecated ...string) bool {
 	var found bool
 	for _, k := range append(deprecated, key) {
 		if viper.IsSet(k) {
@@ -130,7 +129,7 @@ func GetBool(l logrus.FieldLogger, key string, fallback bool, deprecated ...stri
 }
 
 // GetStringSlice returns a string slice from viper config or the fallback value.
-func GetStringSlice(l logrus.FieldLogger, key string, fallback []string, deprecated ...string) []string {
+func GetStringSlice(l *logrusx.Logger, key string, fallback []string, deprecated ...string) []string {
 	v := viper.GetStringSlice(key)
 	for _, dk := range deprecated {
 		if len(v) > 0 {

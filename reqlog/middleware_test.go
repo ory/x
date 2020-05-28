@@ -12,6 +12,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/negroni"
+
+	"github.com/ory/x/logrusx"
 )
 
 var (
@@ -30,7 +32,7 @@ func (tc *testClock) Since(time.Time) time.Duration {
 }
 
 func TestNewMiddleware_Logger(t *testing.T) {
-	l := logrus.New()
+	l := logrusx.New("", "")
 	mw := NewMiddleware()
 	assert.NotEqual(t, fmt.Sprintf("%p", mw.Logger), fmt.Sprintf("%p", l))
 }
@@ -42,7 +44,7 @@ func TestNewMiddleware_Name(t *testing.T) {
 
 func TestNewMiddleware_LoggerFormatter(t *testing.T) {
 	mw := NewMiddleware()
-	assert.Equal(t, &logrus.TextFormatter{}, mw.Logger.Formatter)
+	assert.Equal(t, &logrus.TextFormatter{}, mw.Logger.Logger.Formatter)
 }
 
 func TestNewMiddleware_logStarting(t *testing.T) {
@@ -58,13 +60,13 @@ func TestNewCustomMiddleware_Name(t *testing.T) {
 func TestNewCustomMiddleware_LoggerFormatter(t *testing.T) {
 	f := &logrus.JSONFormatter{}
 	mw := NewCustomMiddleware(logrus.DebugLevel, f, "test")
-	assert.Equal(t, f, mw.Logger.Formatter)
+	assert.Equal(t, f, mw.Logger.Logger.Formatter)
 }
 
 func TestNewCustomMiddleware_LoggerLevel(t *testing.T) {
 	l := logrus.DebugLevel
 	mw := NewCustomMiddleware(l, &logrus.JSONFormatter{}, "test")
-	assert.Equal(t, l, mw.Logger.Level)
+	assert.Equal(t, l, mw.Logger.Logger.Level)
 }
 
 func TestNewCustomMiddleware_logStarting(t *testing.T) {
@@ -73,18 +75,18 @@ func TestNewCustomMiddleware_logStarting(t *testing.T) {
 }
 
 func TestNewMiddlewareFromLogger_Logger(t *testing.T) {
-	l := logrus.New()
+	l := logrusx.New("", "")
 	mw := NewMiddlewareFromLogger(l, "test")
 	assert.Exactly(t, l, mw.Logger)
 }
 
 func TestNewMiddlewareFromLogger_Name(t *testing.T) {
-	mw := NewMiddlewareFromLogger(logrus.New(), "test")
+	mw := NewMiddlewareFromLogger(logrusx.New("", ""), "test")
 	assert.Equal(t, "test", mw.Name)
 }
 
 func TestNewMiddlewareFromLogger_logStarting(t *testing.T) {
-	mw := NewMiddlewareFromLogger(logrus.New(), "test")
+	mw := NewMiddlewareFromLogger(logrusx.New("", ""), "test")
 	assert.True(t, mw.logStarting)
 }
 
@@ -98,10 +100,10 @@ func setupServeHTTP(t *testing.T) (*Middleware, negroni.ResponseWriter, *http.Re
 	req.Header.Set("X-Real-IP", "10.10.10.10")
 
 	mw := NewMiddleware()
-	mw.Logger.Formatter = &logrus.JSONFormatter{
+	mw.Logger.Logger.Formatter = &logrus.JSONFormatter{
 		TimestampFormat: "2006-01-02",
 	}
-	mw.Logger.Out = &bytes.Buffer{}
+	mw.Logger.Logger.Out = &bytes.Buffer{}
 	mw.clock = &testClock{}
 	mw.ExcludePaths("/ping")
 
@@ -113,19 +115,14 @@ func TestMiddleware_ServeHTTP(t *testing.T) {
 	mw.ServeHTTP(rec, req, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(418)
 	})
-	lines := strings.Split(strings.TrimSpace(mw.Logger.Out.(*bytes.Buffer).String()), "\n")
+	lines := strings.Split(strings.TrimSpace(mw.Logger.Logger.Out.(*bytes.Buffer).String()), "\n")
 	assert.Len(t, lines, 2)
 	assert.JSONEq(t,
-		fmt.Sprintf(`{"level":"info","method":"GET","msg":"started handling request",`+
-			`"remote":"10.10.10.10","request":"http://example.com/stuff?rly=ya",`+
-			`"request_id":"22035D08-98EF-413C-BBA0-C4E66A11B28D","time":"%s"}`, nowToday),
-		lines[0])
+		fmt.Sprintf(`{"http_request":{"headers":{"x-request-id":"22035D08-98EF-413C-BBA0-C4E66A11B28D"},"host":"example.com","method":"GET","path":"/stuff","query":"Value is sensitive and has been redacted. To see the value set config key \"log.leak_sensitive_values = true\" or environment variable \"LOG_LEAK_SENSITIVE_VALUES=true\".","remote":"","scheme":"http"},"level":"info","msg":"started handling request","request_id":"22035D08-98EF-413C-BBA0-C4E66A11B28D","time":"%s"}`, nowToday),
+		lines[0], lines[0])
 	assert.JSONEq(t,
-		fmt.Sprintf(`{"level":"info","method":"GET","msg":"completed handling request",`+
-			`"remote":"10.10.10.10","request":"http://example.com/stuff?rly=ya",`+
-			`"measure#web.latency":10000,"took":10000,"text_status":"I'm a teapot",`+
-			`"status":418,"request_id":"22035D08-98EF-413C-BBA0-C4E66A11B28D","time":"%s"}`, nowToday),
-		lines[1])
+		fmt.Sprintf(`{"http_request":{"headers":{"x-request-id":"22035D08-98EF-413C-BBA0-C4E66A11B28D"},"host":"example.com","method":"GET","path":"/stuff","query":"Value is sensitive and has been redacted. To see the value set config key \"log.leak_sensitive_values = true\" or environment variable \"LOG_LEAK_SENSITIVE_VALUES=true\".","remote":"","scheme":"http"},"http_response":{"status":418,"text_status":"I'm a teapot","took":10000},"level":"info","msg":"completed handling request","request_id":"22035D08-98EF-413C-BBA0-C4E66A11B28D","time":"%s"}`, nowToday),
+		lines[1], lines[1])
 }
 
 func TestMiddleware_ServeHTTP_nilHooks(t *testing.T) {
@@ -135,53 +132,44 @@ func TestMiddleware_ServeHTTP_nilHooks(t *testing.T) {
 	mw.ServeHTTP(rec, req, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(418)
 	})
-	lines := strings.Split(strings.TrimSpace(mw.Logger.Out.(*bytes.Buffer).String()), "\n")
+	lines := strings.Split(strings.TrimSpace(mw.Logger.Logger.Out.(*bytes.Buffer).String()), "\n")
 	assert.Len(t, lines, 2)
 	assert.JSONEq(t,
-		fmt.Sprintf(`{"level":"info","method":"GET","msg":"started handling request",`+
-			`"remote":"10.10.10.10","request":"http://example.com/stuff?rly=ya",`+
-			`"request_id":"22035D08-98EF-413C-BBA0-C4E66A11B28D","time":"%s"}`, nowToday),
-		lines[0])
+		fmt.Sprintf(`{"http_request":{"headers":{"x-request-id":"22035D08-98EF-413C-BBA0-C4E66A11B28D"},"host":"example.com","method":"GET","path":"/stuff","query":"Value is sensitive and has been redacted. To see the value set config key \"log.leak_sensitive_values = true\" or environment variable \"LOG_LEAK_SENSITIVE_VALUES=true\".","remote":"","scheme":"http"},"level":"info","msg":"started handling request","request_id":"22035D08-98EF-413C-BBA0-C4E66A11B28D","time":"%s"}`, nowToday),
+		lines[0], lines[0])
 	assert.JSONEq(t,
-		fmt.Sprintf(`{"level":"info","method":"GET","msg":"completed handling request",`+
-			`"remote":"10.10.10.10","request":"http://example.com/stuff?rly=ya",`+
-			`"measure#web.latency":10000,"took":10000,"text_status":"I'm a teapot",`+
-			`"status":418,"request_id":"22035D08-98EF-413C-BBA0-C4E66A11B28D","time":"%s"}`, nowToday),
-		lines[1])
+		fmt.Sprintf(`{"http_request":{"headers":{"x-request-id":"22035D08-98EF-413C-BBA0-C4E66A11B28D"},"host":"example.com","method":"GET","path":"/stuff","query":"Value is sensitive and has been redacted. To see the value set config key \"log.leak_sensitive_values = true\" or environment variable \"LOG_LEAK_SENSITIVE_VALUES=true\".","remote":"","scheme":"http"},"http_response":{"status":418,"text_status":"I'm a teapot","took":10000},"level":"info","msg":"completed handling request","request_id":"22035D08-98EF-413C-BBA0-C4E66A11B28D","time":"%s"}`, nowToday),
+		lines[1], lines[1])
 }
 
 func TestMiddleware_ServeHTTP_BeforeOverride(t *testing.T) {
 	mw, rec, req := setupServeHTTP(t)
-	mw.Before = func(entry *logrus.Entry, _ *http.Request, _ string) *logrus.Entry {
+	mw.Before = func(entry *logrusx.Logger, _ *http.Request, _ string) *logrusx.Logger {
 		return entry.WithFields(logrus.Fields{"wat": 200})
 	}
 	mw.ServeHTTP(rec, req, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(418)
 	})
-	lines := strings.Split(strings.TrimSpace(mw.Logger.Out.(*bytes.Buffer).String()), "\n")
+	lines := strings.Split(strings.TrimSpace(mw.Logger.Logger.Out.(*bytes.Buffer).String()), "\n")
 	assert.Len(t, lines, 2)
 	assert.JSONEq(t,
-		fmt.Sprintf(`{"wat":200,"level":"info","msg":"completed handling request",`+
-			`"measure#web.latency":10000,"took":10000,"text_status":"I'm a teapot",`+
-			`"status":418,"request_id":"22035D08-98EF-413C-BBA0-C4E66A11B28D","time":"%s"}`, nowToday),
-		lines[1])
+		fmt.Sprintf(`{"http_request":{"headers":{"x-request-id":"22035D08-98EF-413C-BBA0-C4E66A11B28D"},"host":"example.com","method":"GET","path":"/stuff","query":"Value is sensitive and has been redacted. To see the value set config key \"log.leak_sensitive_values = true\" or environment variable \"LOG_LEAK_SENSITIVE_VALUES=true\".","remote":"","scheme":"http"},"http_response":{"status":418,"text_status":"I'm a teapot","took":10000},"level":"info","msg":"completed handling request","request_id":"22035D08-98EF-413C-BBA0-C4E66A11B28D","time":"%s","wat":200}`, nowToday),
+		lines[1], lines[1])
 }
 
 func TestMiddleware_ServeHTTP_AfterOverride(t *testing.T) {
 	mw, rec, req := setupServeHTTP(t)
-	mw.After = func(entry *logrus.Entry, _ negroni.ResponseWriter, _ time.Duration, _ string) *logrus.Entry {
+	mw.After = func(entry *logrusx.Logger, _ *http.Request, _ negroni.ResponseWriter, _ time.Duration, _ string) *logrusx.Logger {
 		return entry.WithFields(logrus.Fields{"hambone": 57})
 	}
 	mw.ServeHTTP(rec, req, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(418)
 	})
-	lines := strings.Split(strings.TrimSpace(mw.Logger.Out.(*bytes.Buffer).String()), "\n")
+	lines := strings.Split(strings.TrimSpace(mw.Logger.Logger.Out.(*bytes.Buffer).String()), "\n")
 	assert.Len(t, lines, 2)
 	assert.JSONEq(t,
-		fmt.Sprintf(`{"hambone":57,"level":"info","method":"GET","msg":"completed handling request",`+
-			`"remote":"10.10.10.10","request":"http://example.com/stuff?rly=ya",`+
-			`"request_id":"22035D08-98EF-413C-BBA0-C4E66A11B28D","time":"%s"}`, nowToday),
-		lines[1])
+		fmt.Sprintf(`{"hambone":57,"http_request":{"headers":{"x-request-id":"22035D08-98EF-413C-BBA0-C4E66A11B28D"},"host":"example.com","method":"GET","path":"/stuff","query":"Value is sensitive and has been redacted. To see the value set config key \"log.leak_sensitive_values = true\" or environment variable \"LOG_LEAK_SENSITIVE_VALUES=true\".","remote":"","scheme":"http"},"level":"info","msg":"completed handling request","request_id":"22035D08-98EF-413C-BBA0-C4E66A11B28D","time":"%s"}`, nowToday),
+		lines[1], lines[1])
 }
 
 func TestMiddleware_ServeHTTP_logStartingFalse(t *testing.T) {
@@ -190,14 +178,11 @@ func TestMiddleware_ServeHTTP_logStartingFalse(t *testing.T) {
 	mw.ServeHTTP(rec, req, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(418)
 	})
-	lines := strings.Split(strings.TrimSpace(mw.Logger.Out.(*bytes.Buffer).String()), "\n")
+	lines := strings.Split(strings.TrimSpace(mw.Logger.Logger.Out.(*bytes.Buffer).String()), "\n")
 	assert.Len(t, lines, 1)
 	assert.JSONEq(t,
-		fmt.Sprintf(`{"level":"info","method":"GET","msg":"completed handling request",`+
-			`"remote":"10.10.10.10","request":"http://example.com/stuff?rly=ya",`+
-			`"measure#web.latency":10000,"took":10000,"text_status":"I'm a teapot",`+
-			`"status":418,"request_id":"22035D08-98EF-413C-BBA0-C4E66A11B28D","time":"%s"}`, nowToday),
-		lines[0])
+		fmt.Sprintf(`{"http_request":{"headers":{"x-request-id":"22035D08-98EF-413C-BBA0-C4E66A11B28D"},"host":"example.com","method":"GET","path":"/stuff","query":"Value is sensitive and has been redacted. To see the value set config key \"log.leak_sensitive_values = true\" or environment variable \"LOG_LEAK_SENSITIVE_VALUES=true\".","remote":"","scheme":"http"},"http_response":{"status":418,"text_status":"I'm a teapot","took":10000},"level":"info","msg":"completed handling request","request_id":"22035D08-98EF-413C-BBA0-C4E66A11B28D","time":"%s"}`, nowToday),
+		lines[0], lines[0])
 }
 
 func TestServeHTTPWithURLExcluded(t *testing.T) {
@@ -209,7 +194,7 @@ func TestServeHTTPWithURLExcluded(t *testing.T) {
 		nextHandlerCalled = true
 		w.WriteHeader(418)
 	})
-	lines := strings.Split(strings.TrimSpace(mw.Logger.Out.(*bytes.Buffer).String()), "\n")
+	lines := strings.Split(strings.TrimSpace(mw.Logger.Logger.Out.(*bytes.Buffer).String()), "\n")
 	assert.Equal(t, []string{""}, lines)
 	assert.True(t, nextHandlerCalled, "The next http.HandlerFunc was not called!")
 }

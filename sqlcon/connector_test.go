@@ -37,12 +37,12 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/mocktracer"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ory/dockertest/v3"
 
+	"github.com/ory/x/logrusx"
 	dockertestd "github.com/ory/x/sqlcon/dockertest"
 )
 
@@ -197,7 +197,7 @@ func TestRegisterDriver(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprintf("k=%d/case=%s", k, testCase.description), func(t *testing.T) {
-			testCase.sqlConnection.L = logrus.New()
+			testCase.sqlConnection.L = logrusx.New("", "")
 			driverName, driverPackage, err := testCase.sqlConnection.registerDriver()
 			assert.Equal(t, testCase.expectedDriverName, driverName)
 			assert.Equal(t, testCase.expectedDriverPackage, driverPackage)
@@ -240,7 +240,7 @@ func TestConnectionString(t *testing.T) {
 
 func mustSQL(t *testing.T, db string, opts ...OptionModifier) *SQLConnection {
 	fmt.Fprintln(os.Stderr, db)
-	c, err := NewSQLConnection(db, logrus.New(), opts...)
+	c, err := NewSQLConnection(db, logrusx.New("", ""), opts...)
 	require.NoError(t, err)
 	return c
 }
@@ -293,7 +293,7 @@ func TestSQLConnection(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprintf("case=%s/connection=%s", tc.d, tc.s.DSN), func(t *testing.T) {
-			tc.s.L = logrus.New()
+			tc.s.L = logrusx.New("", "")
 			db, err := tc.s.GetDatabaseRetry(time.Second, time.Minute*2)
 			require.NoError(t, err)
 

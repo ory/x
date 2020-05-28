@@ -5,21 +5,21 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ory/x/logrusx"
 	"github.com/ory/x/stringslice"
 )
 
 func TestNewPackerMigrationSource(t *testing.T) {
-	m, err := NewPackerMigrationSource(logrus.New(), AssetNames(), Asset, []string{"stub/a", "stub/b"}, false)
+	m, err := NewPackerMigrationSource(logrusx.New("", ""), AssetNames(), Asset, []string{"stub/a", "stub/b"}, false)
 	require.NoError(t, err)
 	assert.True(t, stringslice.Has(m.Box.List(), "/migrations/sql/1.sql"), "%v", m.Box.List())
 	assert.True(t, stringslice.Has(m.Box.List(), "/migrations/sql/2.sql"), "%v", m.Box.List())
 	assert.True(t, stringslice.Has(m.Box.List(), "/migrations/sql/3.sql"), "%v", m.Box.List())
 
-	m, err = NewPackerMigrationSource(logrus.New(), AssetNames(), Asset, []string{"stub/a", "stub/c"}, false)
+	m, err = NewPackerMigrationSource(logrusx.New("", ""), AssetNames(), Asset, []string{"stub/a", "stub/c"}, false)
 	require.NoError(t, err)
 	assert.True(t, stringslice.Has(m.Box.List(), "/migrations/sql/1.sql"), "%v", m.Box.List())
 	assert.True(t, stringslice.Has(m.Box.List(), "/migrations/sql/2.sql"), "%v", m.Box.List())
@@ -28,7 +28,7 @@ func TestNewPackerMigrationSource(t *testing.T) {
 }
 
 func TestPackerOmitExtensionEnabled(t *testing.T) {
-	m, err := NewPackerMigrationSource(logrus.New(), AssetNames(), Asset, []string{"stub/a", "stub/b"}, true)
+	m, err := NewPackerMigrationSource(logrusx.New("", ""), AssetNames(), Asset, []string{"stub/a", "stub/b"}, true)
 	require.NoError(t, err)
 
 	ms, err := m.FindMigrations()
@@ -40,7 +40,7 @@ func TestPackerOmitExtensionEnabled(t *testing.T) {
 }
 
 func TestPackerOmitExtensionDisabled(t *testing.T) {
-	m, err := NewPackerMigrationSource(logrus.New(), AssetNames(), Asset, []string{"stub/a", "stub/b"}, false)
+	m, err := NewPackerMigrationSource(logrusx.New("", ""), AssetNames(), Asset, []string{"stub/a", "stub/b"}, false)
 	require.NoError(t, err)
 
 	ms, err := m.FindMigrations()
@@ -69,9 +69,9 @@ func TestMigrationFileSort(t *testing.T) {
 
 func TestFindMatchingTestMigrations(t *testing.T) {
 	m := map[string]*PackrMigrationSource{
-		DriverMySQL:       NewMustPackerMigrationSource(logrus.New(), AssetNames(), Asset, []string{"stub/a"}, false),
-		DriverPostgreSQL:  NewMustPackerMigrationSource(logrus.New(), AssetNames(), Asset, []string{"stub/a", "stub/b"}, false),
-		DriverCockroachDB: NewMustPackerMigrationSource(logrus.New(), AssetNames(), Asset, []string{"stub/a", "stub/c"}, false),
+		DriverMySQL:       NewMustPackerMigrationSource(logrusx.New("", ""), AssetNames(), Asset, []string{"stub/a"}, false),
+		DriverPostgreSQL:  NewMustPackerMigrationSource(logrusx.New("", ""), AssetNames(), Asset, []string{"stub/a", "stub/b"}, false),
+		DriverCockroachDB: NewMustPackerMigrationSource(logrusx.New("", ""), AssetNames(), Asset, []string{"stub/a", "stub/c"}, false),
 	}
 
 	result := FindMatchingTestMigrations("stub/d/", m, AssetNames(), Asset)

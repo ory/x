@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ory/x/logrusx"
 	"github.com/ory/x/viperx"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -18,7 +18,7 @@ type SchemaCreator interface {
 }
 
 // MigratorSQLCmd returns a *cobra.Command executing SQL schema migrations.
-func MigratorSQLCmd(path, name string, logger logrus.FieldLogger, runners map[string]SchemaCreator) *cobra.Command {
+func MigratorSQLCmd(path, name string, logger *logrusx.Logger, runners map[string]SchemaCreator) *cobra.Command {
 	c := &cobra.Command{
 		Use:   name + " <database-url>",
 		Short: "Creates database schemas and applies SQL migration plans",
