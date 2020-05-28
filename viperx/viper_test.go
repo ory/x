@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -17,7 +16,7 @@ import (
 )
 
 func TestViperInit(t *testing.T) {
-	l := logrusx.New("","")
+	l := logrusx.New("", "")
 	l.Entry.Logger.ExitFunc = func(code int) {
 		panic(code)
 	}
