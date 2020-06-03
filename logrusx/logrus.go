@@ -9,7 +9,6 @@ import (
 )
 
 func newLogger(o *options) *logrus.Logger {
-
 	l := o.l
 	if l == nil {
 		l = logrus.New()
@@ -48,6 +47,10 @@ func newLogger(o *options) *logrus.Logger {
 		}
 	}
 
+	for _, hook := range o.hooks {
+		l.AddHook(hook)
+	}
+
 	l.ReportCaller = o.reportCaller || l.IsLevelEnabled(logrus.TraceLevel)
 	return l
 }
@@ -60,6 +63,7 @@ type options struct {
 	reportCaller  bool
 	exitFunc      func(int)
 	leakSensitive bool
+	hooks         []logrus.Hook
 }
 
 type Option func(*options)
@@ -75,9 +79,16 @@ func ForceFormatter(formatter logrus.Formatter) Option {
 		o.formatter = formatter
 	}
 }
+
 func ForceFormat(format string) Option {
 	return func(o *options) {
 		o.format = format
+	}
+}
+
+func WithHook(hook logrus.Hook) Option {
+	return func(o *options) {
+		o.hooks = append(o.hooks, hook)
 	}
 }
 
