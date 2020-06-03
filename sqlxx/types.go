@@ -1,6 +1,7 @@
 package sqlxx
 
 import (
+	"bytes"
 	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
@@ -204,4 +205,27 @@ func (m *NullJSONRawMessage) UnmarshalJSON(data []byte) error {
 	}
 	*m = append((*m)[0:0], data...)
 	return nil
+}
+
+// JSONScan is a generic helper for storing a value as a JSON blob in SQL.
+func JSONScan(dst interface{}, value interface{}) error {
+	if value == nil {
+		value = "null"
+	}
+	if err := json.Unmarshal([]byte(fmt.Sprintf("%s", value)), &dst); err != nil {
+		return fmt.Errorf("unable to decode payload to: %s", err)
+	}
+	return nil
+}
+
+// JSONValue is a generic helper for retrieving a SQL JSON-encoded value.
+func JSONValue(src interface{}) (driver.Value, error) {
+	if src == nil {
+		return nil, nil
+	}
+	var b bytes.Buffer
+	if err := json.NewEncoder(&b).Encode(&src); err != nil {
+		return nil, err
+	}
+	return b.String(), nil
 }
