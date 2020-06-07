@@ -18,7 +18,7 @@ require (
 	github.com/luna-duclos/instrumentedsql v1.1.2
 	github.com/mattn/goveralls v0.0.2
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/opentracing/opentracing-go v1.1.0
+	github.com/opentracing/opentracing-go v1.1.1-0.20190913142402-a7454ce5950e
 	github.com/ory/analytics-go/v4 v4.0.0
 	github.com/ory/dockertest/v3 v3.5.4
 	github.com/ory/fosite v0.29.0
@@ -39,6 +39,7 @@ require (
 	github.com/tidwall/sjson v1.0.4
 	github.com/uber/jaeger-client-go v2.22.1+incompatible
 	github.com/urfave/negroni v1.0.0
+	go.opentelemetry.io/otel v0.6.0
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 	gonum.org/v1/plot v0.0.0-20200111075622-4abb28f724d5
 	gopkg.in/square/go-jose.v2 v2.2.2
