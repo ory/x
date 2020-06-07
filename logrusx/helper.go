@@ -10,6 +10,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"go.opentelemetry.io/otel/plugin/httptrace"
+
 	"github.com/ory/x/errorsx"
 )
 
@@ -60,7 +62,7 @@ func (l *Logger) WithRequest(r *http.Request) *Logger {
 		scheme = "http"
 	}
 
-	return l.WithField("http_request", map[string]interface{}{
+	ll := l.WithField("http_request", map[string]interface{}{
 		"remote":  r.RemoteAddr,
 		"method":  r.Method,
 		"path":    r.URL.EscapedPath(),
@@ -69,6 +71,19 @@ func (l *Logger) WithRequest(r *http.Request) *Logger {
 		"host":    r.Host,
 		"headers": headers,
 	})
+
+	if _, _, spanCtx := httptrace.Extract(r.Context(), r); spanCtx.IsValid() {
+		traces := map[string]string{}
+		if spanCtx.HasTraceID() {
+			traces["trace_id"] = spanCtx.TraceID.String()
+		}
+		if spanCtx.HasSpanID() {
+			traces["span_id"] = spanCtx.SpanID.String()
+		}
+		ll = l.WithField("otel", traces)
+	}
+
+	return ll
 }
 
 func (l *Logger) WithFields(f logrus.Fields) *Logger {
