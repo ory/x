@@ -48,7 +48,7 @@ func NewTestMigrator(t *testing.T, c *pop.Connection, migrationPath, testDataPat
 
 		// exec testdata
 		var fileName string
-		if fi, err := os.Stat(filepath.Join(testDataPath, mf.Version+"_testdata."+mf.DBType+".sql")); err == nil && !fi.IsDir() {
+		if fi, err := os.Stat(filepath.Join(testDataPath, mf.Version+"_testdata."+tx.Dialect.Name()+".sql")); err == nil && !fi.IsDir() {
 			// found specific test data
 			fileName = fi.Name()
 		} else if fi, err := os.Stat(filepath.Join(testDataPath, mf.Version+"_testdata.sql")); err == nil && !fi.IsDir() {
@@ -56,14 +56,14 @@ func NewTestMigrator(t *testing.T, c *pop.Connection, migrationPath, testDataPat
 			fileName = fi.Name()
 		} else {
 			// found no test data
-			t.Logf("Found no test data for migration %s", mf.Version)
+			t.Logf("Found no test data for migration %s %s", mf.Version, mf.DBType)
 			return nil
 		}
 
 		// Workaround for https://github.com/cockroachdb/cockroach/issues/42643#issuecomment-611475836
 		// This is not a problem as the test should fail anyway if there occurs any error
 		// (either within a transaction or on it's own).
-		if mf.DBType == "cockroach" && tx.TX != nil {
+		if tx.Dialect.Name() == "cockroach" && tx.TX != nil {
 			if err := tx.TX.Commit(); err != nil {
 				return errors.WithStack(err)
 			}
@@ -79,7 +79,7 @@ func NewTestMigrator(t *testing.T, c *pop.Connection, migrationPath, testDataPat
 			return errors.WithStack(err)
 		}
 
-		t.Logf("executing query for: %s", fileName)
+		t.Logf("executing %s query for: %s", tx.Dialect.Name(), fileName)
 		if len(strings.TrimSpace(string(data))) == 0 {
 			return nil
 		}
