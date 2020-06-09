@@ -34,7 +34,7 @@ func NewTestMigrator(t *testing.T, c *pop.Connection, migrationPath, testDataPat
 		defer f.Close()
 		content, err := pop.MigrationContent(mf, tx, f, true)
 		require.NoError(t, err)
-		if content == "" {
+		if len(strings.TrimSpace(content)) == 0 {
 			return nil
 		}
 		err = tx.RawQuery(content).Exec()
@@ -77,6 +77,11 @@ func NewTestMigrator(t *testing.T, c *pop.Connection, migrationPath, testDataPat
 		data, err := ioutil.ReadFile(filepath.Join(testDataPath, fileName))
 		if err != nil {
 			return errors.WithStack(err)
+		}
+
+		t.Logf("executing query for: %s", fileName)
+		if len(strings.TrimSpace(string(data))) == 0 {
+			return nil
 		}
 
 		if err := tx.RawQuery(string(data)).Exec(); err != nil {
