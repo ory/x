@@ -80,7 +80,7 @@ func (l *Logger) WithRequest(r *http.Request) *Logger {
 		if spanCtx.HasSpanID() {
 			traces["span_id"] = spanCtx.SpanID.String()
 		}
-		ll = l.WithField("otel", traces)
+		ll = ll.WithField("otel", traces)
 	}
 
 	return ll
