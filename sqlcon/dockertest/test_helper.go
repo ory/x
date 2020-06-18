@@ -130,7 +130,7 @@ func startPostgreSQL() (*dockertest.Resource, error) {
 		return nil, errors.Wrap(err, "Could not connect to docker")
 	}
 
-	resource, err := pool.Run("postgres", "9.6", []string{"POSTGRES_PASSWORD=secret", "POSTGRES_DB=postgres"})
+	resource, err := pool.Run("postgres", "11.8", []string{"POSTGRES_PASSWORD=secret", "POSTGRES_DB=postgres"})
 	if err == nil {
 		resources = append(resources, resource)
 	}
@@ -144,10 +144,20 @@ func RunTestPostgreSQL(t *testing.T) string {
 		return dsn
 	}
 
-	resource, err := startPostgreSQL()
+	u, err := RunPostgreSQL()
 	require.NoError(t, err)
 
-	return fmt.Sprintf("postgres://postgres:secret@127.0.0.1:%s/postgres?sslmode=disable", resource.GetPort("5432/tcp"))
+	return u
+}
+
+// RunPostgreSQL runs a PostgreSQL database and returns the URL to it.
+func RunPostgreSQL() (string, error) {
+	resource, err := startPostgreSQL()
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("postgres://postgres:secret@127.0.0.1:%s/postgres?sslmode=disable", resource.GetPort("5432/tcp")), nil
 }
 
 // ConnectToTestPostgreSQL connects to a PostgreSQL database.
@@ -178,11 +188,21 @@ func startMySQL() (*dockertest.Resource, error) {
 		return nil, errors.Wrap(err, "Could not connect to docker")
 	}
 
-	resource, err := pool.Run("mysql", "5.7", []string{"MYSQL_ROOT_PASSWORD=secret"})
+	resource, err := pool.Run("mysql", "8.0", []string{"MYSQL_ROOT_PASSWORD=secret"})
 	if err == nil {
 		resources = append(resources, resource)
 	}
 	return resource, err
+}
+
+// RunMySQL runs a RunMySQL database and returns the URL to it.
+func RunMySQL() (string, error) {
+	resource, err := startMySQL()
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("mysql://root:secret@(localhost:%s)/mysql?parseTime=true&multiStatements=true", resource.GetPort("3306/tcp")), nil
 }
 
 // RunTestMySQL runs a MySQL database and returns the URL to it.
@@ -192,10 +212,10 @@ func RunTestMySQL(t *testing.T) string {
 		return dsn
 	}
 
-	resource, err := startMySQL()
+	u, err := RunMySQL()
 	require.NoError(t, err)
 
-	return fmt.Sprintf("mysql://root:secret@(localhost:%s)/mysql?parseTime=true&multiStatements=true", resource.GetPort("3306/tcp"))
+	return u
 }
 
 // ConnectToTestMySQL connects to a MySQL database.
@@ -229,13 +249,23 @@ func startCockroachDB() (*dockertest.Resource, error) {
 
 	resource, err := pool.RunWithOptions(&dockertest.RunOptions{
 		Repository: "cockroachdb/cockroach",
-		Tag:        "v19.2.0",
+		Tag:        "v20.1.0",
 		Cmd:        []string{"start", "--insecure"},
 	})
 	if err == nil {
 		resources = append(resources, resource)
 	}
 	return resource, err
+}
+
+// RunCockroachDB runs a CockroachDB database and returns the URL to it.
+func RunCockroachDB() (string, error) {
+	resource, err := startCockroachDB()
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("cockroach://root@localhost:%s/defaultdb?sslmode=disable", resource.GetPort("26257/tcp")), nil
 }
 
 // RunTestCockroachDB runs a CockroachDB database and returns the URL to it.
@@ -245,10 +275,10 @@ func RunTestCockroachDB(t *testing.T) string {
 		return dsn
 	}
 
-	resource, err := startCockroachDB()
+	u, err := RunCockroachDB()
 	require.NoError(t, err)
 
-	return fmt.Sprintf("cockroach://root@localhost:%s/defaultdb?sslmode=disable", resource.GetPort("26257/tcp"))
+	return u
 }
 
 // ConnectToTestCockroachDB connects to a CockroachDB database.
