@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/go-sql-driver/mysql"
+	"github.com/jackc/pgconn"
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
 
@@ -41,38 +42,37 @@ func HandleError(err error) error {
 		return nil
 	}
 
-	if errorsx.Cause(err) == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return errors.WithStack(ErrNoRows)
 	}
 
-	if e, ok := errorsx.Cause(err).(interface {
-		SQLState() string
-	}); ok {
+	switch e := errorsx.Cause(err).(type) {
+	case interface{ SQLState() string }:
 		switch e.SQLState() {
 		case "23505": // "unique_violation"
 			return errors.Wrap(ErrUniqueViolation, err.Error())
 		case "40001": // "serialization_failure"
 			return errors.Wrap(ErrConcurrentUpdate, err.Error())
 		}
-		return errors.WithStack(err)
-	}
-
-	if err, ok := errorsx.Cause(err).(*pq.Error); ok {
-		switch err.Code {
+	case *pq.Error:
+		switch e.Code {
 		case "23505": // "unique_violation"
-			return errors.Wrap(ErrUniqueViolation, err.Error())
+			return errors.Wrap(ErrUniqueViolation, e.Error())
 		case "40001": // "serialization_failure"
-			return errors.Wrap(ErrConcurrentUpdate, err.Error())
+			return errors.Wrap(ErrConcurrentUpdate, e.Error())
 		}
-		return errors.WithStack(err)
-	}
-
-	if err, ok := errorsx.Cause(err).(*mysql.MySQLError); ok {
-		switch err.Number {
+	case *mysql.MySQLError:
+		switch e.Number {
 		case 1062:
 			return errors.Wrap(ErrUniqueViolation, err.Error())
 		}
-		return errors.WithStack(err)
+	case *pgconn.PgError:
+		switch e.Code {
+		case "23505": // "unique_violation"
+			return errors.Wrap(ErrUniqueViolation, e.Error())
+		case "40001": // "serialization_failure"
+			return errors.Wrap(ErrConcurrentUpdate, e.Error())
+		}
 	}
 
 	// Try other detections, for example for SQLite (we don't want to enforce CGO here!)
