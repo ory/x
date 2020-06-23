@@ -84,7 +84,8 @@ func NewTestMigrator(t *testing.T, c *pop.Connection, migrationPath, testDataPat
 			return nil
 		}
 
-		if err := tx.RawQuery(string(data)).Exec(); err != nil {
+		// FIXME https://github.com/gobuffalo/pop/issues/567
+		if _, err := tx.Store.Exec(string(data)); err != nil {
 			t.Logf(mf.Version)
 			return errors.WithStack(err)
 		}
@@ -95,6 +96,7 @@ func NewTestMigrator(t *testing.T, c *pop.Connection, migrationPath, testDataPat
 		t.Fatalf("could not find directory %s", migrationPath)
 		return nil
 	}
+
 	if fi, err := os.Stat(testDataPath); err != nil || !fi.IsDir() {
 		t.Fatalf("could not find directory %s", testDataPath)
 		return nil
