@@ -3,6 +3,7 @@ package mapx
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -203,4 +204,28 @@ func KeyStringToInterface(i map[string]interface{}) map[interface{}]interface{} 
 		o[k] = v
 	}
 	return o
+}
+
+// ToJSONMap converts all map[interface{}]interface{} occurrences (nested as well) to map[string]interface{}.
+func ToJSONMap(i interface{}) interface{} {
+	switch t := i.(type) {
+	case []interface{}:
+		for k, v := range t {
+			t[k] = ToJSONMap(v)
+		}
+		return t
+	case map[string]interface{}:
+		for k, v := range t {
+			t[k] = ToJSONMap(v)
+		}
+		return t
+	case map[interface{}]interface{}:
+		res := make(map[string]interface{})
+		for k, v := range t {
+			res[fmt.Sprintf("%s", k)] = ToJSONMap(v)
+		}
+		return res
+	}
+
+	return i
 }

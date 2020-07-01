@@ -154,3 +154,15 @@ func TestGetInt(t *testing.T) {
 	v, err = GetInt32(m, "bar")
 	require.Error(t, err)
 }
+
+func TestToJSONMap(t *testing.T) {
+	assert.EqualValues(t, map[string]interface {}{"baz":[]interface {}{map[string]interface {}{"bar":"bar"}}, "foo":"bar"},ToJSONMap(map[string]interface{}{
+		"foo": "bar",
+		"baz": []interface{}{
+			map[interface{}]interface{}{
+				"bar": "bar",
+			},
+		},
+	}))
+
+}
