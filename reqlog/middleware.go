@@ -125,10 +125,6 @@ func (m *Middleware) ServeHTTP(rw http.ResponseWriter, r *http.Request, next htt
 
 	entry := m.Logger.NewEntry()
 
-	if reqID := r.Header.Get("X-Request-Id"); reqID != "" {
-		entry = entry.WithField("request_id", reqID)
-	}
-
 	entry = m.Before(entry, r, remoteAddr)
 
 	if m.logStarting {
