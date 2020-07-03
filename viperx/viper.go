@@ -111,7 +111,7 @@ func WatchConfig(l *logrusx.Logger, o *WatchOptions) {
 func InitializeConfig(applicationName string, homeOverride string, l *logrusx.Logger) *logrusx.Logger {
 	if cfgFile != "" {
 		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
+		viper.SetConfigFile(strings.TrimSpace(cfgFile))
 	} else {
 		// Find home directory.
 		home, err := homedir.Dir()
