@@ -72,6 +72,29 @@ func TestViperInit(t *testing.T) {
 		}
 	})
 
+	t.Run("suite=with-invalid-config-path", func(t *testing.T) {
+		for k, tc := range []struct {
+			f      string
+			fatals bool
+		}{
+			{f: " ./stub/yml/.project-stub-name-invalid-path.yml"},
+		} {
+			t.Run(fmt.Sprintf("case=%d/path=%s", k, tc.f), func(t *testing.T) {
+				viper.Reset()
+
+				cfgFile = tc.f
+				if tc.fatals {
+					assert.Panics(t, func() {
+						InitializeConfig("project-stub-name-invalid-path", "", l)
+					})
+				} else {
+					InitializeConfig("project-stub-name", "", l)
+					assert.Equal(t, k+1, viper.GetInt("serve.admin.port"))
+				}
+			})
+		}
+	})
+
 	t.Run("suite=os-env", func(t *testing.T) {
 		for k, tc := range []struct {
 			n string
