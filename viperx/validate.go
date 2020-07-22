@@ -3,6 +3,7 @@ package viperx
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/ory/x/logrusx"
 	"io/ioutil"
 
 	"github.com/pkg/errors"
@@ -14,7 +15,7 @@ import (
 // ValidateFromURL validates the viper config by loading the schema from a URL
 //
 // Uses Validate internally.
-func ValidateFromURL(url string) error {
+func ValidateFromURL(l *logrusx.Logger, url string) error {
 	buf, err := jsonschema.LoadURL(url)
 	if err != nil {
 		return errors.WithStack(err)
@@ -25,13 +26,13 @@ func ValidateFromURL(url string) error {
 		return errors.WithStack(err)
 	}
 
-	return Validate(url, result)
+	return Validate(l, url, result)
 }
 
 // Validate validates the viper config
 //
 // If env vars are supported, they must be bound using viper.BindEnv.
-func Validate(name string, content []byte) error {
+func Validate(l *logrusx.Logger, name string, content []byte) error {
 	if err := BindEnvsToSchema(content); err != nil {
 		return errors.WithStack(err)
 	}
@@ -52,6 +53,7 @@ func Validate(name string, content []byte) error {
 	if err := json.NewEncoder(&b).Encode(viper.AllSettings()); err != nil {
 		return errors.WithStack(err)
 	}
+	l.WithFields(viper.AllSettings()).Debug("detected config values")
 
 	if err := s.Validate(&b); err != nil {
 		return errors.WithStack(err)

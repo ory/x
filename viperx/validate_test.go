@@ -2,6 +2,7 @@ package viperx
 
 import (
 	"bytes"
+	"github.com/ory/x/logrusx"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -19,6 +20,7 @@ import (
 )
 
 func TestValidate(t *testing.T) {
+	l := logrusx.New("test", "testing")
 	path, err := filepath.Abs("./stub/config.schema.json")
 	require.NoError(t, err)
 
@@ -34,7 +36,7 @@ func TestValidate(t *testing.T) {
 		viper.Set("dsn", "memory")
 		InitializeConfig(uuid.New().String(), "", nil)
 
-		require.NoError(t, Validate("schema.json", schema))
+		require.NoError(t, Validate(l, "schema.json", schema))
 	})
 
 	t.Run("case=missing-dsn", func(t *testing.T) {
@@ -42,7 +44,7 @@ func TestValidate(t *testing.T) {
 
 		InitializeConfig(uuid.New().String(), "", nil)
 
-		require.Error(t, Validate("schema.json", schema))
+		require.Error(t, Validate(l, "schema.json", schema))
 	})
 
 	t.Run("case=env", func(t *testing.T) {
@@ -51,7 +53,7 @@ func TestValidate(t *testing.T) {
 		require.NoError(t, os.Setenv("DSN", "memory"))
 		InitializeConfig(uuid.New().String(), "", nil)
 
-		require.NoError(t, Validate("schema.json", schema))
+		require.NoError(t, Validate(l, "schema.json", schema))
 		require.NoError(t, os.Setenv("DSN", ""))
 	})
 
@@ -60,7 +62,7 @@ func TestValidate(t *testing.T) {
 
 		InitializeConfig("config", "stub", nil)
 
-		require.NoError(t, Validate("schema.json", schema))
+		require.NoError(t, Validate(l, "schema.json", schema))
 	})
 
 	t.Run("case=ValidateFromURL", func(t *testing.T) {
@@ -68,15 +70,16 @@ func TestValidate(t *testing.T) {
 
 		InitializeConfig("config", "stub", nil)
 
-		require.NoError(t, ValidateFromURL(path))
+		require.NoError(t, ValidateFromURL(l, path))
 	})
 }
 
 func TestLoggerWithValidationErrorFields(t *testing.T) {
+	l := logrusx.New("test", "testing")
 	t.Run("case=required", func(t *testing.T) {
 		viper.Reset()
 
-		err := ValidateFromURL("file://stub/config.schema.json")
+		err := ValidateFromURL(l, "file://stub/config.schema.json")
 		require.Error(t, err)
 
 		var b bytes.Buffer
@@ -88,7 +91,7 @@ func TestLoggerWithValidationErrorFields(t *testing.T) {
 		viper.Reset()
 
 		viper.Set("dsn", 1234)
-		err := ValidateFromURL("file://stub/config.schema.json")
+		err := ValidateFromURL(l, "file://stub/config.schema.json")
 		require.Error(t, err)
 
 		var b bytes.Buffer
@@ -101,7 +104,7 @@ func TestLoggerWithValidationErrorFields(t *testing.T) {
 
 		viper.Set("dsn", 1234)
 		viper.Set("foo", 1234)
-		err := ValidateFromURL("file://stub/config.schema.json")
+		err := ValidateFromURL(l, "file://stub/config.schema.json")
 		require.Error(t, err)
 
 		expected := []struct {
