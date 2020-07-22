@@ -2,12 +2,13 @@ package viperx
 
 import (
 	"bytes"
-	"github.com/ory/x/logrusx"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/ory/x/logrusx"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"

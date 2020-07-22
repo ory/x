@@ -3,8 +3,9 @@ package viperx
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/ory/x/logrusx"
 	"io/ioutil"
+
+	"github.com/ory/x/logrusx"
 
 	"github.com/pkg/errors"
 
