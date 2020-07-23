@@ -101,8 +101,8 @@ func TestWatchAndValidateViper(t *testing.T) {
 		}
 		require.Equal(t, 2, len(entries))
 
-		assert.Equal(t, "The configuration has changed and was reloaded.", entries[0].Message)
-		assert.Equal(t, "The changed configuration is invalid and could not be loaded. Rolling back to the last working configuration revision. Please address the validation errors before restarting Test.", entries[1].Message)
+		assert.Equal(t, "The changed configuration is invalid and could not be loaded. Rolling back to the last working configuration revision. Please address the validation errors before restarting Test.", entries[0].Message)
+		assert.Equal(t, "The configuration has changed and was reloaded.", entries[1].Message)
 
 		assert.Equal(t, "memory", viper.Get("dsn"))
 		assert.Equal(t, "bar", viper.Get("foo"))
@@ -125,8 +125,8 @@ func TestWatchAndValidateViper(t *testing.T) {
 		for ; len(entries) < 2; entries = hook.AllEntries() {
 		}
 		require.Equal(t, 2, len(entries))
-		assert.Equal(t, "The configuration has changed and was reloaded.", entries[0].Message)
-		assert.Equal(t, "A configuration value marked as immutable has changed. Rolling back to the last working configuration revision. To reload the values please restart Test.", entries[1].Message)
+		assert.Equal(t, "A configuration value marked as immutable has changed. Rolling back to the last working configuration revision. To reload the values please restart Test.", entries[0].Message)
+		assert.Equal(t, "The configuration has changed and was reloaded.", entries[1].Message)
 		assert.Equal(t, "memory", viper.Get("dsn"))
 		assert.Equal(t, "bar", viper.Get("foo"))
 	})
