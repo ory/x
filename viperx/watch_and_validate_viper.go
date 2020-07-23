@@ -28,15 +28,15 @@ func WatchAndValidateViper(l *logrusx.Logger, schema []byte, productName string,
 	}
 
 	AddWatcher(func(event fsnotify.Event) error {
-		if err := Validate("config.schema.json", schema); err != nil {
-			PrintHumanReadableValidationErrors(os.Stderr, err)
-			l.Errorf("The changed configuration is invalid and could not be loaded. Rolling back to the last working configuration revision. Please address the validation errors before restarting %s.", productName)
-			return ErrRollbackConfigurationChanges
-		}
 		if l.LeakSensitiveData() && sensitiveDumpConfigDir != "" {
 			if err := sensitiveDumpAllValues(sensitiveDumpConfigDir); err != nil {
 				l.WithError(err).Warn("Dumping the config was not possible.")
 			}
+		}
+		if err := Validate("config.schema.json", schema); err != nil {
+			PrintHumanReadableValidationErrors(os.Stderr, err)
+			l.Errorf("The changed configuration is invalid and could not be loaded. Rolling back to the last working configuration revision. Please address the validation errors before restarting %s.", productName)
+			return ErrRollbackConfigurationChanges
 		}
 		return nil
 	})

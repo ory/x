@@ -184,7 +184,7 @@ func TestWatchAndValidateViper(t *testing.T) {
 
 		dirContent, err = ioutil.ReadDir(dumpDir)
 		require.NoError(t, err)
-		require.Equal(t, 2, len(dirContent))
+		require.Equal(t, 2, len(dirContent), dumpDir)
 		dumpContent, err = ioutil.ReadFile(path.Join(dumpDir, getDumpFileName(1)))
 		require.NoError(t, err)
 		require.NoError(t, yaml.Unmarshal(dumpContent, &currentConfig))

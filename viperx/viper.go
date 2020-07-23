@@ -74,7 +74,7 @@ func WatchConfig(l *logrusx.Logger, o *WatchOptions) {
 		watcherLock.Lock()
 		defer watcherLock.Unlock()
 
-		l.WithField("file", in.Name).
+		defer l.WithField("file", in.Name).
 			WithField("operator", in.Op.String()).
 			WithField("immutables", o.Immutables).
 			Info("The configuration has changed and was reloaded.")
