@@ -5,7 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"path"
 	"strings"
+
+	"github.com/ghodss/yaml"
+	"github.com/pkg/errors"
 
 	"github.com/tidwall/gjson"
 
@@ -75,4 +80,23 @@ func jsonschemaFormatError(e *jsonschema.ValidationError) (string, string) {
 	}
 
 	return pointer, message
+}
+
+const permOwnerRW = 0600
+
+var lastDumpedConfig = -1
+
+func getDumpFileName(i int) string {
+	return fmt.Sprintf("config-%08d.yml", i)
+}
+
+func sensitiveDumpAllValues(dir string) error {
+	configContent, err := yaml.Marshal(viper.AllSettings())
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	lastDumpedConfig++
+	return errors.WithStack(
+		ioutil.WriteFile(path.Join(dir, getDumpFileName(lastDumpedConfig)), configContent, permOwnerRW),
+	)
 }

@@ -5,9 +5,12 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/ghodss/yaml"
 
 	"github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/test"
@@ -60,8 +63,8 @@ func updateConfigFile(t *testing.T, configFile *os.File, dsn, foo string) {
 	require.NoError(t, configFile.Sync())
 }
 
-func setup(t *testing.T, exitFunc func(int), configFile *os.File) (*logrusx.Logger, *test.Hook) {
-	l := logrusx.New("", "")
+func setup(t *testing.T, exitFunc func(int), configFile *os.File, logOpts ...logrusx.Option) (*logrusx.Logger, *test.Hook) {
+	l := logrusx.New("", "", logOpts...)
 	l.Entry.Logger.ExitFunc = exitFunc
 	viper.Reset()
 
@@ -84,7 +87,7 @@ func TestWatchAndValidateViper(t *testing.T) {
 
 		l, hook := setup(t, failOnExit(t), configFile)
 
-		WatchAndValidateViper(l, schema, productName, []string{})
+		WatchAndValidateViper(l, schema, productName, []string{}, "")
 		assert.Equal(t, []*logrus.Entry{}, hook.AllEntries())
 		assert.Equal(t, "memory", viper.Get("dsn"))
 		assert.Equal(t, "bar", viper.Get("foo"))
@@ -110,7 +113,7 @@ func TestWatchAndValidateViper(t *testing.T) {
 
 		l, hook := setup(t, failOnExit(t), configFile)
 
-		WatchAndValidateViper(l, schema, productName, []string{"dsn"})
+		WatchAndValidateViper(l, schema, productName, []string{"dsn"}, "")
 		assert.Equal(t, []*logrus.Entry{}, hook.AllEntries())
 		assert.Equal(t, "memory", viper.Get("dsn"))
 		assert.Equal(t, "bar", viper.Get("foo"))
@@ -134,7 +137,7 @@ func TestWatchAndValidateViper(t *testing.T) {
 		viper.Set("dsn", "some string")
 		viper.Set("foo", "bar")
 
-		WatchAndValidateViper(l, schema, productName, []string{})
+		WatchAndValidateViper(l, schema, productName, []string{}, "")
 
 		assert.Equal(t, []*logrus.Entry{}, hook.AllEntries())
 		assert.Equal(t, "some string", viper.Get("dsn"))
@@ -147,11 +150,61 @@ func TestWatchAndValidateViper(t *testing.T) {
 		viper.Set("foo", "not bar")
 		viper.Set("dsn", 0)
 
-		WatchAndValidateViper(l, schema, productName, []string{})
+		WatchAndValidateViper(l, schema, productName, []string{}, "")
 
 		entries := hook.AllEntries()
 		require.Equal(t, 2, len(entries))
 		assert.Equal(t, "The provided configuration is invalid and could not be loaded. Check the output below to understand why.", entries[0].Message)
 		assert.Equal(t, "The services failed to start because the configuration is invalid. Check the output above for more details.", entries[1].Message)
+	})
+
+	t.Run("case=dumps initial and updated config", func(t *testing.T) {
+		configFile := tmpConfigFile(t, "memory", "bar")
+		l, hook := setup(t, failOnExit(t), configFile, logrusx.LeakSensitive())
+
+		dumpDir := path.Join(os.TempDir(), strconv.Itoa(time.Now().Nanosecond()))
+		require.NoError(t, os.MkdirAll(dumpDir, 0777))
+
+		WatchAndValidateViper(l, schema, productName, []string{}, dumpDir)
+
+		dirContent, err := ioutil.ReadDir(dumpDir)
+		require.NoError(t, err)
+		require.Equal(t, 1, len(dirContent))
+		dumpContent, err := ioutil.ReadFile(path.Join(dumpDir, getDumpFileName(0)))
+		require.NoError(t, err)
+		var currentConfig map[string]interface{}
+		require.NoError(t, yaml.Unmarshal(dumpContent, &currentConfig))
+		assert.Equal(t, viper.AllSettings(), currentConfig)
+
+		updateConfigFile(t, configFile, "other-dsn", "bar")
+
+		// viper needs some time to read the file
+		for entries := hook.AllEntries(); len(entries) < 1; entries = hook.AllEntries() {
+		}
+
+		dirContent, err = ioutil.ReadDir(dumpDir)
+		require.NoError(t, err)
+		require.Equal(t, 2, len(dirContent))
+		dumpContent, err = ioutil.ReadFile(path.Join(dumpDir, getDumpFileName(1)))
+		require.NoError(t, err)
+		require.NoError(t, yaml.Unmarshal(dumpContent, &currentConfig))
+		assert.Equal(t, viper.AllSettings(), currentConfig)
+	})
+
+	t.Run("case=rejects to dump config when sensitive logging is not enabled", func(t *testing.T) {
+		configFile := tmpConfigFile(t, "memory", "bar")
+		l, hook := setup(t, failOnExit(t), configFile)
+
+		dumpDir := path.Join(os.TempDir(), strconv.Itoa(time.Now().Nanosecond()))
+		require.NoError(t, os.MkdirAll(dumpDir, 0777))
+
+		WatchAndValidateViper(l, schema, productName, []string{}, dumpDir)
+
+		entries := hook.AllEntries()
+		require.Equal(t, 1, len(entries))
+		assert.Equal(t, "The configuration is not going to be dumped as it contains sensitive information. To enable config dumping you have to enable sensitive logging.", entries[0].Message)
+		dirContent, err := ioutil.ReadDir(dumpDir)
+		require.NoError(t, err)
+		assert.Equal(t, 0, len(dirContent))
 	})
 }
