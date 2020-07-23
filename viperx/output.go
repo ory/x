@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io"
 	"io/ioutil"
 	"path"
 	"strings"
 	"time"
+
+	"gopkg.in/yaml.v2"
 
 	"github.com/pkg/errors"
 
