@@ -4,7 +4,6 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/fatih/structs v1.1.0
 	github.com/fsnotify/fsnotify v1.4.9
-	github.com/ghodss/yaml v1.0.0
 	github.com/go-bindata/go-bindata v3.1.1+incompatible
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gobuffalo/httptest v1.0.2
@@ -12,6 +11,7 @@ require (
 	github.com/gobuffalo/pop/v5 v5.0.11
 	github.com/google/uuid v1.1.0
 	github.com/gorilla/websocket v1.4.2
+	github.com/jackc/pgconn v1.5.0
 	github.com/jackc/pgx/v4 v4.4.1
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/julienschmidt/httprouter v1.2.0
@@ -46,6 +46,7 @@ require (
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 	gonum.org/v1/plot v0.0.0-20200111075622-4abb28f724d5
 	gopkg.in/square/go-jose.v2 v2.2.2
+	gopkg.in/yaml.v2 v2.3.0
 )
 
 go 1.14

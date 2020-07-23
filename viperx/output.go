@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"gopkg.in/yaml.v2"
 	"io"
 	"io/ioutil"
 	"path"
 	"strings"
+	"time"
 
-	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
 
 	"github.com/tidwall/gjson"
@@ -82,21 +83,14 @@ func jsonschemaFormatError(e *jsonschema.ValidationError) (string, string) {
 	return pointer, message
 }
 
-const permOwnerRW = 0600
-
-var lastDumpedConfig = -1
-
-func getDumpFileName(i int) string {
-	return fmt.Sprintf("config-%08d.yml", i)
-}
+const permOwnerRW = 0o600
 
 func sensitiveDumpAllValues(dir string) error {
 	configContent, err := yaml.Marshal(viper.AllSettings())
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	lastDumpedConfig++
 	return errors.WithStack(
-		ioutil.WriteFile(path.Join(dir, getDumpFileName(lastDumpedConfig)), configContent, permOwnerRW),
+		ioutil.WriteFile(path.Join(dir, fmt.Sprintf("config-%d.yml", time.Now().UnixNano())), configContent, permOwnerRW),
 	)
 }

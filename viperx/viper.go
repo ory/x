@@ -77,7 +77,7 @@ func WatchConfig(l *logrusx.Logger, o *WatchOptions) {
 		defer l.WithField("file", in.Name).
 			WithField("operator", in.Op.String()).
 			WithField("immutables", o.Immutables).
-			Info("The configuration has changed and was reloaded.")
+			Info("A change to the configuration file was processed.")
 
 		var didReset bool
 		for _, key := range o.Immutables {

@@ -102,7 +102,7 @@ func TestWatchAndValidateViper(t *testing.T) {
 		require.Equal(t, 2, len(entries))
 
 		assert.Equal(t, "The changed configuration is invalid and could not be loaded. Rolling back to the last working configuration revision. Please address the validation errors before restarting Test.", entries[0].Message)
-		assert.Equal(t, "The configuration has changed and was reloaded.", entries[1].Message)
+		assert.Equal(t, "A change to the configuration file was processed.", entries[1].Message)
 
 		assert.Equal(t, "memory", viper.Get("dsn"))
 		assert.Equal(t, "bar", viper.Get("foo"))
@@ -126,7 +126,7 @@ func TestWatchAndValidateViper(t *testing.T) {
 		}
 		require.Equal(t, 2, len(entries))
 		assert.Equal(t, "A configuration value marked as immutable has changed. Rolling back to the last working configuration revision. To reload the values please restart Test.", entries[0].Message)
-		assert.Equal(t, "The configuration has changed and was reloaded.", entries[1].Message)
+		assert.Equal(t, "A change to the configuration file was processed.", entries[1].Message)
 		assert.Equal(t, "memory", viper.Get("dsn"))
 		assert.Equal(t, "bar", viper.Get("foo"))
 	})
@@ -170,7 +170,7 @@ func TestWatchAndValidateViper(t *testing.T) {
 		dirContent, err := ioutil.ReadDir(dumpDir)
 		require.NoError(t, err)
 		require.Equal(t, 1, len(dirContent))
-		dumpContent, err := ioutil.ReadFile(path.Join(dumpDir, getDumpFileName(0)))
+		dumpContent, err := ioutil.ReadFile(path.Join(dumpDir, dirContent[0].Name()))
 		require.NoError(t, err)
 		var currentConfig map[string]interface{}
 		require.NoError(t, yaml.Unmarshal(dumpContent, &currentConfig))
@@ -185,7 +185,7 @@ func TestWatchAndValidateViper(t *testing.T) {
 		dirContent, err = ioutil.ReadDir(dumpDir)
 		require.NoError(t, err)
 		require.Equal(t, 2, len(dirContent), dumpDir)
-		dumpContent, err = ioutil.ReadFile(path.Join(dumpDir, getDumpFileName(1)))
+		dumpContent, err = ioutil.ReadFile(path.Join(dumpDir, dirContent[1].Name()))
 		require.NoError(t, err)
 		require.NoError(t, yaml.Unmarshal(dumpContent, &currentConfig))
 		assert.Equal(t, viper.AllSettings(), currentConfig)
