@@ -3,24 +3,17 @@ package watcherx
 import (
 	"context"
 	"fmt"
-	"io"
 	"net/url"
 )
 
 type (
-	Event struct {
-		Data  io.Reader
-		Src   string
-		Error error
-	}
-	Watcher interface {
-		ID() string
-	}
 	errSchemeUnknown struct {
 		scheme string
 	}
+	EventChannel chan Event
 )
 
+// This var is just for checking with errors.Is()
 var ErrSchemeUnknown = &errSchemeUnknown{}
 
 func (e *errSchemeUnknown) Is(other error) bool {
@@ -32,10 +25,10 @@ func (e *errSchemeUnknown) Error() string {
 	return fmt.Sprintf("unknown scheme '%s' to watch", e.scheme)
 }
 
-func CreateWatcher(ctx context.Context, u *url.URL, c chan Event) (Watcher, error) {
+func Watch(ctx context.Context, u *url.URL, c EventChannel) error {
 	switch u.Scheme {
 	case "file":
-		return NewFileWatcher(ctx, u.Path, c)
+		return WatchFile(ctx, u.Path, c)
 	}
-	return nil, &errSchemeUnknown{u.Scheme}
+	return &errSchemeUnknown{u.Scheme}
 }
