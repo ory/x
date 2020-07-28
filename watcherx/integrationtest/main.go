@@ -16,7 +16,7 @@ func main() {
 	}
 	c := make(chan watcherx.Event)
 	ctx, cancel := context.WithCancel(context.Background())
-	_, err := watcherx.NewFileWatcher(ctx, os.Args[1], c)
+	err := watcherx.WatchFile(ctx, os.Args[1], c)
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "could not initialize file watcher: %+v\n", err)
 		os.Exit(1)
@@ -24,13 +24,17 @@ func main() {
 	fmt.Printf("watching file %s\n", os.Args[1])
 	defer cancel()
 	for {
-		select {
-		case e := <-c:
+		switch e := (<-c).(type) {
+		case *watcherx.ChangeEvent:
 			var data []byte
-			if e.Error == nil {
-				data, err = ioutil.ReadAll(e.Data)
-			}
-			fmt.Printf("got event:\nData: %s,\nError: %+v,\nSrc: %s\n", data, e.Error, e.Src)
+			data, err = ioutil.ReadAll(e.Reader())
+			fmt.Printf("got change event:\nData: %s,\nSrc: %s\n", data, e.Source())
+		case *watcherx.RemoveEvent:
+			fmt.Printf("got remove event:\nSrc: %s\n", e.Source())
+		case *watcherx.ErrorEvent:
+			fmt.Printf("got error event:\nError: %s\n", e.Error())
+		default:
+			fmt.Println("got unknown event")
 		}
 	}
 }
