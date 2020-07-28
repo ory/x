@@ -3,7 +3,6 @@ package watcherx
 import (
 	"bytes"
 	"context"
-	"io"
 	"io/ioutil"
 	"os"
 	"path"
@@ -13,20 +12,14 @@ import (
 	"github.com/pkg/errors"
 )
 
-type FileWatcher struct {
-	c    chan Event
-	file string
-	w    *fsnotify.Watcher
-}
-
-func NewFileWatcher(ctx context.Context, file string, c chan Event) (*FileWatcher, error) {
+func WatchFile(ctx context.Context, file string, c EventChannel) error {
 	w, err := fsnotify.NewWatcher()
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return errors.WithStack(err)
 	}
 	dir := path.Dir(file)
 	if err := w.Add(dir); err != nil {
-		return nil, errors.WithStack(err)
+		return errors.WithStack(err)
 	}
 	realFile, err := filepath.EvalSymlinks(file)
 	if err != nil {
@@ -35,7 +28,7 @@ func NewFileWatcher(ctx context.Context, file string, c chan Event) (*FileWatche
 			// file creation
 			realFile = ""
 		} else {
-			return nil, errors.WithStack(err)
+			return errors.WithStack(err)
 		}
 	}
 	if realFile != "" && realFile != file {
@@ -44,25 +37,15 @@ func NewFileWatcher(ctx context.Context, file string, c chan Event) (*FileWatche
 		// watch entries by the passed name but follows symlinks when watching
 		// (at least on unix but not on windows).
 		if err := w.Add(file); err != nil {
-			return nil, errors.WithStack(err)
+			return errors.WithStack(err)
 		}
 	}
-	go streamEvents(ctx, w, c, file, realFile)
-	return &FileWatcher{
-		c:    c,
-		file: file,
-		w:    w,
-	}, nil
+	go streamFileEvents(ctx, w, c, file, realFile)
+	return nil
 }
 
-func streamEvents(ctx context.Context, watcher *fsnotify.Watcher, to chan Event, file, lastFile string) {
-	dispatchEvent := func(data io.Reader, err error) {
-		to <- Event{
-			Data:  data,
-			Error: err,
-			Src:   file,
-		}
-	}
+func streamFileEvents(ctx context.Context, watcher *fsnotify.Watcher, c EventChannel, file, lastFile string) {
+	eventSource := source(file)
 	for {
 		if lastFile != "" && lastFile != file {
 			// file is a symlink, see above explanation for details
@@ -70,7 +53,10 @@ func streamEvents(ctx context.Context, watcher *fsnotify.Watcher, to chan Event,
 				// the symlink itself has to exist to watch it
 				// if it does not the dir watcher will notify us when it gets created
 				if err := watcher.Add(file); err != nil {
-					dispatchEvent(nil, errors.WithStack(err))
+					c <- &ErrorEvent{
+						error:  errors.WithStack(err),
+						source: eventSource,
+					}
 				}
 			}
 
@@ -87,12 +73,15 @@ func streamEvents(ctx context.Context, watcher *fsnotify.Watcher, to chan Event,
 			// e.Name contains the name we started the watcher with, not the actual file name
 			if path.Clean(e.Name) == file && e.Op&fsnotify.Remove != 0 {
 				// the file (or the file behind the symlink) was removed
-				dispatchEvent(nil, nil)
+				c <- &RemoveEvent{eventSource}
 				goto loopEnd
 			}
 			currentFile, err := filepath.EvalSymlinks(file)
 			if err != nil {
-				dispatchEvent(nil, errors.WithStack(err))
+				c <- &ErrorEvent{
+					error:  errors.WithStack(err),
+					source: eventSource,
+				}
 				goto loopEnd
 			}
 			// We care about three cases:
@@ -104,7 +93,17 @@ func streamEvents(ctx context.Context, watcher *fsnotify.Watcher, to chan Event,
 				(currentFile != lastFile) {
 				lastFile = currentFile
 				data, err := ioutil.ReadFile(file)
-				dispatchEvent(bytes.NewBuffer(data), errors.WithStack(err))
+				if err != nil {
+					c <- &ErrorEvent{
+						error:  errors.WithStack(err),
+						source: eventSource,
+					}
+				} else {
+					c <- &ChangeEvent{
+						data:   bytes.NewBuffer(data),
+						source: eventSource,
+					}
+				}
 			}
 		}
 	loopEnd:
@@ -117,13 +116,3 @@ func streamEvents(ctx context.Context, watcher *fsnotify.Watcher, to chan Event,
 		}
 	}
 }
-
-func (f *FileWatcher) ID() string {
-	return f.file
-}
-
-func (f *FileWatcher) Close() {
-	_ = f.w.Close()
-}
-
-var _ Watcher = &FileWatcher{}

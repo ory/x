@@ -10,38 +10,27 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/ory/x/pointerx"
-	"github.com/ory/x/randx"
 )
-
-func createTmpDir(t *testing.T) string {
-	dir := path.Join(os.TempDir(), randx.MustString(32, randx.AlphaNum))
-	require.NoError(t, os.Mkdir(dir, 0777))
-	return dir
-}
 
 func setup(t *testing.T) (context.Context, chan Event, string, context.CancelFunc) {
 	c := make(chan Event)
 	ctx, cancel := context.WithCancel(context.Background())
-	dir := createTmpDir(t)
+	dir, err := ioutil.TempDir("", "*")
+	require.NoError(t, err)
 	return ctx, c, dir, cancel
 }
 
-func assertEvent(t *testing.T, expectedError error, expectedSrc string, expectedData *string, c chan Event) {
-	select {
-	case e := <-c:
-		assert.Equal(t, expectedError, e.Error, "%+v", e.Error)
-		assert.Equal(t, expectedSrc, e.Src)
-		if expectedData != nil {
-			require.NotNil(t, e.Data)
-			data, err := ioutil.ReadAll(e.Data)
-			require.NoError(t, err)
-			assert.Equal(t, *expectedData, string(data))
-		} else {
-			assert.Nil(t, e.Data)
-		}
-	}
+func assertChange(t *testing.T, e Event, expectedData, src string) {
+	_, ok := e.(*ChangeEvent)
+	assert.True(t, ok)
+	data, err := ioutil.ReadAll(e.Reader())
+	require.NoError(t, err)
+	assert.Equal(t, expectedData, string(data))
+	assert.Equal(t, src, e.Source())
+}
+
+func assertRemove(t *testing.T, e Event, src string) {
+	assert.Equal(t, &RemoveEvent{source(src)}, e)
 }
 
 func TestFileWatcher(t *testing.T) {
@@ -53,13 +42,13 @@ func TestFileWatcher(t *testing.T) {
 		f, err := os.Create(exampleFile)
 		require.NoError(t, err)
 
-		_, err = NewFileWatcher(ctx, exampleFile, c)
-		require.NoError(t, err)
+		require.NoError(t, WatchFile(ctx, exampleFile, c))
 
 		_, err = fmt.Fprintf(f, "foo")
 		require.NoError(t, err)
+		require.NoError(t, f.Close())
 
-		assertEvent(t, nil, exampleFile, pointerx.String("foo"), c)
+		assertChange(t, <-c, "foo", exampleFile)
 	})
 
 	t.Run("case=notifies on file create", func(t *testing.T) {
@@ -67,13 +56,13 @@ func TestFileWatcher(t *testing.T) {
 		defer cancel()
 
 		exampleFile := path.Join(dir, "example.file")
-		_, err := NewFileWatcher(ctx, exampleFile, c)
-		require.NoError(t, err)
+		require.NoError(t, WatchFile(ctx, exampleFile, c))
 
-		_, err = os.Create(exampleFile)
+		f, err := os.Create(exampleFile)
 		require.NoError(t, err)
+		require.NoError(t, f.Close())
 
-		assertEvent(t, nil, exampleFile, pointerx.String(""), c)
+		assertChange(t, <-c, "", exampleFile)
 	})
 
 	t.Run("case=notifies after file delete about recreate", func(t *testing.T) {
@@ -83,71 +72,69 @@ func TestFileWatcher(t *testing.T) {
 		exampleFile := path.Join(dir, "example.file")
 		f, err := os.Create(exampleFile)
 		require.NoError(t, err)
-
-		_, err = NewFileWatcher(ctx, exampleFile, c)
-		require.NoError(t, err)
-
 		require.NoError(t, f.Close())
+
+		require.NoError(t, WatchFile(ctx, exampleFile, c))
+
 		require.NoError(t, os.Remove(exampleFile))
 
-		assertEvent(t, nil, exampleFile, nil, c)
+		assertRemove(t, <-c, exampleFile)
 
 		f, err = os.Create(exampleFile)
-		defer f.Close()
 		require.NoError(t, err)
+		require.NoError(t, f.Close())
 
-		assertEvent(t, nil, exampleFile, pointerx.String(""), c)
+		assertChange(t, <-c, "", exampleFile)
 	})
 
 	t.Run("case=notifies about changes in the linked file", func(t *testing.T) {
 		ctx, c, dir, cancel := setup(t)
 		defer cancel()
 
-		otherDir := createTmpDir(t)
+		otherDir, err := ioutil.TempDir("", "*")
+		require.NoError(t, err)
 		origFileName := path.Join(otherDir, "original")
 		f, err := os.Create(origFileName)
-		defer f.Close()
 		require.NoError(t, err)
 
 		linkFileName := path.Join(dir, "slink")
 		require.NoError(t, os.Symlink(origFileName, linkFileName))
 
-		_, err = NewFileWatcher(ctx, linkFileName, c)
-		require.NoError(t, err)
+		require.NoError(t, WatchFile(ctx, linkFileName, c))
 
 		_, err = fmt.Fprintf(f, "content")
 		require.NoError(t, err)
+		require.NoError(t, f.Close())
 
-		assertEvent(t, nil, linkFileName, pointerx.String("content"), c)
+		assertChange(t, <-c, "content", linkFileName)
 	})
 
 	t.Run("case=notifies about symlink change", func(t *testing.T) {
 		ctx, c, dir, cancel := setup(t)
 		defer cancel()
 
-		otherDir := createTmpDir(t)
+		otherDir, err := ioutil.TempDir("", "*")
+		require.NoError(t, err)
 		fileOne := path.Join(otherDir, "fileOne")
 		fileTwo := path.Join(otherDir, "fileTwo")
 		f1, err := os.Create(fileOne)
-		defer f1.Close()
 		require.NoError(t, err)
+		require.NoError(t, f1.Close())
 		f2, err := os.Create(fileTwo)
-		defer f2.Close()
 		require.NoError(t, err)
 		_, err = fmt.Fprintf(f2, "file two")
 		require.NoError(t, err)
+		require.NoError(t, f2.Close())
 
 		linkFileName := path.Join(dir, "slink")
 		require.NoError(t, os.Symlink(fileOne, linkFileName))
 
-		_, err = NewFileWatcher(ctx, linkFileName, c)
-		require.NoError(t, err)
+		require.NoError(t, WatchFile(ctx, linkFileName, c))
 
 		require.NoError(t, os.Remove(linkFileName))
-		t.Logf("working in dir %s otherdir %s", dir, otherDir)
-		assertEvent(t, nil, linkFileName, nil, c)
+		assertRemove(t, <-c, linkFileName)
 
 		require.NoError(t, os.Symlink(fileTwo, linkFileName))
-		assertEvent(t, nil, linkFileName, pointerx.String("file two"), c)
+		assertChange(t, <-c, "file two", linkFileName)
 	})
 }
