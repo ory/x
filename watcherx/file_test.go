@@ -22,7 +22,7 @@ func setup(t *testing.T) (context.Context, chan Event, string, context.CancelFun
 
 func assertChange(t *testing.T, e Event, expectedData, src string) {
 	_, ok := e.(*ChangeEvent)
-	assert.True(t, ok)
+	require.True(t, ok, "%T: %+v", e, e)
 	data, err := ioutil.ReadAll(e.Reader())
 	require.NoError(t, err)
 	assert.Equal(t, expectedData, string(data))

@@ -88,8 +88,8 @@ func streamFileEvents(ctx context.Context, watcher *fsnotify.Watcher, c EventCha
 			// 1. the file was written or created
 			// 2. the file is a symlink and has changed (k8s config map updates)
 			// 3. the file behind the symlink was written or created
-			const writeOrCreate = fsnotify.Write | fsnotify.Create
-			if (path.Clean(e.Name) == file && e.Op&writeOrCreate != 0) ||
+
+			if (path.Clean(e.Name) == file && e.Op&(fsnotify.Write|fsnotify.Create) != 0) ||
 				(currentFile != lastFile) {
 				lastFile = currentFile
 				data, err := ioutil.ReadFile(file)
