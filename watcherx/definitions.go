@@ -13,7 +13,7 @@ type (
 	EventChannel chan Event
 )
 
-// This var is just for checking with errors.Is()
+// ErrSchemeUnknown is just for checking with errors.Is()
 var ErrSchemeUnknown = &errSchemeUnknown{}
 
 func (e *errSchemeUnknown) Is(other error) bool {
