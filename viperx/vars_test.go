@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/ory/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ory/viper"
 )
 
 func TestUnmarshalKey(t *testing.T) {
@@ -14,7 +15,7 @@ func TestUnmarshalKey(t *testing.T) {
 	require.NoError(t, viper.ReadInConfig())
 
 	var config struct {
-		Enabled bool          `json:"enabled"`
+		Enabled bool            `json:"enabled"`
 		Config  json.RawMessage `json:"config"`
 	}
 	require.NoError(t, UnmarshalKey("selfservice.strategies.oidc", &config))
