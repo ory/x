@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 
-	"github.com/ory/viper"
 	"github.com/pkg/errors"
+
+	"github.com/ory/viper"
 
 	"github.com/ory/x/mapx"
 )
