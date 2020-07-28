@@ -36,6 +36,8 @@ func CreateWatcher(ctx context.Context, u *url.URL, c chan Event) (Watcher, erro
 	switch u.Scheme {
 	case "file":
 		return NewFileWatcher(ctx, u.Path, c)
+	case "ws":
+		return NewWebSocketWatcher(ctx, u.String(), c)
 	}
 	return nil, &errSchemeUnknown{u.Scheme}
 }
