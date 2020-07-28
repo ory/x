@@ -3,28 +3,22 @@ package watcherx
 import (
 	"context"
 	"github.com/gorilla/websocket"
+	"github.com/pkg/errors"
 )
 
-type (
-	WebSocketWatcher struct {
-		c chan Event
-	}
-)
-
-func NewWebSocketWatcher(ctx context.Context, url string, c chan Event) (*WebSocketWatcher, error) {
+func WatchWebsocket(ctx context.Context, url string, c EventChannel) error {
 	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
-		return nil, err
+		return errors.WithStack(err)
 	}
-	go forwardWebsocket(ctx, conn, c)
-	return &WebSocketWatcher{
-		c: c,
-	}, nil
+	go forwardWebsocketEvents(ctx, conn, c)
+	return nil
 }
 
-func forwardWebsocket(ctx context.Context, conn *websocket.Conn, c chan Event) {
+func forwardWebsocketEvents(ctx context.Context, conn *websocket.Conn, c EventChannel) {
 	defer conn.Close()
 	for {
+
 		_, msg, err := conn.ReadMessage()
 		select {
 		case <-ctx.Done():
@@ -32,9 +26,3 @@ func forwardWebsocket(ctx context.Context, conn *websocket.Conn, c chan Event) {
 		}
 	}
 }
-
-func (w *WebSocketWatcher) ID() string {
-	panic("implement me")
-}
-
-var _ Watcher = &WebSocketWatcher{}

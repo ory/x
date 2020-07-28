@@ -29,6 +29,8 @@ func Watch(ctx context.Context, u *url.URL, c EventChannel) error {
 	switch u.Scheme {
 	case "file":
 		return WatchFile(ctx, u.Path, c)
+	case "ws":
+		return WatchWebsocket(ctx, u.String(), c)
 	}
 	return &errSchemeUnknown{u.Scheme}
 }
