@@ -1,0 +1,27 @@
+watching file /etc/config/mock-config
+got event:
+Data: othervalue,
+Error: <nil>,
+Src: /etc/config/mock-config
+watching file /etc/config/mock-config
+got event:
+Data: othervalue,
+Error: <nil>,
+Src: /etc/config/mock-config
+got event:
+Data: somevalue,
+Error: <nil>,
+Src: /etc/config/mock-config
+watching file /etc/config/mock-config
+got event:
+Data: othervalue,
+Error: <nil>,
+Src: /etc/config/mock-config
+got event:
+Data: somevalue,
+Error: <nil>,
+Src: /etc/config/mock-config
+got event:
+Data: othervalue,
+Error: <nil>,
+Src: /etc/config/mock-config
