@@ -73,15 +73,15 @@ func streamFileEvents(ctx context.Context, watcher *fsnotify.Watcher, c EventCha
 			// filter events to only watch watchedFile
 			// e.Name contains the name of the watchedFile (regardless whether it is a symlink), not the resolved file name
 			if path.Clean(e.Name) == watchedFile {
-				if e.Op&fsnotify.Remove != 0 {
-					// the watchedFile (or the file behind the symlink) was removed
-					c <- &RemoveEvent{eventSource}
-					removeDirectFileWatcher()
-					continue
-				}
-				// from now on we assume watchedFile exists as there was an event on it but it was not fsnotify.Remove
 				recentlyResolvedFile, err := filepath.EvalSymlinks(watchedFile)
+				// when there is no error the file exists and any symlinks can be resolved
 				if err != nil {
+					// check if the watchedFile (or the file behind the symlink) was removed
+					if _, ok := err.(*os.PathError); ok {
+						c <- &RemoveEvent{eventSource}
+						removeDirectFileWatcher()
+						continue
+					}
 					c <- &ErrorEvent{
 						error:  errors.WithStack(err),
 						source: eventSource,
