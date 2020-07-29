@@ -3,6 +3,7 @@ package tracing
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"strings"
 
 	"github.com/opentracing/opentracing-go"
@@ -132,6 +133,14 @@ func (t *Tracer) IsLoaded() bool {
 		return false
 	}
 	return true
+}
+
+func (t *Tracer) HTTPInject(sm opentracing.SpanContext, r *http.Request) {
+	t.tracer.Inject(
+		sm,
+		opentracing.HTTPHeaders,
+		opentracing.HTTPHeadersCarrier(r.Header),
+	)
 }
 
 // Close closes the tracer.
