@@ -57,6 +57,23 @@ func TestWatchDirectory(t *testing.T) {
 		ctx, c, dir, cancel := setup(t)
 		defer cancel()
 
+		childDir := path.Join(dir, "child")
+		require.NoError(t, os.Mkdir(childDir, 0777))
+
+		require.NoError(t, WatchDirectory(ctx, dir, c))
+
+		fileName := path.Join(childDir, "example")
+		f, err := os.Create(fileName)
+		require.NoError(t, err)
+		require.NoError(t, f.Close())
+
+		assertChange(t, <-c, "", fileName)
+	})
+
+	t.Run("case=watches new child directory", func(t *testing.T) {
+		ctx, c, dir, cancel := setup(t)
+		defer cancel()
+
 		require.NoError(t, WatchDirectory(ctx, dir, c))
 
 		childDir := path.Join(dir, "child")

@@ -8,7 +8,16 @@ import (
 	"github.com/pkg/errors"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 )
+
+func listSubDirsDepth(dirs []string, errs []error, parent string, depth int) ([]string, []error) {
+	if depth == 0 {
+		return dirs, nil
+	}
+	files, err := ioutil.ReadDir(parent)
+
+}
 
 func WatchDirectory(ctx context.Context, dir string, c EventChannel) error {
 	w, err := fsnotify.NewWatcher()
@@ -17,6 +26,23 @@ func WatchDirectory(ctx context.Context, dir string, c EventChannel) error {
 	}
 	if err := w.Add(dir); err != nil {
 		return errors.WithStack(err)
+	}
+	ioutil.ReadDir()
+	if err := filepath.Walk(dir, func(p string, info os.FileInfo, err error) error {
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		// there can't be an error as we know p is within dir
+		rel, _ := filepath.Rel(dir, p)
+		if len()
+		if info.IsDir() {
+			if err := w.Add(p); err != nil {
+				return errors.WithStack(err)
+			}
+		}
+		return nil
+	}); err != nil {
+		return err
 	}
 	go streamDirectoryEvents(ctx, w, dir, c)
 	return nil
