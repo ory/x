@@ -137,4 +137,20 @@ func TestFileWatcher(t *testing.T) {
 		require.NoError(t, os.Symlink(fileTwo, linkFileName))
 		assertChange(t, <-c, "file two", linkFileName)
 	})
+
+	t.Run("case=watch relative file path", func(t *testing.T) {
+		ctx, c, dir, cancel := setup(t)
+		defer cancel()
+
+		require.NoError(t, os.Chdir(dir))
+
+		fileName := "example.file"
+		require.NoError(t, WatchFile(ctx, fileName, c))
+
+		f, err := os.Create(fileName)
+		require.NoError(t, err)
+		require.NoError(t, f.Close())
+
+		assertChange(t, <-c, "", fileName)
+	})
 }
