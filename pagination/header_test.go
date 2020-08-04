@@ -3,9 +3,10 @@ package pagination
 import (
 	"net/http/httptest"
 	"net/url"
-	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestHeader(t *testing.T) {
@@ -23,9 +24,7 @@ func TestHeader(t *testing.T) {
 			"<http://example.com?limit=50&offset=50>; rel=\"prev\"",
 		}, ",")
 
-		if reflect.DeepEqual(expect, r.Result().Header.Get("Link")) != true {
-			t.Fatalf("Unexpected response from Header. Expected %+v, got %+v", expect, r.Result().Header.Get("Link"))
-		}
+		assert.EqualValues(t, expect, r.Result().Header.Get("Link"))
 	})
 
 	t.Run("Create next and last, but not previous or first if at the beginning", func(t *testing.T) {
@@ -37,9 +36,7 @@ func TestHeader(t *testing.T) {
 			"<http://example.com?limit=50&offset=100>; rel=\"last\"",
 		}, ",")
 
-		if reflect.DeepEqual(expect, r.Result().Header.Get("Link")) != true {
-			t.Fatalf("Unexpected response from Header. Expected %+v, got %+v", expect, r.Result().Header.Get("Link"))
-		}
+		assert.EqualValues(t, expect, r.Result().Header.Get("Link"))
 	})
 
 	t.Run("Create next and last, but not previous or first if on the first page", func(t *testing.T) {
@@ -51,9 +48,7 @@ func TestHeader(t *testing.T) {
 			"<http://example.com?limit=50&offset=100>; rel=\"last\"",
 		}, ",")
 
-		if reflect.DeepEqual(expect, r.Result().Header.Get("Link")) != true {
-			t.Fatalf("Unexpected response from Header. Expected %+v, got %+v", expect, r.Result().Header.Get("Link"))
-		}
+		assert.EqualValues(t, expect, r.Result().Header.Get("Link"))
 	})
 
 	t.Run("Create previous, next, first, and last if in the middle", func(t *testing.T) {
@@ -67,9 +62,7 @@ func TestHeader(t *testing.T) {
 			"<http://example.com?limit=50&offset=250>; rel=\"last\"",
 		}, ",")
 
-		if reflect.DeepEqual(expect, r.Result().Header.Get("Link")) != true {
-			t.Fatalf("Unexpected response from Header. Expected %+v, got %+v", expect, r.Result().Header.Get("Link"))
-		}
+		assert.EqualValues(t, expect, r.Result().Header.Get("Link"))
 	})
 
 	t.Run("Header should default limit to 1 no limit was provided", func(t *testing.T) {
@@ -83,9 +76,7 @@ func TestHeader(t *testing.T) {
 			"<http://example.com?limit=1&offset=99>; rel=\"last\"",
 		}, ",")
 
-		if reflect.DeepEqual(expect, r.Result().Header.Get("Link")) != true {
-			t.Fatalf("Unexpected response from Header. Expected %+v, got %+v", expect, r.Result().Header.Get("Link"))
-		}
+		assert.EqualValues(t, expect, r.Result().Header.Get("Link"))
 	})
 
 	t.Run("Create previous, next, first, but not last if in the middle and no total was provided", func(t *testing.T) {
@@ -98,9 +89,7 @@ func TestHeader(t *testing.T) {
 			"<http://example.com?limit=50&offset=100>; rel=\"prev\"",
 		}, ",")
 
-		if reflect.DeepEqual(expect, r.Result().Header.Get("Link")) != true {
-			t.Fatalf("Unexpected response from Header. Expected %+v, got %+v", expect, r.Result().Header.Get("Link"))
-		}
+		assert.EqualValues(t, expect, r.Result().Header.Get("Link"))
 	})
 
 	t.Run("Create only first if the limits provided exceeds the number of clients found", func(t *testing.T) {
@@ -109,8 +98,6 @@ func TestHeader(t *testing.T) {
 
 		expect := "<http://example.com?limit=5&offset=0>; rel=\"first\""
 
-		if reflect.DeepEqual(expect, r.Result().Header.Get("Link")) != true {
-			t.Fatalf("Unexpected response from Header. Expected %+v, got %+v", expect, r.Result().Header.Get("Link"))
-		}
+		assert.EqualValues(t, expect, r.Result().Header.Get("Link"))
 	})
 }
