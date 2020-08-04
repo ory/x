@@ -35,9 +35,9 @@ func newLogger(o *options) *logrus.Logger {
 	} else {
 		switch stringsx.Coalesce(o.format, viper.GetString("log.format"), viper.GetString("LOG_FORMAT")) {
 		case "json":
-			l.Formatter = &logrus.JSONFormatter{
-				PrettyPrint: l.IsLevelEnabled(logrus.DebugLevel),
-			}
+			l.Formatter = &logrus.JSONFormatter{PrettyPrint: false}
+		case "json_pretty":
+			l.Formatter = &logrus.JSONFormatter{PrettyPrint: true}
 		default:
 			l.Formatter = &logrus.TextFormatter{
 				DisableQuote:     true,
