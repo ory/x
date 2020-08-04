@@ -156,7 +156,7 @@ func TestGetInt(t *testing.T) {
 }
 
 func TestToJSONMap(t *testing.T) {
-	assert.EqualValues(t, map[string]interface {}{"baz":[]interface {}{map[string]interface {}{"bar":"bar"}}, "foo":"bar"},ToJSONMap(map[string]interface{}{
+	assert.EqualValues(t, map[string]interface{}{"baz": []interface{}{map[string]interface{}{"bar": "bar"}}, "foo": "bar"}, ToJSONMap(map[string]interface{}{
 		"foo": "bar",
 		"baz": []interface{}{
 			map[interface{}]interface{}{

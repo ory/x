@@ -5,7 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"path"
 	"strings"
+	"time"
+
+	"gopkg.in/yaml.v2"
+
+	"github.com/pkg/errors"
 
 	"github.com/tidwall/gjson"
 
@@ -75,4 +82,16 @@ func jsonschemaFormatError(e *jsonschema.ValidationError) (string, string) {
 	}
 
 	return pointer, message
+}
+
+const permOwnerRW = 0o600
+
+func sensitiveDumpAllValues(dir string) error {
+	configContent, err := yaml.Marshal(viper.AllSettings())
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	return errors.WithStack(
+		ioutil.WriteFile(path.Join(dir, fmt.Sprintf("config-%d.yml", time.Now().UnixNano())), configContent, permOwnerRW),
+	)
 }

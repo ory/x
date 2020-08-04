@@ -20,6 +20,10 @@ type Logger struct {
 	leakSensitive bool
 }
 
+func (l *Logger) LeakSensitiveData() bool {
+	return l.leakSensitive
+}
+
 func (l *Logger) Logrus() *logrus.Logger {
 	return l.Entry.Logger
 }
