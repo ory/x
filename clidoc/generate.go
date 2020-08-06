@@ -56,7 +56,7 @@ func Generate(cmd *cobra.Command, args []string) error {
 }
 
 func trimExt(s string) string {
-	return strings.TrimSuffix(s, filepath.Ext(s))
+	return strings.ReplaceAll(strings.TrimSuffix(s, filepath.Ext(s)), "_", "-")
 }
 
 func generate(cmd *cobra.Command, dir string, navItems *[]string) error {
