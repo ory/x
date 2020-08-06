@@ -3,46 +3,33 @@ package watcherx
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/pkg/errors"
 )
 
-func listSubDirsDepth(parent string, depth int) (dirs []string, errs []error) {
-	if depth == 0 {
-		return
-	}
-	entries, err := ioutil.ReadDir(parent)
-	if err != nil {
-		return dirs, append(errs, errors.WithStack(err))
-	}
-	for _, e := range entries {
-		if e.IsDir() {
-			dn := path.Join(parent, e.Name())
-			subDirs, subErrs := listSubDirsDepth(dn, depth-1)
-			dirs = append(append(dirs, dn), subDirs...)
-			errs = append(errs, subErrs...)
-		}
-	}
-	return
-}
-
-func WatchDirectory(ctx context.Context, dir string, depth int, c EventChannel) error {
+func WatchDirectory(ctx context.Context, dir string, c EventChannel) error {
 	w, err := fsnotify.NewWatcher()
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	subDirs, errs := listSubDirsDepth(dir, depth)
-	if len(errs) != 0 {
-		return errors.Errorf("%+v", errs)
+	var subDirs []string
+	if err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			subDirs = append(subDirs, path)
+		}
+		return nil
+	}); err != nil {
+		return errors.WithStack(err)
 	}
 	for _, d := range append(subDirs, dir) {
-		fmt.Printf("adding watcher for %s\n", d)
 		if err := w.Add(d); err != nil {
 			return errors.WithStack(err)
 		}
@@ -83,7 +70,6 @@ func handleEvent(e fsnotify.Event, w *fsnotify.Watcher, c EventChannel) {
 			}
 			return
 		} else if stats.IsDir() {
-			fmt.Printf("created directory %s\n", e.Name)
 			if err := w.Add(e.Name); err != nil {
 				c <- &ErrorEvent{
 					error:  errors.WithStack(err),

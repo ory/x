@@ -2,96 +2,20 @@ package watcherx
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
-	"strings"
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/ory/x/stringslice"
 )
-
-func TestListSubDirsDepth(t *testing.T) {
-	absSetup := func(t *testing.T) (string, []string) {
-		wd, err := ioutil.TempDir("", "list-sub-dir-test-")
-		var dirs []string
-		for _, d := range []string{
-			"bar",
-			"bar/baz",
-			"foo",
-		} {
-			dirs = append(dirs, path.Join(wd, d))
-		}
-		require.NoError(t, err)
-
-		for _, d := range dirs {
-			require.NoError(t, os.MkdirAll(d, 0777))
-		}
-
-		return wd, dirs
-	}
-
-	relSetup := func(t *testing.T) (func(), []string) {
-		dirs := []string{
-			"bar",
-			"bar/baz",
-			"foo",
-		}
-		wd, err := ioutil.TempDir("", "list-sub-dir-test-")
-		require.NoError(t, err)
-
-		for _, d := range dirs {
-			require.NoError(t, os.MkdirAll(path.Join(wd, d), 0777))
-		}
-
-		prevWD, err := os.Getwd()
-		require.NoError(t, err)
-		require.NoError(t, os.Chdir(wd))
-		return func() {
-			require.NoError(t, os.Chdir(prevWD))
-		}, dirs
-	}
-
-	t.Run("case=absolute path", func(t *testing.T) {
-		wd, dirs := absSetup(t)
-
-		subDirs, errs := listSubDirsDepth(wd, 1000)
-		require.Equal(t, 0, len(errs), "%+v", errs)
-		assert.Equal(t, dirs, subDirs)
-	})
-
-	t.Run("case=relative path", func(t *testing.T) {
-		clean, dirs := relSetup(t)
-		defer clean()
-
-		subDirs, errs := listSubDirsDepth(".", 100)
-
-		require.Equal(t, 0, len(errs), "%+v", errs)
-		assert.Equal(t, dirs, subDirs)
-	})
-
-	t.Run("case=respects depth", func(t *testing.T) {
-		clean, dirs := relSetup(t)
-		defer clean()
-
-		subDirs, errs := listSubDirsDepth(".", 1)
-		require.Equal(t, 0, len(errs), "%+v", errs)
-		assert.Equal(t, stringslice.Filter(dirs, func(s string) bool {
-			return len(strings.Split(s, string(os.PathSeparator))) > 1
-		}), subDirs)
-	})
-}
 
 func TestWatchDirectory(t *testing.T) {
 	t.Run("case=notifies about file creation in directory", func(t *testing.T) {
 		ctx, c, dir, cancel := setup(t)
 		defer cancel()
 
-		require.NoError(t, WatchDirectory(ctx, dir, 100, c))
+		require.NoError(t, WatchDirectory(ctx, dir, c))
 		fileName := path.Join(dir, "example")
 		f, err := os.Create(fileName)
 		require.NoError(t, err)
@@ -107,7 +31,7 @@ func TestWatchDirectory(t *testing.T) {
 		fileName := path.Join(dir, "example")
 		f, err := os.Create(fileName)
 		require.NoError(t, err)
-		require.NoError(t, WatchDirectory(ctx, dir, 100, c))
+		require.NoError(t, WatchDirectory(ctx, dir, c))
 
 		_, err = fmt.Fprintf(f, "content")
 		require.NoError(t, f.Close())
@@ -124,7 +48,7 @@ func TestWatchDirectory(t *testing.T) {
 		require.NoError(t, err)
 		require.NoError(t, f.Close())
 
-		require.NoError(t, WatchDirectory(ctx, dir, 100, c))
+		require.NoError(t, WatchDirectory(ctx, dir, c))
 		require.NoError(t, os.Remove(fileName))
 
 		assertRemove(t, <-c, fileName)
@@ -137,7 +61,7 @@ func TestWatchDirectory(t *testing.T) {
 		childDir := path.Join(dir, "child")
 		require.NoError(t, os.Mkdir(childDir, 0777))
 
-		require.NoError(t, WatchDirectory(ctx, dir, 100, c))
+		require.NoError(t, WatchDirectory(ctx, dir, c))
 
 		fileName := path.Join(childDir, "example")
 		f, err := os.Create(fileName)
@@ -151,7 +75,7 @@ func TestWatchDirectory(t *testing.T) {
 		ctx, c, dir, cancel := setup(t)
 		defer cancel()
 
-		require.NoError(t, WatchDirectory(ctx, dir, 100, c))
+		require.NoError(t, WatchDirectory(ctx, dir, c))
 
 		childDir := path.Join(dir, "child")
 		require.NoError(t, os.Mkdir(childDir, 0777))
@@ -172,7 +96,7 @@ func TestWatchDirectory(t *testing.T) {
 		childDir := path.Join(dir, "child")
 		require.NoError(t, os.Mkdir(childDir, 0777))
 
-		require.NoError(t, WatchDirectory(ctx, dir, 100, c))
+		require.NoError(t, WatchDirectory(ctx, dir, c))
 
 		require.NoError(t, os.Remove(childDir))
 
@@ -201,7 +125,7 @@ func TestWatchDirectory(t *testing.T) {
 		require.NoError(t, err)
 		require.NoError(t, f.Close())
 
-		require.NoError(t, WatchDirectory(ctx, dir, 100, c))
+		require.NoError(t, WatchDirectory(ctx, dir, c))
 
 		require.NoError(t, os.RemoveAll(childDir))
 
