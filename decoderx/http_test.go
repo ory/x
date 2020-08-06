@@ -65,7 +65,7 @@ func TestHTTPFormDecoder(t *testing.T) {
 		},
 		{
 			d:       "should fail json if validation fails",
-			request: newRequest(t, "POST", "/", bytes.NewBufferString(`{"foo":"bar"}`), httpContentTypeJSON),
+			request: newRequest(t, "POST", "/", bytes.NewBufferString(`{"foo":"bar", "bar":"baz"}`), httpContentTypeJSON),
 			options: []HTTPDecoderOption{HTTPJSONDecoder(), MustHTTPRawJSONSchemaCompiler([]byte(`{
 	"$id": "https://example.com/config.schema.json",
 	"$schema": "http://json-schema.org/draft-07/schema#",
@@ -73,11 +73,15 @@ func TestHTTPFormDecoder(t *testing.T) {
 	"properties": {
 		"foo": {
 			"type": "number"
+		},
+		"bar": {
+			"type": "string"
 		}
 	}
 }`),
 			)},
 			expectedError: "expected number, but got string",
+			expected:      `{ "bar": "baz", "foo": "bar" }`,
 		},
 		{
 			d:       "should pass json with validation",
@@ -177,6 +181,9 @@ func TestHTTPFormDecoder(t *testing.T) {
 				}
 				require.Error(t, err)
 				require.Contains(t, fmt.Sprintf("%+v", err), tc.expectedError)
+				if len(tc.expected) > 0 {
+					assert.JSONEq(t, tc.expected, string(destination))
+				}
 				return
 			}
 
