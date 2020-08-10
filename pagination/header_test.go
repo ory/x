@@ -25,6 +25,7 @@ func TestHeader(t *testing.T) {
 		}, ",")
 
 		assert.EqualValues(t, expect, r.Result().Header.Get("Link"))
+		assert.EqualValues(t, "120", r.Result().Header.Get("X-Total-Count"))
 	})
 
 	t.Run("Create next and last, but not previous or first if at the beginning", func(t *testing.T) {
