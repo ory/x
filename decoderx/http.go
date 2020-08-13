@@ -49,17 +49,28 @@ const (
 )
 
 const (
-	// ParseErrorIgnore will ignore any parse errors caused by strconv.Parse* and use the
+	// ParseErrorIgnoreConversionErrors will ignore any errors caused by strconv.Parse* and use the
 	// raw form field value, which is a string, when such a parse error occurs.
-	ParseErrorIgnore parseErrorStrategy = iota + 1
+	//
+	// If the JSON Schema defines `{"ratio": {"type": "number"}}` but `ratio=foobar` then field
+	// `ratio` will be handled as a string. If the destination struct is a `json.RawMessage`, then
+	// the output will be `{"ratio": "foobar"}`.
+	ParseErrorIgnoreConversionErrors parseErrorStrategy = iota + 1
 
-	// ParseErrorDefault will ignore any parse errors caused by strconv.Parse* and use the
+	// ParseErrorUseEmptyValueOnConversionErrors will ignore any parse errors caused by strconv.Parse* and use the
 	// default value of the type to be casted, e.g. float64(0), string("").
-	ParseErrorDefault
+	//
+	// If the JSON Schema defines `{"ratio": {"type": "number"}}` but `ratio=foobar` then field
+	// `ratio` will receive the default value for the primitive type (here `0.0` for `number`).
+	// If the destination struct is a `json.RawMessage`, then the output will be `{"ratio": 0.0}`.
+	ParseErrorUseEmptyValueOnConversionErrors
 
-	// ParseErrorReturn will abort and return with an error if strconv.Parse* returns
+	// ParseErrorReturnOnConversionErrors will abort and return with an error if strconv.Parse* returns
 	// an error.
-	ParseErrorReturn
+	//
+	// If the JSON Schema defines `{"ratio": {"type": "number"}}` but `ratio=foobar` the parser aborts
+	// and returns an error, here: `strconv.ParseFloat: parsing "foobar"`.
+	ParseErrorReturnOnConversionErrors
 )
 
 // HTTPFormDecoder configures the HTTP decoder to only accept form-data
@@ -87,11 +98,11 @@ func HTTPDecoderSetValidatePayloads(validate bool) HTTPDecoderOption {
 
 // HTTPDecoderSetIgnoreParseErrorsStrategy sets a strategy for dealing with strconv.Parse* errors:
 //
-// - decoderx.ParseErrorIgnore will ignore any parse errors caused by strconv.Parse* and use the
+// - decoderx.ParseErrorIgnoreConversionErrors will ignore any parse errors caused by strconv.Parse* and use the
 // raw form field value, which is a string, when such a parse error occurs. (default)
-// - decoderx.ParseErrorDefault will ignore any parse errors caused by strconv.Parse* and use the
+// - decoderx.ParseErrorUseEmptyValueOnConversionErrors will ignore any parse errors caused by strconv.Parse* and use the
 // default value of the type to be casted, e.g. float64(0), string("").
-// - decoderx.ParseErrorReturn will abort and return with an error if strconv.Parse* returns
+// - decoderx.ParseErrorReturnOnConversionErrors will abort and return with an error if strconv.Parse* returns
 // an error.
 func HTTPDecoderSetIgnoreParseErrorsStrategy(strategy parseErrorStrategy) HTTPDecoderOption {
 	return func(o *httpDecoderOptions) {
@@ -152,7 +163,7 @@ func newHTTPDecoderOptions(fs []HTTPDecoderOption) *httpDecoderOptions {
 		},
 		allowedHTTPMethods:        []string{"POST", "PUT", "PATCH"},
 		maxCircularReferenceDepth: 5,
-		handleParseErrors:         ParseErrorIgnore,
+		handleParseErrors:         ParseErrorIgnoreConversionErrors,
 	}
 
 	for _, f := range fs {
@@ -251,11 +262,11 @@ func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecod
 					for k, v := range r.PostForm[key] {
 						if f, err := strconv.ParseFloat(v, 64); err != nil {
 							switch o.handleParseErrors {
-							case ParseErrorIgnore:
+							case ParseErrorIgnoreConversionErrors:
 								raw, err = sjson.SetBytes(raw, path.Name+"."+strconv.Itoa(k), v)
-							case ParseErrorDefault:
+							case ParseErrorUseEmptyValueOnConversionErrors:
 								raw, err = sjson.SetBytes(raw, path.Name+"."+strconv.Itoa(k), f)
-							case ParseErrorReturn:
+							case ParseErrorReturnOnConversionErrors:
 								return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Expected value to be a number.").
 									WithDetail("parse_error", err.Error()).
 									WithDetail("name", key).
@@ -270,11 +281,11 @@ func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecod
 					for k, v := range r.PostForm[key] {
 						if f, err := strconv.ParseBool(v); err != nil {
 							switch o.handleParseErrors {
-							case ParseErrorIgnore:
+							case ParseErrorIgnoreConversionErrors:
 								raw, err = sjson.SetBytes(raw, path.Name+"."+strconv.Itoa(k), v)
-							case ParseErrorDefault:
+							case ParseErrorUseEmptyValueOnConversionErrors:
 								raw, err = sjson.SetBytes(raw, path.Name+"."+strconv.Itoa(k), f)
-							case ParseErrorReturn:
+							case ParseErrorReturnOnConversionErrors:
 								return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Expected value to be a boolean.").
 									WithDetail("parse_error", err.Error()).
 									WithDetail("name", key).
@@ -291,11 +302,11 @@ func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecod
 					v := r.PostForm[key][len(r.PostForm[key])-1]
 					if f, err := strconv.ParseBool(v); err != nil {
 						switch o.handleParseErrors {
-						case ParseErrorIgnore:
+						case ParseErrorIgnoreConversionErrors:
 							raw, err = sjson.SetBytes(raw, path.Name, v)
-						case ParseErrorDefault:
+						case ParseErrorUseEmptyValueOnConversionErrors:
 							raw, err = sjson.SetBytes(raw, path.Name, f)
-						case ParseErrorReturn:
+						case ParseErrorReturnOnConversionErrors:
 							return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Expected value to be a boolean.").
 								WithDetail("parse_error", err.Error()).
 								WithDetail("name", key).
@@ -308,11 +319,11 @@ func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecod
 					v := r.PostForm.Get(key)
 					if f, err := strconv.ParseFloat(v, 64); err != nil {
 						switch o.handleParseErrors {
-						case ParseErrorIgnore:
+						case ParseErrorIgnoreConversionErrors:
 							raw, err = sjson.SetBytes(raw, path.Name, v)
-						case ParseErrorDefault:
+						case ParseErrorUseEmptyValueOnConversionErrors:
 							raw, err = sjson.SetBytes(raw, path.Name, f)
-						case ParseErrorReturn:
+						case ParseErrorReturnOnConversionErrors:
 							return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Expected value to be a number.").
 								WithDetail("parse_error", err.Error()).
 								WithDetail("name", key).

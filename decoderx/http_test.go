@@ -143,32 +143,40 @@ func TestHTTPFormDecoder(t *testing.T) {
 }`,
 		},
 		{
-			d: "should work with ParseErrorIgnore",
+			d: "should work with ParseErrorIgnoreConversionErrors",
 			request: newRequest(t, "POST", "/", bytes.NewBufferString(url.Values{
 				"ratio": {"foobar"},
 			}.Encode()), httpContentTypeURLEncodedForm),
 			options: []HTTPDecoderOption{
 				HTTPJSONSchemaCompiler("stub/person.json", nil),
-				HTTPDecoderSetIgnoreParseErrorsStrategy(ParseErrorIgnore),
+				HTTPDecoderSetIgnoreParseErrorsStrategy(ParseErrorIgnoreConversionErrors),
 				HTTPDecoderSetValidatePayloads(false),
 			},
 			expected: `{"ratio": "foobar"}`,
 		},
 		{
-			d: "should work with ParseErrorIgnore",
+			d: "should work with ParseErrorIgnoreConversionErrors",
 			request: newRequest(t, "POST", "/", bytes.NewBufferString(url.Values{
 				"ratio": {"foobar"},
 			}.Encode()), httpContentTypeURLEncodedForm),
-			options:  []HTTPDecoderOption{HTTPJSONSchemaCompiler("stub/person.json", nil), HTTPDecoderSetIgnoreParseErrorsStrategy(ParseErrorDefault)},
+			options:  []HTTPDecoderOption{HTTPJSONSchemaCompiler("stub/person.json", nil), HTTPDecoderSetIgnoreParseErrorsStrategy(ParseErrorUseEmptyValueOnConversionErrors)},
 			expected: `{"ratio": 0.0}`,
 		},
 		{
-			d: "should work with ParseErrorIgnore",
+			d: "should work with ParseErrorIgnoreConversionErrors",
 			request: newRequest(t, "POST", "/", bytes.NewBufferString(url.Values{
 				"ratio": {"foobar"},
 			}.Encode()), httpContentTypeURLEncodedForm),
-			options:       []HTTPDecoderOption{HTTPJSONSchemaCompiler("stub/person.json", nil), HTTPDecoderSetIgnoreParseErrorsStrategy(ParseErrorReturn)},
+			options:       []HTTPDecoderOption{HTTPJSONSchemaCompiler("stub/person.json", nil), HTTPDecoderSetIgnoreParseErrorsStrategy(ParseErrorReturnOnConversionErrors)},
 			expectedError: `strconv.ParseFloat: parsing "foobar"`,
+		},
+		{
+			d: "should interpret numbers as string if mandated by the schema",
+			request: newRequest(t, "POST", "/", bytes.NewBufferString(url.Values{
+				"name.first": {"12345"},
+			}.Encode()), httpContentTypeURLEncodedForm),
+			options:  []HTTPDecoderOption{HTTPJSONSchemaCompiler("stub/person.json", nil), HTTPDecoderSetIgnoreParseErrorsStrategy(ParseErrorUseEmptyValueOnConversionErrors)},
+			expected: `{"name": {"first": "12345"}}`,
 		},
 	} {
 		t.Run(fmt.Sprintf("case=%d/description=%s", k, tc.d), func(t *testing.T) {
