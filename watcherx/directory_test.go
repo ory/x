@@ -129,7 +129,11 @@ func TestWatchDirectory(t *testing.T) {
 
 		require.NoError(t, os.RemoveAll(childDir))
 
-		assertRemove(t, <-c, f2)
-		assertRemove(t, <-c, f1)
+		events := []Event{<-c, <-c}
+		if events[0].Source() > events[1].Source() {
+			events[1], events[0] = events[0], events[1]
+		}
+		assertRemove(t, events[0], f2)
+		assertRemove(t, events[1], f1)
 	})
 }

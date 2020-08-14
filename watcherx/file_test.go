@@ -154,19 +154,20 @@ func TestFileWatcher(t *testing.T) {
 		assertChange(t, <-c, "", fileName)
 	})
 
-	t.Run("case=kubernetes atomic writer create", func(t *testing.T) {
-		ctx, c, dir, cancel := setup(t)
-		defer cancel()
-
-		fileName := "example.file"
-		filePath := path.Join(dir, fileName)
-
-		require.NoError(t, WatchFile(ctx, filePath, c))
-
-		kubernetesAtomicWrite(t, dir, fileName, "foobarx")
-
-		assertChange(t, <-c, "foobarx", filePath)
-	})
+	// https://github.com/kubernetes/kubernetes/issues/93686
+	//t.Run("case=kubernetes atomic writer create", func(t *testing.T) {
+	//	ctx, c, dir, cancel := setup(t)
+	//	defer cancel()
+	//
+	//	fileName := "example.file"
+	//	filePath := path.Join(dir, fileName)
+	//
+	//	require.NoError(t, WatchFile(ctx, filePath, c))
+	//
+	//	kubernetesAtomicWrite(t, dir, fileName, "foobarx")
+	//
+	//	assertChange(t, <-c, "foobarx", filePath)
+	//})
 
 	t.Run("case=kubernetes atomic writer update", func(t *testing.T) {
 		ctx, c, dir, cancel := setup(t)
