@@ -22,7 +22,7 @@ func setup(t *testing.T) (context.Context, chan Event, string, context.CancelFun
 
 func assertChange(t *testing.T, e Event, expectedData, src string) {
 	_, ok := e.(*ChangeEvent)
-	assert.True(t, ok)
+	require.True(t, ok, "%T: %+v", e, e)
 	data, err := ioutil.ReadAll(e.Reader())
 	require.NoError(t, err)
 	assert.Equal(t, expectedData, string(data))
@@ -136,5 +136,51 @@ func TestFileWatcher(t *testing.T) {
 
 		require.NoError(t, os.Symlink(fileTwo, linkFileName))
 		assertChange(t, <-c, "file two", linkFileName)
+	})
+
+	t.Run("case=watch relative file path", func(t *testing.T) {
+		ctx, c, dir, cancel := setup(t)
+		defer cancel()
+
+		require.NoError(t, os.Chdir(dir))
+
+		fileName := "example.file"
+		require.NoError(t, WatchFile(ctx, fileName, c))
+
+		f, err := os.Create(fileName)
+		require.NoError(t, err)
+		require.NoError(t, f.Close())
+
+		assertChange(t, <-c, "", fileName)
+	})
+
+	// https://github.com/kubernetes/kubernetes/issues/93686
+	//t.Run("case=kubernetes atomic writer create", func(t *testing.T) {
+	//	ctx, c, dir, cancel := setup(t)
+	//	defer cancel()
+	//
+	//	fileName := "example.file"
+	//	filePath := path.Join(dir, fileName)
+	//
+	//	require.NoError(t, WatchFile(ctx, filePath, c))
+	//
+	//	kubernetesAtomicWrite(t, dir, fileName, "foobarx")
+	//
+	//	assertChange(t, <-c, "foobarx", filePath)
+	//})
+
+	t.Run("case=kubernetes atomic writer update", func(t *testing.T) {
+		ctx, c, dir, cancel := setup(t)
+		defer cancel()
+
+		fileName := "example.file"
+		filePath := path.Join(dir, fileName)
+		kubernetesAtomicWrite(t, dir, fileName, "foobar")
+
+		require.NoError(t, WatchFile(ctx, filePath, c))
+
+		kubernetesAtomicWrite(t, dir, fileName, "foobarx")
+
+		assertChange(t, <-c, "foobarx", filePath)
 	})
 }

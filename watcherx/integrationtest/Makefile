@@ -46,7 +46,7 @@ snapshot: setup container-restart
 
 .PHONY: check
 check: setup container-restart
-	rm tmp_snapshot
+	rm tmp_snapshot || true
 	${call generate_snapshot,tmp_snapshot}
 	diff tmp_snapshot ${SNAPSHOT_FILE}
 

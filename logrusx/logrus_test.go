@@ -42,7 +42,7 @@ func TestOptions(t *testing.T) {
 
 func TestJSONFormatter(t *testing.T) {
 	t.Run("pretty=true", func(t *testing.T) {
-		l := New("logrusx-audit", "v0.0.0", ForceFormat("json"), ForceLevel(logrus.DebugLevel))
+		l := New("logrusx-audit", "v0.0.0", ForceFormat("json_pretty"), ForceLevel(logrus.DebugLevel))
 		var b bytes.Buffer
 		l.Logrus().Out = &b
 
@@ -52,7 +52,7 @@ func TestJSONFormatter(t *testing.T) {
 	})
 
 	t.Run("pretty=false", func(t *testing.T) {
-		l := New("logrusx-audit", "v0.0.0", ForceFormat("json"), ForceLevel(logrus.InfoLevel))
+		l := New("logrusx-audit", "v0.0.0", ForceFormat("json"), ForceLevel(logrus.DebugLevel))
 		var b bytes.Buffer
 		l.Logrus().Out = &b
 

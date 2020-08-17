@@ -21,9 +21,15 @@ func header(u *url.URL, rel string, limit, offset int) string {
 // If total is not set, then no "last" page will be calculated.
 // If no limit is provided, then it will default to 1.
 func Header(w http.ResponseWriter, u *url.URL, total int, limit, offset int) {
+	if offset < 0 {
+		offset = 0
+	}
+
 	if limit <= 0 {
 		limit = 1
 	}
+
+	w.Header().Set("X-Total-Count", strconv.Itoa(total))
 
 	// lastOffset will either equal the offset required to contain the remainder,
 	// or the limit.
