@@ -2,14 +2,15 @@ package watcherx
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus/hooks/test"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"net/http/httptest"
 	"os"
 	"path"
 	"strings"
 	"testing"
+
+	"github.com/sirupsen/logrus/hooks/test"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/ory/herodot"
 	"github.com/ory/x/urlx"
