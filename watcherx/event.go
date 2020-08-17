@@ -41,7 +41,7 @@ const (
 	serialTypeError  serialEventType = "error"
 )
 
-var unknownEventError = errors.New("unknown event type")
+var errUnknownEvent = errors.New("unknown event type")
 
 func (e *ErrorEvent) Reader() io.Reader {
 	return nil
@@ -115,5 +115,5 @@ func unmarshalEvent(data []byte) (Event, error) {
 			source: serialEvent.Source,
 		}, nil
 	}
-	return nil, unknownEventError
+	return nil, errUnknownEvent
 }
