@@ -2,7 +2,6 @@ package watcherx
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"net/url"
 	"strings"
@@ -59,7 +58,6 @@ func forwardWebsocketEvents(ws *websocket.Conn, c EventChannel, u *url.URL, wsCl
 			if opErr, ok := err.(*net.OpError); ok && opErr.Op == "read" && strings.Contains(opErr.Err.Error(), "closed") {
 				return
 			}
-			fmt.Printf("going to sent %#v\n", err)
 			c <- &ErrorEvent{
 				error:  errors.WithStack(err),
 				source: serverURL,
