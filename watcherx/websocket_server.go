@@ -2,8 +2,10 @@ package watcherx
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -49,9 +51,14 @@ func broadcaster(ctx context.Context, c EventChannel) {
 func notifyOnClose(ws *websocket.Conn, c chan<- struct{}) {
 	for {
 		// blocking call to ReadMessage that waits for a close message
-		t, _, err := ws.ReadMessage()
-		if err != nil || t == websocket.CloseNormalClosure {
-			c <- struct{}{}
+		_, _, err := ws.ReadMessage()
+		if closeErr, ok := err.(*websocket.CloseError); ok && closeErr.Code == websocket.CloseNormalClosure {
+			close(c)
+			return
+		}
+		if opErr, ok := err.(*net.OpError); ok && opErr.Op == "read" && strings.Contains(opErr.Err.Error(), "closed") {
+			// the context got canceled and therefore the connection closed
+			close(c)
 			return
 		}
 	}
@@ -60,7 +67,7 @@ func notifyOnClose(ws *websocket.Conn, c chan<- struct{}) {
 func serveWS(ctx context.Context, writer herodot.Writer) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ws, err := (&websocket.Upgrader{
-			ReadBufferSize:  1024,
+			ReadBufferSize:  256, // the only message we expect is the close message
 			WriteBufferSize: 1024,
 		}).Upgrade(w, r, nil)
 		if err != nil {
@@ -83,12 +90,23 @@ func serveWS(ctx context.Context, writer herodot.Writer) func(w http.ResponseWri
 			_ = ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "server context canceled"))
 			_ = ws.Close()
 
+			wsClientChannels.Lock()
+			for i, cc := range wsClientChannels.cs {
+				if c == cc {
+					wsClientChannels.cs[i] = wsClientChannels.cs[len(wsClientChannels.cs)-1]
+					wsClientChannels.cs[len(wsClientChannels.cs)-1] = nil
+					wsClientChannels.cs = wsClientChannels.cs[:len(wsClientChannels.cs)-1]
+				}
+			}
+			wsClientChannels.Unlock()
 			close(c)
 		}()
 
 		for {
 			select {
 			case <-ctx.Done():
+				return
+			case <-wsClosed:
 				return
 			case e, ok := <-c:
 				if !ok {
@@ -97,8 +115,6 @@ func serveWS(ctx context.Context, writer herodot.Writer) func(w http.ResponseWri
 				if err := ws.WriteJSON(e); err != nil {
 					return
 				}
-			case <-wsClosed:
-				return
 			}
 		}
 	}

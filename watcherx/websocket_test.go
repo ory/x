@@ -45,6 +45,29 @@ func TestWatchWebsocket(t *testing.T) {
 		assert.Len(t, hook.Entries, 0, "%+v", hook.Entries)
 	})
 
+	t.Run("case=client closes itself on context cancel", func(t *testing.T) {
+		ctx1, c, dir, cancel1 := setup(t)
+		defer cancel1()
+		l, hook := test.NewNullLogger()
+
+		fn := path.Join(dir, "some.file")
+
+		handler, err := WatchAndServeWS(ctx1, urlx.ParseOrPanic("file://"+fn), herodot.NewJSONWriter(l))
+		require.NoError(t, err)
+		s := httptest.NewServer(handler)
+
+		ctx2, cancel2 := context.WithCancel(context.Background())
+		u := urlx.ParseOrPanic("ws" + strings.TrimLeft(s.URL, "http"))
+		require.NoError(t, WatchWebsocket(ctx2, u, c))
+
+		cancel2()
+
+		e, ok := <-c
+		assert.False(t, ok, "%#v", e)
+
+		assert.Len(t, hook.Entries, 0, "%+v", hook.Entries)
+	})
+
 	t.Run("case=quits client watcher when server connection is closed", func(t *testing.T) {
 		ctxClient, c, dir, cancel := setup(t)
 		defer cancel()
@@ -62,8 +85,8 @@ func TestWatchWebsocket(t *testing.T) {
 
 		cancelServe()
 
-		_, ok := <-c
-		assert.False(t, ok)
+		e, ok := <-c
+		assert.False(t, ok, "%#v", e)
 
 		assert.Len(t, hook.Entries, 0, "%+v", hook.Entries)
 	})

@@ -2,7 +2,10 @@ package watcherx
 
 import (
 	"context"
+	"fmt"
+	"net"
 	"net/url"
+	"strings"
 
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
@@ -42,17 +45,21 @@ func forwardWebsocketEvents(ws *websocket.Conn, c EventChannel, u *url.URL, wsCl
 
 	defer func() {
 		// this triggers the cleanupOnDone subroutine
-		wsClosed <- struct{}{}
+		close(wsClosed)
 	}()
 
 	for {
 		// receive messages, this call is blocking
 		_, msg, err := ws.ReadMessage()
 		if err != nil {
-			closeErr, ok := err.(*websocket.CloseError)
-			if ok && closeErr.Code == websocket.CloseNormalClosure {
+			if closeErr, ok := err.(*websocket.CloseError); ok && closeErr.Code == websocket.CloseNormalClosure {
 				return
 			}
+			// assuming the connection got closed through context canceling
+			if opErr, ok := err.(*net.OpError); ok && opErr.Op == "read" && strings.Contains(opErr.Err.Error(), "closed") {
+				return
+			}
+			fmt.Printf("going to sent %#v\n", err)
 			c <- &ErrorEvent{
 				error:  errors.WithStack(err),
 				source: serverURL,

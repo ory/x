@@ -44,7 +44,7 @@ const (
 var errUnknownEvent = errors.New("unknown event type")
 
 func (e *ErrorEvent) Reader() io.Reader {
-	return nil
+	return bytes.NewBufferString(e.Error())
 }
 
 func (e *ErrorEvent) MarshalJSON() ([]byte, error) {
