@@ -13,27 +13,51 @@ func WatchWebsocket(ctx context.Context, u *url.URL, c EventChannel) error {
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	go closeOnDone(ctx, conn)
-	go forwardWebsocketEvents(conn, c, u)
+
+	wsClosed := make(chan struct{})
+	go cleanupOnDone(ctx, conn, c, wsClosed)
+
+	go forwardWebsocketEvents(conn, c, u, wsClosed)
+
 	return nil
 }
 
-func closeOnDone(ctx context.Context, conn *websocket.Conn) {
-	<-ctx.Done()
-	conn.Close()
+func cleanupOnDone(ctx context.Context, conn *websocket.Conn, c EventChannel, wsClosed <-chan struct{}) {
+	// wait for one of the events to occur
+	select {
+	case <-ctx.Done():
+	case <-wsClosed:
+	}
+
+	// clean up channel
+	close(c)
+	// attempt to close the websocket
+	// ignore errors as we are closing everything anyway
+	_ = conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "context canceled by server"))
+	_ = conn.Close()
 }
 
-func forwardWebsocketEvents(conn *websocket.Conn, c EventChannel, u *url.URL) {
+func forwardWebsocketEvents(ws *websocket.Conn, c EventChannel, u *url.URL, wsClosed chan<- struct{}) {
 	serverURL := source(u.String())
-	defer conn.Close()
+
+	defer func() {
+		// this triggers the cleanupOnDone subroutine
+		wsClosed <- struct{}{}
+	}()
+
 	for {
-		_, msg, err := conn.ReadMessage()
+		// receive messages, this call is blocking
+		_, msg, err := ws.ReadMessage()
 		if err != nil {
+			closeErr, ok := err.(*websocket.CloseError)
+			if ok && closeErr.Code == websocket.CloseNormalClosure {
+				return
+			}
 			c <- &ErrorEvent{
 				error:  errors.WithStack(err),
 				source: serverURL,
 			}
-			continue
+			return
 		}
 		e, err := unmarshalEvent(msg)
 		if err != nil {
