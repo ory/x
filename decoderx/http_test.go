@@ -143,6 +143,33 @@ func TestHTTPFormDecoder(t *testing.T) {
 }`,
 		},
 		{
+			d: "should pass JSON request formatted as a form",
+			request: newRequest(t, "POST", "/", bytes.NewBufferString(`{
+	"name.first": "Aeneas",
+	"name.last":  "Rekkas",
+	"age":        29,
+	"ratio":      0.9,
+	"consent":    false,
+	"newsletter": true
+}`), httpContentTypeJSON),
+			options: []HTTPDecoderOption{HTTPDecoderJSONFollowsFormFormat(),
+				HTTPJSONSchemaCompiler("stub/person.json", nil)},
+			expected: `{
+	"name": {"first": "Aeneas", "last": "Rekkas"},
+	"age": 29,
+	"newsletter": true,
+	"consent": false,
+	"ratio": 0.9
+}`,
+		},
+		{
+			d:       "should fail because json is not an object when using form format",
+			request: newRequest(t, "POST", "/", bytes.NewBufferString(`[]`), httpContentTypeJSON),
+			options: []HTTPDecoderOption{HTTPDecoderJSONFollowsFormFormat(),
+				HTTPJSONSchemaCompiler("stub/person.json", nil)},
+			expectedError: "be an object",
+		},
+		{
 			d: "should work with ParseErrorIgnoreConversionErrors",
 			request: newRequest(t, "POST", "/", bytes.NewBufferString(url.Values{
 				"ratio": {"foobar"},
