@@ -4,6 +4,7 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/fatih/structs v1.1.0
 	github.com/fsnotify/fsnotify v1.4.9
+	github.com/ghodss/yaml v1.0.0
 	github.com/go-bindata/go-bindata v3.1.1+incompatible
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gobuffalo/httptest v1.0.2

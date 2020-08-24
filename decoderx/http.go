@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 
 	"github.com/ory/jsonschema/v3"
@@ -34,6 +36,7 @@ type (
 		jsonSchemaValidate        bool
 		maxCircularReferenceDepth uint8
 		handleParseErrors         parseErrorStrategy
+		expectJSONFlattened       bool
 	}
 
 	// HTTPDecoderOption configures the HTTP decoder.
@@ -93,6 +96,14 @@ func HTTPJSONDecoder() HTTPDecoderOption {
 func HTTPDecoderSetValidatePayloads(validate bool) HTTPDecoderOption {
 	return func(o *httpDecoderOptions) {
 		o.jsonSchemaValidate = validate
+	}
+}
+
+// HTTPDecoderJSONFollowsFormFormat if set tells the decoder that JSON follows the same conventions
+// as the form decoder, meaning `{"foo.bar": "..."}` is translated to `{"foo": {"bar": "..."}}`.
+func HTTPDecoderJSONFollowsFormFormat() HTTPDecoderOption {
+	return func(o *httpDecoderOptions) {
+		o.expectJSONFlattened = true
 	}
 }
 
@@ -228,12 +239,49 @@ func (t *HTTP) Decode(r *http.Request, destination interface{}, opts ...HTTPDeco
 	}
 
 	if httpx.HasContentType(r, httpContentTypeJSON) {
+		if c.expectJSONFlattened {
+			return t.decodeJSONForm(r, destination, c)
+		}
 		return t.decodeJSON(r, destination, c)
 	} else if httpx.HasContentType(r, httpContentTypeMultipartForm, httpContentTypeURLEncodedForm) {
 		return t.decodeForm(r, destination, c)
 	}
 
 	return errors.WithStack(herodot.ErrInternalServerError.WithReasonf("Unable to determine decoder for content type: %s", r.Header.Get("Content-Type")))
+}
+
+func (t *HTTP) decodeJSONForm(r *http.Request, destination interface{}, o *httpDecoderOptions) error {
+	if o.jsonSchemaCompiler == nil {
+		return errors.WithStack(herodot.ErrInternalServerError.WithReasonf("Unable to decode HTTP Form Body because no validation schema was provided. This is a code bug."))
+	}
+
+	paths, err := jsonschemax.ListPathsWithRecursion(o.jsonSchemaRef, o.jsonSchemaCompiler, o.maxCircularReferenceDepth)
+	if err != nil {
+		return errors.WithStack(herodot.ErrInternalServerError.WithTrace(err).WithReasonf("Unable to prepare JSON Schema for HTTP Post Body Form parsing: %s", err).WithDebugf("%+v", err))
+	}
+
+	var interim json.RawMessage
+	if err := json.NewDecoder(r.Body).Decode(&interim); err != nil {
+		return err
+	}
+
+	parsed := gjson.ParseBytes(interim)
+	if !parsed.IsObject() {
+		return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Expected JSON sent in request body to be an object but got: %s", parsed.Type.String()))
+	}
+
+	values := url.Values{}
+	parsed.ForEach(func(k, v gjson.Result) bool {
+		values.Set(k.String(), v.String())
+		return true
+	})
+
+	raw, err := t.decodeURLValues(values, paths, o)
+	if err != nil {
+		return err
+	}
+
+	return errors.WithStack(json.Unmarshal(raw, destination))
 }
 
 func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecoderOptions) error {
@@ -250,102 +298,9 @@ func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecod
 		return errors.WithStack(herodot.ErrInternalServerError.WithTrace(err).WithReasonf("Unable to prepare JSON Schema for HTTP Post Body Form parsing: %s", err).WithDebugf("%+v", err))
 	}
 
-	raw := json.RawMessage(`{}`)
-	for key := range r.PostForm {
-		for _, path := range paths {
-			if key == path.Name {
-				var err error
-				switch path.Type.(type) {
-				case []string:
-					raw, err = sjson.SetBytes(raw, path.Name, r.PostForm[key])
-				case []float64:
-					for k, v := range r.PostForm[key] {
-						if f, err := strconv.ParseFloat(v, 64); err != nil {
-							switch o.handleParseErrors {
-							case ParseErrorIgnoreConversionErrors:
-								raw, err = sjson.SetBytes(raw, path.Name+"."+strconv.Itoa(k), v)
-							case ParseErrorUseEmptyValueOnConversionErrors:
-								raw, err = sjson.SetBytes(raw, path.Name+"."+strconv.Itoa(k), f)
-							case ParseErrorReturnOnConversionErrors:
-								return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Expected value to be a number.").
-									WithDetail("parse_error", err.Error()).
-									WithDetail("name", key).
-									WithDetailf("index", "%d", k).
-									WithDetail("value", v))
-							}
-						} else {
-							raw, err = sjson.SetBytes(raw, path.Name+"."+strconv.Itoa(k), f)
-						}
-					}
-				case []bool:
-					for k, v := range r.PostForm[key] {
-						if f, err := strconv.ParseBool(v); err != nil {
-							switch o.handleParseErrors {
-							case ParseErrorIgnoreConversionErrors:
-								raw, err = sjson.SetBytes(raw, path.Name+"."+strconv.Itoa(k), v)
-							case ParseErrorUseEmptyValueOnConversionErrors:
-								raw, err = sjson.SetBytes(raw, path.Name+"."+strconv.Itoa(k), f)
-							case ParseErrorReturnOnConversionErrors:
-								return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Expected value to be a boolean.").
-									WithDetail("parse_error", err.Error()).
-									WithDetail("name", key).
-									WithDetailf("index", "%d", k).
-									WithDetail("value", v))
-							}
-						} else {
-							raw, err = sjson.SetBytes(raw, path.Name+"."+strconv.Itoa(k), f)
-						}
-					}
-				case []interface{}:
-					raw, err = sjson.SetBytes(raw, path.Name, r.PostForm[key])
-				case bool:
-					v := r.PostForm[key][len(r.PostForm[key])-1]
-					if f, err := strconv.ParseBool(v); err != nil {
-						switch o.handleParseErrors {
-						case ParseErrorIgnoreConversionErrors:
-							raw, err = sjson.SetBytes(raw, path.Name, v)
-						case ParseErrorUseEmptyValueOnConversionErrors:
-							raw, err = sjson.SetBytes(raw, path.Name, f)
-						case ParseErrorReturnOnConversionErrors:
-							return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Expected value to be a boolean.").
-								WithDetail("parse_error", err.Error()).
-								WithDetail("name", key).
-								WithDetail("value", r.PostForm.Get(key)))
-						}
-					} else {
-						raw, err = sjson.SetBytes(raw, path.Name, f)
-					}
-				case float64:
-					v := r.PostForm.Get(key)
-					if f, err := strconv.ParseFloat(v, 64); err != nil {
-						switch o.handleParseErrors {
-						case ParseErrorIgnoreConversionErrors:
-							raw, err = sjson.SetBytes(raw, path.Name, v)
-						case ParseErrorUseEmptyValueOnConversionErrors:
-							raw, err = sjson.SetBytes(raw, path.Name, f)
-						case ParseErrorReturnOnConversionErrors:
-							return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Expected value to be a number.").
-								WithDetail("parse_error", err.Error()).
-								WithDetail("name", key).
-								WithDetail("value", r.PostForm.Get(key)))
-						}
-					} else {
-						raw, err = sjson.SetBytes(raw, path.Name, f)
-					}
-				case string:
-					raw, err = sjson.SetBytes(raw, path.Name, r.PostForm.Get(key))
-				case map[string]interface{}:
-					raw, err = sjson.SetBytes(raw, path.Name, r.PostForm.Get(key))
-				case []map[string]interface{}:
-					raw, err = sjson.SetBytes(raw, path.Name, r.PostForm[key])
-				}
-
-				if err != nil {
-					return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Unable to type assert values from HTTP Post Body: %s", err))
-				}
-				break
-			}
-		}
+	raw, err := t.decodeURLValues(r.PostForm, paths, o)
+	if err != nil {
+		return err
 	}
 
 	if err := json.NewDecoder(bytes.NewReader(raw)).Decode(destination); err != nil {
@@ -357,6 +312,107 @@ func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecod
 	}
 
 	return nil
+}
+
+func (t *HTTP) decodeURLValues(values url.Values, paths []jsonschemax.Path, o *httpDecoderOptions) (json.RawMessage, error) {
+	raw := json.RawMessage(`{}`)
+	for key := range values {
+		for _, path := range paths {
+			if key == path.Name {
+				var err error
+				switch path.Type.(type) {
+				case []string:
+					raw, err = sjson.SetBytes(raw, path.Name, values[key])
+				case []float64:
+					for k, v := range values[key] {
+						if f, err := strconv.ParseFloat(v, 64); err != nil {
+							switch o.handleParseErrors {
+							case ParseErrorIgnoreConversionErrors:
+								raw, err = sjson.SetBytes(raw, path.Name+"."+strconv.Itoa(k), v)
+							case ParseErrorUseEmptyValueOnConversionErrors:
+								raw, err = sjson.SetBytes(raw, path.Name+"."+strconv.Itoa(k), f)
+							case ParseErrorReturnOnConversionErrors:
+								return nil, errors.WithStack(herodot.ErrBadRequest.WithReasonf("Expected value to be a number.").
+									WithDetail("parse_error", err.Error()).
+									WithDetail("name", key).
+									WithDetailf("index", "%d", k).
+									WithDetail("value", v))
+							}
+						} else {
+							raw, err = sjson.SetBytes(raw, path.Name+"."+strconv.Itoa(k), f)
+						}
+					}
+				case []bool:
+					for k, v := range values[key] {
+						if f, err := strconv.ParseBool(v); err != nil {
+							switch o.handleParseErrors {
+							case ParseErrorIgnoreConversionErrors:
+								raw, err = sjson.SetBytes(raw, path.Name+"."+strconv.Itoa(k), v)
+							case ParseErrorUseEmptyValueOnConversionErrors:
+								raw, err = sjson.SetBytes(raw, path.Name+"."+strconv.Itoa(k), f)
+							case ParseErrorReturnOnConversionErrors:
+								return nil, errors.WithStack(herodot.ErrBadRequest.WithReasonf("Expected value to be a boolean.").
+									WithDetail("parse_error", err.Error()).
+									WithDetail("name", key).
+									WithDetailf("index", "%d", k).
+									WithDetail("value", v))
+							}
+						} else {
+							raw, err = sjson.SetBytes(raw, path.Name+"."+strconv.Itoa(k), f)
+						}
+					}
+				case []interface{}:
+					raw, err = sjson.SetBytes(raw, path.Name, values[key])
+				case bool:
+					v := values[key][len(values[key])-1]
+					if f, err := strconv.ParseBool(v); err != nil {
+						switch o.handleParseErrors {
+						case ParseErrorIgnoreConversionErrors:
+							raw, err = sjson.SetBytes(raw, path.Name, v)
+						case ParseErrorUseEmptyValueOnConversionErrors:
+							raw, err = sjson.SetBytes(raw, path.Name, f)
+						case ParseErrorReturnOnConversionErrors:
+							return nil, errors.WithStack(herodot.ErrBadRequest.WithReasonf("Expected value to be a boolean.").
+								WithDetail("parse_error", err.Error()).
+								WithDetail("name", key).
+								WithDetail("value", values.Get(key)))
+						}
+					} else {
+						raw, err = sjson.SetBytes(raw, path.Name, f)
+					}
+				case float64:
+					v := values.Get(key)
+					if f, err := strconv.ParseFloat(v, 64); err != nil {
+						switch o.handleParseErrors {
+						case ParseErrorIgnoreConversionErrors:
+							raw, err = sjson.SetBytes(raw, path.Name, v)
+						case ParseErrorUseEmptyValueOnConversionErrors:
+							raw, err = sjson.SetBytes(raw, path.Name, f)
+						case ParseErrorReturnOnConversionErrors:
+							return nil, errors.WithStack(herodot.ErrBadRequest.WithReasonf("Expected value to be a number.").
+								WithDetail("parse_error", err.Error()).
+								WithDetail("name", key).
+								WithDetail("value", values.Get(key)))
+						}
+					} else {
+						raw, err = sjson.SetBytes(raw, path.Name, f)
+					}
+				case string:
+					raw, err = sjson.SetBytes(raw, path.Name, values.Get(key))
+				case map[string]interface{}:
+					raw, err = sjson.SetBytes(raw, path.Name, values.Get(key))
+				case []map[string]interface{}:
+					raw, err = sjson.SetBytes(raw, path.Name, values[key])
+				}
+
+				if err != nil {
+					return nil, errors.WithStack(herodot.ErrBadRequest.WithReasonf("Unable to type assert values from HTTP Post Body: %s", err))
+				}
+				break
+			}
+		}
+	}
+	return raw, nil
 }
 
 func (t *HTTP) decodeJSON(r *http.Request, destination interface{}, o *httpDecoderOptions) error {
