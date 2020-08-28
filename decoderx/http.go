@@ -107,6 +107,13 @@ func HTTPDecoderJSONFollowsFormFormat() HTTPDecoderOption {
 	}
 }
 
+// HTTPDecoderAllowedMethods sets the allowed HTTP methods. Defaults are POST, PUT, PATCH.
+func HTTPDecoderAllowedMethods(method ...string) HTTPDecoderOption {
+	return func(o *httpDecoderOptions) {
+		o.allowedHTTPMethods = method
+	}
+}
+
 // HTTPDecoderSetIgnoreParseErrorsStrategy sets a strategy for dealing with strconv.Parse* errors:
 //
 // - decoderx.ParseErrorIgnoreConversionErrors will ignore any parse errors caused by strconv.Parse* and use the
