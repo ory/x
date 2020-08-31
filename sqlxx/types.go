@@ -97,7 +97,12 @@ func (ns *NullTime) Scan(value interface{}) error {
 
 // MarshalJSON returns m as the JSON encoding of m.
 func (ns NullTime) MarshalJSON() ([]byte, error) {
-	return json.Marshal(time.Time(ns))
+	var t *time.Time
+	if !time.Time(ns).IsZero() {
+		tt := time.Time(ns)
+		t = &tt
+	}
+	return json.Marshal(t)
 }
 
 // UnmarshalJSON sets *m to a copy of data.
