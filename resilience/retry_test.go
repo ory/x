@@ -2,11 +2,13 @@ package resilience
 
 import (
 	"fmt"
-	"github.com/ory/x/logrusx"
-	"github.com/sirupsen/logrus/hooks/test"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/sirupsen/logrus/hooks/test"
+	"github.com/stretchr/testify/assert"
+
+	"github.com/ory/x/logrusx"
 )
 
 func TestRetry(t *testing.T) {
