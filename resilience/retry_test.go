@@ -18,7 +18,7 @@ func TestRetry(t *testing.T) {
 
 		randomErr := fmt.Errorf("some error")
 
-		err := Retry(logger, time.Millisecond, 10*time.Millisecond, func() error {
+		err := Retry(logger, 100*time.Millisecond, 100*time.Millisecond, func() error {
 			return randomErr
 		})
 
