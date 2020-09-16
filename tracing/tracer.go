@@ -3,6 +3,7 @@ package tracing
 import (
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/opentracing/opentracing-go"
@@ -16,6 +17,9 @@ import (
 
 	jaegerConf "github.com/uber/jaeger-client-go/config"
 	jaegerZipkin "github.com/uber/jaeger-client-go/zipkin"
+
+	datadogOpentracer "gopkg.in/DataDog/dd-trace-go.v1/ddtrace/opentracer"
+	datadogTracer "gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
 // Tracer encapsulates tracing abilities.
@@ -42,6 +46,14 @@ type JaegerConfig struct {
 // ZipkinConfig encapsulates zipkin's configuration.
 type ZipkinConfig struct {
 	ServerURL string
+}
+
+type datadogCloser struct {
+}
+
+func (t datadogCloser) Close() error {
+	datadogTracer.Stop()
+	return nil
 }
 
 // Setup sets up the tracer. Currently supports jaeger.
@@ -118,6 +130,17 @@ func (t *Tracer) Setup() error {
 		t.closer = reporter
 		t.tracer = opentracing.GlobalTracer()
 		t.Logger.Infof("Zipkin tracer configured!")
+	case "datadog":
+		var serviceName = os.Getenv("DD_SERVICE")
+		if serviceName == "" {
+			serviceName = t.ServiceName
+		}
+
+		opentracing.SetGlobalTracer(datadogOpentracer.New(datadogTracer.WithService(serviceName)))
+
+		t.closer = datadogCloser{}
+		t.tracer = opentracing.GlobalTracer()
+		t.Logger.Infof("DataDog tracer configured!")
 	case "":
 		t.Logger.Infof("No tracer configured - skipping tracing setup")
 	default:

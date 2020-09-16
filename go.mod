@@ -1,6 +1,7 @@
 module github.com/ory/x
 
 require (
+	github.com/DataDog/datadog-go v4.0.0+incompatible // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/fatih/structs v1.1.0
 	github.com/fsnotify/fsnotify v1.4.9
@@ -31,6 +32,7 @@ require (
 	github.com/ory/jsonschema/v3 v3.0.1
 	github.com/ory/viper v1.7.5
 	github.com/pborman/uuid v1.2.0
+	github.com/philhofer/fwd v1.0.0 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/profile v1.2.1
 	github.com/rs/cors v1.6.0
@@ -46,6 +48,7 @@ require (
 	go.opentelemetry.io/otel v0.6.0
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 	gonum.org/v1/plot v0.0.0-20200111075622-4abb28f724d5
+	gopkg.in/DataDog/dd-trace-go.v1 v1.26.0
 	gopkg.in/square/go-jose.v2 v2.2.2
 	gopkg.in/yaml.v2 v2.3.0
 )
