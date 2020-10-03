@@ -48,7 +48,7 @@ require (
 	go.opentelemetry.io/otel v0.6.0
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 	gonum.org/v1/plot v0.0.0-20200111075622-4abb28f724d5
-	gopkg.in/DataDog/dd-trace-go.v1 v1.26.0
+	gopkg.in/DataDog/dd-trace-go.v1 v1.27.0
 	gopkg.in/square/go-jose.v2 v2.2.2
 	gopkg.in/yaml.v2 v2.3.0
 )
