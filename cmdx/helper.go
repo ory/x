@@ -3,6 +3,7 @@ package cmdx
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/spf13/cobra"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -12,8 +13,20 @@ import (
 	"github.com/ory/x/logrusx"
 )
 
-// ErrNilDependency is returned if a dependency is missing.
-var ErrNilDependency = errors.New("a dependency was expected to be defined but is nil. Please open an issue with the stack trace")
+var (
+	// ErrNilDependency is returned if a dependency is missing.
+	ErrNilDependency = errors.New("a dependency was expected to be defined but is nil. Please open an issue with the stack trace")
+	// ErrNoPrintButFail is returned to detect a failure state that was already reported to the user in some way
+	ErrNoPrintButFail = errors.New("this error should never be printed")
+)
+
+// FailSilently is supposed to be used within a commands RunE function.
+// It silences cobras error handling and returns the ErrNoPrintButFail error.
+func FailSilently(cmd *cobra.Command) error {
+	cmd.SilenceErrors = true
+	cmd.SilenceUsage = true
+	return errors.WithStack(ErrNoPrintButFail)
+}
 
 // Must fatals with the optional message if err is not nil.
 func Must(err error, message string, args ...interface{}) {
