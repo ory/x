@@ -358,23 +358,23 @@ type bintree struct {
 }
 
 var _bintree = &bintree{nil, map[string]*bintree{
-	"stub": &bintree{nil, map[string]*bintree{
-		"a": &bintree{nil, map[string]*bintree{
-			"1.sql": &bintree{stubA1Sql, map[string]*bintree{}},
-			"3.sql": &bintree{stubA3Sql, map[string]*bintree{}},
+	"stub": {nil, map[string]*bintree{
+		"a": {nil, map[string]*bintree{
+			"1.sql": {stubA1Sql, map[string]*bintree{}},
+			"3.sql": {stubA3Sql, map[string]*bintree{}},
 		}},
-		"b": &bintree{nil, map[string]*bintree{
-			"2.sql": &bintree{stubB2Sql, map[string]*bintree{}},
+		"b": {nil, map[string]*bintree{
+			"2.sql": {stubB2Sql, map[string]*bintree{}},
 		}},
-		"c": &bintree{nil, map[string]*bintree{
-			"2.sql": &bintree{stubC2Sql, map[string]*bintree{}},
-			"4.sql": &bintree{stubC4Sql, map[string]*bintree{}},
+		"c": {nil, map[string]*bintree{
+			"2.sql": {stubC2Sql, map[string]*bintree{}},
+			"4.sql": {stubC4Sql, map[string]*bintree{}},
 		}},
-		"d": &bintree{nil, map[string]*bintree{
-			"1_test.sql": &bintree{stubD1_testSql, map[string]*bintree{}},
-			"2_test.sql": &bintree{stubD2_testSql, map[string]*bintree{}},
-			"3_test.sql": &bintree{stubD3_testSql, map[string]*bintree{}},
-			"4_test.sql": &bintree{stubD4_testSql, map[string]*bintree{}},
+		"d": {nil, map[string]*bintree{
+			"1_test.sql": {stubD1_testSql, map[string]*bintree{}},
+			"2_test.sql": {stubD2_testSql, map[string]*bintree{}},
+			"3_test.sql": {stubD3_testSql, map[string]*bintree{}},
+			"4_test.sql": {stubD4_testSql, map[string]*bintree{}},
 		}},
 	}},
 }}

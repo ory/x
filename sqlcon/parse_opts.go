@@ -91,6 +91,8 @@ func FinalizeDSN(l *logrusx.Logger, dsn string) string {
 		}
 
 		q.Set("multiStatements", "true")
+		q.Set("parseTime", "true")
+
 		return fmt.Sprintf("%s?%s", parts[0], q.Encode())
 	}
 
