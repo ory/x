@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/spf13/cobra"
-	"github.com/stretchr/testify/require"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"testing"
+
+	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/require"
 
 	"github.com/pkg/errors"
 
