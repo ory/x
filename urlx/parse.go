@@ -2,7 +2,6 @@ package urlx
 
 import (
 	"net/url"
-	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -12,7 +11,7 @@ import (
 // winPathRegex is a regex for [DRIVE-LETTER]:
 var winPathRegex = regexp.MustCompile("^[A-Za-z]:.*")
 
-// Parse parses rawurl into a URL structure with special handling for file:// URLs
+// Parse parses rawURL into a URL structure with special handling for file:// URLs
 // File URLs with relative paths (file://../file, ../file) will be returned as a
 // utl.URL object without the Scheme set to "file". This is because the file
 // scheme doesn't support relative paths. Make sure to check for
@@ -20,42 +19,36 @@ var winPathRegex = regexp.MustCompile("^[A-Za-z]:.*")
 // a file path.
 // Use the companion function GetURLFilePath() to get a file path suitable
 // for the current operaring system.
-func Parse(rawurl string) (*url.URL, error) {
-	lcRawurl := strings.ToLower(rawurl)
-	if strings.Index(lcRawurl, "file:///") == 0 {
-		return url.Parse("file:///" + toSlash(rawurl[8:]))
+func Parse(rawURL string) (*url.URL, error) {
+	lcRawURL := strings.ToLower(rawURL)
+	if strings.HasPrefix(lcRawURL, "file:///") {
+		return url.Parse(rawURL)
 	}
-	if strings.Index(lcRawurl, "file://") == 0 {
+
+	if strings.HasPrefix(lcRawURL, "file://") {
 		// Normally the first part after file:// is a hostname, but since
 		// this is often misused we interpret the URL like a normal path
 		// by removing the "file://" from the beginning
-		rawurl = rawurl[7:]
+		rawURL = rawURL[7:]
 	}
-	if winPathRegex.MatchString(rawurl) {
+
+	if winPathRegex.MatchString(rawURL) {
 		// Windows path
-		return url.Parse("file:///" + toSlash(rawurl))
+		return url.Parse("file:///" + rawURL)
 	}
-	if strings.Index(lcRawurl, "\\\\") == 0 {
+
+	if strings.HasPrefix(lcRawURL, "\\\\") {
 		// Windows UNC path
-		// We extract the hostname and creates an appropriate file:// URL
+		// We extract the hostname and create an appropriate file:// URL
 		// based on the hostname and the path
-		parts := strings.Split(filepath.FromSlash(rawurl), "\\")
-		host := ""
-		if len(parts) > 2 {
-			host = parts[2]
-		}
-		p := "/"
-		if len(parts) > 4 {
-			p += strings.Join(parts[3:], "/")
-		}
-		return url.Parse("file://" + host + p)
+		host, path := extractUNCPathParts(rawURL)
+		// It is safe to replace the \ with / here because this is POSIX style path
+		return url.Parse("file://" + host + strings.ReplaceAll(path, "\\", "/"))
 	}
-	u, err := url.Parse(rawurl)
+
+	u, err := url.Parse(rawURL)
 	if err != nil {
 		return nil, err
-	}
-	if u.Scheme == "file" || u.Scheme == "" {
-		u.Path = toSlash(u.Path)
 	}
 	return u, nil
 }
@@ -96,6 +89,11 @@ func ParseRequestURIOrFatal(l *logrusx.Logger, in string) *url.URL {
 	return out
 }
 
-func toSlash(path string) string {
-	return strings.ReplaceAll(path, "\\", "/")
+func extractUNCPathParts(uncPath string) (host, path string) {
+	parts := strings.Split(strings.TrimPrefix(uncPath, "\\\\"), "\\")
+	host = parts[0]
+	if len(parts) > 0 {
+		path = "\\" + strings.Join(parts[1:], "\\")
+	}
+	return host, path
 }
