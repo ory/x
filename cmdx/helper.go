@@ -1,12 +1,17 @@
 package cmdx
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/spf13/cobra"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"testing"
+
+	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/require"
 
 	"github.com/pkg/errors"
 
@@ -92,4 +97,38 @@ func ExpectDependency(logger *logrusx.Logger, dependencies ...interface{}) {
 			logger.WithError(errors.WithStack(ErrNilDependency)).Fatalf("A fatal issue occurred.")
 		}
 	}
+}
+
+// Exec runs the provided cobra command with the given reader as STD_IN and the given args.
+// Returns STD_OUT, STD_ERR and the error from the execution.
+func Exec(_ *testing.T, cmd *cobra.Command, stdIn io.Reader, args ...string) (string, string, error) {
+	stdOut, stdErr := &bytes.Buffer{}, &bytes.Buffer{}
+	cmd.SetErr(stdErr)
+	cmd.SetOut(stdOut)
+	cmd.SetIn(stdIn)
+	defer cmd.SetIn(nil)
+	if args == nil {
+		args = []string{}
+	}
+	cmd.SetArgs(args)
+	err := cmd.Execute()
+	return stdOut.String(), stdErr.String(), err
+}
+
+// ExecNoErr is a helper that assumes a successful run from Exec.
+// Returns STD_OUT.
+func ExecNoErr(t *testing.T, cmd *cobra.Command, args ...string) string {
+	stdOut, stdErr, err := Exec(t, cmd, nil, args...)
+	require.NoError(t, err)
+	require.Len(t, stdErr, 0, stdOut)
+	return stdOut
+}
+
+// ExecExpectedErr is a helper that assumes a failing run from Exec returning ErrNoPrintButFail
+// Returns STD_ERR.
+func ExecExpectedErr(t *testing.T, cmd *cobra.Command, args ...string) string {
+	stdOut, stdErr, err := Exec(t, cmd, nil, args...)
+	require.True(t, errors.Is(err, ErrNoPrintButFail))
+	require.Len(t, stdOut, 0, stdErr)
+	return stdErr
 }
