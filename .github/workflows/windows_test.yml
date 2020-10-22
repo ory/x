@@ -13,4 +13,6 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
-      - run: go test -failfast -timeout=20m ./...
+      - run: |
+          go test -failfast -timeout=20m $(go list ./... | grep -v viperx | grep -v watcherx | grep -v sqlcon)
+        shell: bash
