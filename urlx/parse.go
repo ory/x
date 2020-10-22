@@ -13,7 +13,7 @@ var winPathRegex = regexp.MustCompile("^[A-Za-z]:.*")
 
 // Parse parses rawURL into a URL structure with special handling for file:// URLs
 // File URLs with relative paths (file://../file, ../file) will be returned as a
-// utl.URL object without the Scheme set to "file". This is because the file
+// url.URL object without the Scheme set to "file". This is because the file
 // scheme doesn't support relative paths. Make sure to check for
 // both "file" or "" (an empty string) in URL.Scheme if you are looking for
 // a file path.
