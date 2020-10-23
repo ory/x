@@ -209,8 +209,10 @@ func TestRealClock_Since(t *testing.T) {
 	rc := &realClock{}
 	now := rc.Now()
 
-	time.Sleep(10 * time.Millisecond)
+	napDuration := 10 * time.Millisecond
+	time.Sleep(napDuration)
 	since := rc.Since(now)
 
-	assert.Regexp(t, "^1[0-5]\\.[0-9]+ms", since.String())
+	assert.True(t, since >= napDuration)
+	assert.True(t, since < napDuration+6*time.Millisecond)
 }
