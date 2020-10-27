@@ -19,6 +19,7 @@ require (
 	github.com/julienschmidt/httprouter v1.2.0
 	github.com/lib/pq v1.3.0
 	github.com/luna-duclos/instrumentedsql v1.1.2
+	github.com/markbates/pkger v0.17.1
 	github.com/mattn/goveralls v0.0.2
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/opentracing/opentracing-go v1.1.1-0.20190913142402-a7454ce5950e
