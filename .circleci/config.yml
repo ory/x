@@ -46,7 +46,7 @@ jobs:
       - run: "(cd ../docs && git add -A && git commit -a -m \"Updates ory/x JSON Schemas\" && git push origin) || exit 0"
 
 workflows:
-  publish:
+  test:
     jobs:
       - test
       - nancy/test
