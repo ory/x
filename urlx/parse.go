@@ -49,7 +49,7 @@ func Parse(rawURL string) (*url.URL, error) {
 
 // ParseOrPanic parses a url or panics.
 func ParseOrPanic(in string) *url.URL {
-	out, err := Parse(in)
+	out, err := url.Parse(in)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -58,7 +58,7 @@ func ParseOrPanic(in string) *url.URL {
 
 // ParseOrFatal parses a url or fatals.
 func ParseOrFatal(l *logrusx.Logger, in string) *url.URL {
-	out, err := Parse(in)
+	out, err := url.Parse(in)
 	if err != nil {
 		l.WithError(err).Fatalf("Unable to parse url: %s", in)
 	}
