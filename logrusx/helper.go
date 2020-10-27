@@ -10,7 +10,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"go.opentelemetry.io/otel/plugin/httptrace"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace"
 
 	"github.com/ory/x/errorsx"
 )
@@ -76,7 +76,7 @@ func (l *Logger) WithRequest(r *http.Request) *Logger {
 		"headers": headers,
 	})
 
-	if _, _, spanCtx := httptrace.Extract(r.Context(), r); spanCtx.IsValid() {
+	if _, _, spanCtx := otelhttptrace.Extract(r.Context(), r); spanCtx.IsValid() {
 		traces := map[string]string{}
 		if spanCtx.HasTraceID() {
 			traces["trace_id"] = spanCtx.TraceID.String()
