@@ -1,9 +1,6 @@
 name: Windows go test
 
 on:
-  pull_request:
-    branches:
-      - master
   push:
     branches:
       - '*'
