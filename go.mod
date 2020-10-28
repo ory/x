@@ -11,6 +11,7 @@ require (
 	github.com/gobuffalo/httptest v1.0.2
 	github.com/gobuffalo/packr v1.22.0
 	github.com/gobuffalo/pop/v5 v5.0.11
+	github.com/google/go-jsonnet v0.16.0
 	github.com/google/uuid v1.1.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/jackc/pgconn v1.5.0
