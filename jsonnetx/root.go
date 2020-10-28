@@ -1,4 +1,4 @@
-package jsonnet
+package jsonnetx
 
 import (
 	"github.com/spf13/cobra"
