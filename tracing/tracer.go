@@ -3,6 +3,7 @@ package tracing
 import (
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"strings"
 
@@ -20,6 +21,9 @@ import (
 
 	datadogOpentracer "gopkg.in/DataDog/dd-trace-go.v1/ddtrace/opentracer"
 	datadogTracer "gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+
+	"go.elastic.co/apm"
+	"go.elastic.co/apm/module/apmot"
 )
 
 // Tracer encapsulates tracing abilities.
@@ -141,6 +145,22 @@ func (t *Tracer) Setup() error {
 		t.closer = datadogCloser{}
 		t.tracer = opentracing.GlobalTracer()
 		t.Logger.Infof("DataDog tracer configured!")
+	case "elastic-apm":
+		var serviceName = os.Getenv("ELASTIC_APM_SERVICE_NAME")
+		if serviceName == "" {
+			serviceName = t.ServiceName
+		}
+
+		tr, err := apm.NewTracer(serviceName, "")
+		if err != nil {
+			log.Fatal(err)
+		}
+		opentracing.SetGlobalTracer(apmot.New(apmot.WithTracer(tr)))
+
+		//t.closer = tr.Close
+		t.tracer = opentracing.GlobalTracer()
+		t.Logger.Infof("Elastic APM tracer configured!")
+
 	case "":
 		t.Logger.Infof("No tracer configured - skipping tracing setup")
 	default:
@@ -173,6 +193,8 @@ func HelpMessage(defaultName string) string {
 		- "": No tracing enabled (default)
 		- "jaeger": Enables Jaeger tracing
 		- "zipkin": Enables Zipkin tracing
+		- "datadog": Enables Zipkin tracing
+		- "elastic-apm": Enables Zipkin tracing
 
 	Example: TRACING_PROVIDER=jaeger
 
