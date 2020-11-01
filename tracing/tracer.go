@@ -193,8 +193,8 @@ func HelpMessage(defaultName string) string {
 		- "": No tracing enabled (default)
 		- "jaeger": Enables Jaeger tracing
 		- "zipkin": Enables Zipkin tracing
-		- "datadog": Enables Zipkin tracing
-		- "elastic-apm": Enables Zipkin tracing
+		- "datadog": Enables Datadog tracing
+		- "elastic-apm": Enables elastic apm tracing
 
 	Example: TRACING_PROVIDER=jaeger
 
