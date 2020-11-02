@@ -3,7 +3,6 @@ package tracing
 import (
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"strings"
 
@@ -153,7 +152,7 @@ func (t *Tracer) Setup() error {
 
 		tr, err := apm.NewTracer(serviceName, "")
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		opentracing.SetGlobalTracer(apmot.New(apmot.WithTracer(tr)))
 
