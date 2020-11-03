@@ -104,8 +104,6 @@ func TestElastcApmTracer(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer close(done)
 
-		fmt.Println(r.URL)
-
 		switch r.URL.String() {
 		case "/config/v1/agents?service.name=ORY+Hydra":
 			break
