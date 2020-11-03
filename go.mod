@@ -48,6 +48,8 @@ require (
 	github.com/tidwall/sjson v1.0.4
 	github.com/uber/jaeger-client-go v2.22.1+incompatible
 	github.com/urfave/negroni v1.0.0
+	go.elastic.co/apm v1.8.0
+	go.elastic.co/apm/module/apmot v1.8.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace v0.13.0
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 	gonum.org/v1/plot v0.0.0-20200111075622-4abb28f724d5
