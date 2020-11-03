@@ -52,3 +52,21 @@ func MustGetInt(cmd *cobra.Command, name string) int {
 	}
 	return ss
 }
+
+// MustGetUint8 returns a uint8 flag or fatals if an error occurs.
+func MustGetUint8(cmd *cobra.Command, name string) uint8 {
+	v, err := cmd.Flags().GetUint8(name)
+	if err != nil {
+		cmdx.Fatalf(err.Error())
+	}
+	return v
+}
+
+// MustGetUint32 returns a uint32 flag or fatals if an error occurs.
+func MustGetUint32(cmd *cobra.Command, name string) uint32 {
+	v, err := cmd.Flags().GetUint32(name)
+	if err != nil {
+		cmdx.Fatalf(err.Error())
+	}
+	return v
+}
