@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 
+	"github.com/bmatcuk/doublestar/v2"
 	"github.com/google/go-jsonnet"
 	"github.com/google/go-jsonnet/linter"
 	"github.com/spf13/cobra"
+
+	"github.com/ory/x/flagx"
 
 	"github.com/ory/x/cmdx"
 )
@@ -21,11 +23,22 @@ var LintCommand = &cobra.Command{
 ` + GlobHelp,
 	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+		verbose := flagx.MustGetBool(cmd, "verbose")
 		for _, pattern := range args {
-			files, err := filepath.Glob(pattern)
+			files, err := doublestar.Glob(pattern)
 			cmdx.Must(err, `Glob path "%s" is not valid: %s`, pattern, err)
 
 			for _, file := range files {
+				if fi, err := os.Stat(file); err != nil {
+					cmdx.Must(err, "Unable to stat file %s: %s", file, err)
+				} else if fi.IsDir() {
+					continue
+				}
+
+				if verbose {
+					fmt.Printf("Processing file: %s\n", file)
+				}
+
 				content, err := ioutil.ReadFile(file)
 				cmdx.Must(err, `Unable to read file "%s" because: %s`, file, err)
 
@@ -41,4 +54,8 @@ var LintCommand = &cobra.Command{
 			}
 		}
 	},
+}
+
+func init() {
+	LintCommand.Flags().Bool("verbose", false, "Verbose output.")
 }
