@@ -28,6 +28,16 @@ func Cause(err error) error {
 	return err
 }
 
+// WithStack mirror pkg/errors.WithStack but does not wrap existing stack
+// traces.
+func WithStack(err error) error {
+	if _, ok := err.(StackTracer); ok {
+		return err
+	}
+
+	return errors.WithStack(err)
+}
+
 // StatusCodeCarrier can be implemented by an error to support setting status codes in the error itself.
 type StatusCodeCarrier interface {
 	// StatusCode returns the status code of this error.
