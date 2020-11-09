@@ -1,8 +1,9 @@
 package pkgerx
 
 import (
-	"github.com/ory/x/ioutilx"
 	"io/ioutil"
+
+	"github.com/ory/x/ioutilx"
 
 	"github.com/markbates/pkger/pkging"
 )

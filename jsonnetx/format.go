@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 
+	"github.com/bmatcuk/doublestar/v2"
 	"github.com/google/go-jsonnet/formatter"
 	"github.com/spf13/cobra"
 
@@ -23,9 +23,10 @@ Use -w or --write to write output back to files instead of stdout.
 ` + GlobHelp,
 	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+		verbose := flagx.MustGetBool(cmd, "verbose")
 		for _, pattern := range args {
-			files, err := filepath.Glob(pattern)
-			cmdx.Must(err, `Glob path "%s" is not valid: %s`, pattern, err)
+			files, err := doublestar.Glob(pattern)
+			cmdx.Must(err, `Glob pattern "%s" is not valid: %s`, pattern, err)
 
 			shouldWrite := flagx.MustGetBool(cmd, "write")
 			for _, file := range files {
@@ -33,6 +34,10 @@ Use -w or --write to write output back to files instead of stdout.
 					cmdx.Must(err, "Unable to stat file %s: %s", file, err)
 				} else if fi.IsDir() {
 					continue
+				}
+
+				if verbose {
+					fmt.Printf("Processing file: %s\n", file)
 				}
 
 				content, err := ioutil.ReadFile(file)
@@ -54,4 +59,5 @@ Use -w or --write to write output back to files instead of stdout.
 
 func init() {
 	FormatCommand.Flags().BoolP("write", "w", false, "Write formatted output back to file.")
+	FormatCommand.Flags().Bool("verbose", false, "Verbose output.")
 }

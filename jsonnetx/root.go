@@ -4,30 +4,28 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const GlobHelp = `Glob Syntax:
-
-    pattern:
-        { term }
-
-    term:
-        '*'         matches any sequence of non-separator characters
-        '**'        matches any sequence of characters
-        '?'         matches any single non-separator character
-        '[' [ '!' ] { character-range } ']'
-                    character class (must be non-empty)
-        '{' pattern-list '}'
-                    pattern alternatives
-        c           matches character c (c != '*', '**', '?', '\', '[', '{', '}')
-        '\' c       matches character c
-
-    character-range:
-        c           matches character c (c != '\\', '-', ']')
-        '\' c       matches character c
-        lo '-' hi   matches character c for lo <= c <= hi
-
-    pattern-list:
-        pattern { ',' pattern }
-                    comma-separated (without spaces) patterns`
+const GlobHelp = `Glob patterns supports the following special terms in the patterns:
+	
+	Special Terms | Meaning
+	------------- | -------
+	'*'           | matches any sequence of non-path-separators
+	'**'          | matches any sequence of characters, including path separators
+	'?'           | matches any single non-path-separator character
+	'[class]'     | matches any single non-path-separator character against a class of characters ([see below](#character-classes))
+	'{alt1,...}'  | matches a sequence of characters if one of the comma-separated alternatives matches
+	
+	Any character with a special meaning can be escaped with a backslash ('\').
+	
+	#### Character Classes
+	
+	Character classes support the following:
+	
+	Class      | Meaning
+	---------- | -------
+	'[abc]'    | matches any single character within the set
+	'[a-z]'    | matches any single character in the range
+	'[^class]' | matches any single character which does *not* match the class
+`
 
 // RootCommand represents the jsonnet command
 var RootCommand = &cobra.Command{
