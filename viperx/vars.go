@@ -28,13 +28,13 @@ func UnmarshalKey(key string, destination interface{}) error {
 			return errors.WithStack(err)
 		}
 
-		// Try decoding the json directly
+		// Try decoding the json directly. If it decodes successfully, return immediately.
 		if err := json.NewDecoder(&b).Decode(destination); err == nil {
 			return nil
 		}
 	}
 
-	// If it's not a string or not valid json, use the value as it was originally provided
+	// If it's not a string or not valid json, use the value as it was originally provided.
 	if err := json.NewEncoder(&b).Encode(mapx.ToJSONMap(value)); err != nil {
 		return errors.WithStack(err)
 	}
