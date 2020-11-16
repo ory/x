@@ -20,8 +20,24 @@ func UnmarshalKey(key string, destination interface{}) error {
 	}
 
 	var b bytes.Buffer
-	if err := json.NewEncoder(&b).Encode(mapx.ToJSONMap(viper.Get(key))); err != nil {
+
+	// This may be a string in the case where a value was provided via an env var.
+	// If it's a string, try to decode it as json.
+	if v, ok := value.(string); ok {
+		if _, err := b.WriteString(v); err != nil {
+			return errors.WithStack(err)
+		}
+
+		// Try decoding the json directly. If it decodes successfully, return immediately.
+		if err := json.NewDecoder(&b).Decode(destination); err == nil {
+			return nil
+		}
+	}
+
+	// If it's not a string or not valid json, use the value as it was originally provided.
+	if err := json.NewEncoder(&b).Encode(mapx.ToJSONMap(value)); err != nil {
 		return errors.WithStack(err)
 	}
+
 	return errors.WithStack(json.NewDecoder(&b).Decode(destination))
 }
