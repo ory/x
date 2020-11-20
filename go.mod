@@ -3,7 +3,9 @@ module github.com/ory/x
 require (
 	github.com/DataDog/datadog-go v4.0.0+incompatible // indirect
 	github.com/bmatcuk/doublestar/v2 v2.0.3
+	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869
 	github.com/cenkalti/backoff v2.2.1+incompatible
+	github.com/dgraph-io/ristretto v0.0.2
 	github.com/fatih/structs v1.1.0
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/ghodss/yaml v1.0.0
@@ -19,6 +21,7 @@ require (
 	github.com/jackc/pgx/v4 v4.4.1
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/julienschmidt/httprouter v1.2.0
+	github.com/knadh/koanf v0.14.0
 	github.com/lib/pq v1.3.0
 	github.com/luna-duclos/instrumentedsql v1.1.2
 	github.com/markbates/pkger v0.17.1
@@ -29,7 +32,6 @@ require (
 	github.com/openzipkin/zipkin-go v0.2.2
 	github.com/ory/analytics-go/v4 v4.0.0
 	github.com/ory/dockertest/v3 v3.5.4
-	github.com/ory/fosite v0.29.0
 	github.com/ory/go-acc v0.0.0-20181118080137-ddc355013f90
 	github.com/ory/herodot v0.8.3
 	github.com/ory/jsonschema/v3 v3.0.1
@@ -41,7 +43,7 @@ require (
 	github.com/rs/cors v1.6.0
 	github.com/rubenv/sql-migrate v0.0.0-20190212093014-1007f53448d7
 	github.com/sirupsen/logrus v1.6.0
-	github.com/spf13/cast v1.3.1
+	github.com/spf13/cast v1.3.2-0.20200723214538-8d17101741c8
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.6.1
