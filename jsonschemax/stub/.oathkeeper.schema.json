@@ -623,7 +623,7 @@
                   "default": 100
                 },
                 "delay_in_milliseconds": {
-                  "type": "number",
+                  "type": "integer",
                   "minimum": 0,
                   "default": 3
                 }
