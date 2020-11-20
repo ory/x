@@ -17,33 +17,31 @@ import (
 	"github.com/ory/x/stringslice"
 )
 
-const (
-	none = iota - 1
-	properties
-	ref
-	allOf
-	anyOf
-	oneOf
-)
-
-var keys = []string{
-	"properties",
-	"$ref",
-	"allOf",
-	"anyOf",
-	"oneOf",
-}
-
 type (
 	byName       []Path
 	PathEnhancer interface {
 		EnhancePath(Path) map[string]interface{}
 	}
+	TypeHint int
 )
 
 func (s byName) Len() int           { return len(s) }
 func (s byName) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s byName) Less(i, j int) bool { return s[i].Name < s[j].Name }
+
+const (
+	String TypeHint = iota + 1
+	Float
+	Int
+	Bool
+	JSON
+	Nil
+
+	BoolSlice
+	StringSlice
+	IntSlice
+	FloatSlice
+)
 
 // Path represents a JSON Schema Path.
 type Path struct {
@@ -55,6 +53,8 @@ type Path struct {
 
 	// Type is a prototype (e.g. float64(0)) of the path type.
 	Type interface{}
+
+	TypeHint
 
 	// Format is the format of the path if defined
 	Format string
@@ -170,32 +170,45 @@ func appendPointer(in map[string]bool, pointer *jsonschema.Schema) map[string]bo
 
 func listPaths(schema *jsonschema.Schema, parents []string, pointers map[string]bool, currentRecursion int16, maxRecursion int16) (byName, error) {
 	var pathType interface{}
+	var pathTypeHint TypeHint
 	var paths []Path
 	_, isCircular := pointers[fmt.Sprintf("%p", schema)]
 
 	if len(schema.Constant) > 0 {
 		switch schema.Constant[0].(type) {
-		case float64, int64, json.Number:
+		case float64, json.Number:
 			pathType = float64(0)
+			pathTypeHint = Float
+		case int8, int16, int, int64:
+			pathType = int64(0)
+			pathTypeHint = Int
 		case string:
 			pathType = ""
+			pathTypeHint = String
 		case bool:
 			pathType = false
+			pathTypeHint = Bool
 		default:
 			pathType = schema.Constant[0]
+			pathTypeHint = JSON
 		}
 	} else if len(schema.Types) == 1 {
 		switch schema.Types[0] {
 		case "null":
 			pathType = nil
+			pathTypeHint = Nil
 		case "boolean":
 			pathType = false
+			pathTypeHint = Bool
 		case "number":
-			fallthrough
+			pathType = float64(0)
+			pathTypeHint = Float
 		case "integer":
 			pathType = float64(0)
+			pathTypeHint = Int
 		case "string":
 			pathType = ""
+			pathTypeHint = String
 		case "array":
 			pathType = []interface{}{}
 			if schema.Items != nil {
@@ -213,12 +226,16 @@ func listPaths(schema *jsonschema.Schema, parents []string, pointers map[string]
 					switch types[0] {
 					case "boolean":
 						pathType = []bool{}
+						pathTypeHint = BoolSlice
 					case "number":
-						fallthrough
+						pathType = []float64{}
+						pathTypeHint = FloatSlice
 					case "integer":
 						pathType = []float64{}
+						pathTypeHint = IntSlice
 					case "string":
 						pathType = []string{}
+						pathTypeHint = StringSlice
 					}
 				}
 			}
@@ -227,9 +244,11 @@ func listPaths(schema *jsonschema.Schema, parents []string, pointers map[string]
 			if len(schema.Properties) == 0 {
 				pathType = map[string]interface{}{}
 			}
+			pathTypeHint = JSON
 		}
 	} else if len(schema.Types) > 2 {
 		pathType = nil
+		pathTypeHint = JSON
 	}
 
 	var def interface{} = schema.Default
@@ -241,6 +260,7 @@ func listPaths(schema *jsonschema.Schema, parents []string, pointers map[string]
 			Name:       strings.Join(parents, "."),
 			Default:    def,
 			Type:       pathType,
+			TypeHint:   pathTypeHint,
 			Format:     schema.Format,
 			Pattern:    schema.Pattern,
 			Enum:       schema.Enum,
