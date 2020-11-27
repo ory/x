@@ -29,8 +29,8 @@ type (
 //
 //	migrations, err := NewMigrationBox(pkger.Dir("/migrations"))
 //
-func NewMigrationBox(dir pkger.Dir, c *pop.Connection, l *logrusx.Logger) (MigrationBox, error) {
-	fm := MigrationBox{
+func NewMigrationBox(dir pkger.Dir, c *pop.Connection, l *logrusx.Logger) (*MigrationBox, error) {
+	mb := MigrationBox{
 		Migrator: pop.NewMigrator(c),
 		Dir:      dir,
 		l:        l,
@@ -53,12 +53,12 @@ func NewMigrationBox(dir pkger.Dir, c *pop.Connection, l *logrusx.Logger) (Migra
 		}
 	}
 
-	err := fm.findMigrations(runner)
+	err := mb.findMigrations(runner)
 	if err != nil {
-		return fm, err
+		return &mb, err
 	}
 
-	return fm, nil
+	return &mb, nil
 }
 
 func (fm *MigrationBox) findMigrations(runner func(f io.Reader) func(mf pop.Migration, tx *pop.Connection) error) error {
