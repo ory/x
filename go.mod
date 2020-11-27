@@ -11,16 +11,17 @@ require (
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gobuffalo/httptest v1.0.2
 	github.com/gobuffalo/packr v1.22.0
-	github.com/gobuffalo/pop/v5 v5.0.11
+	github.com/gobuffalo/pop/v5 v5.3.1
 	github.com/google/go-jsonnet v0.16.0
 	github.com/google/uuid v1.1.0
 	github.com/gorilla/websocket v1.4.2
-	github.com/jackc/pgconn v1.5.0
-	github.com/jackc/pgx/v4 v4.4.1
+	github.com/jackc/pgconn v1.6.0
+	github.com/jackc/pgx/v4 v4.6.0
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/julienschmidt/httprouter v1.2.0
 	github.com/lib/pq v1.3.0
-	github.com/luna-duclos/instrumentedsql v1.1.2
+	github.com/luna-duclos/instrumentedsql v1.1.3
+	github.com/luna-duclos/instrumentedsql/opentracing v0.0.0-20201103091713-40d03108b6f4
 	github.com/markbates/pkger v0.17.1
 	github.com/mattn/goveralls v0.0.2
 	github.com/mitchellh/go-homedir v1.1.0
@@ -29,7 +30,6 @@ require (
 	github.com/openzipkin/zipkin-go v0.2.2
 	github.com/ory/analytics-go/v4 v4.0.0
 	github.com/ory/dockertest/v3 v3.5.4
-	github.com/ory/fosite v0.29.0
 	github.com/ory/go-acc v0.0.0-20181118080137-ddc355013f90
 	github.com/ory/herodot v0.8.3
 	github.com/ory/jsonschema/v3 v3.0.1
