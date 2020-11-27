@@ -2,14 +2,16 @@ package pkgerx
 
 import (
 	"bytes"
-	"github.com/gobuffalo/pop/v5"
-	"github.com/markbates/pkger"
-	"github.com/ory/x/logrusx"
-	"github.com/pkg/errors"
 	"io"
 	"io/ioutil"
 	"os"
 	"strings"
+
+	"github.com/gobuffalo/pop/v5"
+	"github.com/markbates/pkger"
+	"github.com/pkg/errors"
+
+	"github.com/ory/x/logrusx"
 )
 
 type (
