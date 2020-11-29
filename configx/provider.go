@@ -206,34 +206,15 @@ func (p *Provider) RequestURIF(path string, fallback *url.URL) *url.URL {
 	return parsed
 }
 
-//func (p *Provider) Get(key string) (val interface{}) {
-//	return p.GetF(key, nil)
-//}
-//
-//func (p *Provider) GetF(key string, fallback interface{}) (val interface{}) {
-//	var found bool
-//
-//	if p.c == nil {
-//		val = p.Koanf.Get(key)
-//		if val == nil {
-//			return fallback
-//		}
-//
-//		return val
-//	}
-//
-//
-//	val, found = p.c.Get(key)
-//	if found {
-//		return val
-//	}
-//
-//	val = p.Koanf.Get(key)
-//	_ = p.c.Set(key, val, 0)
-//
-//	if val == nil {
-//		return fallback
-//	}
-//
-//	return val
-//}
+func (p *Provider) URIF(path string, fallback *url.URL) *url.URL {
+	if p.Get(path) == nil {
+		return fallback
+	}
+
+	parsed, err := url.Parse(p.String(path))
+	if err != nil {
+		return fallback
+	}
+
+	return parsed
+}
