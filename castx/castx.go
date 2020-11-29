@@ -3,6 +3,10 @@ package castx
 import (
 	"fmt"
 	"reflect"
+	"strings"
+
+	"github.com/ory/x/stringslice"
+	"github.com/ory/x/stringsx"
 
 	"github.com/spf13/cast"
 )
@@ -40,4 +44,22 @@ func ToFloatSliceE(i interface{}) ([]float64, error) {
 	default:
 		return []float64{}, fmt.Errorf("unable to cast %#v of type %T to []float64", i, i)
 	}
+}
+
+// ToStringSlice casts an interface to a []string type and respects comma-separated values.
+func ToStringSlice(i interface{}) []string {
+	s, _ := ToStringSliceE(i)
+	return s
+}
+
+// ToStringSliceE casts an interface to a []string type and respects comma-separated values.
+func ToStringSliceE(i interface{}) ([]string, error) {
+	switch s := i.(type) {
+	case string:
+		if strings.Contains(s, ",") {
+			return stringslice.TrimSpaceEmptyFilter(stringsx.Splitx(s, ",")), nil
+		}
+	}
+
+	return cast.ToStringSliceE(i)
 }
