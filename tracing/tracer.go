@@ -1,7 +1,6 @@
 package tracing
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -27,41 +26,26 @@ import (
 
 // Tracer encapsulates tracing abilities.
 type Tracer struct {
-	ServiceName  string
-	Provider     string
-	Logger       *logrusx.Logger
-	JaegerConfig *JaegerConfig
-	ZipkinConfig *ZipkinConfig
+	Config *Config
 
+	l      *logrusx.Logger
 	tracer opentracing.Tracer
 	closer io.Closer
 }
 
-// JaegerConfig encapsulates jaeger's configuration.
-type JaegerConfig struct {
-	LocalAgentHostPort string
-	SamplerType        string
-	SamplerValue       float64
-	SamplerServerURL   string
-	Propagation        string
+func New(l *logrusx.Logger, c *Config) (*Tracer, error) {
+	t := &Tracer{Config: c, l: l}
+
+	if err := t.setup(); err != nil {
+		return nil, err
+	}
+
+	return t, nil
 }
 
-// ZipkinConfig encapsulates zipkin's configuration.
-type ZipkinConfig struct {
-	ServerURL string
-}
-
-type datadogCloser struct {
-}
-
-func (t datadogCloser) Close() error {
-	datadogTracer.Stop()
-	return nil
-}
-
-// Setup sets up the tracer. Currently supports jaeger.
-func (t *Tracer) Setup() error {
-	switch strings.ToLower(t.Provider) {
+// setup sets up the tracer. Currently supports jaeger.
+func (t *Tracer) setup() error {
+	switch strings.ToLower(t.Config.Provider) {
 	case "jaeger":
 		jc, err := jaegerConf.FromEnv()
 
@@ -69,26 +53,26 @@ func (t *Tracer) Setup() error {
 			return err
 		}
 
-		if t.JaegerConfig.SamplerServerURL != "" {
-			jc.Sampler.SamplingServerURL = t.JaegerConfig.SamplerServerURL
+		if t.Config.Jaeger.SamplerServerURL != "" {
+			jc.Sampler.SamplingServerURL = t.Config.Jaeger.SamplerServerURL
 		}
 
-		if t.JaegerConfig.SamplerType != "" {
-			jc.Sampler.Type = t.JaegerConfig.SamplerType
+		if t.Config.Jaeger.SamplerType != "" {
+			jc.Sampler.Type = t.Config.Jaeger.SamplerType
 		}
 
-		if t.JaegerConfig.SamplerValue != 0 {
-			jc.Sampler.Param = t.JaegerConfig.SamplerValue
+		if t.Config.Jaeger.SamplerValue != 0 {
+			jc.Sampler.Param = t.Config.Jaeger.SamplerValue
 		}
 
-		if t.JaegerConfig.LocalAgentHostPort != "" {
-			jc.Reporter.LocalAgentHostPort = t.JaegerConfig.LocalAgentHostPort
+		if t.Config.Jaeger.LocalAgentHostPort != "" {
+			jc.Reporter.LocalAgentHostPort = t.Config.Jaeger.LocalAgentHostPort
 		}
 
 		var configs []jaegerConf.Option
 
 		// This works in other jaeger clients, but is not part of jaeger-client-go
-		if t.JaegerConfig.Propagation == "b3" {
+		if t.Config.Jaeger.Propagation == "b3" {
 			zipkinPropagator := jaegerZipkin.NewZipkinB3HTTPHeaderPropagator()
 			configs = append(
 				configs,
@@ -98,7 +82,7 @@ func (t *Tracer) Setup() error {
 		}
 
 		closer, err := jc.InitGlobalTracer(
-			t.ServiceName,
+			t.Config.ServiceName,
 			configs...,
 		)
 
@@ -108,15 +92,15 @@ func (t *Tracer) Setup() error {
 
 		t.closer = closer
 		t.tracer = opentracing.GlobalTracer()
-		t.Logger.Infof("Jaeger tracer configured!")
+		t.l.Infof("Jaeger tracer configured!")
 	case "zipkin":
-		if t.ZipkinConfig.ServerURL == "" {
+		if t.Config.Zipkin.ServerURL == "" {
 			return errors.Errorf("Zipkin's server url is required")
 		}
 
-		reporter := zipkinHttp.NewReporter(t.ZipkinConfig.ServerURL)
+		reporter := zipkinHttp.NewReporter(t.Config.Zipkin.ServerURL)
 
-		endpoint, err := zipkin.NewEndpoint(t.ServiceName, "")
+		endpoint, err := zipkin.NewEndpoint(t.Config.ServiceName, "")
 
 		if err != nil {
 			return err
@@ -132,22 +116,22 @@ func (t *Tracer) Setup() error {
 
 		t.closer = reporter
 		t.tracer = opentracing.GlobalTracer()
-		t.Logger.Infof("Zipkin tracer configured!")
+		t.l.Infof("Zipkin tracer configured!")
 	case "datadog":
 		var serviceName = os.Getenv("DD_SERVICE")
 		if serviceName == "" {
-			serviceName = t.ServiceName
+			serviceName = t.Config.ServiceName
 		}
 
 		opentracing.SetGlobalTracer(datadogOpentracer.New(datadogTracer.WithService(serviceName)))
 
 		t.closer = datadogCloser{}
 		t.tracer = opentracing.GlobalTracer()
-		t.Logger.Infof("DataDog tracer configured!")
+		t.l.Infof("DataDog tracer configured!")
 	case "elastic-apm":
 		var serviceName = os.Getenv("ELASTIC_APM_SERVICE_NAME")
 		if serviceName == "" {
-			serviceName = t.ServiceName
+			serviceName = t.Config.ServiceName
 		}
 
 		tr, err := apm.NewTracer(serviceName, "")
@@ -158,12 +142,12 @@ func (t *Tracer) Setup() error {
 
 		//t.closer = tr.Close
 		t.tracer = opentracing.GlobalTracer()
-		t.Logger.Infof("Elastic APM tracer configured!")
+		t.l.Infof("Elastic APM tracer configured!")
 
 	case "":
-		t.Logger.Infof("No tracer configured - skipping tracing setup")
+		t.l.Infof("No tracer configured - skipping tracing setup")
 	default:
-		return errors.Errorf("unknown tracer: %s", t.Provider)
+		return errors.Errorf("unknown tracer: %s", t.Config.Provider)
 	}
 	return nil
 }
@@ -181,57 +165,7 @@ func (t *Tracer) Close() {
 	if t.closer != nil {
 		err := t.closer.Close()
 		if err != nil {
-			t.Logger.Warn(err)
+			t.l.WithError(err).Error("Unable to close tracer.")
 		}
 	}
-}
-
-// HelpMessage returns a help message for CLIs using tracing.
-func HelpMessage(defaultName string) string {
-	return fmt.Sprintf(`- TRACING_PROVIDER: Set this to the tracing backend you wish to use. Currently supported tracing backends:
-		- "": No tracing enabled (default)
-		- "jaeger": Enables Jaeger tracing
-		- "zipkin": Enables Zipkin tracing
-		- "datadog": Enables Datadog tracing
-		- "elastic-apm": Enables elastic apm tracing
-
-	Example: TRACING_PROVIDER=jaeger
-
-- TRACING_PROVIDERS_JAEGER_SAMPLING_SERVER_URL: The address of Jaeger-agent's HTTP sampling server.
-
-	Example: TRACING_PROVIDERS_JAEGER_SAMPLING_SERVER_URL=http://localhost:5778/sampling
-
-- TRACING_PROVIDERS_JAEGER_SAMPLING_TYPE: The type of the sampler you want to use. Supported values:
-		- const (default)
-		- probabilistic
-		- ratelimiting
-
-	Example: TRACING_PROVIDER_JAEGER_SAMPLING_TYPE=const
-
-- TRACING_PROVIDERS_JAEGER_SAMPLING_VALUE: The value passed to the sampler type that has been configured.
-
-	Supported values (dependant on sampling strategy used):
-		- const: 0 or 1 (all or nothing)
-		- rateLimiting: a constant rate (e.g. setting this to 3 will sample requests with the rate of 3 traces per second)
-		- probabilistic: a value between 0..1
-
-	Example: TRACING_PROVIDERS_JAEGER_SAMPLING_VALUE=1
-
-- TRACING_PROVIDERS_JAEGER_LOCAL_AGENT_ADDRESS: The address of the jaeger-agent where spans should be sent to
-
-	Example: TRACING_PROVIDERS_JAEGER_LOCAL_AGENT_ADDRESS=127.0.0.1:6831
-
-- TRACING_PROVIDERS_JAEGER_PROPAGATION: The tracing header propagation format. Defaults to jaeger.
-
-	Example: TRACING_PROVIDERS_JAEGER_PROPAGATION=b3
-
-- TRACING_PROVIDERS_ZIPKIN_SERVER_URL: The address of Zipkin server
-
-	Example: TRACING_PROVIDERS_ZIPKIN_SERVER_URL=http://localhost:9411/api/v2/spans
-
-- TRACING_SERVICE_NAME: Specifies the service name to use on the tracer.
-	Default: ORY Hydra
-
-	Example: TRACING_SERVICE_NAME="%s"
-`, defaultName)
 }
