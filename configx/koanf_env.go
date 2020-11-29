@@ -52,12 +52,12 @@ func NewKoanfEnv(prefix string, schema []byte) (*env.Env, error) {
 					fallthrough
 				case jsonschemax.StringSlice:
 					if !gjson.Valid(value) {
-						return path.Name, cast.ToBoolSlice(value)
+						return path.Name, castx.ToStringSlice(value)
 					}
 					fallthrough
 				case jsonschemax.IntSlice:
 					if !gjson.Valid(value) {
-						return path.Name, cast.ToBoolSlice(value)
+						return path.Name, cast.ToIntSlice(value)
 					}
 					fallthrough
 				case jsonschemax.FloatSlice:
