@@ -1,10 +1,19 @@
 package configx
 
 import (
+	"log"
+	"net/url"
+	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
-	"github.com/dgraph-io/ristretto"
+	"github.com/knadh/koanf/providers/posflag"
+	"github.com/spf13/pflag"
+
+	"github.com/ory/x/stringsx"
+	"github.com/ory/x/tracing"
+
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/json"
 	"github.com/knadh/koanf/parsers/toml"
@@ -16,12 +25,23 @@ import (
 )
 
 type Provider struct {
-	k *koanf.Koanf
-	c *ristretto.Cache
+	*koanf.Koanf
 }
 
-func New(schema []byte, configFiles ...string) (*Provider, error) {
-	p := &Provider{k: koanf.New(".")}
+// RegisterFlags registers the config file flag.
+func RegisterFlags(flags *pflag.FlagSet) {
+	flags.StringSliceP("config", "c", []string{}, "Path to one or more .json, .yaml, .yml, .toml config files. Values are loaded in the order provided, meaning that the last config file overwrites values from the previous config file.")
+}
+
+// New creates a new provider instance or errors.
+// Configuration values are loaded in the following order:
+//
+// 1. Defaults from the JSON Schema
+// 2. Config files (yaml, yml, toml, json)
+// 3. Command line flags
+// 4. Environment variables
+func New(schema []byte, flags *pflag.FlagSet) (*Provider, error) {
+	p := &Provider{Koanf: koanf.New(".")}
 
 	dp, err := NewKoanfSchemaDefaults(schema)
 	if err != nil {
@@ -34,39 +54,26 @@ func New(schema []byte, configFiles ...string) (*Provider, error) {
 	}
 
 	// Load defaults
-	if err := p.k.Load(dp, nil); err != nil {
+	if err := p.Koanf.Load(dp, nil); err != nil {
 		return nil, err
 	}
 
-	for _, configFile := range configFiles {
+	paths, err := flags.GetStringSlice("config")
+	for _, configFile := range paths {
 		if err := p.addConfigFile(configFile); err != nil {
 			return nil, err
 		}
 	}
 
-	if err := p.k.Load(ep, nil); err != nil {
+	if err := p.Koanf.Load(posflag.Provider(flags, ".", p.Koanf), nil); err != nil {
+		log.Fatalf("error loading config: %v", err)
+	}
+
+	if err := p.Koanf.Load(ep, nil); err != nil {
 		return nil, err
 	}
 
-	p.newCache()
 	return p, nil
-}
-
-func (p *Provider) newCache() {
-	old := p.c
-
-	// This can not error as all config values are > 0
-	c, _ := ristretto.NewCache(&ristretto.Config{
-		NumCounters: int64(len(p.k.Keys()) * 10),
-		MaxCost:     5000000,
-		BufferItems: 64,
-	})
-
-	p.c = c
-
-	if old != nil {
-		old.Close()
-	}
 }
 
 func (p *Provider) addConfigFile(path string) error {
@@ -83,74 +90,65 @@ func (p *Provider) addConfigFile(path string) error {
 		return errors.Errorf("unknown config file extension: %s", e)
 	}
 
-	return p.k.Load(file.Provider(path), parser)
-}
-
-func (p *Provider) Koanf() *koanf.Koanf {
-	return p.k
+	return p.Koanf.Load(file.Provider(path), parser)
 }
 
 func (p *Provider) Set(key string, value interface{}) {
 	// This can not err because confmap does not err
-	_ = p.k.Load(confmap.Provider(map[string]interface{}{
+	_ = p.Koanf.Load(confmap.Provider(map[string]interface{}{
 		key: value}, "."), nil)
-	p.newCache()
-}
-
-func (p *Provider) Bool(key string) bool {
-	return p.BoolF(key, false)
 }
 
 func (p *Provider) BoolF(key string, fallback bool) bool {
-	if !p.k.Exists(key) {
+	if !p.Koanf.Exists(key) {
 		return fallback
 	}
 
-	return p.k.Bool(key)
-}
-
-func (p *Provider) String(key string) string {
-	return p.StringF(key, "")
+	return p.Bool(key)
 }
 
 func (p *Provider) StringF(key string, fallback string) string {
-	if !p.k.Exists(key) {
+	if !p.Koanf.Exists(key) {
 		return fallback
 	}
 
-	return p.k.String(key)
-}
-
-func (p *Provider) Strings(key string) []string {
-	return p.StringsF(key, []string{})
+	return p.String(key)
 }
 
 func (p *Provider) StringsF(key string, fallback []string) (val []string) {
-	if !p.k.Exists(key) {
+	if !p.Koanf.Exists(key) {
 		return fallback
 	}
 
-	return p.k.Strings(key)
-}
-
-func (p *Provider) Int(key string) int {
-	return p.IntF(key, 0)
+	return p.Strings(key)
 }
 
 func (p *Provider) IntF(key string, fallback int) (val int) {
-	if !p.k.Exists(key) {
+	if !p.Koanf.Exists(key) {
 		return fallback
 	}
 
-	return p.k.Int(key)
+	return p.Int(key)
 }
 
-func (p *Provider) Get(key string) bool {
-	return p.BoolF(key, false)
+func (p *Provider) Float64F(key string, fallback float64) (val float64) {
+	if !p.Koanf.Exists(key) {
+		return fallback
+	}
+
+	return p.Float64(key)
+}
+
+func (p *Provider) DurationF(key string, fallback time.Duration) (val time.Duration) {
+	if !p.Koanf.Exists(key) {
+		return fallback
+	}
+
+	return p.Duration(key)
 }
 
 func (p *Provider) GetF(key string, fallback interface{}) (val interface{}) {
-	val = p.k.Get(key)
+	val = p.Get(key)
 	if val == nil {
 		return fallback
 	}
@@ -175,6 +173,39 @@ func (p *Provider) CORS(prefix string, defaults cors.Options) (cors.Options, boo
 	}, p.Bool(prefix + "cors.enabled")
 }
 
+func (p *Provider) TracingConfig(serviceName string) *tracing.Config {
+	return &tracing.Config{
+		ServiceName: p.StringF("tracing.service_name", serviceName),
+		Provider:    p.String("tracing.provider"),
+		Jaeger: &tracing.JaegerConfig{
+			LocalAgentHostPort: p.String("tracing.providers.jaeger.local_agent_address"),
+			SamplerType:        p.StringF("tracing.providers.jaeger.sampling.type", "const"),
+			SamplerValue:       p.Float64F("tracing.providers.jaeger.sampling.value", float64(1)),
+			SamplerServerURL:   p.String("tracing.providers.jaeger.sampling.server_url"),
+			Propagation: stringsx.Coalesce(
+				os.Getenv("JAEGER_PROPAGATION"),
+				p.String("tracing.providers.jaeger.propagation"),
+			),
+		},
+		Zipkin: &tracing.ZipkinConfig{
+			ServerURL: p.String("tracing.providers.zipkin.server_url"),
+		},
+	}
+}
+
+func (p *Provider) RequestURIF(path string, fallback *url.URL) *url.URL {
+	if p.Get(path) == nil {
+		return fallback
+	}
+
+	parsed, err := url.ParseRequestURI(p.String(path))
+	if err != nil {
+		return fallback
+	}
+
+	return parsed
+}
+
 //func (p *Provider) Get(key string) (val interface{}) {
 //	return p.GetF(key, nil)
 //}
@@ -183,7 +214,7 @@ func (p *Provider) CORS(prefix string, defaults cors.Options) (cors.Options, boo
 //	var found bool
 //
 //	if p.c == nil {
-//		val = p.k.Get(key)
+//		val = p.Koanf.Get(key)
 //		if val == nil {
 //			return fallback
 //		}
@@ -197,7 +228,7 @@ func (p *Provider) CORS(prefix string, defaults cors.Options) (cors.Options, boo
 //		return val
 //	}
 //
-//	val = p.k.Get(key)
+//	val = p.Koanf.Get(key)
 //	_ = p.c.Set(key, val, 0)
 //
 //	if val == nil {

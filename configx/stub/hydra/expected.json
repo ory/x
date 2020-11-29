@@ -4,6 +4,7 @@
       "auto_max_procs_enabled": false
     }
   },
+  "config": ["stub/hydra/hydra.yaml"],
   "dsn": "sqlite:///var/lib/sqlite/db.sqlite?_fk=true",
   "log": {
     "format": "text",
@@ -123,7 +124,7 @@
     "provider": "jaeger",
     "providers": {
       "jaeger": {
-        "local_agent_address": "jaeger:6831",
+        "local_agent_address": "jaeger:6832",
         "sampling": {
           "server_url": "http://jaeger:5778/sampling",
           "type": "const",
