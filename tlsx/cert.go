@@ -11,11 +11,10 @@ import (
 	"encoding/pem"
 	"fmt"
 	"math/big"
+	"os"
 	"time"
 
 	"github.com/pkg/errors"
-
-	"github.com/ory/viper"
 )
 
 // ErrNoCertificatesConfigured is returned when no TLS configuration was found.
@@ -28,8 +27,8 @@ var ErrInvalidCertificateConfiguration = errors.New("tls configuration is invali
 func HTTPSCertificate() ([]tls.Certificate, error) {
 	prefix := "HTTPS_TLS"
 	return Certificate(
-		viper.GetString(prefix+"_CERT"), viper.GetString(prefix+"_KEY"),
-		viper.GetString(prefix+"_CERT_PATH"), viper.GetString(prefix+"_KEY_PATH"),
+		os.Getenv(prefix+"_CERT"), os.Getenv(prefix+"_KEY"),
+		os.Getenv(prefix+"_CERT_PATH"), os.Getenv(prefix+"_KEY_PATH"),
 	)
 }
 

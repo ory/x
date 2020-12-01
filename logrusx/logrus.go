@@ -1,15 +1,35 @@
 package logrusx
 
 import (
-	"github.com/sirupsen/logrus"
+	"os"
 
-	"github.com/ory/viper"
+	"github.com/sirupsen/logrus"
 
 	"github.com/ory/x/stringsx"
 )
 
-func newLogger(o *options) *logrus.Logger {
-	l := o.l
+type (
+	options struct {
+		l             *logrus.Logger
+		level         *logrus.Level
+		formatter     logrus.Formatter
+		format        string
+		reportCaller  bool
+		exitFunc      func(int)
+		leakSensitive bool
+		hooks         []logrus.Hook
+		c             configurator
+	}
+	Option           func(*options)
+	nullConfigurator struct{}
+	configurator     interface {
+		Bool(key string) bool
+		String(key string) string
+	}
+)
+
+func newLogger(parent *logrus.Logger, o *options) *logrus.Logger {
+	l := parent
 	if l == nil {
 		l = logrus.New()
 	}
@@ -23,8 +43,8 @@ func newLogger(o *options) *logrus.Logger {
 	} else {
 		var err error
 		l.Level, err = logrus.ParseLevel(stringsx.Coalesce(
-			viper.GetString("log.level"),
-			viper.GetString("LOG_LEVEL")))
+			o.c.String("log.level"),
+			os.Getenv("LOG_LEVEL")))
 		if err != nil {
 			l.Level = logrus.InfoLevel
 		}
@@ -33,7 +53,7 @@ func newLogger(o *options) *logrus.Logger {
 	if o.formatter != nil {
 		l.Formatter = o.formatter
 	} else {
-		switch stringsx.Coalesce(o.format, viper.GetString("log.format"), viper.GetString("LOG_FORMAT")) {
+		switch stringsx.Coalesce(o.format, o.c.String("log.format"), os.Getenv("LOG_FORMAT")) {
 		case "json":
 			l.Formatter = &logrus.JSONFormatter{PrettyPrint: false}
 		case "json_pretty":
@@ -55,19 +75,6 @@ func newLogger(o *options) *logrus.Logger {
 	return l
 }
 
-type options struct {
-	l             *logrus.Logger
-	level         *logrus.Level
-	formatter     logrus.Formatter
-	format        string
-	reportCaller  bool
-	exitFunc      func(int)
-	leakSensitive bool
-	hooks         []logrus.Hook
-}
-
-type Option func(*options)
-
 func ForceLevel(level logrus.Level) Option {
 	return func(o *options) {
 		o.level = &level
@@ -77,6 +84,12 @@ func ForceLevel(level logrus.Level) Option {
 func ForceFormatter(formatter logrus.Formatter) Option {
 	return func(o *options) {
 		o.formatter = formatter
+	}
+}
+
+func WithConfigurator(c configurator) Option {
+	return func(o *options) {
+		o.c = c
 	}
 }
 
@@ -116,8 +129,17 @@ func LeakSensitive() Option {
 	}
 }
 
+func (c *nullConfigurator) Bool(_ string) bool {
+	return false
+}
+
+func (c *nullConfigurator) String(_ string) string {
+	return ""
+}
+
 func newOptions(opts []Option) *options {
 	o := new(options)
+	o.c = new(nullConfigurator)
 	for _, f := range opts {
 		f(o)
 	}
@@ -128,9 +150,8 @@ func newOptions(opts []Option) *options {
 func New(name string, version string, opts ...Option) *Logger {
 	o := newOptions(opts)
 	return &Logger{
-		leakSensitive: o.leakSensitive ||
-			viper.GetBool("log.leak_sensitive_values") || viper.GetBool("LOG_LEAK_SENSITIVE_VALUES"),
-		Entry: newLogger(o).WithFields(logrus.Fields{
+		leakSensitive: o.leakSensitive || o.c.Bool("log.leak_sensitive_values"),
+		Entry: newLogger(o.l, o).WithFields(logrus.Fields{
 			"audience": "application", "service_name": name, "service_version": version}),
 	}
 }

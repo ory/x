@@ -7,7 +7,6 @@ require (
 	github.com/dgraph-io/ristretto v0.0.2
 	github.com/fatih/structs v1.1.0
 	github.com/fsnotify/fsnotify v1.4.9
-	github.com/ghodss/yaml v1.0.0
 	github.com/go-bindata/go-bindata v3.1.1+incompatible
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gobuffalo/httptest v1.0.2
@@ -26,7 +25,6 @@ require (
 	github.com/luna-duclos/instrumentedsql/opentracing v0.0.0-20201103091713-40d03108b6f4
 	github.com/markbates/pkger v0.17.1
 	github.com/mattn/goveralls v0.0.2
-	github.com/mitchellh/go-homedir v1.1.0
 	github.com/opentracing/opentracing-go v1.1.1-0.20190913142402-a7454ce5950e
 	github.com/openzipkin-contrib/zipkin-go-opentracing v0.4.5
 	github.com/openzipkin/zipkin-go v0.2.2
@@ -35,7 +33,6 @@ require (
 	github.com/ory/go-acc v0.0.0-20181118080137-ddc355013f90
 	github.com/ory/herodot v0.8.3
 	github.com/ory/jsonschema/v3 v3.0.1
-	github.com/ory/viper v1.7.5
 	github.com/pborman/uuid v1.2.0
 	github.com/philhofer/fwd v1.0.0 // indirect
 	github.com/pkg/errors v0.9.1
@@ -58,7 +55,7 @@ require (
 	gonum.org/v1/plot v0.0.0-20200111075622-4abb28f724d5
 	gopkg.in/DataDog/dd-trace-go.v1 v1.27.0
 	gopkg.in/square/go-jose.v2 v2.2.2
-	gopkg.in/yaml.v2 v2.3.0
+	gopkg.in/yaml.v2 v2.3.0 // indirect
 )
 
 go 1.14

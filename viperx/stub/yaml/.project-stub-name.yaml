@@ -1,8 +1,0 @@
-# serve controls the configuration for the http(s) daemon
-serve:
-  admin:
-    port: 3
-authenticators:
-  oauth2_introspection:
-    config:
-      introspection_url: http://myurl    

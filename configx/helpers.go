@@ -26,7 +26,7 @@ func (p *Provider) formatValidationErrorForCLI(w io.Writer, conf []byte, err err
 	}
 
 	if e := new(jsonschema.ValidationError); errors.As(err, &e) {
-		p.l.Error("The configuration contains values or keys which are invalid.")
+		_, _ = fmt.Fprintln(w, "The configuration contains values or keys which are invalid:")
 		pointer, validation := jsonschemaFormatError(e)
 
 		if pointer == "#" {

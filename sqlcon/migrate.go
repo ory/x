@@ -2,10 +2,12 @@ package sqlcon
 
 import (
 	"fmt"
+	"os"
 	"time"
 
+	"github.com/ory/x/stringsx"
+
 	"github.com/ory/x/logrusx"
-	"github.com/ory/x/viperx"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/spf13/cobra"
@@ -42,7 +44,7 @@ Examples:
 			var db string
 
 			if a, b := cmd.Flags().GetBool("read-from-env"); a && b == nil {
-				db = viperx.GetString(logger, "DSN", "", "DATABASE_URL")
+				db = stringsx.Coalesce(os.Getenv("DSN"), os.Getenv("DATABASE_URL"))
 			} else {
 				if len(args) == 0 {
 					fmt.Print(cmd.UsageString())

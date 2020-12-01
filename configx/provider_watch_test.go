@@ -56,12 +56,13 @@ func TestReload(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		t.Cleanup(cancel)
 		modifiers = append(modifiers,
-			WithWatcher(func(event watcherx.Event, err error) {
+			WithLogrusWatcher(l),
+			AttachWatcher(func(event watcherx.Event, err error) {
 				wg.Done()
 			}),
 			WithContext(ctx),
 		)
-		p, err := newKoanf("./stub/watch/config.schema.json", []string{cf.Name()}, l, modifiers...)
+		p, err := newKoanf("./stub/watch/config.schema.json", []string{cf.Name()}, modifiers...)
 		require.NoError(t, err)
 		return p
 	}
@@ -127,13 +128,14 @@ func TestReload(t *testing.T) {
 		hook := test.NewLocal(l.Entry.Logger)
 
 		var b bytes.Buffer
-		_, err := newKoanf("./stub/watch/config.schema.json", []string{configFile.Name()}, l,
-			WithStandardValidationReporter(&b))
+		_, err := newKoanf("./stub/watch/config.schema.json", []string{configFile.Name()},
+			WithStandardValidationReporter(&b),
+			WithLogrusWatcher(l),
+		)
 		require.Error(t, err)
 
 		entries := hook.AllEntries()
-		require.Equal(t, 1, len(entries))
-		assert.Equal(t, "The configuration contains values or keys which are invalid.", entries[0].Message)
-		assert.Equal(t, "foo: not bar\n     ^-- value must be \"bar\"\n\n", b.String())
+		require.Equal(t, 0, len(entries))
+		assert.Equal(t, "The configuration contains values or keys which are invalid:\nfoo: not bar\n     ^-- value must be \"bar\"\n\n", b.String())
 	})
 }
