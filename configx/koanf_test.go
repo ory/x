@@ -38,7 +38,7 @@ func setEnvs(t testing.TB, envs [][2]string) {
 	}
 	t.Cleanup(func() {
 		for _, v := range envs {
-		_ = os.Unsetenv(v[0])
+			_ = os.Unsetenv(v[0])
 		}
 	})
 }

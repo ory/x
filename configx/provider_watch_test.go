@@ -33,7 +33,7 @@ func tmpConfigFile(t *testing.T, dsn, foo string) *os.File {
 	require.NoError(t, err)
 	require.NoError(t, configFile.Sync())
 	t.Cleanup(func() {
-		require.NoError(t, os.Remove(configFile.Name()))
+		_ = os.Remove(configFile.Name())
 	})
 
 	return configFile
@@ -128,7 +128,7 @@ func TestReload(t *testing.T) {
 
 		var b bytes.Buffer
 		_, err := newKoanf("./stub/watch/config.schema.json", []string{configFile.Name()}, l,
-			WithStandardValidationReporter(&b)			)
+			WithStandardValidationReporter(&b))
 		require.Error(t, err)
 
 		entries := hook.AllEntries()
