@@ -40,7 +40,3 @@ func (k *KoanfSchemaDefaults) Read() (map[string]interface{}, error) {
 
 	return maps.Unflatten(values, "."), nil
 }
-
-func (k *KoanfSchemaDefaults) Watch(func(event interface{}, err error)) error {
-	return errors.New("schema defaults provider does not support this method")
-}

@@ -1,12 +1,20 @@
 package configx
 
 import (
-	"log"
+	"bytes"
+	"context"
+	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"time"
+
+	"github.com/ory/jsonschema/v3"
+	"github.com/ory/x/logrusx"
+	"github.com/ory/x/watcherx"
 
 	"github.com/knadh/koanf/providers/posflag"
 	"github.com/spf13/pflag"
@@ -19,18 +27,20 @@ import (
 	"github.com/knadh/koanf/parsers/toml"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/confmap"
-	"github.com/knadh/koanf/providers/file"
 	"github.com/pkg/errors"
 	"github.com/rs/cors"
 )
 
 type Provider struct {
 	*koanf.Koanf
-}
-
-// RegisterFlags registers the config file flag.
-func RegisterFlags(flags *pflag.FlagSet) {
-	flags.StringSliceP("config", "c", []string{}, "Path to one or more .json, .yaml, .yml, .toml config files. Values are loaded in the order provided, meaning that the last config file overwrites values from the previous config file.")
+	immutables        []string
+	l                 *logrusx.Logger
+	ctx               context.Context
+	schema            []byte
+	flags             *pflag.FlagSet
+	validator         *jsonschema.Schema
+	onChanges         func(watcherx.Event, error)
+	onValidationError func(k *koanf.Koanf, err error)
 }
 
 // New creates a new provider instance or errors.
@@ -40,43 +50,94 @@ func RegisterFlags(flags *pflag.FlagSet) {
 // 2. Config files (yaml, yml, toml, json)
 // 3. Command line flags
 // 4. Environment variables
-func New(schema []byte, flags *pflag.FlagSet) (*Provider, error) {
-	p := &Provider{Koanf: koanf.New(".")}
-
-	dp, err := NewKoanfSchemaDefaults(schema)
+func New(schema []byte, flags *pflag.FlagSet, l *logrusx.Logger, modifiers ...OptionModifier) (*Provider, error) {
+	schemaID, comp, err := newCompiler(schema)
 	if err != nil {
 		return nil, err
 	}
 
-	ep, err := NewKoanfEnv("", schema)
+	validator, err := comp.Compile(schemaID)
+	if err != nil {
+		return nil, err
+	}
+
+	p := &Provider{
+		l:                 l,
+		ctx:               context.Background(),
+		schema:            schema,
+		flags:             flags,
+		validator:         validator,
+		onChanges:         func(_ watcherx.Event, _ error) {},
+		onValidationError: func(k *koanf.Koanf, err error) {},
+	}
+
+	for _, m := range modifiers {
+		m(p)
+	}
+
+	k, err := p.newKoanf(p.ctx)
+	if err != nil {
+		l.WithError(err).Error("The provided configuration is invalid and could not be loaded. Check the output below to understand why.")
+		return nil, err
+	}
+	p.Koanf = k
+
+	return p, nil
+}
+
+func (p *Provider) validate(k *koanf.Koanf) error {
+	out, err := k.Marshal(json.Parser())
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	if err := p.validator.Validate(bytes.NewReader(out)); err != nil {
+		p.onValidationError(k, err)
+		return err
+	}
+	return nil
+}
+
+func (p *Provider) newKoanf(ctx context.Context) (*koanf.Koanf, error) {
+	k := koanf.New(".")
+
+	dp, err := NewKoanfSchemaDefaults(p.schema)
+	if err != nil {
+		return nil, err
+	}
+
+	ep, err := NewKoanfEnv("", p.schema)
 	if err != nil {
 		return nil, err
 	}
 
 	// Load defaults
-	if err := p.Koanf.Load(dp, nil); err != nil {
+	if err := k.Load(dp, nil); err != nil {
 		return nil, err
 	}
 
-	paths, err := flags.GetStringSlice("config")
+	paths, err := p.flags.GetStringSlice("config")
 	for _, configFile := range paths {
-		if err := p.addConfigFile(configFile); err != nil {
+		if err := p.addConfigFile(ctx, configFile, k); err != nil {
 			return nil, err
 		}
 	}
 
-	if err := p.Koanf.Load(posflag.Provider(flags, ".", p.Koanf), nil); err != nil {
-		log.Fatalf("error loading config: %v", err)
-	}
-
-	if err := p.Koanf.Load(ep, nil); err != nil {
+	if err := k.Load(posflag.Provider(p.flags, ".", k), nil); err != nil {
 		return nil, err
 	}
 
-	return p, nil
+	if err := k.Load(ep, nil); err != nil {
+		return nil, err
+	}
+
+	if err := p.validate(k); err != nil {
+		return nil, err
+	}
+
+	return k, nil
 }
 
-func (p *Provider) addConfigFile(path string) error {
+func (p *Provider) addConfigFile(ctx context.Context, path string, k *koanf.Koanf) error {
 	var parser koanf.Parser
 
 	switch e := filepath.Ext(path); e {
@@ -90,7 +151,66 @@ func (p *Provider) addConfigFile(path string) error {
 		return errors.Errorf("unknown config file extension: %s", e)
 	}
 
-	return p.Koanf.Load(file.Provider(path), parser)
+	ctx, cancel := context.WithCancel(p.ctx)
+	fp := NewKoanfFile(ctx, path)
+
+	c := make(watcherx.EventChannel)
+	go func(c watcherx.EventChannel) {
+		for e := range c {
+			p.l.WithField("file", e.Source()).
+				WithField("event", e).
+				WithField("event_type", fmt.Sprintf("%T", e)).
+				WithField("immutables", p.immutables).
+				Info("A change to a configuration file was detected.")
+
+			switch et := e.(type) {
+			case *watcherx.ErrorEvent:
+				p.l.WithError(et).Errorf("An error occurred while watching config file %s", path)
+			default: // *watcherx.RemoveEvent, *watcherx.ChangeEvent
+				ctx, cancelInner := context.WithCancel(ctx)
+
+				var cancelReload bool
+				nk, err := p.newKoanf(ctx)
+				if err != nil {
+					cancelReload = true
+					p.l.WithError(err).WithField("event", fmt.Sprintf("%#v", et)).
+						Errorf("The changed configuration is invalid and could not be loaded. Rolling back to the last working configuration revision. Please address the validation errors before restarting the process.")
+				} else {
+					for _, key := range p.immutables {
+						if !reflect.DeepEqual(k.Get(key), nk.Get(key)) {
+							err = errors.Errorf("immutable configuration key \"%s\" was changed", key)
+							cancelReload = true
+							p.l.WithError(err).
+								WithField("key", key).
+								WithField("old_value", fmt.Sprintf("%v", k.Get(key))).
+								WithField("new_value", fmt.Sprintf("%v", nk.Get(key))).
+								Errorf("A configuration value marked as immutable has changed. Rolling back to the last working configuration revision. To reload the values please restart the process.")
+							break
+						}
+					}
+				}
+
+				if cancelReload {
+					cancelInner()
+					p.onChanges(e, err)
+					continue
+				}
+
+				p.Koanf = nk
+				cancel()
+				p.onChanges(e, nil)
+				close(c)
+				return
+			}
+		}
+	}(c)
+
+	if err := fp.WatchChannel(c); err != nil {
+		close(c)
+		return err
+	}
+
+	return k.Load(fp, parser)
 }
 
 func (p *Provider) Set(key string, value interface{}) {
@@ -217,4 +337,19 @@ func (p *Provider) URIF(path string, fallback *url.URL) *url.URL {
 	}
 
 	return parsed
+}
+
+// PrintHumanReadableValidationErrors prints human readable validation errors. Duh.
+func (p *Provider) PrintHumanReadableValidationErrors(w io.Writer, err error) {
+	p.printHumanReadableValidationErrors(p.Koanf, w, err)
+}
+
+func (p *Provider) printHumanReadableValidationErrors(k *koanf.Koanf, w io.Writer, err error) {
+	if err == nil {
+		return
+	}
+
+	_, _ = fmt.Fprintln(os.Stderr, "")
+	conf, err := k.Marshal(json.Parser())
+	formatValidationErrorForCLI(w, conf, err)
 }
