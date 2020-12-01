@@ -12,6 +12,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/log"
+
 	"github.com/ory/jsonschema/v3"
 	"github.com/ory/x/watcherx"
 
@@ -32,13 +35,14 @@ import (
 
 type Provider struct {
 	*koanf.Koanf
-	immutables        []string
-	ctx               context.Context
-	schema            []byte
-	flags             *pflag.FlagSet
-	validator         *jsonschema.Schema
-	onChanges         []func(watcherx.Event, error)
-	onValidationError func(k *koanf.Koanf, err error)
+	immutables               []string
+	ctx                      context.Context
+	schema                   []byte
+	flags                    *pflag.FlagSet
+	validator                *jsonschema.Schema
+	onChanges                []func(watcherx.Event, error)
+	onValidationError        func(k *koanf.Koanf, err error)
+	excludeFieldsFromTracing []string
 }
 
 // New creates a new provider instance or errors.
@@ -60,11 +64,12 @@ func New(schema []byte, flags *pflag.FlagSet, modifiers ...OptionModifier) (*Pro
 	}
 
 	p := &Provider{
-		ctx:               context.Background(),
-		schema:            schema,
-		flags:             flags,
-		validator:         validator,
-		onValidationError: func(k *koanf.Koanf, err error) {},
+		ctx:                      context.Background(),
+		schema:                   schema,
+		flags:                    flags,
+		validator:                validator,
+		onValidationError:        func(k *koanf.Koanf, err error) {},
+		excludeFieldsFromTracing: []string{"dsn", "secret", "password", "key"},
 	}
 
 	for _, m := range modifiers {
@@ -93,6 +98,9 @@ func (p *Provider) validate(k *koanf.Koanf) error {
 }
 
 func (p *Provider) newKoanf(ctx context.Context) (*koanf.Koanf, error) {
+	span, _ := opentracing.StartSpanFromContext(ctx, LoadSpanOpName)
+	defer span.Finish()
+
 	k := koanf.New(".")
 
 	dp, err := NewKoanfSchemaDefaults(p.schema)
@@ -128,6 +136,24 @@ func (p *Provider) newKoanf(ctx context.Context) (*koanf.Koanf, error) {
 	if err := p.validate(k); err != nil {
 		return nil, err
 	}
+
+	fields := make([]log.Field, 0, len(p.Keys()))
+	for _, key := range p.Keys() {
+		var skip bool
+		for _, e := range p.excludeFieldsFromTracing {
+			if strings.Contains(key, e) {
+				skip = true
+			}
+		}
+
+		if skip {
+			continue
+		}
+
+		fields = append(fields, log.Object(key, p.Get(key)))
+	}
+
+	span.LogFields(fields...)
 
 	return k, nil
 }
