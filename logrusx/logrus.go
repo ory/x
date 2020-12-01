@@ -38,6 +38,18 @@ func newLogger(parent *logrus.Logger, o *options) *logrus.Logger {
 		l.ExitFunc = o.exitFunc
 	}
 
+	setLevel(l, o)
+	setFormatter(l, o)
+
+	for _, hook := range o.hooks {
+		l.AddHook(hook)
+	}
+
+	l.ReportCaller = o.reportCaller || l.IsLevelEnabled(logrus.TraceLevel)
+	return l
+}
+
+func setLevel(l *logrus.Logger, o *options) {
 	if o.level != nil {
 		l.Level = *o.level
 	} else {
@@ -49,7 +61,9 @@ func newLogger(parent *logrus.Logger, o *options) *logrus.Logger {
 			l.Level = logrus.InfoLevel
 		}
 	}
+}
 
+func setFormatter(l *logrus.Logger, o *options) {
 	if o.formatter != nil {
 		l.Formatter = o.formatter
 	} else {
@@ -67,12 +81,6 @@ func newLogger(parent *logrus.Logger, o *options) *logrus.Logger {
 		}
 	}
 
-	for _, hook := range o.hooks {
-		l.AddHook(hook)
-	}
-
-	l.ReportCaller = o.reportCaller || l.IsLevelEnabled(logrus.TraceLevel)
-	return l
 }
 
 func ForceLevel(level logrus.Level) Option {
@@ -150,6 +158,9 @@ func newOptions(opts []Option) *options {
 func New(name string, version string, opts ...Option) *Logger {
 	o := newOptions(opts)
 	return &Logger{
+		opts:          opts,
+		name:          name,
+		version:       version,
 		leakSensitive: o.leakSensitive || o.c.Bool("log.leak_sensitive_values"),
 		Entry: newLogger(o.l, o).WithFields(logrus.Fields{
 			"audience": "application", "service_name": name, "service_version": version}),
@@ -158,4 +169,11 @@ func New(name string, version string, opts ...Option) *Logger {
 
 func NewAudit(name string, version string, opts ...Option) *Logger {
 	return New(name, version, opts...).WithField("audience", "audit")
+}
+
+func (l *Logger) UseConfig(c configurator) {
+	l.leakSensitive = l.leakSensitive || c.Bool("log.leak_sensitive_values")
+	o := newOptions(append(l.opts, WithConfigurator(c)))
+	setLevel(l.Entry.Logger, o)
+	setFormatter(l.Entry.Logger, o)
 }

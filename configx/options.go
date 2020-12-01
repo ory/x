@@ -31,6 +31,12 @@ func WithImmutables(immutables []string) OptionModifier {
 	}
 }
 
+func OmitKeysFromTracing(keys []string) OptionModifier {
+	return func(p *Provider) {
+		p.excludeFieldsFromTracing = keys
+	}
+}
+
 func AttachWatcher(watcher func(event watcherx.Event, err error)) OptionModifier {
 	return func(p *Provider) {
 		p.onChanges = append(p.onChanges, watcher)

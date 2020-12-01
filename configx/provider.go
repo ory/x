@@ -137,8 +137,8 @@ func (p *Provider) newKoanf(ctx context.Context) (*koanf.Koanf, error) {
 		return nil, err
 	}
 
-	fields := make([]log.Field, 0, len(p.Keys()))
-	for _, key := range p.Keys() {
+	fields := make([]log.Field, 0, len(k.Keys()))
+	for _, key := range k.Keys() {
 		var skip bool
 		for _, e := range p.excludeFieldsFromTracing {
 			if strings.Contains(key, e) {
@@ -150,7 +150,7 @@ func (p *Provider) newKoanf(ctx context.Context) (*koanf.Koanf, error) {
 			continue
 		}
 
-		fields = append(fields, log.Object(key, p.Get(key)))
+		fields = append(fields, log.Object(key, k.Get(key)))
 	}
 
 	span.LogFields(fields...)
