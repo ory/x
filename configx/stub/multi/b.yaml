@@ -1,3 +1,5 @@
+selfservice:
+  flows:
     settings:
       privileged_session_max_age: 15m
 

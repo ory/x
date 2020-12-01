@@ -77,7 +77,6 @@ func New(schema []byte, flags *pflag.FlagSet, l *logrusx.Logger, modifiers ...Op
 
 	k, err := p.newKoanf(p.ctx)
 	if err != nil {
-		l.WithError(err).Error("The provided configuration is invalid and could not be loaded. Check the output below to understand why.")
 		return nil, err
 	}
 	p.Koanf = k
@@ -198,6 +197,7 @@ func (p *Provider) addConfigFile(ctx context.Context, path string, k *koanf.Koan
 
 				p.Koanf = nk
 				cancel()
+				cancel = cancelInner
 				p.onChanges(e, nil)
 				close(c)
 				return
@@ -350,6 +350,9 @@ func (p *Provider) printHumanReadableValidationErrors(k *koanf.Koanf, w io.Write
 	}
 
 	_, _ = fmt.Fprintln(os.Stderr, "")
-	conf, err := k.Marshal(json.Parser())
-	formatValidationErrorForCLI(w, conf, err)
+	conf, innerErr := k.Marshal(json.Parser())
+	if innerErr != nil {
+		p.l.WithError(innerErr).Error("Unable to unmarshal configuration.")
+	}
+	p.formatValidationErrorForCLI(w, conf, err)
 }

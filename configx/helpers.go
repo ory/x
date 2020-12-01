@@ -1,6 +1,7 @@
 package configx
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -9,7 +10,6 @@ import (
 	"github.com/tidwall/gjson"
 
 	"github.com/ory/jsonschema/v3"
-	"github.com/ory/x/errorsx"
 	"github.com/ory/x/jsonschemax"
 )
 
@@ -20,9 +20,13 @@ func RegisterFlags(flags *pflag.FlagSet) {
 
 const permOwnerRW = 0o600
 
-func formatValidationErrorForCLI(w io.Writer, conf []byte, err error) {
-	switch e := errorsx.Cause(err).(type) {
-	case *jsonschema.ValidationError:
+func (p *Provider) formatValidationErrorForCLI(w io.Writer, conf []byte, err error) {
+	if err == nil {
+		return
+	}
+
+	if e := new(jsonschema.ValidationError); errors.As(err, &e) {
+		p.l.Error("The configuration contains values or keys which are invalid.")
 		pointer, validation := jsonschemaFormatError(e)
 
 		if pointer == "#" {
@@ -41,9 +45,8 @@ func formatValidationErrorForCLI(w io.Writer, conf []byte, err error) {
 		}
 
 		for _, cause := range e.Causes {
-			formatValidationErrorForCLI(w, conf, cause)
+			p.formatValidationErrorForCLI(w, conf, cause)
 		}
-	default:
 		return
 	}
 }

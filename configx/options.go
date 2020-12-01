@@ -2,6 +2,7 @@ package configx
 
 import (
 	"context"
+	"io"
 	"os"
 
 	"github.com/knadh/koanf"
@@ -31,10 +32,18 @@ func WithWatcher(watcher func(event watcherx.Event, err error)) OptionModifier {
 	}
 }
 
-func WithDefaultValidationErrorReporter() OptionModifier {
+func WithStderrValidationReporter() OptionModifier {
 	return func(p *Provider) {
 		p.onValidationError = func(k *koanf.Koanf, err error) {
 			p.printHumanReadableValidationErrors(k, os.Stderr, err)
+		}
+	}
+}
+
+func WithStandardValidationReporter(w io.Writer) OptionModifier {
+	return func(p *Provider) {
+		p.onValidationError = func(k *koanf.Koanf, err error) {
+			p.printHumanReadableValidationErrors(k, w, err)
 		}
 	}
 }
