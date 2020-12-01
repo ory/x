@@ -57,10 +57,6 @@ type SQLConnection struct {
 func NewSQLConnection(dsn string, l *logrusx.Logger, opts ...OptionModifier) (*SQLConnection, error) {
 	if l == nil {
 		logger := logrusx.New("", "")
-
-		// Basically avoids any logging because no one uses panics
-		// logger.Level = logrus.PanicLevel
-
 		l = logger
 	}
 

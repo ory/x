@@ -8,8 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/ory/viper"
 )
 
 func TestHTTPSCertificate(t *testing.T) {
@@ -118,11 +116,8 @@ RHMZNMoDTRhmhQhj8M7N+FMtZAUOMddZ/1cvREtFW7+66w+XZvj9CQ/uectp/qb+
 	}()
 	_ = ioutil.WriteFile(tmpCert, []byte(certFileContent), 0600)
 	_ = ioutil.WriteFile(tmpKey, []byte(keyFileContent), 0600)
-	viper.AutomaticEnv() // read in environment variables that match
 
 	// 1. no TLS
-	viper.Reset()
-	viper.AutomaticEnv()
 	require.NoError(t, os.Setenv("HTTPS_TLS_KEY_PATH", ""))
 	require.NoError(t, os.Setenv("HTTPS_TLS_CERT_PATH", ""))
 	require.NoError(t, os.Setenv("HTTPS_TLS_KEY", ""))
@@ -132,8 +127,6 @@ RHMZNMoDTRhmhQhj8M7N+FMtZAUOMddZ/1cvREtFW7+66w+XZvj9CQ/uectp/qb+
 	assert.EqualError(t, err, ErrNoCertificatesConfigured.Error())
 
 	// 2. inconsistent TLS (i): warning only
-	viper.Reset()
-	viper.AutomaticEnv()
 	require.NoError(t, os.Setenv("HTTPS_TLS_KEY_PATH", "x"))
 	require.NoError(t, os.Setenv("HTTPS_TLS_CERT_PATH", ""))
 	require.NoError(t, os.Setenv("HTTPS_TLS_KEY", ""))
@@ -143,8 +136,6 @@ RHMZNMoDTRhmhQhj8M7N+FMtZAUOMddZ/1cvREtFW7+66w+XZvj9CQ/uectp/qb+
 	assert.EqualError(t, err, ErrInvalidCertificateConfiguration.Error())
 
 	// 2. inconsistent TLS (ii): warning only
-	viper.Reset()
-	viper.AutomaticEnv()
 	require.NoError(t, os.Setenv("HTTPS_TLS_KEY_PATH", ""))
 	require.NoError(t, os.Setenv("HTTPS_TLS_CERT_PATH", ""))
 	require.NoError(t, os.Setenv("HTTPS_TLS_KEY", ""))
@@ -154,8 +145,6 @@ RHMZNMoDTRhmhQhj8M7N+FMtZAUOMddZ/1cvREtFW7+66w+XZvj9CQ/uectp/qb+
 	assert.EqualError(t, err, ErrInvalidCertificateConfiguration.Error())
 
 	// 3. invalid TLS file
-	viper.Reset()
-	viper.AutomaticEnv()
 	require.NoError(t, os.Setenv("HTTPS_TLS_KEY_PATH", "x"))
 	require.NoError(t, os.Setenv("HTTPS_TLS_CERT_PATH", tmpCert))
 	require.NoError(t, os.Setenv("HTTPS_TLS_KEY", ""))
@@ -165,8 +154,6 @@ RHMZNMoDTRhmhQhj8M7N+FMtZAUOMddZ/1cvREtFW7+66w+XZvj9CQ/uectp/qb+
 	assert.Error(t, err)
 
 	// 4. invalid TLS string (i)
-	viper.Reset()
-	viper.AutomaticEnv()
 	require.NoError(t, os.Setenv("HTTPS_TLS_KEY_PATH", ""))
 	require.NoError(t, os.Setenv("HTTPS_TLS_CERT_PATH", ""))
 	require.NoError(t, os.Setenv("HTTPS_TLS_KEY", "{}"))
@@ -176,8 +163,6 @@ RHMZNMoDTRhmhQhj8M7N+FMtZAUOMddZ/1cvREtFW7+66w+XZvj9CQ/uectp/qb+
 	assert.Error(t, err)
 
 	// 4. invalid TLS string (ii)
-	viper.Reset()
-	viper.AutomaticEnv()
 	require.NoError(t, os.Setenv("HTTPS_TLS_KEY_PATH", ""))
 	require.NoError(t, os.Setenv("HTTPS_TLS_CERT_PATH", ""))
 	require.NoError(t, os.Setenv("HTTPS_TLS_KEY", keyFixture))
@@ -187,8 +172,6 @@ RHMZNMoDTRhmhQhj8M7N+FMtZAUOMddZ/1cvREtFW7+66w+XZvj9CQ/uectp/qb+
 	assert.Error(t, err)
 
 	// 5. valid TLS files
-	viper.Reset()
-	viper.AutomaticEnv()
 	require.NoError(t, os.Setenv("HTTPS_TLS_KEY_PATH", tmpKey))
 	require.NoError(t, os.Setenv("HTTPS_TLS_CERT_PATH", tmpCert))
 	require.NoError(t, os.Setenv("HTTPS_TLS_KEY", ""))
@@ -198,8 +181,6 @@ RHMZNMoDTRhmhQhj8M7N+FMtZAUOMddZ/1cvREtFW7+66w+XZvj9CQ/uectp/qb+
 	assert.NoError(t, err)
 
 	// 6. valid TLS strings
-	viper.Reset()
-	viper.AutomaticEnv()
 	require.NoError(t, os.Setenv("HTTPS_TLS_KEY_PATH", ""))
 	require.NoError(t, os.Setenv("HTTPS_TLS_CERT_PATH", ""))
 	require.NoError(t, os.Setenv("HTTPS_TLS_KEY", keyFixture))
@@ -209,8 +190,6 @@ RHMZNMoDTRhmhQhj8M7N+FMtZAUOMddZ/1cvREtFW7+66w+XZvj9CQ/uectp/qb+
 	assert.NoError(t, err)
 
 	// 7. invalid TLS file content
-	viper.Reset()
-	viper.AutomaticEnv()
 	require.NoError(t, os.Setenv("HTTPS_TLS_KEY_PATH", keyFixture))
 	require.NoError(t, os.Setenv("HTTPS_TLS_CERT_PATH", certFixture))
 	require.NoError(t, os.Setenv("HTTPS_TLS_KEY", ""))
@@ -220,8 +199,6 @@ RHMZNMoDTRhmhQhj8M7N+FMtZAUOMddZ/1cvREtFW7+66w+XZvj9CQ/uectp/qb+
 	assert.Error(t, err)
 
 	// 8. invalid TLS string content
-	viper.Reset()
-	viper.AutomaticEnv()
 	require.NoError(t, os.Setenv("HTTPS_TLS_KEY_PATH", ""))
 	require.NoError(t, os.Setenv("HTTPS_TLS_CERT_PATH", ""))
 	require.NoError(t, os.Setenv("HTTPS_TLS_KEY", keyFileContent))
@@ -231,8 +208,6 @@ RHMZNMoDTRhmhQhj8M7N+FMtZAUOMddZ/1cvREtFW7+66w+XZvj9CQ/uectp/qb+
 	assert.Error(t, err)
 
 	// 9. mismatched TLS file content
-	viper.Reset()
-	viper.AutomaticEnv()
 	require.NoError(t, os.Setenv("HTTPS_TLS_KEY_PATH", certFileContent))
 	require.NoError(t, os.Setenv("HTTPS_TLS_CERT_PATH", keyFileContent))
 	require.NoError(t, os.Setenv("HTTPS_TLS_KEY", ""))
@@ -242,8 +217,6 @@ RHMZNMoDTRhmhQhj8M7N+FMtZAUOMddZ/1cvREtFW7+66w+XZvj9CQ/uectp/qb+
 	assert.Error(t, err)
 
 	// 10. mismatched TLS string content
-	viper.Reset()
-	viper.AutomaticEnv()
 	require.NoError(t, os.Setenv("HTTPS_TLS_KEY_PATH", ""))
 	require.NoError(t, os.Setenv("HTTPS_TLS_CERT_PATH", ""))
 	require.NoError(t, os.Setenv("HTTPS_TLS_KEY", certFixture))

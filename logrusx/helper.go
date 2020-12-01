@@ -18,6 +18,7 @@ import (
 type Logger struct {
 	*logrus.Entry
 	leakSensitive bool
+	o             *options
 }
 
 func (l *Logger) LeakSensitiveData() bool {

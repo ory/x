@@ -7,7 +7,6 @@ import (
 
 	"github.com/knadh/koanf/parsers/json"
 
-	"github.com/ory/x/logrusx"
 	"github.com/ory/x/urlx"
 
 	"github.com/spf13/pflag"
@@ -25,7 +24,7 @@ func TestProviderMethods(t *testing.T) {
 	require.NoError(t, f.Parse(args[1:]))
 	RegisterFlags(f)
 
-	p, err := New([]byte(`{}`), f, logrusx.New("", ""))
+	p, err := New([]byte(`{}`), f)
 	require.NoError(t, err)
 
 	t.Run("check flags", func(t *testing.T) {
@@ -122,7 +121,7 @@ func TestAdvancedConfigs(t *testing.T) {
 			require.NoError(t, err)
 
 			schemaPath := path.Join("stub", tc.stub, "config.schema.json")
-			k, err := newKoanf(schemaPath, tc.configs, logrusx.New("", ""))
+			k, err := newKoanf(schemaPath, tc.configs)
 			if !tc.isValid {
 				require.Error(t, err)
 				return

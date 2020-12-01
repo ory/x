@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/ory/jsonschema/v3"
-	"github.com/ory/x/logrusx"
 	"github.com/ory/x/watcherx"
 
 	"github.com/knadh/koanf/providers/posflag"
@@ -34,12 +33,11 @@ import (
 type Provider struct {
 	*koanf.Koanf
 	immutables        []string
-	l                 *logrusx.Logger
 	ctx               context.Context
 	schema            []byte
 	flags             *pflag.FlagSet
 	validator         *jsonschema.Schema
-	onChanges         func(watcherx.Event, error)
+	onChanges         []func(watcherx.Event, error)
 	onValidationError func(k *koanf.Koanf, err error)
 }
 
@@ -50,7 +48,7 @@ type Provider struct {
 // 2. Config files (yaml, yml, toml, json)
 // 3. Command line flags
 // 4. Environment variables
-func New(schema []byte, flags *pflag.FlagSet, l *logrusx.Logger, modifiers ...OptionModifier) (*Provider, error) {
+func New(schema []byte, flags *pflag.FlagSet, modifiers ...OptionModifier) (*Provider, error) {
 	schemaID, comp, err := newCompiler(schema)
 	if err != nil {
 		return nil, err
@@ -62,12 +60,10 @@ func New(schema []byte, flags *pflag.FlagSet, l *logrusx.Logger, modifiers ...Op
 	}
 
 	p := &Provider{
-		l:                 l,
 		ctx:               context.Background(),
 		schema:            schema,
 		flags:             flags,
 		validator:         validator,
-		onChanges:         func(_ watcherx.Event, _ error) {},
 		onValidationError: func(k *koanf.Koanf, err error) {},
 	}
 
@@ -136,6 +132,12 @@ func (p *Provider) newKoanf(ctx context.Context) (*koanf.Koanf, error) {
 	return k, nil
 }
 
+func (p *Provider) runOnChanges(e watcherx.Event, err error) {
+	for k := range p.onChanges {
+		p.onChanges[k](e, err)
+	}
+}
+
 func (p *Provider) addConfigFile(ctx context.Context, path string, k *koanf.Koanf) error {
 	var parser koanf.Parser
 
@@ -156,15 +158,9 @@ func (p *Provider) addConfigFile(ctx context.Context, path string, k *koanf.Koan
 	c := make(watcherx.EventChannel)
 	go func(c watcherx.EventChannel) {
 		for e := range c {
-			p.l.WithField("file", e.Source()).
-				WithField("event", e).
-				WithField("event_type", fmt.Sprintf("%T", e)).
-				WithField("immutables", p.immutables).
-				Info("A change to a configuration file was detected.")
-
 			switch et := e.(type) {
 			case *watcherx.ErrorEvent:
-				p.l.WithError(et).Errorf("An error occurred while watching config file %s", path)
+				p.runOnChanges(e, et)
 			default: // *watcherx.RemoveEvent, *watcherx.ChangeEvent
 				ctx, cancelInner := context.WithCancel(ctx)
 
@@ -172,18 +168,11 @@ func (p *Provider) addConfigFile(ctx context.Context, path string, k *koanf.Koan
 				nk, err := p.newKoanf(ctx)
 				if err != nil {
 					cancelReload = true
-					p.l.WithError(err).WithField("event", fmt.Sprintf("%#v", et)).
-						Errorf("The changed configuration is invalid and could not be loaded. Rolling back to the last working configuration revision. Please address the validation errors before restarting the process.")
 				} else {
 					for _, key := range p.immutables {
 						if !reflect.DeepEqual(k.Get(key), nk.Get(key)) {
-							err = errors.Errorf("immutable configuration key \"%s\" was changed", key)
+							err = NewImmutableError(key, fmt.Sprintf("%v", k.Get(key)), fmt.Sprintf("%v", nk.Get(key)))
 							cancelReload = true
-							p.l.WithError(err).
-								WithField("key", key).
-								WithField("old_value", fmt.Sprintf("%v", k.Get(key))).
-								WithField("new_value", fmt.Sprintf("%v", nk.Get(key))).
-								Errorf("A configuration value marked as immutable has changed. Rolling back to the last working configuration revision. To reload the values please restart the process.")
 							break
 						}
 					}
@@ -191,14 +180,14 @@ func (p *Provider) addConfigFile(ctx context.Context, path string, k *koanf.Koan
 
 				if cancelReload {
 					cancelInner()
-					p.onChanges(e, err)
+					p.runOnChanges(e, err)
 					continue
 				}
 
 				p.Koanf = nk
 				cancel()
 				cancel = cancelInner
-				p.onChanges(e, nil)
+				p.runOnChanges(e, nil)
 				close(c)
 				return
 			}
@@ -352,7 +341,8 @@ func (p *Provider) printHumanReadableValidationErrors(k *koanf.Koanf, w io.Write
 	_, _ = fmt.Fprintln(os.Stderr, "")
 	conf, innerErr := k.Marshal(json.Parser())
 	if innerErr != nil {
-		p.l.WithError(innerErr).Error("Unable to unmarshal configuration.")
+		_, _ = fmt.Fprintf(w, "Unable to unmarshal configuration: %+v", innerErr)
 	}
+
 	p.formatValidationErrorForCLI(w, conf, err)
 }

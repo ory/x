@@ -7,15 +7,13 @@ import (
 	"path"
 	"testing"
 
-	"github.com/ory/x/logrusx"
-
 	"github.com/spf13/pflag"
 
 	"github.com/dgraph-io/ristretto"
 	"github.com/stretchr/testify/require"
 )
 
-func newKoanf(schemaPath string, configPaths []string, l *logrusx.Logger, modifiers ...OptionModifier) (*Provider, error) {
+func newKoanf(schemaPath string, configPaths []string, modifiers ...OptionModifier) (*Provider, error) {
 	schema, err := ioutil.ReadFile(schemaPath)
 	if err != nil {
 		return nil, err
@@ -24,7 +22,7 @@ func newKoanf(schemaPath string, configPaths []string, l *logrusx.Logger, modifi
 	f := pflag.NewFlagSet("config", pflag.ContinueOnError)
 	f.StringSliceP("config", "c", configPaths, "")
 
-	k, err := New(schema, f, l, modifiers...)
+	k, err := New(schema, f, modifiers...)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +44,7 @@ func setEnvs(t testing.TB, envs [][2]string) {
 func BenchmarkKoanf(b *testing.B) {
 	setEnvs(b, [][2]string{{"MUTATORS_HEADER_ENABLED", "true"}})
 	schemaPath := path.Join("stub/benchmark/schema.config.json")
-	k, err := newKoanf(schemaPath, []string{"stub/benchmark/benchmark.yaml"}, logrusx.New("", ""))
+	k, err := newKoanf(schemaPath, []string{"stub/benchmark/benchmark.yaml"})
 	require.NoError(b, err)
 
 	keys := k.Koanf.Keys()
