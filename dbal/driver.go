@@ -13,7 +13,7 @@ var (
 
 	// ErrNoResponsibleDriverFound is returned when no driver was found for the provided DSN.
 	ErrNoResponsibleDriverFound = errors.New("dsn value requested an unknown driver")
-	ErrSQLiteSupportMissing     = errors.New(`the DSN connection string looks like a SQLite connection, but SQLite support was not built into the binary. Please check if you have downloaded the correct binary or are using the correct Docker Image. Binary archives and Docker Images indicate SQLite support by appending the -sqlite suffix.`)
+	ErrSQLiteSupportMissing     = errors.New(`the DSN connection string looks like a SQLite connection, but SQLite support was not built into the binary. Please check if you have downloaded the correct binary or are using the correct Docker Image. Binary archives and Docker Images indicate SQLite support by appending the -sqlite suffix`)
 )
 
 const (
