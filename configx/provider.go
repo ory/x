@@ -146,13 +146,16 @@ func (p *Provider) SetTracer(ctx context.Context, t *tracing.Tracer) {
 	p.traceConfig(ctx, p.Koanf, SnapshotSpanOpName)
 }
 
-func (p *Provider) traceConfig(ctx context.Context, k *koanf.Koanf, opName string) {
+func (p *Provider) startSpan(ctx context.Context, opName string) (opentracing.Span, context.Context) {
 	tracer := opentracing.GlobalTracer()
-	if p.tracer != nil {
+	if p.tracer != nil && p.tracer.Tracer() != nil {
 		tracer = p.tracer.Tracer()
 	}
+	return opentracing.StartSpanFromContextWithTracer(ctx, tracer, opName)
+}
 
-	span, ctx := opentracing.StartSpanFromContextWithTracer(ctx, tracer, opName)
+func (p *Provider) traceConfig(ctx context.Context, k *koanf.Koanf, opName string) {
+	span, ctx := p.startSpan(ctx, opName)
 	defer span.Finish()
 
 	span.SetTag("component", "github.com/ory/x/configx")
@@ -206,7 +209,7 @@ func (p *Provider) addConfigFile(ctx context.Context, path string, k *koanf.Koan
 			case *watcherx.ErrorEvent:
 				p.runOnChanges(e, et)
 			default: // *watcherx.RemoveEvent, *watcherx.ChangeEvent
-				span, ctx := opentracing.StartSpanFromContext(context.Background(), UpdatedSpanOpName)
+				span, ctx := p.startSpan(ctx, UpdatedSpanOpName)
 				ctx, cancelInner := context.WithCancel(ctx)
 
 				var cancelReload bool
