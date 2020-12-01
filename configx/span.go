@@ -1,5 +1,7 @@
 package configx
 
 const (
-	LoadSpanOpName = "config-loaded"
+	LoadSpanOpName     = "config-load"
+	UpdatedSpanOpName  = "config-update"
+	SnapshotSpanOpName = "config-snapshot"
 )

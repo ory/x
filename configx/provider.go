@@ -45,6 +45,7 @@ type Provider struct {
 	onChanges                []func(watcherx.Event, error)
 	onValidationError        func(k *koanf.Koanf, err error)
 	excludeFieldsFromTracing []string
+	tracer                   *tracing.Tracer
 }
 
 // New creates a new provider instance or errors.
@@ -100,10 +101,6 @@ func (p *Provider) validate(k *koanf.Koanf) error {
 }
 
 func (p *Provider) newKoanf(ctx context.Context) (*koanf.Koanf, error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, LoadSpanOpName)
-	defer span.Finish()
-	span.SetTag("component", "github.com/ory/x/configx")
-
 	k := koanf.New(".")
 
 	dp, err := NewKoanfSchemaDefaults(p.schema)
@@ -140,25 +137,43 @@ func (p *Provider) newKoanf(ctx context.Context) (*koanf.Koanf, error) {
 		return nil, err
 	}
 
+	return k, nil
+}
+
+// TraceSnapshot will send the configuration to the tracer.
+func (p *Provider) SetTracer(ctx context.Context, t *tracing.Tracer) {
+	p.tracer = t
+	p.traceConfig(ctx, p.Koanf, SnapshotSpanOpName)
+}
+
+func (p *Provider) traceConfig(ctx context.Context, k *koanf.Koanf, opName string) {
+	tracer := opentracing.GlobalTracer()
+	if p.tracer != nil {
+		tracer = p.tracer.Tracer()
+	}
+
+	span, ctx := opentracing.StartSpanFromContextWithTracer(ctx, tracer, opName)
+	defer span.Finish()
+
+	span.SetTag("component", "github.com/ory/x/configx")
+
 	fields := make([]log.Field, 0, len(k.Keys()))
 	for _, key := range k.Keys() {
-		var skip bool
+		var redact bool
 		for _, e := range p.excludeFieldsFromTracing {
 			if strings.Contains(key, e) {
-				skip = true
+				redact = true
 			}
 		}
 
-		if skip {
-			continue
+		if redact {
+			fields = append(fields, log.Object(key, "[redacted]"))
+		} else {
+			fields = append(fields, log.Object(key, k.Get(key)))
 		}
-
-		fields = append(fields, log.Object(key, k.Get(key)))
 	}
 
 	span.LogFields(fields...)
-
-	return k, nil
 }
 
 func (p *Provider) runOnChanges(e watcherx.Event, err error) {
@@ -191,6 +206,7 @@ func (p *Provider) addConfigFile(ctx context.Context, path string, k *koanf.Koan
 			case *watcherx.ErrorEvent:
 				p.runOnChanges(e, et)
 			default: // *watcherx.RemoveEvent, *watcherx.ChangeEvent
+				span, ctx := opentracing.StartSpanFromContext(context.Background(), UpdatedSpanOpName)
 				ctx, cancelInner := context.WithCancel(ctx)
 
 				var cancelReload bool
@@ -210,14 +226,17 @@ func (p *Provider) addConfigFile(ctx context.Context, path string, k *koanf.Koan
 				if cancelReload {
 					cancelInner()
 					p.runOnChanges(e, err)
+					span.Finish()
 					continue
 				}
 
+				p.traceConfig(ctx, k, UpdatedSpanOpName)
 				p.Koanf = nk
 				cancel()
 				cancel = cancelInner
 				p.runOnChanges(e, nil)
 				close(c)
+				span.Finish()
 				return
 			}
 		}
