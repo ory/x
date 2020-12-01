@@ -160,6 +160,11 @@ func (t *Tracer) IsLoaded() bool {
 	return true
 }
 
+// Tracer returns the wrapped tracer
+func (t *Tracer) Tracer() opentracing.Tracer {
+	return t.tracer
+}
+
 // Close closes the tracer.
 func (t *Tracer) Close() {
 	if t.closer != nil {
