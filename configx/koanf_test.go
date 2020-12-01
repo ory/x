@@ -35,10 +35,12 @@ func newKoanf(schemaPath string, configPaths []string, l *logrusx.Logger, modifi
 func setEnvs(t testing.TB, envs [][2]string) {
 	for _, v := range envs {
 		require.NoError(t, os.Setenv(v[0], v[1]))
-		t.Cleanup(func() {
-			_ = os.Unsetenv(v[0])
-		})
 	}
+	t.Cleanup(func() {
+		for _, v := range envs {
+		_ = os.Unsetenv(v[0])
+		}
+	})
 }
 
 func BenchmarkKoanf(b *testing.B) {

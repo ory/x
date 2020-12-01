@@ -1,6 +1,7 @@
 package configx
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -125,11 +126,14 @@ func TestReload(t *testing.T) {
 		configFile := tmpConfigFile(t, "some string", "not bar")
 		hook := test.NewLocal(l.Entry.Logger)
 
-		_, err := newKoanf("./stub/watch/config.schema.json", []string{configFile.Name()}, l)
+		var b bytes.Buffer
+		_, err := newKoanf("./stub/watch/config.schema.json", []string{configFile.Name()}, l,
+			WithStandardValidationReporter(&b)			)
 		require.Error(t, err)
 
 		entries := hook.AllEntries()
 		require.Equal(t, 1, len(entries))
-		assert.Equal(t, "The provided configuration is invalid and could not be loaded. Check the output below to understand why.", entries[0].Message)
+		assert.Equal(t, "The configuration contains values or keys which are invalid.", entries[0].Message)
+		assert.Equal(t, "foo: not bar\n     ^-- value must be \"bar\"\n\n", b.String())
 	})
 }
