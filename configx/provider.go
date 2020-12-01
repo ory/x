@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ory/x/jsonschemax"
+
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
 
@@ -370,5 +372,5 @@ func (p *Provider) printHumanReadableValidationErrors(k *koanf.Koanf, w io.Write
 		_, _ = fmt.Fprintf(w, "Unable to unmarshal configuration: %+v", innerErr)
 	}
 
-	p.formatValidationErrorForCLI(w, conf, err)
+	jsonschemax.FormatValidationErrorForCLI(w, conf, err)
 }
