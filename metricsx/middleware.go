@@ -32,9 +32,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/spf13/cobra"
+	"github.com/ory/x/configx"
 
-	"github.com/ory/viper"
+	"github.com/spf13/cobra"
 
 	"github.com/ory/x/cmdx"
 	"github.com/ory/x/logrusx"
@@ -119,6 +119,7 @@ func (v *void) Errorf(format string, args ...interface{}) {
 func New(
 	cmd *cobra.Command,
 	l *logrusx.Logger,
+	c *configx.Provider,
 	o *Options,
 ) *Service {
 	lock.Lock()
@@ -162,22 +163,11 @@ func New(
 
 	optOut, err := cmd.Flags().GetBool("sqa-opt-out")
 	if err != nil {
-		optOut, err = cmd.Flags().GetBool("disable-telemetry")
-		if optOut {
-			l.Warn(`Command line argument "--disable-telemetry" has been deprecated and will be removed in an upcoming release. Use "--sqa-opt-out" instead.`)
-		}
-		cmdx.Must(err, `Unable to get command line flag "sqa-opt-out" and "disable-telemetry": %s`, err)
+		cmdx.Must(err, `Unable to get command line flag "sqa-opt-out": %s`, err)
 	}
 
 	if !optOut {
-		optOut = viper.GetBool("sqa.opt_out")
-	}
-
-	if !optOut {
-		optOut = viper.GetBool("DISABLE_TELEMETRY")
-		if optOut {
-			l.Warn(`Environment variable "DISABLE_TELEMETRY" has been deprecated and will be removed in an upcoming release. Use configuration key "sqa.opt_out: true" or environment variable "SQA_OPT_OUT=true" instead.`)
-		}
+		optOut = c.Bool("sqa.opt_out")
 	}
 
 	if !optOut {
