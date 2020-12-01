@@ -1204,6 +1204,5 @@
     "identity",
     "dsn",
     "selfservice"
-  ],
-  "additionalProperties": false
+  ]
 }

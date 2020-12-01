@@ -3,7 +3,6 @@ module github.com/ory/x
 require (
 	github.com/DataDog/datadog-go v4.0.0+incompatible // indirect
 	github.com/bmatcuk/doublestar/v2 v2.0.3
-	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/dgraph-io/ristretto v0.0.2
 	github.com/fatih/structs v1.1.0
@@ -21,7 +20,7 @@ require (
 	github.com/jackc/pgx/v4 v4.6.0
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/julienschmidt/httprouter v1.2.0
-	github.com/knadh/koanf v0.14.0
+	github.com/knadh/koanf v0.14.1-0.20201201075439-e0853799f9ec
 	github.com/lib/pq v1.3.0
 	github.com/luna-duclos/instrumentedsql v1.1.3
 	github.com/luna-duclos/instrumentedsql/opentracing v0.0.0-20201103091713-40d03108b6f4

@@ -62,5 +62,4 @@ func TestUnmarshalKey(t *testing.T) {
 
 		assert.EqualValues(t, `https://ory.sh`, defaultSchemaURL)
 	})
-
 }
