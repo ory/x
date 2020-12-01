@@ -1,5 +1,5 @@
 package configx
 
 const (
-	LoadSpanOpName = "configx.load"
+	LoadSpanOpName = "config-loaded"
 )
