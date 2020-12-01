@@ -100,8 +100,9 @@ func (p *Provider) validate(k *koanf.Koanf) error {
 }
 
 func (p *Provider) newKoanf(ctx context.Context) (*koanf.Koanf, error) {
-	span, _ := opentracing.StartSpanFromContext(ctx, LoadSpanOpName)
+	span, ctx := opentracing.StartSpanFromContext(ctx, LoadSpanOpName)
 	defer span.Finish()
+	span.SetTag("component", "github.com/ory/x/configx")
 
 	k := koanf.New(".")
 
