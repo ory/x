@@ -195,6 +195,7 @@ func (p *Provider) addConfigFile(ctx context.Context, path string, k *koanf.Koan
 	ctx, cancel := context.WithCancel(p.ctx)
 	fp, err := NewKoanfFile(ctx, path)
 	if err != nil {
+		cancel()
 		return err
 	}
 
