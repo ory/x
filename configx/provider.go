@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/url"
 	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"time"
@@ -28,8 +27,6 @@ import (
 
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/json"
-	"github.com/knadh/koanf/parsers/toml"
-	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/confmap"
 	"github.com/pkg/errors"
 	"github.com/rs/cors"
@@ -46,6 +43,15 @@ type Provider struct {
 	onValidationError        func(k *koanf.Koanf, err error)
 	excludeFieldsFromTracing []string
 	tracer                   *tracing.Tracer
+}
+
+const (
+	FlagConfig = "config"
+	Delimiter  = "."
+)
+
+func RegisterConfigFlag(flags *pflag.FlagSet, fallback []string) {
+	flags.StringSliceP(FlagConfig, "c", fallback, "Config files to load, overwriting in the order specified.")
 }
 
 // New creates a new provider instance or errors.
@@ -101,7 +107,7 @@ func (p *Provider) validate(k *koanf.Koanf) error {
 }
 
 func (p *Provider) newKoanf(ctx context.Context) (*koanf.Koanf, error) {
-	k := koanf.New(".")
+	k := koanf.New(Delimiter)
 
 	dp, err := NewKoanfSchemaDefaults(p.schema)
 	if err != nil {
@@ -118,7 +124,7 @@ func (p *Provider) newKoanf(ctx context.Context) (*koanf.Koanf, error) {
 		return nil, err
 	}
 
-	paths, err := p.flags.GetStringSlice("config")
+	paths, _ := p.flags.GetStringSlice(FlagConfig)
 	for _, configFile := range paths {
 		if err := p.addConfigFile(ctx, configFile, k); err != nil {
 			return nil, err
@@ -186,21 +192,12 @@ func (p *Provider) runOnChanges(e watcherx.Event, err error) {
 }
 
 func (p *Provider) addConfigFile(ctx context.Context, path string, k *koanf.Koanf) error {
-	var parser koanf.Parser
-
-	switch e := filepath.Ext(path); e {
-	case ".toml":
-		parser = toml.Parser()
-	case ".json":
-		parser = json.Parser()
-	case ".yaml", ".yml":
-		parser = yaml.Parser()
-	default:
-		return errors.Errorf("unknown config file extension: %s", e)
-	}
-
 	ctx, cancel := context.WithCancel(p.ctx)
-	fp := NewKoanfFile(ctx, path)
+	fp, err := NewKoanfFile(ctx, path)
+	if err != nil {
+		cancel()
+		return err
+	}
 
 	c := make(watcherx.EventChannel)
 	go func(c watcherx.EventChannel) {
@@ -250,7 +247,7 @@ func (p *Provider) addConfigFile(ctx context.Context, path string, k *koanf.Koan
 		return err
 	}
 
-	return k.Load(fp, parser)
+	return k.Load(fp, nil)
 }
 
 func (p *Provider) Set(key string, value interface{}) {

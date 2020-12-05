@@ -95,7 +95,7 @@ func TestReload(t *testing.T) {
 		hook := test.NewLocal(l.Entry.Logger)
 		wg := new(sync.WaitGroup)
 		p := setup(t, configFile, wg,
-			WithImmutables([]string{"dsn"}))
+			WithImmutables("dsn"))
 
 		assert.Equal(t, []*logrus.Entry{}, hook.AllEntries())
 		assert.Equal(t, "memory", p.String("dsn"))

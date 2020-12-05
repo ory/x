@@ -25,13 +25,13 @@ func WithContext(ctx context.Context) OptionModifier {
 	}
 }
 
-func WithImmutables(immutables []string) OptionModifier {
+func WithImmutables(immutables ...string) OptionModifier {
 	return func(p *Provider) {
 		p.immutables = immutables
 	}
 }
 
-func OmitKeysFromTracing(keys []string) OptionModifier {
+func OmitKeysFromTracing(keys ...string) OptionModifier {
 	return func(p *Provider) {
 		p.excludeFieldsFromTracing = keys
 	}
