@@ -58,6 +58,7 @@ func TestReload(t *testing.T) {
 		modifiers = append(modifiers,
 			WithLogrusWatcher(l),
 			AttachWatcher(func(event watcherx.Event, err error) {
+				t.Log("going to call done")
 				wg.Done()
 			}),
 			WithContext(ctx),
