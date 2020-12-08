@@ -47,6 +47,7 @@ func updateConfigFile(t *testing.T, wg *sync.WaitGroup, configFile *os.File, dsn
 	require.NoError(t, err)
 	_, err = io.WriteString(configFile, config)
 	require.NoError(t, configFile.Sync())
+	require.NoError(t, configFile.Sync())
 }
 
 func TestReload(t *testing.T) {
@@ -58,7 +59,7 @@ func TestReload(t *testing.T) {
 		modifiers = append(modifiers,
 			WithLogrusWatcher(l),
 			AttachWatcher(func(event watcherx.Event, err error) {
-				t.Log("going to call done")
+				fmt.Println("going to call done")
 				wg.Done()
 			}),
 			WithContext(ctx),
@@ -69,6 +70,8 @@ func TestReload(t *testing.T) {
 	}
 
 	t.Run("case=rejects not validating changes", func(t *testing.T) {
+		fmt.Println("case 1")
+
 		configFile := tmpConfigFile(t, "memory", "bar")
 		hook := test.NewLocal(l.Entry.Logger)
 		wg := new(sync.WaitGroup)
@@ -92,6 +95,8 @@ func TestReload(t *testing.T) {
 	})
 
 	t.Run("case=rejects to update immutable", func(t *testing.T) {
+		fmt.Println("case 2")
+
 		configFile := tmpConfigFile(t, "memory", "bar")
 		hook := test.NewLocal(l.Entry.Logger)
 		wg := new(sync.WaitGroup)
@@ -114,6 +119,8 @@ func TestReload(t *testing.T) {
 	})
 
 	t.Run("case=runs without validation errors", func(t *testing.T) {
+		fmt.Println("case 3")
+
 		configFile := tmpConfigFile(t, "some string", "bar")
 		hook := test.NewLocal(l.Entry.Logger)
 		wg := new(sync.WaitGroup)
@@ -125,6 +132,8 @@ func TestReload(t *testing.T) {
 	})
 
 	t.Run("case=has with validation errors", func(t *testing.T) {
+		fmt.Println("case 4")
+
 		configFile := tmpConfigFile(t, "some string", "not bar")
 		hook := test.NewLocal(l.Entry.Logger)
 

@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -91,6 +92,10 @@ func TestFileWatcher(t *testing.T) {
 	})
 
 	t.Run("case=notifies about changes in the linked file", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Skip("skipping test because watching symlinks on windows is not working properly")
+		}
+
 		ctx, c, dir, cancel := setup(t)
 		defer cancel()
 
@@ -114,6 +119,10 @@ func TestFileWatcher(t *testing.T) {
 	})
 
 	t.Run("case=notifies about symlink change", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Skip("skipping test because watching symlinks on windows is not working properly")
+		}
+
 		ctx, c, dir, cancel := setup(t)
 		defer cancel()
 
@@ -176,6 +185,10 @@ func TestFileWatcher(t *testing.T) {
 	//})
 
 	t.Run("case=kubernetes atomic writer update", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Skip("skipping test because watching symlinks on windows is not working properly")
+		}
+
 		ctx, c, dir, cancel := setup(t)
 		defer cancel()
 
