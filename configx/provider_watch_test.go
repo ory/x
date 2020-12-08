@@ -69,6 +69,7 @@ func TestReload(t *testing.T) {
 
 	t.Run("case=rejects not validating changes", func(t *testing.T) {
 		configFile := tmpConfigFile(t, "memory", "bar")
+		defer configFile.Close()
 		hook := test.NewLocal(l.Entry.Logger)
 		wg := new(sync.WaitGroup)
 		p := setup(t, configFile, wg)
@@ -92,6 +93,7 @@ func TestReload(t *testing.T) {
 
 	t.Run("case=rejects to update immutable", func(t *testing.T) {
 		configFile := tmpConfigFile(t, "memory", "bar")
+		defer configFile.Close()
 		hook := test.NewLocal(l.Entry.Logger)
 		wg := new(sync.WaitGroup)
 		p := setup(t, configFile, wg,
@@ -114,6 +116,7 @@ func TestReload(t *testing.T) {
 
 	t.Run("case=runs without validation errors", func(t *testing.T) {
 		configFile := tmpConfigFile(t, "some string", "bar")
+		defer configFile.Close()
 		hook := test.NewLocal(l.Entry.Logger)
 		wg := new(sync.WaitGroup)
 		p := setup(t, configFile, wg)
@@ -125,6 +128,7 @@ func TestReload(t *testing.T) {
 
 	t.Run("case=has with validation errors", func(t *testing.T) {
 		configFile := tmpConfigFile(t, "some string", "not bar")
+		defer configFile.Close()
 		hook := test.NewLocal(l.Entry.Logger)
 
 		var b bytes.Buffer

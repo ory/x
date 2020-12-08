@@ -235,14 +235,13 @@ func (p *Provider) addConfigFile(ctx context.Context, path string, k *koanf.Koan
 				cancel()
 				cancel = cancelInner
 				p.runOnChanges(e, nil)
-				close(c)
 				span.Finish()
 				return
 			}
 		}
 	}(c)
 
-	if err := fp.WatchChannel(c); err != nil {
+	if _, err := fp.WatchChannel(c); err != nil {
 		close(c)
 		return err
 	}

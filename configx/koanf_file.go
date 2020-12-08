@@ -85,6 +85,6 @@ func (f *KoanfFile) Read() (map[string]interface{}, error) {
 
 // WatchChannel watches the file and triggers a callback when it changes. It is a
 // blocking function that internally spawns a goroutine to watch for changes.
-func (f *KoanfFile) WatchChannel(c watcherx.EventChannel) error {
+func (f *KoanfFile) WatchChannel(c watcherx.EventChannel) (watcherx.Watcher, error) {
 	return watcherx.WatchFile(f.ctx, f.path, c)
 }
