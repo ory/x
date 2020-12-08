@@ -73,6 +73,7 @@ func TestReload(t *testing.T) {
 		fmt.Println("case 1")
 
 		configFile := tmpConfigFile(t, "memory", "bar")
+		defer configFile.Close()
 		hook := test.NewLocal(l.Entry.Logger)
 		wg := new(sync.WaitGroup)
 		p := setup(t, configFile, wg)
@@ -98,6 +99,7 @@ func TestReload(t *testing.T) {
 		fmt.Println("case 2")
 
 		configFile := tmpConfigFile(t, "memory", "bar")
+		defer configFile.Close()
 		hook := test.NewLocal(l.Entry.Logger)
 		wg := new(sync.WaitGroup)
 		p := setup(t, configFile, wg,
@@ -122,6 +124,7 @@ func TestReload(t *testing.T) {
 		fmt.Println("case 3")
 
 		configFile := tmpConfigFile(t, "some string", "bar")
+		defer configFile.Close()
 		hook := test.NewLocal(l.Entry.Logger)
 		wg := new(sync.WaitGroup)
 		p := setup(t, configFile, wg)
@@ -135,6 +138,7 @@ func TestReload(t *testing.T) {
 		fmt.Println("case 4")
 
 		configFile := tmpConfigFile(t, "some string", "not bar")
+		defer configFile.Close()
 		hook := test.NewLocal(l.Entry.Logger)
 
 		var b bytes.Buffer

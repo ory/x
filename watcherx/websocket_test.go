@@ -28,7 +28,9 @@ func TestWatchWebsocket(t *testing.T) {
 		f, err := os.Create(fn)
 		require.NoError(t, err)
 
-		handler, err := WatchAndServeWS(ctx, urlx.ParseOrPanic("file://"+fn), herodot.NewJSONWriter(l))
+		url, err := urlx.Parse("file://" + fn)
+		require.NoError(t, err)
+		handler, err := WatchAndServeWS(ctx, url, herodot.NewJSONWriter(l))
 		require.NoError(t, err)
 		s := httptest.NewServer(handler)
 
