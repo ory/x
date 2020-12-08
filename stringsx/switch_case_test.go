@@ -1,6 +1,7 @@
 package stringsx
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -25,14 +26,37 @@ func TestRegisteredCases(t *testing.T) {
 		assert.Equal(t, v2, cs.AddCase(v2))
 	})
 
+	t.Run("case=converts to correct error", func(t *testing.T) {
+		c1, c2, actual := "case 1", "case 2", "actual"
+
+		cs := RegisteredCases{}
+		cs.AddCase(c1)
+		cs.AddCase(c2)
+
+		err := cs.ToUnknownCaseErr(actual)
+
+		assert.True(t, errors.Is(err, ErrUnknownCase))
+		assert.Equal(t, errUnknownCase{
+			cases:  cs,
+			actual: actual,
+		}, err)
+	})
+
 	t.Run("case=switch integration", func(t *testing.T) {
 		cases := RegisteredCases{}
+		var err error
 
-		switch "foo" {
+		switch f := "foo"; f {
 		case cases.AddCase("bar"):
 		case cases.AddCase("baz"):
+		default:
+			err = cases.ToUnknownCaseErr(f)
 		}
 
 		assert.Equal(t, RegisteredCases{"bar", "baz"}, cases)
+		assert.Equal(t, errUnknownCase{
+			cases:  cases,
+			actual: "foo",
+		}, err)
 	})
 }
