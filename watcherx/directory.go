@@ -1,7 +1,6 @@
 package watcherx
 
 import (
-	"bytes"
 	"context"
 	"io/ioutil"
 	"os"
@@ -12,10 +11,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-func WatchDirectory(ctx context.Context, dir string, c EventChannel) error {
+func WatchDirectory(ctx context.Context, dir string, c EventChannel) (Watcher, error) {
 	w, err := fsnotify.NewWatcher()
 	if err != nil {
-		return errors.WithStack(err)
+		return nil, errors.WithStack(err)
 	}
 	var subDirs []string
 	if err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
@@ -27,15 +26,17 @@ func WatchDirectory(ctx context.Context, dir string, c EventChannel) error {
 		}
 		return nil
 	}); err != nil {
-		return errors.WithStack(err)
+		return nil, errors.WithStack(err)
 	}
 	for _, d := range append(subDirs, dir) {
 		if err := w.Add(d); err != nil {
-			return errors.WithStack(err)
+			return nil, errors.WithStack(err)
 		}
 	}
-	go streamDirectoryEvents(ctx, w, c)
-	return nil
+
+	d := newDispatcher()
+	go streamDirectoryEvents(ctx, w, c, d.trigger, dir)
+	return d, nil
 }
 
 func handleEvent(e fsnotify.Event, w *fsnotify.Watcher, c EventChannel) {
@@ -86,14 +87,14 @@ func handleEvent(e fsnotify.Event, w *fsnotify.Watcher, c EventChannel) {
 			}
 		} else {
 			c <- &ChangeEvent{
-				data:   bytes.NewBuffer(data),
+				data:   data,
 				source: source(e.Name),
 			}
 		}
 	}
 }
 
-func streamDirectoryEvents(ctx context.Context, w *fsnotify.Watcher, c EventChannel) {
+func streamDirectoryEvents(ctx context.Context, w *fsnotify.Watcher, c EventChannel, sendNow <-chan struct{}, dir string) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -101,6 +102,32 @@ func streamDirectoryEvents(ctx context.Context, w *fsnotify.Watcher, c EventChan
 			return
 		case e := <-w.Events:
 			handleEvent(e, w, c)
+		case <-sendNow:
+			if err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+				if err != nil {
+					return err
+				}
+				if !info.IsDir() {
+					data, err := ioutil.ReadFile(path)
+					if err != nil {
+						c <- &ErrorEvent{
+							error:  err,
+							source: source(path),
+						}
+					} else {
+						c <- &ChangeEvent{
+							data:   data,
+							source: source(path),
+						}
+					}
+				}
+				return nil
+			}); err != nil {
+				c <- &ErrorEvent{
+					error:  err,
+					source: source(dir),
+				}
+			}
 		}
 	}
 }

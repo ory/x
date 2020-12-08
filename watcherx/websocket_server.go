@@ -13,58 +13,80 @@ import (
 	"github.com/ory/herodot"
 )
 
-type eventChannelSlice struct {
-	sync.Mutex
-	cs []EventChannel
-}
+type (
+	eventChannelSlice struct {
+		sync.Mutex
+		cs []EventChannel
+	}
+	websocketWatcher struct {
+		wsClientChannels eventChannelSlice
+	}
+)
 
-var wsClientChannels = eventChannelSlice{}
+const messageSendNow = "send values now"
 
 func WatchAndServeWS(ctx context.Context, u *url.URL, writer herodot.Writer) (http.HandlerFunc, error) {
 	c := make(EventChannel)
-	if err := Watch(ctx, u, c); err != nil {
+	watcher, err := Watch(ctx, u, c)
+	if err != nil {
 		return nil, err
 	}
-	go broadcaster(ctx, c)
-	return serveWS(ctx, writer), nil
+	w := &websocketWatcher{
+		wsClientChannels: eventChannelSlice{},
+	}
+	go w.broadcaster(ctx, c)
+	return w.serveWS(ctx, writer, watcher), nil
 }
 
-func broadcaster(ctx context.Context, c EventChannel) {
-	defer func() {
-		close(c)
-	}()
-
+func (ww *websocketWatcher) broadcaster(ctx context.Context, c EventChannel) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case e := <-c:
-			wsClientChannels.Lock()
-			for _, cc := range wsClientChannels.cs {
+			ww.wsClientChannels.Lock()
+			for _, cc := range ww.wsClientChannels.cs {
 				cc <- e
 			}
-			wsClientChannels.Unlock()
+			ww.wsClientChannels.Unlock()
 		}
 	}
 }
 
-func notifyOnClose(ws *websocket.Conn, c chan<- struct{}) {
+func readWebsocket(ws *websocket.Conn, c chan<- struct{}, watcher Watcher) {
 	for {
 		// blocking call to ReadMessage that waits for a close message
-		_, _, err := ws.ReadMessage()
-		if closeErr, ok := err.(*websocket.CloseError); ok && closeErr.Code == websocket.CloseNormalClosure {
-			close(c)
-			return
-		}
-		if opErr, ok := err.(*net.OpError); ok && opErr.Op == "read" && strings.Contains(opErr.Err.Error(), "closed") {
-			// the context got canceled and therefore the connection closed
-			close(c)
+		_, msg, err := ws.ReadMessage()
+		switch errTyped := err.(type) {
+		case nil:
+			if string(msg) == messageSendNow {
+				if err := watcher.DispatchNow(); err != nil {
+					// we cant do much about this error and rely on the other
+					_ = ws.WriteJSON(&ErrorEvent{
+						error:  err,
+						source: "",
+					})
+				}
+			}
+		case *websocket.CloseError:
+			if errTyped.Code == websocket.CloseNormalClosure {
+				close(c)
+				return
+			}
+		case *net.OpError:
+			if errTyped.Op == "read" && strings.Contains(errTyped.Err.Error(), "closed") {
+				// the context got canceled and therefore the connection closed
+				close(c)
+				return
+			}
+		default:
+			// some other unexpected error, best we can do is return
 			return
 		}
 	}
 }
 
-func serveWS(ctx context.Context, writer herodot.Writer) func(w http.ResponseWriter, r *http.Request) {
+func (ww *websocketWatcher) serveWS(ctx context.Context, writer herodot.Writer, watcher Watcher) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ws, err := (&websocket.Upgrader{
 			ReadBufferSize:  256, // the only message we expect is the close message
@@ -77,12 +99,12 @@ func serveWS(ctx context.Context, writer herodot.Writer) func(w http.ResponseWri
 
 		// make channel and register it at broadcaster
 		c := make(EventChannel)
-		wsClientChannels.Lock()
-		wsClientChannels.cs = append(wsClientChannels.cs, c)
-		wsClientChannels.Unlock()
+		ww.wsClientChannels.Lock()
+		ww.wsClientChannels.cs = append(ww.wsClientChannels.cs, c)
+		ww.wsClientChannels.Unlock()
 
 		wsClosed := make(chan struct{})
-		go notifyOnClose(ws, wsClosed)
+		go readWebsocket(ws, wsClosed, watcher)
 
 		defer func() {
 			// attempt to close the websocket
@@ -90,15 +112,15 @@ func serveWS(ctx context.Context, writer herodot.Writer) func(w http.ResponseWri
 			_ = ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "server context canceled"))
 			_ = ws.Close()
 
-			wsClientChannels.Lock()
-			for i, cc := range wsClientChannels.cs {
+			ww.wsClientChannels.Lock()
+			for i, cc := range ww.wsClientChannels.cs {
 				if c == cc {
-					wsClientChannels.cs[i] = wsClientChannels.cs[len(wsClientChannels.cs)-1]
-					wsClientChannels.cs[len(wsClientChannels.cs)-1] = nil
-					wsClientChannels.cs = wsClientChannels.cs[:len(wsClientChannels.cs)-1]
+					ww.wsClientChannels.cs[i] = ww.wsClientChannels.cs[len(ww.wsClientChannels.cs)-1]
+					ww.wsClientChannels.cs[len(ww.wsClientChannels.cs)-1] = nil
+					ww.wsClientChannels.cs = ww.wsClientChannels.cs[:len(ww.wsClientChannels.cs)-1]
 				}
 			}
-			wsClientChannels.Unlock()
+			ww.wsClientChannels.Unlock()
 			close(c)
 		}()
 

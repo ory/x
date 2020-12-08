@@ -2,8 +2,9 @@ package watcherx
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -15,8 +16,9 @@ func TestWatchDirectory(t *testing.T) {
 		ctx, c, dir, cancel := setup(t)
 		defer cancel()
 
-		require.NoError(t, WatchDirectory(ctx, dir, c))
-		fileName := path.Join(dir, "example")
+		_, err := WatchDirectory(ctx, dir, c)
+		require.NoError(t, err)
+		fileName := filepath.Join(dir, "example")
 		f, err := os.Create(fileName)
 		require.NoError(t, err)
 		require.NoError(t, f.Close())
@@ -28,10 +30,11 @@ func TestWatchDirectory(t *testing.T) {
 		ctx, c, dir, cancel := setup(t)
 		defer cancel()
 
-		fileName := path.Join(dir, "example")
+		fileName := filepath.Join(dir, "example")
 		f, err := os.Create(fileName)
 		require.NoError(t, err)
-		require.NoError(t, WatchDirectory(ctx, dir, c))
+		_, err = WatchDirectory(ctx, dir, c)
+		require.NoError(t, err)
 
 		_, err = fmt.Fprintf(f, "content")
 		require.NoError(t, f.Close())
@@ -43,12 +46,13 @@ func TestWatchDirectory(t *testing.T) {
 		ctx, c, dir, cancel := setup(t)
 		defer cancel()
 
-		fileName := path.Join(dir, "example")
+		fileName := filepath.Join(dir, "example")
 		f, err := os.Create(fileName)
 		require.NoError(t, err)
 		require.NoError(t, f.Close())
 
-		require.NoError(t, WatchDirectory(ctx, dir, c))
+		_, err = WatchDirectory(ctx, dir, c)
+		require.NoError(t, err)
 		require.NoError(t, os.Remove(fileName))
 
 		assertRemove(t, <-c, fileName)
@@ -58,12 +62,13 @@ func TestWatchDirectory(t *testing.T) {
 		ctx, c, dir, cancel := setup(t)
 		defer cancel()
 
-		childDir := path.Join(dir, "child")
+		childDir := filepath.Join(dir, "child")
 		require.NoError(t, os.Mkdir(childDir, 0777))
 
-		require.NoError(t, WatchDirectory(ctx, dir, c))
+		_, err := WatchDirectory(ctx, dir, c)
+		require.NoError(t, err)
 
-		fileName := path.Join(childDir, "example")
+		fileName := filepath.Join(childDir, "example")
 		f, err := os.Create(fileName)
 		require.NoError(t, err)
 		require.NoError(t, f.Close())
@@ -75,11 +80,12 @@ func TestWatchDirectory(t *testing.T) {
 		ctx, c, dir, cancel := setup(t)
 		defer cancel()
 
-		require.NoError(t, WatchDirectory(ctx, dir, c))
+		_, err := WatchDirectory(ctx, dir, c)
+		require.NoError(t, err)
 
-		childDir := path.Join(dir, "child")
+		childDir := filepath.Join(dir, "child")
 		require.NoError(t, os.Mkdir(childDir, 0777))
-		fileName := path.Join(childDir, "example")
+		fileName := filepath.Join(childDir, "example")
 		// there's not much we can do about this timeout as it takes some time until the new watcher is created
 		time.Sleep(time.Millisecond)
 		f, err := os.Create(fileName)
@@ -93,10 +99,11 @@ func TestWatchDirectory(t *testing.T) {
 		ctx, c, dir, cancel := setup(t)
 		defer cancel()
 
-		childDir := path.Join(dir, "child")
+		childDir := filepath.Join(dir, "child")
 		require.NoError(t, os.Mkdir(childDir, 0777))
 
-		require.NoError(t, WatchDirectory(ctx, dir, c))
+		_, err := WatchDirectory(ctx, dir, c)
+		require.NoError(t, err)
 
 		require.NoError(t, os.Remove(childDir))
 
@@ -113,19 +120,20 @@ func TestWatchDirectory(t *testing.T) {
 		ctx, c, dir, cancel := setup(t)
 		defer cancel()
 
-		childDir := path.Join(dir, "child")
-		subChildDir := path.Join(childDir, "subchild")
+		childDir := filepath.Join(dir, "child")
+		subChildDir := filepath.Join(childDir, "subchild")
 		require.NoError(t, os.MkdirAll(subChildDir, 0777))
-		f1 := path.Join(subChildDir, "f1")
+		f1 := filepath.Join(subChildDir, "f1")
 		f, err := os.Create(f1)
 		require.NoError(t, err)
 		require.NoError(t, f.Close())
-		f2 := path.Join(childDir, "f2")
+		f2 := filepath.Join(childDir, "f2")
 		f, err = os.Create(f2)
 		require.NoError(t, err)
 		require.NoError(t, f.Close())
 
-		require.NoError(t, WatchDirectory(ctx, dir, c))
+		_, err = WatchDirectory(ctx, dir, c)
+		require.NoError(t, err)
 
 		require.NoError(t, os.RemoveAll(childDir))
 
@@ -135,5 +143,32 @@ func TestWatchDirectory(t *testing.T) {
 		}
 		assertRemove(t, events[0], f2)
 		assertRemove(t, events[1], f1)
+	})
+
+	t.Run("case=sends event when requested", func(t *testing.T) {
+		ctx, c, dir, cancel := setup(t)
+		defer cancel()
+
+		files := map[string]string{
+			"a":                     "foo",
+			"b":                     "bar",
+			"c":                     "baz",
+			filepath.Join("d", "a"): "sub dir content",
+		}
+		for fn, fc := range files {
+			fp := filepath.Join(dir, fn)
+			require.NoError(t, os.MkdirAll(filepath.Dir(fp), 0700))
+			require.NoError(t, ioutil.WriteFile(fp, []byte(fc), 0600))
+		}
+
+		d, err := WatchDirectory(ctx, dir, c)
+		require.NoError(t, err)
+		require.NoError(t, d.DispatchNow())
+
+		// because filepath.WalkDir walks lexicographically, we can assume the events come in lex order
+		assertChange(t, <-c, files["a"], filepath.Join(dir, "a"))
+		assertChange(t, <-c, files["b"], filepath.Join(dir, "b"))
+		assertChange(t, <-c, files["c"], filepath.Join(dir, "c"))
+		assertChange(t, <-c, files[filepath.Join("d", "a")], filepath.Join(dir, "d", "a"))
 	})
 }

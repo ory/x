@@ -16,7 +16,7 @@ func main() {
 	}
 	c := make(chan watcherx.Event)
 	ctx, cancel := context.WithCancel(context.Background())
-	err := watcherx.WatchFile(ctx, os.Args[1], c)
+	_, err := watcherx.WatchFile(ctx, os.Args[1], c)
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "could not initialize file watcher: %+v\n", err)
 		os.Exit(1)

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -38,11 +38,12 @@ func TestFileWatcher(t *testing.T) {
 		ctx, c, dir, cancel := setup(t)
 		defer cancel()
 
-		exampleFile := path.Join(dir, "example.file")
+		exampleFile := filepath.Join(dir, "example.file")
 		f, err := os.Create(exampleFile)
 		require.NoError(t, err)
 
-		require.NoError(t, WatchFile(ctx, exampleFile, c))
+		_, err = WatchFile(ctx, exampleFile, c)
+		require.NoError(t, err)
 
 		_, err = fmt.Fprintf(f, "foo")
 		require.NoError(t, err)
@@ -55,8 +56,9 @@ func TestFileWatcher(t *testing.T) {
 		ctx, c, dir, cancel := setup(t)
 		defer cancel()
 
-		exampleFile := path.Join(dir, "example.file")
-		require.NoError(t, WatchFile(ctx, exampleFile, c))
+		exampleFile := filepath.Join(dir, "example.file")
+		_, err := WatchFile(ctx, exampleFile, c)
+		require.NoError(t, err)
 
 		f, err := os.Create(exampleFile)
 		require.NoError(t, err)
@@ -69,12 +71,13 @@ func TestFileWatcher(t *testing.T) {
 		ctx, c, dir, cancel := setup(t)
 		defer cancel()
 
-		exampleFile := path.Join(dir, "example.file")
+		exampleFile := filepath.Join(dir, "example.file")
 		f, err := os.Create(exampleFile)
 		require.NoError(t, err)
 		require.NoError(t, f.Close())
 
-		require.NoError(t, WatchFile(ctx, exampleFile, c))
+		_, err = WatchFile(ctx, exampleFile, c)
+		require.NoError(t, err)
 
 		require.NoError(t, os.Remove(exampleFile))
 
@@ -93,14 +96,15 @@ func TestFileWatcher(t *testing.T) {
 
 		otherDir, err := ioutil.TempDir("", "*")
 		require.NoError(t, err)
-		origFileName := path.Join(otherDir, "original")
+		origFileName := filepath.Join(otherDir, "original")
 		f, err := os.Create(origFileName)
 		require.NoError(t, err)
 
-		linkFileName := path.Join(dir, "slink")
+		linkFileName := filepath.Join(dir, "slink")
 		require.NoError(t, os.Symlink(origFileName, linkFileName))
 
-		require.NoError(t, WatchFile(ctx, linkFileName, c))
+		_, err = WatchFile(ctx, linkFileName, c)
+		require.NoError(t, err)
 
 		_, err = fmt.Fprintf(f, "content")
 		require.NoError(t, err)
@@ -115,8 +119,8 @@ func TestFileWatcher(t *testing.T) {
 
 		otherDir, err := ioutil.TempDir("", "*")
 		require.NoError(t, err)
-		fileOne := path.Join(otherDir, "fileOne")
-		fileTwo := path.Join(otherDir, "fileTwo")
+		fileOne := filepath.Join(otherDir, "fileOne")
+		fileTwo := filepath.Join(otherDir, "fileTwo")
 		f1, err := os.Create(fileOne)
 		require.NoError(t, err)
 		require.NoError(t, f1.Close())
@@ -126,10 +130,11 @@ func TestFileWatcher(t *testing.T) {
 		require.NoError(t, err)
 		require.NoError(t, f2.Close())
 
-		linkFileName := path.Join(dir, "slink")
+		linkFileName := filepath.Join(dir, "slink")
 		require.NoError(t, os.Symlink(fileOne, linkFileName))
 
-		require.NoError(t, WatchFile(ctx, linkFileName, c))
+		_, err = WatchFile(ctx, linkFileName, c)
+		require.NoError(t, err)
 
 		require.NoError(t, os.Remove(linkFileName))
 		assertRemove(t, <-c, linkFileName)
@@ -145,7 +150,8 @@ func TestFileWatcher(t *testing.T) {
 		require.NoError(t, os.Chdir(dir))
 
 		fileName := "example.file"
-		require.NoError(t, WatchFile(ctx, fileName, c))
+		_, err := WatchFile(ctx, fileName, c)
+		require.NoError(t, err)
 
 		f, err := os.Create(fileName)
 		require.NoError(t, err)
@@ -174,13 +180,29 @@ func TestFileWatcher(t *testing.T) {
 		defer cancel()
 
 		fileName := "example.file"
-		filePath := path.Join(dir, fileName)
+		filePath := filepath.Join(dir, fileName)
 		kubernetesAtomicWrite(t, dir, fileName, "foobar")
 
-		require.NoError(t, WatchFile(ctx, filePath, c))
+		_, err := WatchFile(ctx, filePath, c)
+		require.NoError(t, err)
 
 		kubernetesAtomicWrite(t, dir, fileName, "foobarx")
 
 		assertChange(t, <-c, "foobarx", filePath)
+	})
+
+	t.Run("case=sends event when requested", func(t *testing.T) {
+		ctx, c, dir, cancel := setup(t)
+		defer cancel()
+
+		fn := filepath.Join(dir, "example.file")
+		initialContent := "initial content"
+		require.NoError(t, ioutil.WriteFile(fn, []byte(initialContent), 0600))
+
+		d, err := WatchFile(ctx, fn, c)
+		require.NoError(t, err)
+		require.NoError(t, d.DispatchNow())
+
+		assertChange(t, <-c, initialContent, fn)
 	})
 }

@@ -3,9 +3,10 @@ package watcherx
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"net/http/httptest"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -23,7 +24,7 @@ func TestWatchWebsocket(t *testing.T) {
 		defer cancel()
 		l, hook := test.NewNullLogger()
 
-		fn := path.Join(dir, "some.file")
+		fn := filepath.Join(dir, "some.file")
 		f, err := os.Create(fn)
 		require.NoError(t, err)
 
@@ -32,7 +33,8 @@ func TestWatchWebsocket(t *testing.T) {
 		s := httptest.NewServer(handler)
 
 		u := urlx.ParseOrPanic("ws" + strings.TrimLeft(s.URL, "http"))
-		require.NoError(t, WatchWebsocket(ctx, u, c))
+		_, err = WatchWebsocket(ctx, u, c)
+		require.NoError(t, err)
 
 		_, err = fmt.Fprint(f, "content here")
 		require.NoError(t, err)
@@ -50,7 +52,7 @@ func TestWatchWebsocket(t *testing.T) {
 		defer cancel1()
 		l, hook := test.NewNullLogger()
 
-		fn := path.Join(dir, "some.file")
+		fn := filepath.Join(dir, "some.file")
 
 		handler, err := WatchAndServeWS(ctx1, urlx.ParseOrPanic("file://"+fn), herodot.NewJSONWriter(l))
 		require.NoError(t, err)
@@ -58,7 +60,8 @@ func TestWatchWebsocket(t *testing.T) {
 
 		ctx2, cancel2 := context.WithCancel(context.Background())
 		u := urlx.ParseOrPanic("ws" + strings.TrimLeft(s.URL, "http"))
-		require.NoError(t, WatchWebsocket(ctx2, u, c))
+		_, err = WatchWebsocket(ctx2, u, c)
+		require.NoError(t, err)
 
 		cancel2()
 
@@ -73,7 +76,7 @@ func TestWatchWebsocket(t *testing.T) {
 		defer cancel()
 		l, hook := test.NewNullLogger()
 
-		fn := path.Join(dir, "some.file")
+		fn := filepath.Join(dir, "some.file")
 
 		ctxServe, cancelServe := context.WithCancel(context.Background())
 		handler, err := WatchAndServeWS(ctxServe, urlx.ParseOrPanic("file://"+fn), herodot.NewJSONWriter(l))
@@ -81,7 +84,8 @@ func TestWatchWebsocket(t *testing.T) {
 		s := httptest.NewServer(handler)
 
 		u := urlx.ParseOrPanic("ws" + strings.TrimLeft(s.URL, "http"))
-		require.NoError(t, WatchWebsocket(ctxClient, u, c))
+		_, err = WatchWebsocket(ctxClient, u, c)
+		require.NoError(t, err)
 
 		cancelServe()
 
@@ -96,7 +100,7 @@ func TestWatchWebsocket(t *testing.T) {
 		defer cancel()
 		l, hook := test.NewNullLogger()
 
-		fn := path.Join(dir, "some.file")
+		fn := filepath.Join(dir, "some.file")
 
 		handler, err := WatchAndServeWS(ctxServer, urlx.ParseOrPanic("file://"+fn), herodot.NewJSONWriter(l))
 		require.NoError(t, err)
@@ -104,7 +108,8 @@ func TestWatchWebsocket(t *testing.T) {
 
 		ctxClient1, cancelClient1 := context.WithCancel(context.Background())
 		u := urlx.ParseOrPanic("ws" + strings.TrimLeft(s.URL, "http"))
-		require.NoError(t, WatchWebsocket(ctxClient1, u, c))
+		_, err = WatchWebsocket(ctxClient1, u, c)
+		require.NoError(t, err)
 
 		cancelClient1()
 
@@ -114,7 +119,8 @@ func TestWatchWebsocket(t *testing.T) {
 		ctxClient2, cancelClient2 := context.WithCancel(context.Background())
 		defer cancelClient2()
 		c2 := make(EventChannel)
-		require.NoError(t, WatchWebsocket(ctxClient2, u, c2))
+		_, err = WatchWebsocket(ctxClient2, u, c2)
+		require.NoError(t, err)
 
 		f, err := os.Create(fn)
 		require.NoError(t, err)
@@ -130,7 +136,7 @@ func TestWatchWebsocket(t *testing.T) {
 		defer cancel()
 		l, hook := test.NewNullLogger()
 
-		fn := path.Join(dir, "some.file")
+		fn := filepath.Join(dir, "some.file")
 
 		handler, err := WatchAndServeWS(ctxServer, urlx.ParseOrPanic("file://"+fn), herodot.NewJSONWriter(l))
 		require.NoError(t, err)
@@ -140,12 +146,14 @@ func TestWatchWebsocket(t *testing.T) {
 		defer cancelClient1()
 
 		u := urlx.ParseOrPanic("ws" + strings.TrimLeft(s.URL, "http"))
-		require.NoError(t, WatchWebsocket(ctxClient1, u, c1))
+		_, err = WatchWebsocket(ctxClient1, u, c1)
+		require.NoError(t, err)
 
 		ctxClient2, cancelClient2 := context.WithCancel(context.Background())
 		defer cancelClient2()
 		c2 := make(EventChannel)
-		require.NoError(t, WatchWebsocket(ctxClient2, u, c2))
+		_, err = WatchWebsocket(ctxClient2, u, c2)
+		require.NoError(t, err)
 
 		f, err := os.Create(fn)
 		require.NoError(t, err)
@@ -153,6 +161,33 @@ func TestWatchWebsocket(t *testing.T) {
 
 		assertChange(t, <-c1, "", u.String()+fn)
 		assertChange(t, <-c2, "", u.String()+fn)
+
+		assert.Len(t, hook.Entries, 0, "%+v", hook.Entries)
+	})
+
+	t.Run("case=sends event when requested", func(t *testing.T) {
+		ctxServer, c, dir, cancel := setup(t)
+		defer cancel()
+
+		l, hook := test.NewNullLogger()
+
+		fn := filepath.Join(dir, "some.file")
+		initialContent := "initial content"
+		require.NoError(t, ioutil.WriteFile(fn, []byte(initialContent), 0600))
+
+		handler, err := WatchAndServeWS(ctxServer, urlx.ParseOrPanic("file://"+fn), herodot.NewJSONWriter(l))
+		require.NoError(t, err)
+		s := httptest.NewServer(handler)
+
+		ctxClient, cancelClient := context.WithCancel(context.Background())
+		defer cancelClient()
+
+		u := urlx.ParseOrPanic("ws" + strings.TrimLeft(s.URL, "http"))
+		d, err := WatchWebsocket(ctxClient, u, c)
+		require.NoError(t, err)
+		require.NoError(t, d.DispatchNow())
+
+		assertChange(t, <-c, initialContent, u.String()+fn)
 
 		assert.Len(t, hook.Entries, 0, "%+v", hook.Entries)
 	})

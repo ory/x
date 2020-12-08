@@ -10,10 +10,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-func WatchWebsocket(ctx context.Context, u *url.URL, c EventChannel) error {
+func WatchWebsocket(ctx context.Context, u *url.URL, c EventChannel) (Watcher, error) {
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
-		return errors.WithStack(err)
+		return nil, errors.WithStack(err)
 	}
 
 	wsClosed := make(chan struct{})
@@ -21,7 +21,11 @@ func WatchWebsocket(ctx context.Context, u *url.URL, c EventChannel) error {
 
 	go forwardWebsocketEvents(conn, c, u, wsClosed)
 
-	return nil
+	d := newDispatcher()
+
+	go forwardDispatchNow(ctx, conn, c, d.trigger, u.String())
+
+	return d, nil
 }
 
 func cleanupOnDone(ctx context.Context, conn *websocket.Conn, c EventChannel, wsClosed <-chan struct{}) {
@@ -76,5 +80,25 @@ func forwardWebsocketEvents(ws *websocket.Conn, c EventChannel, u *url.URL, wsCl
 		localURL.Path = e.Source()
 		e.setSource(localURL.String())
 		c <- e
+	}
+}
+
+func forwardDispatchNow(ctx context.Context, ws *websocket.Conn, c EventChannel, sendNow <-chan struct{}, serverURL string) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case _, ok := <-sendNow:
+			if !ok {
+				return
+			}
+
+			if err := ws.WriteMessage(websocket.TextMessage, []byte(messageSendNow)); err != nil {
+				c <- &ErrorEvent{
+					source: source(serverURL),
+					error:  err,
+				}
+			}
+		}
 	}
 }

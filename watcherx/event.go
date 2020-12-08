@@ -4,13 +4,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 
 	"github.com/pkg/errors"
 )
 
 type (
 	Event interface {
+		// MarshalJSON is required to work multiple times
+		json.Marshaler
+
 		Reader() io.Reader
 		Source() string
 		setSource(string)
@@ -21,7 +23,7 @@ type (
 		source
 	}
 	ChangeEvent struct {
-		data io.Reader
+		data []byte
 		source
 	}
 	RemoveEvent struct {
@@ -64,21 +66,13 @@ func (e *source) setSource(nsrc string) {
 }
 
 func (e *ChangeEvent) Reader() io.Reader {
-	return e.data
+	return bytes.NewBuffer(e.data)
 }
 
 func (e *ChangeEvent) MarshalJSON() ([]byte, error) {
-	var data []byte
-	var err error
-	if e.data != nil {
-		data, err = ioutil.ReadAll(e.data)
-	}
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
 	return json.Marshal(serialEvent{
 		Type:   serialTypeChange,
-		Data:   data,
+		Data:   e.data,
 		Source: e.source,
 	})
 }
@@ -106,7 +100,7 @@ func unmarshalEvent(data []byte) (Event, error) {
 		}, nil
 	case serialTypeChange:
 		return &ChangeEvent{
-			data:   bytes.NewBuffer(serialEvent.Data),
+			data:   serialEvent.Data,
 			source: serialEvent.Source,
 		}, nil
 	case serialTypeError:
