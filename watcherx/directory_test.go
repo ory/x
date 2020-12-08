@@ -135,7 +135,7 @@ func TestWatchDirectory(t *testing.T) {
 		_, err = WatchDirectory(ctx, dir, c)
 		require.NoError(t, err)
 
-		require.NoError(t, os.RemoveAll(childDir))
+		require.NoError(t, os.RemoveAll(childDir), "There is really a create file permission error here?")
 
 		events := []Event{<-c, <-c}
 		if events[0].Source() > events[1].Source() {
