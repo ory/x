@@ -2,7 +2,6 @@ package watcherx
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -90,7 +89,6 @@ func streamFileEvents(ctx context.Context, watcher *fsnotify.Watcher, c EventCha
 				close(c)
 				return
 			}
-			fmt.Printf("Got raw fsnotify event: %+v\n", e)
 			// filter events to only watch watchedFile
 			// e.Name contains the name of the watchedFile (regardless whether it is a symlink), not the resolved file name
 			if filepath.Clean(e.Name) == watchedFile {
