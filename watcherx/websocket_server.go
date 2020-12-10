@@ -2,6 +2,7 @@ package watcherx
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -19,11 +20,16 @@ type (
 		cs []EventChannel
 	}
 	websocketWatcher struct {
+		wsWriteLock      sync.Mutex
+		wsReadLock       sync.Mutex
 		wsClientChannels eventChannelSlice
 	}
 )
 
-const messageSendNow = "send values now"
+const (
+	messageSendNow     = "send values now"
+	messageSendNowDone = "done sending %d values"
+)
 
 func WatchAndServeWS(ctx context.Context, u *url.URL, writer herodot.Writer) (http.HandlerFunc, error) {
 	c := make(EventChannel)
@@ -53,20 +59,36 @@ func (ww *websocketWatcher) broadcaster(ctx context.Context, c EventChannel) {
 	}
 }
 
-func readWebsocket(ws *websocket.Conn, c chan<- struct{}, watcher Watcher) {
+func (ww *websocketWatcher) readWebsocket(ws *websocket.Conn, c chan<- struct{}, watcher Watcher) {
 	for {
 		// blocking call to ReadMessage that waits for a close message
+		ww.wsReadLock.Lock()
 		_, msg, err := ws.ReadMessage()
+		ww.wsReadLock.Unlock()
+
 		switch errTyped := err.(type) {
 		case nil:
 			if string(msg) == messageSendNow {
-				if err := watcher.DispatchNow(); err != nil {
-					// we cant do much about this error and rely on the other
+				done, err := watcher.DispatchNow()
+				if err != nil {
+					// we cant do much about this error
+					ww.wsWriteLock.Lock()
 					_ = ws.WriteJSON(&ErrorEvent{
 						error:  err,
 						source: "",
 					})
+					ww.wsWriteLock.Unlock()
 				}
+
+				go func() {
+					eventsSend := <-done
+
+					ww.wsWriteLock.Lock()
+					defer ww.wsWriteLock.Unlock()
+
+					// we cant do much about this error
+					_ = ws.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf(messageSendNowDone, eventsSend)))
+				}()
 			}
 		case *websocket.CloseError:
 			if errTyped.Code == websocket.CloseNormalClosure {
@@ -104,12 +126,15 @@ func (ww *websocketWatcher) serveWS(ctx context.Context, writer herodot.Writer, 
 		ww.wsClientChannels.Unlock()
 
 		wsClosed := make(chan struct{})
-		go readWebsocket(ws, wsClosed, watcher)
+		go ww.readWebsocket(ws, wsClosed, watcher)
 
 		defer func() {
 			// attempt to close the websocket
 			// ignore errors as we are closing everything anyway
+			ww.wsWriteLock.Lock()
 			_ = ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "server context canceled"))
+			ww.wsWriteLock.Unlock()
+
 			_ = ws.Close()
 
 			ww.wsClientChannels.Lock()
@@ -134,7 +159,12 @@ func (ww *websocketWatcher) serveWS(ctx context.Context, writer herodot.Writer, 
 				if !ok {
 					return
 				}
-				if err := ws.WriteJSON(e); err != nil {
+
+				ww.wsWriteLock.Lock()
+				err := ws.WriteJSON(e)
+				ww.wsWriteLock.Unlock()
+
+				if err != nil {
 					return
 				}
 			}

@@ -2,6 +2,7 @@ package watcherx
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/url"
 	"strings"
@@ -19,9 +20,9 @@ func WatchWebsocket(ctx context.Context, u *url.URL, c EventChannel) (Watcher, e
 	wsClosed := make(chan struct{})
 	go cleanupOnDone(ctx, conn, c, wsClosed)
 
-	go forwardWebsocketEvents(conn, c, u, wsClosed)
-
 	d := newDispatcher()
+
+	go forwardWebsocketEvents(conn, c, u, wsClosed, d.done)
 
 	go forwardDispatchNow(ctx, conn, c, d.trigger, u.String())
 
@@ -43,7 +44,7 @@ func cleanupOnDone(ctx context.Context, conn *websocket.Conn, c EventChannel, ws
 	_ = conn.Close()
 }
 
-func forwardWebsocketEvents(ws *websocket.Conn, c EventChannel, u *url.URL, wsClosed chan<- struct{}) {
+func forwardWebsocketEvents(ws *websocket.Conn, c EventChannel, u *url.URL, wsClosed chan<- struct{}, sendNowDone chan<- int) {
 	serverURL := source(u.String())
 
 	defer func() {
@@ -68,6 +69,14 @@ func forwardWebsocketEvents(ws *websocket.Conn, c EventChannel, u *url.URL, wsCl
 			}
 			return
 		}
+
+		var eventsSend int
+		_, err = fmt.Sscanf(string(msg), messageSendNowDone, &eventsSend)
+		if err == nil {
+			sendNowDone <- eventsSend
+			continue
+		}
+
 		e, err := unmarshalEvent(msg)
 		if err != nil {
 			c <- &ErrorEvent{

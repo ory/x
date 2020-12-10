@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -208,13 +209,26 @@ func TestFileWatcher(t *testing.T) {
 		ctx, c, dir, cancel := setup(t)
 		defer cancel()
 
+		// buffered channel to allow usage of DispatchNow().done
+		c = make(EventChannel, 1)
+
 		fn := filepath.Join(dir, "example.file")
 		initialContent := "initial content"
 		require.NoError(t, ioutil.WriteFile(fn, []byte(initialContent), 0600))
 
 		d, err := WatchFile(ctx, fn, c)
 		require.NoError(t, err)
-		require.NoError(t, d.DispatchNow())
+		done, err := d.DispatchNow()
+		require.NoError(t, err)
+
+		// wait for d.DispatchNow to be done
+		select {
+		case <-time.After(time.Second):
+			t.Log("Waiting for done timed out.")
+			t.FailNow()
+		case eventsSend := <-done:
+			assert.Equal(t, 1, eventsSend)
+		}
 
 		assertChange(t, <-c, initialContent, fn)
 	})

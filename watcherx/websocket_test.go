@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
@@ -171,6 +172,9 @@ func TestWatchWebsocket(t *testing.T) {
 		ctxServer, c, dir, cancel := setup(t)
 		defer cancel()
 
+		// buffered channel to allow usage of DispatchNow().done
+		c = make(EventChannel, 1)
+
 		l, hook := test.NewNullLogger()
 
 		fn := filepath.Join(dir, "some.file")
@@ -187,7 +191,17 @@ func TestWatchWebsocket(t *testing.T) {
 		u := urlx.ParseOrPanic("ws" + strings.TrimLeft(s.URL, "http"))
 		d, err := WatchWebsocket(ctxClient, u, c)
 		require.NoError(t, err)
-		require.NoError(t, d.DispatchNow())
+		done, err := d.DispatchNow()
+		require.NoError(t, err)
+
+		// wait for d.DispatchNow to be done
+		select {
+		case <-time.After(time.Second):
+			t.Logf("Waiting for done timed out. %+v", <-c)
+			t.FailNow()
+		case eventsSend := <-done:
+			assert.Equal(t, 1, eventsSend)
+		}
 
 		assertChange(t, <-c, initialContent, u.String()+fn)
 

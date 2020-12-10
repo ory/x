@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -149,6 +151,9 @@ func TestWatchDirectory(t *testing.T) {
 		ctx, c, dir, cancel := setup(t)
 		defer cancel()
 
+		// buffered channel to allow usage of DispatchNow().done
+		c = make(EventChannel, 4)
+
 		files := map[string]string{
 			"a":                     "foo",
 			"b":                     "bar",
@@ -163,7 +168,17 @@ func TestWatchDirectory(t *testing.T) {
 
 		d, err := WatchDirectory(ctx, dir, c)
 		require.NoError(t, err)
-		require.NoError(t, d.DispatchNow())
+		done, err := d.DispatchNow()
+		require.NoError(t, err)
+
+		// wait for d.DispatchNow to be done
+		select {
+		case <-time.After(time.Second):
+			t.Log("Waiting for done timed out.")
+			t.FailNow()
+		case eventsSend := <-done:
+			assert.Equal(t, 4, eventsSend)
+		}
 
 		// because filepath.WalkDir walks lexicographically, we can assume the events come in lex order
 		assertChange(t, <-c, files["a"], filepath.Join(dir, "a"))
