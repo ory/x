@@ -35,7 +35,7 @@ func WatchDirectory(ctx context.Context, dir string, c EventChannel) (Watcher, e
 	}
 
 	d := newDispatcher()
-	go streamDirectoryEvents(ctx, w, c, d.trigger, dir)
+	go streamDirectoryEvents(ctx, w, c, d.trigger, d.done, dir)
 	return d, nil
 }
 
@@ -94,7 +94,7 @@ func handleEvent(e fsnotify.Event, w *fsnotify.Watcher, c EventChannel) {
 	}
 }
 
-func streamDirectoryEvents(ctx context.Context, w *fsnotify.Watcher, c EventChannel, sendNow <-chan struct{}, dir string) {
+func streamDirectoryEvents(ctx context.Context, w *fsnotify.Watcher, c EventChannel, sendNow <-chan struct{}, sendNowDone chan<- int, dir string) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -103,6 +103,8 @@ func streamDirectoryEvents(ctx context.Context, w *fsnotify.Watcher, c EventChan
 		case e := <-w.Events:
 			handleEvent(e, w, c)
 		case <-sendNow:
+			var eventsSent int
+
 			if err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 				if err != nil {
 					return err
@@ -120,6 +122,7 @@ func streamDirectoryEvents(ctx context.Context, w *fsnotify.Watcher, c EventChan
 							source: source(path),
 						}
 					}
+					eventsSent++
 				}
 				return nil
 			}); err != nil {
@@ -127,7 +130,10 @@ func streamDirectoryEvents(ctx context.Context, w *fsnotify.Watcher, c EventChan
 					error:  err,
 					source: source(dir),
 				}
+				eventsSent++
 			}
+
+			sendNowDone <- eventsSent
 		}
 	}
 }

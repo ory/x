@@ -12,10 +12,11 @@ type (
 	}
 	EventChannel chan Event
 	Watcher      interface {
-		DispatchNow() error
+		DispatchNow() (<-chan int, error)
 	}
 	dispatcher struct {
 		trigger chan struct{}
+		done    chan int
 	}
 )
 
@@ -37,15 +38,16 @@ func (e *errSchemeUnknown) Error() string {
 func newDispatcher() *dispatcher {
 	return &dispatcher{
 		trigger: make(chan struct{}),
+		done:    make(chan int),
 	}
 }
 
-func (d *dispatcher) DispatchNow() error {
+func (d *dispatcher) DispatchNow() (<-chan int, error) {
 	if d.trigger == nil {
-		return ErrWatcherNotRunning
+		return nil, ErrWatcherNotRunning
 	}
 	d.trigger <- struct{}{}
-	return nil
+	return d.done, nil
 }
 
 func Watch(ctx context.Context, u *url.URL, c EventChannel) (Watcher, error) {
