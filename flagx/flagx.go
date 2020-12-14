@@ -3,10 +3,16 @@ package flagx
 import (
 	"time"
 
+	"github.com/spf13/pflag"
+
 	"github.com/spf13/cobra"
 
 	"github.com/ory/x/cmdx"
 )
+
+func NewFlagSet(name string) *pflag.FlagSet {
+	return pflag.NewFlagSet(name, pflag.ContinueOnError)
+}
 
 // MustGetBool returns a bool flag or fatals if an error occurs.
 func MustGetBool(cmd *cobra.Command, name string) bool {
