@@ -7,6 +7,8 @@ import (
 	"io"
 	"os"
 
+	"github.com/spf13/pflag"
+
 	"github.com/ory/jsonschema/v3"
 	"github.com/ory/x/logrusx"
 
@@ -25,9 +27,41 @@ func WithContext(ctx context.Context) OptionModifier {
 	}
 }
 
+func WithConfigFiles(files ...string) OptionModifier {
+	return func(p *Provider) {
+		p.files = files
+	}
+}
+
 func WithImmutables(immutables ...string) OptionModifier {
 	return func(p *Provider) {
 		p.immutables = immutables
+	}
+}
+
+func WithFlags(flags *pflag.FlagSet) OptionModifier {
+	return func(p *Provider) {
+		p.flags = flags
+	}
+}
+
+func SkipValidation() OptionModifier {
+	return func(p *Provider) {
+		p.skipValidation = true
+	}
+}
+
+func WithValue(key string, value interface{}) OptionModifier {
+	return func(p *Provider) {
+		p.forcedValues = append(p.forcedValues, tuple{Key: key, Value: value})
+	}
+}
+
+func WithValues(values map[string]interface{}) OptionModifier {
+	return func(p *Provider) {
+		for key, value := range values {
+			p.forcedValues = append(p.forcedValues, tuple{Key: key, Value: value})
+		}
 	}
 }
 
