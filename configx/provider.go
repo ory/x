@@ -27,10 +27,14 @@ import (
 
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/json"
-	"github.com/knadh/koanf/providers/confmap"
 	"github.com/pkg/errors"
 	"github.com/rs/cors"
 )
+
+type tuple struct {
+	Key   string
+	Value interface{}
+}
 
 type Provider struct {
 	*koanf.Koanf
@@ -43,6 +47,9 @@ type Provider struct {
 	onValidationError        func(k *koanf.Koanf, err error)
 	excludeFieldsFromTracing []string
 	tracer                   *tracing.Tracer
+	forcedValues             []tuple
+	files                    []string
+	skipValidation           bool
 }
 
 const (
@@ -50,6 +57,7 @@ const (
 	Delimiter  = "."
 )
 
+// RegisterConfigFlag registers the "--config" flag on pflag.FlagSet.
 func RegisterConfigFlag(flags *pflag.FlagSet, fallback []string) {
 	flags.StringSliceP(FlagConfig, "c", fallback, "Config files to load, overwriting in the order specified.")
 }
@@ -61,7 +69,7 @@ func RegisterConfigFlag(flags *pflag.FlagSet, fallback []string) {
 // 2. Config files (yaml, yml, toml, json)
 // 3. Command line flags
 // 4. Environment variables
-func New(schema []byte, flags *pflag.FlagSet, modifiers ...OptionModifier) (*Provider, error) {
+func New(schema []byte, modifiers ...OptionModifier) (*Provider, error) {
 	schemaID, comp, err := newCompiler(schema)
 	if err != nil {
 		return nil, err
@@ -75,7 +83,6 @@ func New(schema []byte, flags *pflag.FlagSet, modifiers ...OptionModifier) (*Pro
 	p := &Provider{
 		ctx:                      context.Background(),
 		schema:                   schema,
-		flags:                    flags,
 		validator:                validator,
 		onValidationError:        func(k *koanf.Koanf, err error) {},
 		excludeFieldsFromTracing: []string{"dsn", "secret", "password", "key"},
@@ -95,6 +102,10 @@ func New(schema []byte, flags *pflag.FlagSet, modifiers ...OptionModifier) (*Pro
 }
 
 func (p *Provider) validate(k *koanf.Koanf) error {
+	if p.skipValidation {
+		return nil
+	}
+
 	out, err := k.Marshal(json.Parser())
 	if err != nil {
 		return errors.WithStack(err)
@@ -124,19 +135,34 @@ func (p *Provider) newKoanf(ctx context.Context) (*koanf.Koanf, error) {
 		return nil, err
 	}
 
-	paths, _ := p.flags.GetStringSlice(FlagConfig)
-	for _, configFile := range paths {
+	var paths []string
+	if p.flags != nil {
+		p, _ := p.flags.GetStringSlice(FlagConfig)
+		paths = append(paths, p...)
+	}
+
+	paths = append(p.files, paths...)
+	for _, configFile := range append(p.files, paths...) {
 		if err := p.addConfigFile(ctx, configFile, k); err != nil {
 			return nil, err
 		}
 	}
 
-	if err := k.Load(posflag.Provider(p.flags, ".", k), nil); err != nil {
-		return nil, err
+	if p.flags != nil {
+		if err := k.Load(posflag.Provider(p.flags, ".", k), nil); err != nil {
+			return nil, err
+		}
 	}
 
 	if err := k.Load(ep, nil); err != nil {
 		return nil, err
+	}
+
+	// Workaround for https://github.com/knadh/koanf/pull/47
+	for _, t := range p.forcedValues {
+		if err := k.Load(NewKoanfConfmap([]tuple{t}), nil); err != nil {
+			return nil, err
+		}
 	}
 
 	if err := p.validate(k); err != nil {
@@ -249,10 +275,16 @@ func (p *Provider) addConfigFile(ctx context.Context, path string, k *koanf.Koan
 	return k.Load(fp, nil)
 }
 
-func (p *Provider) Set(key string, value interface{}) {
-	// This can not err because confmap does not err
-	_ = p.Koanf.Load(confmap.Provider(map[string]interface{}{
-		key: value}, "."), nil)
+func (p *Provider) Set(key string, value interface{}) error {
+	p.forcedValues = append(p.forcedValues, tuple{Key: key, Value: value})
+
+	k, err := p.newKoanf(p.ctx)
+	if err != nil {
+		return err
+	}
+
+	p.Koanf = k
+	return nil
 }
 
 func (p *Provider) BoolF(key string, fallback bool) bool {
@@ -304,12 +336,11 @@ func (p *Provider) DurationF(key string, fallback time.Duration) (val time.Durat
 }
 
 func (p *Provider) GetF(key string, fallback interface{}) (val interface{}) {
-	val = p.Get(key)
-	if val == nil {
+	if !p.Exists(key) {
 		return fallback
 	}
 
-	return val
+	return p.Get(key)
 }
 
 func (p *Provider) CORS(prefix string, defaults cors.Options) (cors.Options, bool) {
@@ -350,29 +381,33 @@ func (p *Provider) TracingConfig(serviceName string) *tracing.Config {
 }
 
 func (p *Provider) RequestURIF(path string, fallback *url.URL) *url.URL {
-	if p.Get(path) == nil {
-		return fallback
+	switch t := p.Get(path).(type) {
+	case *url.URL:
+		return t
+	case url.URL:
+		return &t
+	case string:
+		if parsed, err := url.ParseRequestURI(t); err == nil {
+			return parsed
+		}
 	}
 
-	parsed, err := url.ParseRequestURI(p.String(path))
-	if err != nil {
-		return fallback
-	}
-
-	return parsed
+	return fallback
 }
 
 func (p *Provider) URIF(path string, fallback *url.URL) *url.URL {
-	if p.Get(path) == nil {
-		return fallback
+	switch t := p.Get(path).(type) {
+	case *url.URL:
+		return t
+	case url.URL:
+		return &t
+	case string:
+		if parsed, err := url.Parse(t); err == nil {
+			return parsed
+		}
 	}
 
-	parsed, err := url.Parse(p.String(path))
-	if err != nil {
-		return fallback
-	}
-
-	return parsed
+	return fallback
 }
 
 // PrintHumanReadableValidationErrors prints human readable validation errors. Duh.

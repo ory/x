@@ -22,7 +22,8 @@ func newKoanf(schemaPath string, configPaths []string, modifiers ...OptionModifi
 	f := pflag.NewFlagSet("config", pflag.ContinueOnError)
 	f.StringSliceP("config", "c", configPaths, "")
 
-	k, err := New(schema, f, modifiers...)
+	modifiers = append(modifiers, WithFlags(f))
+	k, err := New(schema, modifiers...)
 	if err != nil {
 		return nil, err
 	}
