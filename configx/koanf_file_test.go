@@ -32,7 +32,7 @@ func TestKoanfFile(t *testing.T) {
 		encV, err := json.Marshal(v)
 		require.NoError(t, err)
 
-		kf, cancel := setupFile(t, "config*.json", string(encV), "")
+		kf, cancel := setupFile(t, "config.json", string(encV), "")
 		defer cancel()
 
 		actual, err := kf.Read()
@@ -47,7 +47,7 @@ func TestKoanfFile(t *testing.T) {
 		encV, err := yaml.Marshal(v)
 		require.NoError(t, err)
 
-		kf, cancel := setupFile(t, "config*.yml", string(encV), "")
+		kf, cancel := setupFile(t, "config.yml", string(encV), "")
 		defer cancel()
 
 		actual, err := kf.Read()
@@ -62,7 +62,7 @@ func TestKoanfFile(t *testing.T) {
 		encV, err := toml.Marshal(v)
 		require.NoError(t, err)
 
-		kf, cancel := setupFile(t, "config*.toml", string(encV), "")
+		kf, cancel := setupFile(t, "config.toml", string(encV), "")
 		defer cancel()
 
 		actual, err := kf.Read()
@@ -77,7 +77,7 @@ func TestKoanfFile(t *testing.T) {
 		encV, err := json.Marshal(v)
 		require.NoError(t, err)
 
-		kf, cancel := setupFile(t, "config*.json", string(encV), "parent.of.config")
+		kf, cancel := setupFile(t, "config.json", string(encV), "parent.of.config")
 		defer cancel()
 
 		actual, err := kf.Read()
