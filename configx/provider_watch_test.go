@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
-	"sync"
 	"testing"
 	"time"
 
@@ -33,54 +32,53 @@ func tmpConfigFile(t *testing.T, dsn, foo string) *os.File {
 	require.NoError(t, err)
 	require.NoError(t, configFile.Sync())
 	t.Cleanup(func() {
+		fmt.Printf("removing %s\n", configFile.Name())
 		_ = os.Remove(configFile.Name())
 	})
 
 	return configFile
 }
 
-func updateConfigFile(t *testing.T, wg *sync.WaitGroup, configFile *os.File, dsn, foo string) {
-	wg.Add(1)
+func updateConfigFile(t *testing.T, c <-chan struct{}, configFile *os.File, dsn, foo string) {
 	config := fmt.Sprintf("dsn: %s\nfoo: %s\n", dsn, foo)
 
 	_, err := configFile.Seek(0, 0)
 	require.NoError(t, err)
 	_, err = io.WriteString(configFile, config)
 	require.NoError(t, configFile.Sync())
+	<-c // Wait for changes to propagate
 }
 
 func TestReload(t *testing.T) {
-	l := logrusx.New("", "")
-
-	setup := func(t *testing.T, cf *os.File, wg *sync.WaitGroup, modifiers ...OptionModifier) *Provider {
+	setup := func(t *testing.T, cf *os.File, c chan<- struct{}, modifiers ...OptionModifier) (*Provider, *logrusx.Logger) {
+		l := logrusx.New("", "")
 		ctx, cancel := context.WithCancel(context.Background())
 		t.Cleanup(cancel)
 		modifiers = append(modifiers,
 			WithLogrusWatcher(l),
 			AttachWatcher(func(event watcherx.Event, err error) {
-				wg.Done()
+				c <- struct{}{}
 			}),
 			WithContext(ctx),
 		)
 		p, err := newKoanf("./stub/watch/config.schema.json", []string{cf.Name()}, modifiers...)
 		require.NoError(t, err)
-		return p
+		return p, l
 	}
 
 	t.Run("case=rejects not validating changes", func(t *testing.T) {
 		configFile := tmpConfigFile(t, "memory", "bar")
 		defer configFile.Close()
+		c := make(chan struct{})
+		p, l := setup(t, configFile, c)
 		hook := test.NewLocal(l.Entry.Logger)
-		wg := new(sync.WaitGroup)
-		p := setup(t, configFile, wg)
 
 		assert.Equal(t, []*logrus.Entry{}, hook.AllEntries())
 		assert.Equal(t, "memory", p.String("dsn"))
 		assert.Equal(t, "bar", p.String("foo"))
 
-		updateConfigFile(t, wg, configFile, "memory", "not bar")
+		updateConfigFile(t, c, configFile, "memory", "not bar")
 
-		wg.Wait() // Wait for changes to propagate
 		entries := hook.AllEntries()
 		require.Equal(t, 2, len(entries))
 
@@ -94,18 +92,17 @@ func TestReload(t *testing.T) {
 	t.Run("case=rejects to update immutable", func(t *testing.T) {
 		configFile := tmpConfigFile(t, "memory", "bar")
 		defer configFile.Close()
-		hook := test.NewLocal(l.Entry.Logger)
-		wg := new(sync.WaitGroup)
-		p := setup(t, configFile, wg,
+		c := make(chan struct{})
+		p, l := setup(t, configFile, c,
 			WithImmutables("dsn"))
+		hook := test.NewLocal(l.Entry.Logger)
 
 		assert.Equal(t, []*logrus.Entry{}, hook.AllEntries())
 		assert.Equal(t, "memory", p.String("dsn"))
 		assert.Equal(t, "bar", p.String("foo"))
 
-		updateConfigFile(t, wg, configFile, "some db", "bar")
+		updateConfigFile(t, c, configFile, "some db", "bar")
 
-		wg.Wait() // Wait for changes to propagate
 		entries := hook.AllEntries()
 		require.Equal(t, 2, len(entries))
 		assert.Equal(t, "A change to a configuration file was detected.", entries[0].Message)
@@ -117,9 +114,9 @@ func TestReload(t *testing.T) {
 	t.Run("case=runs without validation errors", func(t *testing.T) {
 		configFile := tmpConfigFile(t, "some string", "bar")
 		defer configFile.Close()
+		c := make(chan struct{})
+		p, l := setup(t, configFile, c)
 		hook := test.NewLocal(l.Entry.Logger)
-		wg := new(sync.WaitGroup)
-		p := setup(t, configFile, wg)
 
 		assert.Equal(t, []*logrus.Entry{}, hook.AllEntries())
 		assert.Equal(t, "some string", p.String("dsn"))
@@ -129,6 +126,7 @@ func TestReload(t *testing.T) {
 	t.Run("case=has with validation errors", func(t *testing.T) {
 		configFile := tmpConfigFile(t, "some string", "not bar")
 		defer configFile.Close()
+		l := logrusx.New("", "")
 		hook := test.NewLocal(l.Entry.Logger)
 
 		var b bytes.Buffer

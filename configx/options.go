@@ -84,7 +84,7 @@ func WithLogrusWatcher(l *logrusx.Logger) OptionModifier {
 func LogrusWatcher(l *logrusx.Logger) func(e watcherx.Event, err error) {
 	return func(e watcherx.Event, err error) {
 		l.WithField("file", e.Source()).
-			WithField("event", e).
+			WithField("event", e.String()).
 			WithField("event_type", fmt.Sprintf("%T", e)).
 			Info("A change to a configuration file was detected.")
 

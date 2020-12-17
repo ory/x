@@ -1,6 +1,7 @@
 package configx
 
 import (
+	"context"
 	"io/ioutil"
 	"path"
 	"testing"
@@ -24,7 +25,10 @@ func TestProviderMethods(t *testing.T) {
 	require.NoError(t, f.Parse(args[1:]))
 	RegisterFlags(f)
 
-	p, err := New([]byte(`{}`), WithFlags(f))
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	p, err := New([]byte(`{}`), WithFlags(f), WithContext(ctx))
 	require.NoError(t, err)
 
 	t.Run("check flags", func(t *testing.T) {
@@ -129,7 +133,9 @@ func TestAdvancedConfigs(t *testing.T) {
 			require.NoError(t, err)
 
 			schemaPath := path.Join("stub", tc.stub, "config.schema.json")
-			k, err := newKoanf(schemaPath, tc.configs)
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			k, err := newKoanf(schemaPath, tc.configs, WithContext(ctx))
 			if !tc.isValid {
 				require.Error(t, err)
 				return

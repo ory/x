@@ -227,42 +227,50 @@ func (p *Provider) addConfigFile(ctx context.Context, path string, k *koanf.Koan
 
 	c := make(watcherx.EventChannel)
 	go func(c watcherx.EventChannel) {
-		for e := range c {
-			switch et := e.(type) {
-			case *watcherx.ErrorEvent:
-				p.runOnChanges(e, et)
-			default: // *watcherx.RemoveEvent, *watcherx.ChangeEvent
-				span, ctx := p.startSpan(ctx, UpdatedSpanOpName)
-				ctx, cancelInner := context.WithCancel(ctx)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case e, ok := <-c:
+				if !ok {
+					return
+				}
+				switch et := e.(type) {
+				case *watcherx.ErrorEvent:
+					p.runOnChanges(e, et)
+				default: // *watcherx.RemoveEvent, *watcherx.ChangeEvent
+					span, ctx := p.startSpan(ctx, UpdatedSpanOpName)
+					ctx, cancelInner := context.WithCancel(ctx)
 
-				var cancelReload bool
-				nk, err := p.newKoanf(ctx)
-				if err != nil {
-					cancelReload = true
-				} else {
-					for _, key := range p.immutables {
-						if !reflect.DeepEqual(k.Get(key), nk.Get(key)) {
-							err = NewImmutableError(key, fmt.Sprintf("%v", k.Get(key)), fmt.Sprintf("%v", nk.Get(key)))
-							cancelReload = true
-							break
+					var cancelReload bool
+					nk, err := p.newKoanf(ctx)
+					if err != nil {
+						cancelReload = true
+					} else {
+						for _, key := range p.immutables {
+							if !reflect.DeepEqual(k.Get(key), nk.Get(key)) {
+								err = NewImmutableError(key, fmt.Sprintf("%v", k.Get(key)), fmt.Sprintf("%v", nk.Get(key)))
+								cancelReload = true
+								break
+							}
 						}
 					}
-				}
 
-				if cancelReload {
-					cancelInner()
-					p.runOnChanges(e, err)
+					if cancelReload {
+						cancelInner()
+						p.runOnChanges(e, err)
+						span.Finish()
+						continue
+					}
+
+					p.traceConfig(ctx, k, UpdatedSpanOpName)
+					p.Koanf = nk
+					cancel()
+					cancel = cancelInner
+					p.runOnChanges(e, nil)
 					span.Finish()
-					continue
+					return
 				}
-
-				p.traceConfig(ctx, k, UpdatedSpanOpName)
-				p.Koanf = nk
-				cancel()
-				cancel = cancelInner
-				p.runOnChanges(e, nil)
-				span.Finish()
-				return
 			}
 		}
 	}(c)
