@@ -8,6 +8,8 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/gobuffalo/pop/v5/logging"
+
 	"github.com/sirupsen/logrus"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace"
@@ -148,4 +150,17 @@ func (l *Logger) WithError(err error) *Logger {
 	}
 
 	return l.WithField("error", ctx)
+}
+
+var popLevelTranslations = map[logging.Level]logrus.Level{
+	logging.SQL:   logrus.TraceLevel,
+	logging.Debug: logrus.DebugLevel,
+	logging.Info:  logrus.InfoLevel,
+	logging.Warn:  logrus.WarnLevel,
+	logging.Error: logrus.ErrorLevel,
+}
+
+func (l *Logger) PopLogger(lvl logging.Level, s string, args ...interface{}) {
+	level := popLevelTranslations[lvl]
+	l.WithField("source", "pop").Logf(level, s, args...)
 }
