@@ -2,6 +2,7 @@ package cmdx
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -101,7 +102,14 @@ func ExpectDependency(logger *logrusx.Logger, dependencies ...interface{}) {
 
 // Exec runs the provided cobra command with the given reader as STD_IN and the given args.
 // Returns STD_OUT, STD_ERR and the error from the execution.
-func Exec(_ *testing.T, cmd *cobra.Command, stdIn io.Reader, args ...string) (string, string, error) {
+func Exec(t *testing.T, cmd *cobra.Command, stdIn io.Reader, args ...string) (string, string, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	return ExecCtx(ctx, t, cmd, stdIn, args...)
+}
+
+func ExecCtx(ctx context.Context, _ *testing.T, cmd *cobra.Command, stdIn io.Reader, args ...string) (string, string, error) {
 	stdOut, stdErr := &bytes.Buffer{}, &bytes.Buffer{}
 	cmd.SetErr(stdErr)
 	cmd.SetOut(stdOut)
@@ -111,15 +119,22 @@ func Exec(_ *testing.T, cmd *cobra.Command, stdIn io.Reader, args ...string) (st
 		args = []string{}
 	}
 	cmd.SetArgs(args)
-	err := cmd.Execute()
+	err := cmd.ExecuteContext(ctx)
 	return stdOut.String(), stdErr.String(), err
 }
 
 // ExecNoErr is a helper that assumes a successful run from Exec.
 // Returns STD_OUT.
 func ExecNoErr(t *testing.T, cmd *cobra.Command, args ...string) string {
-	stdOut, stdErr, err := Exec(t, cmd, nil, args...)
-	require.NoError(t, err)
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	return ExecNoErrCtx(ctx, t, cmd, args...)
+}
+
+func ExecNoErrCtx(ctx context.Context, t *testing.T, cmd *cobra.Command, args ...string) string {
+	stdOut, stdErr, err := ExecCtx(ctx, t, cmd, nil, args...)
+	require.NoError(t, err, "std_out: %s\nstd_err: %s", stdOut, stdErr)
 	require.Len(t, stdErr, 0, stdOut)
 	return stdOut
 }
@@ -127,8 +142,33 @@ func ExecNoErr(t *testing.T, cmd *cobra.Command, args ...string) string {
 // ExecExpectedErr is a helper that assumes a failing run from Exec returning ErrNoPrintButFail
 // Returns STD_ERR.
 func ExecExpectedErr(t *testing.T, cmd *cobra.Command, args ...string) string {
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	return ExecExpectedErrCtx(ctx, t, cmd, args...)
+}
+
+func ExecExpectedErrCtx(_ context.Context, t *testing.T, cmd *cobra.Command, args ...string) string {
 	stdOut, stdErr, err := Exec(t, cmd, nil, args...)
-	require.True(t, errors.Is(err, ErrNoPrintButFail))
+	require.True(t, errors.Is(err, ErrNoPrintButFail), "std_out: %s\nstd_err: %s", stdOut, stdErr)
 	require.Len(t, stdOut, 0, stdErr)
 	return stdErr
+}
+
+type CommandExecuter struct {
+	New            func() *cobra.Command
+	Ctx            context.Context
+	PersistentArgs []string
+}
+
+func (c *CommandExecuter) Exec(t *testing.T, stdin io.Reader, args ...string) (string, string, error) {
+	return ExecCtx(c.Ctx, t, c.New(), stdin, append(c.PersistentArgs, args...)...)
+}
+
+func (c *CommandExecuter) ExecNoErr(t *testing.T, args ...string) string {
+	return ExecNoErrCtx(c.Ctx, t, c.New(), append(c.PersistentArgs, args...)...)
+}
+
+func (c *CommandExecuter) ExecExpectedErr(t *testing.T, args ...string) string {
+	return ExecExpectedErrCtx(c.Ctx, t, c.New(), append(c.PersistentArgs, args...)...)
 }
