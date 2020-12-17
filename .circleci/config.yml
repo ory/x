@@ -54,8 +54,7 @@ workflows:
           filters:
             branches:
               only: master
-      -
-        golangci/lint:
+      - golangci/lint:
           filters:
             tags:
               only: /.*/
