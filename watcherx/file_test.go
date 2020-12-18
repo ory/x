@@ -17,8 +17,7 @@ import (
 func setup(t *testing.T) (context.Context, chan Event, string, context.CancelFunc) {
 	c := make(chan Event)
 	ctx, cancel := context.WithCancel(context.Background())
-	dir, err := ioutil.TempDir("", "*")
-	require.NoError(t, err)
+	dir := t.TempDir()
 	return ctx, c, dir, cancel
 }
 

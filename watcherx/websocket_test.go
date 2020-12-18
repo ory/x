@@ -31,6 +31,7 @@ func TestWatchWebsocket(t *testing.T) {
 
 		url, err := urlx.Parse("file://" + fn)
 		require.NoError(t, err)
+		t.Log(url)
 		handler, err := WatchAndServeWS(ctx, url, herodot.NewJSONWriter(l))
 		require.NoError(t, err)
 		s := httptest.NewServer(handler)

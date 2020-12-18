@@ -39,6 +39,7 @@ func (c *CompressionRequestReader) ServeHTTP(w http.ResponseWriter, r *http.Requ
 				return
 			}
 
+			/* #nosec G110 - FIXME */
 			if _, err := io.Copy(&b, reader); err != nil {
 				c.ErrHandler(w, r, err)
 				return

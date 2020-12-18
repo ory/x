@@ -48,6 +48,7 @@ func Generate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	/* #nosec G306 - TODO evaluate why */
 	if err := ioutil.WriteFile(spath, []byte(gjson.GetBytes(sidebar, "@pretty").Raw), 0644); err != nil {
 		return err
 	}

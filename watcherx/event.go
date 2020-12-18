@@ -3,6 +3,7 @@ package watcherx
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 
 	"github.com/pkg/errors"
@@ -15,6 +16,7 @@ type (
 
 		Reader() io.Reader
 		Source() string
+		String() string
 		setSource(string)
 	}
 	source     string
@@ -57,6 +59,10 @@ func (e *ErrorEvent) MarshalJSON() ([]byte, error) {
 	})
 }
 
+func (e *ErrorEvent) String() string {
+	return fmt.Sprintf("error: %+v; source: %s", e.error, e.source)
+}
+
 func (e source) Source() string {
 	return string(e)
 }
@@ -77,6 +83,10 @@ func (e *ChangeEvent) MarshalJSON() ([]byte, error) {
 	})
 }
 
+func (e *ChangeEvent) String() string {
+	return fmt.Sprintf("data: %s; source: %s", e.data, e.source)
+}
+
 func (e *RemoveEvent) Reader() io.Reader {
 	return nil
 }
@@ -86,6 +96,10 @@ func (e *RemoveEvent) MarshalJSON() ([]byte, error) {
 		Type:   serialTypeRemove,
 		Source: e.source,
 	})
+}
+
+func (e *RemoveEvent) String() string {
+	return fmt.Sprintf("removed source: %s", e.source)
 }
 
 func unmarshalEvent(data []byte) (Event, error) {

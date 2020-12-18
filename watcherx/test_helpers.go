@@ -40,7 +40,7 @@ func kubernetesAtomicWrite(t *testing.T, dir, fileName, content string) {
 	// (6)
 	require.NoError(
 		t,
-		ioutil.WriteFile(path.Join(tsDir, fileName), []byte(content), 0700),
+		ioutil.WriteFile(path.Join(tsDir, fileName), []byte(content), 0600),
 	)
 
 	// (7)
