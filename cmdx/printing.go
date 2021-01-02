@@ -12,16 +12,16 @@ import (
 )
 
 type (
-	OutputHeader interface {
+	TableHeader interface {
 		Header() []string
 	}
-	OutputEntry interface {
-		OutputHeader
-		Fields() []string
+	TableRow interface {
+		TableHeader
+		Columns() []string
 		Interface() interface{}
 	}
-	OutputCollection interface {
-		OutputHeader
+	Table interface {
+		TableHeader
 		Table() [][]string
 		Interface() interface{}
 		Len() int
@@ -35,6 +35,7 @@ const (
 	FormatTable      format = "table"
 	FormatJSON       format = "json"
 	FormatJSONPretty format = "json-pretty"
+	FormatDefault    format = "default"
 
 	FlagQuiet  = "quiet"
 	FlagFormat = "format"
@@ -48,12 +49,12 @@ func PrintErrors(cmd *cobra.Command, errs map[string]error) {
 	}
 }
 
-func PrintRow(cmd *cobra.Command, row OutputEntry) {
+func PrintRow(cmd *cobra.Command, row TableRow) {
 	f := getFormat(cmd)
 
 	switch f {
 	case FormatQuiet:
-		fmt.Fprintln(cmd.OutOrStdout(), row.Fields()[0])
+		fmt.Fprintln(cmd.OutOrStdout(), row.Columns()[0])
 	case FormatJSON:
 		printJSON(cmd.OutOrStdout(), row.Interface(), false)
 	case FormatJSONPretty:
@@ -61,7 +62,7 @@ func PrintRow(cmd *cobra.Command, row OutputEntry) {
 	case FormatTable:
 		w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 8, 1, '\t', 0)
 
-		fields := row.Fields()
+		fields := row.Columns()
 		for i, h := range row.Header() {
 			fmt.Fprintf(w, "%s\t%s\t\n", h, fields[i])
 		}
@@ -70,8 +71,8 @@ func PrintRow(cmd *cobra.Command, row OutputEntry) {
 	}
 }
 
-func PrintCollection(cmd *cobra.Command, collection OutputCollection) {
-	if collection.Len() == 0 {
+func PrintTable(cmd *cobra.Command, table Table) {
+	if table.Len() == 0 {
 		// don't print headers, ... when there is no content
 		return
 	}
@@ -79,22 +80,22 @@ func PrintCollection(cmd *cobra.Command, collection OutputCollection) {
 
 	switch f {
 	case FormatQuiet:
-		for _, row := range collection.Table() {
+		for _, row := range table.Table() {
 			fmt.Fprintln(cmd.OutOrStdout(), row[0])
 		}
 	case FormatJSON:
-		printJSON(cmd.OutOrStdout(), collection.Interface(), false)
+		printJSON(cmd.OutOrStdout(), table.Interface(), false)
 	case FormatJSONPretty:
-		printJSON(cmd.OutOrStdout(), collection.Interface(), true)
-	case FormatTable:
+		printJSON(cmd.OutOrStdout(), table.Interface(), true)
+	default:
 		w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 8, 1, '\t', 0)
 
-		for _, h := range collection.Header() {
+		for _, h := range table.Header() {
 			fmt.Fprintf(w, "%s\t", h)
 		}
 		fmt.Fprintln(w)
 
-		for _, row := range collection.Table() {
+		for _, row := range table.Table() {
 			fmt.Fprintln(w, strings.Join(row, "\t")+"\t")
 		}
 
@@ -102,10 +103,36 @@ func PrintCollection(cmd *cobra.Command, collection OutputCollection) {
 	}
 }
 
-func getFormat(cmd *cobra.Command) format {
+func PrintJSONAble(cmd *cobra.Command, d interface{ String() string }) {
+	switch getFormat(cmd) {
+	default:
+		_, _ = fmt.Fprint(cmd.OutOrStdout(), d.String())
+	case FormatJSON:
+		var v interface{} = d
+		if i, ok := d.(interface{ Interface() interface{} }); ok {
+			v = i
+		}
+		printJSON(cmd.OutOrStdout(), v, false)
+	case FormatJSONPretty:
+		var v interface{} = d
+		if i, ok := d.(interface{ Interface() interface{} }); ok {
+			v = i
+		}
+		printJSON(cmd.OutOrStdout(), v, true)
+	}
+}
+
+func getQuiet(cmd *cobra.Command) bool {
 	q, err := cmd.Flags().GetBool(FlagQuiet)
-	// unexpected error
-	Must(err, "flag access error: %s", err)
+	// ignore the error here as we use this function also when the flag might not be registered
+	if err != nil {
+		return false
+	}
+	return q
+}
+
+func getFormat(cmd *cobra.Command) format {
+	q := getQuiet(cmd)
 
 	if q {
 		return FormatQuiet
@@ -122,10 +149,9 @@ func getFormat(cmd *cobra.Command) format {
 		return FormatJSON
 	case string(FormatJSONPretty):
 		return FormatJSONPretty
+	default:
+		return FormatDefault
 	}
-
-	// default format is table
-	return FormatTable
 }
 
 func printJSON(w io.Writer, v interface{}, pretty bool) {
@@ -136,6 +162,10 @@ func printJSON(w io.Writer, v interface{}, pretty bool) {
 	err := e.Encode(v)
 	// unexpected error
 	Must(err, "Error encoding JSON: %s", err)
+}
+
+func RegisterJSONFormatFlags(flags *pflag.FlagSet) {
+	flags.StringP(FlagFormat, FlagFormat[:1], "", fmt.Sprintf("Set the output format. One of %s, %s, and %s.", FormatDefault, FormatJSON, FormatJSONPretty))
 }
 
 func RegisterFormatFlags(flags *pflag.FlagSet) {
