@@ -24,6 +24,9 @@ type (
 func WithContext(ctx context.Context) OptionModifier {
 	return func(p *Provider) {
 		p.ctx = ctx
+		for _, o := range ConfigOptionsFromContext(ctx) {
+			o(p)
+		}
 	}
 }
 
