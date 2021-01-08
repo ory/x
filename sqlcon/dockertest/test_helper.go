@@ -249,8 +249,8 @@ func startCockroachDB() (*dockertest.Resource, error) {
 
 	resource, err := pool.RunWithOptions(&dockertest.RunOptions{
 		Repository: "cockroachdb/cockroach",
-		Tag:        "v20.1.0",
-		Cmd:        []string{"start", "--insecure"},
+		Tag:        "v20.2.3",
+		Cmd:        []string{"start-single-node", "--insecure"},
 	})
 	if err == nil {
 		resources = append(resources, resource)
