@@ -32,13 +32,13 @@ func WithContext(ctx context.Context) OptionModifier {
 
 func WithConfigFiles(files ...string) OptionModifier {
 	return func(p *Provider) {
-		p.files = files
+		p.files = append(p.files, files...)
 	}
 }
 
 func WithImmutables(immutables ...string) OptionModifier {
 	return func(p *Provider) {
-		p.immutables = immutables
+		p.immutables = append(p.immutables, immutables...)
 	}
 }
 
