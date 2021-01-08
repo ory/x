@@ -37,7 +37,6 @@ const (
 	FormatJSONPretty format = "json-pretty"
 	FormatDefault    format = "default"
 
-	FlagQuiet  = "quiet"
 	FlagFormat = "format"
 
 	None = "<none>"
@@ -169,6 +168,6 @@ func RegisterJSONFormatFlags(flags *pflag.FlagSet) {
 }
 
 func RegisterFormatFlags(flags *pflag.FlagSet) {
-	flags.BoolP(FlagQuiet, FlagQuiet[:1], false, "Prints only IDs, one per line. Takes precedence over --format.")
+	RegisterNoiseFlags(flags)
 	flags.StringP(FlagFormat, FlagFormat[:1], "", fmt.Sprintf("Set the output format. One of %s, %s, and %s.", FormatTable, FormatJSON, FormatJSONPretty))
 }
