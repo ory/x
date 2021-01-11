@@ -34,6 +34,10 @@ func Generate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	if !gjson.ValidBytes(sidebar) {
+		return errors.New("sidebar file is not valid JSON")
+	}
+
 	var index int
 	gjson.GetBytes(sidebar, `Reference`).ForEach(func(key, value gjson.Result) bool {
 		if strings.Contains(value.Get("label").String(), "CLI") {
