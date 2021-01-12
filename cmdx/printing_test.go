@@ -1,10 +1,11 @@
 package cmdx
 
 import (
+	"testing"
+
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestRegisterFlags(t *testing.T) {
