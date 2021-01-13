@@ -58,7 +58,7 @@ func PrintRow(cmd *cobra.Command, row TableRow) {
 		printJSON(cmd.OutOrStdout(), row.Interface(), false)
 	case FormatJSONPretty:
 		printJSON(cmd.OutOrStdout(), row.Interface(), true)
-	case FormatTable:
+	case FormatTable, FormatDefault:
 		w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 8, 1, '\t', 0)
 
 		fields := row.Columns()
@@ -164,10 +164,10 @@ func printJSON(w io.Writer, v interface{}, pretty bool) {
 }
 
 func RegisterJSONFormatFlags(flags *pflag.FlagSet) {
-	flags.StringP(FlagFormat, FlagFormat[:1], "", fmt.Sprintf("Set the output format. One of %s, %s, and %s.", FormatDefault, FormatJSON, FormatJSONPretty))
+	flags.StringP(FlagFormat, FlagFormat[:1], string(FormatDefault), fmt.Sprintf("Set the output format. One of %s, %s, and %s.", FormatDefault, FormatJSON, FormatJSONPretty))
 }
 
 func RegisterFormatFlags(flags *pflag.FlagSet) {
 	RegisterNoiseFlags(flags)
-	flags.StringP(FlagFormat, FlagFormat[:1], "", fmt.Sprintf("Set the output format. One of %s, %s, and %s.", FormatTable, FormatJSON, FormatJSONPretty))
+	flags.StringP(FlagFormat, FlagFormat[:1], string(FormatDefault), fmt.Sprintf("Set the output format. One of %s, %s, and %s.", FormatTable, FormatJSON, FormatJSONPretty))
 }
