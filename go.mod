@@ -16,6 +16,7 @@ require (
 	github.com/google/go-jsonnet v0.16.0
 	github.com/google/uuid v1.1.0
 	github.com/gorilla/websocket v1.4.2
+	github.com/inhies/go-bytesize v0.0.0-20201103132853-d0aed0d254f8
 	github.com/jackc/pgconn v1.6.0
 	github.com/jackc/pgx/v4 v4.6.0
 	github.com/jmoiron/sqlx v1.2.0

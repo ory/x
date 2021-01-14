@@ -48,6 +48,12 @@ func WithFlags(flags *pflag.FlagSet) OptionModifier {
 	}
 }
 
+func WithLogger(l *logrusx.Logger) OptionModifier {
+	return func(p *Provider) {
+		p.logger = l
+	}
+}
+
 func SkipValidation() OptionModifier {
 	return func(p *Provider) {
 		p.skipValidation = true

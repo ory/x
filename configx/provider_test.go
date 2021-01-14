@@ -6,6 +6,8 @@ import (
 	"path"
 	"testing"
 
+	"github.com/inhies/go-bytesize"
+
 	"github.com/knadh/koanf/parsers/json"
 
 	"github.com/ory/x/urlx"
@@ -53,6 +55,19 @@ func TestProviderMethods(t *testing.T) {
 			require.NoError(t, p.Set("some.int", 123))
 			assert.Equal(t, 123, p.IntF("some.int", 123))
 			assert.Equal(t, 321, p.IntF("not.some.int", 321))
+		})
+
+		t.Run("type=bytesize", func(t *testing.T) {
+			const key = "some.bytesize"
+
+			for _, v := range []interface{}{
+				bytesize.MB,
+				float64(1024 * 1024),
+				"1MB",
+			} {
+				require.NoError(t, p.Set(key, v))
+				assert.Equal(t, bytesize.MB, p.ByteSizeF(key, 0))
+			}
 		})
 
 		github := urlx.ParseOrPanic("https://github.com/ory")
