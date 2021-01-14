@@ -5,11 +5,16 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/url"
 	"os"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/sirupsen/logrus"
+
+	"github.com/ory/x/logrusx"
 
 	"github.com/ory/x/jsonschemax"
 
@@ -19,6 +24,7 @@ import (
 	"github.com/ory/jsonschema/v3"
 	"github.com/ory/x/watcherx"
 
+	"github.com/inhies/go-bytesize"
 	"github.com/knadh/koanf/providers/posflag"
 	"github.com/spf13/pflag"
 
@@ -50,6 +56,7 @@ type Provider struct {
 	forcedValues             []tuple
 	files                    []string
 	skipValidation           bool
+	logger                   *logrusx.Logger
 }
 
 const (
@@ -80,12 +87,16 @@ func New(schema []byte, modifiers ...OptionModifier) (*Provider, error) {
 		return nil, err
 	}
 
+	l := logrus.New()
+	l.Out = ioutil.Discard
+
 	p := &Provider{
 		ctx:                      context.Background(),
 		schema:                   schema,
 		validator:                validator,
 		onValidationError:        func(k *koanf.Koanf, err error) {},
 		excludeFieldsFromTracing: []string{"dsn", "secret", "password", "key"},
+		logger:                   logrusx.New("discarding config logger", "", logrusx.UseLogger(l)),
 	}
 
 	for _, m := range modifiers {
@@ -341,6 +352,31 @@ func (p *Provider) DurationF(key string, fallback time.Duration) (val time.Durat
 	}
 
 	return p.Duration(key)
+}
+
+func (p *Provider) ByteSizeF(key string, fallback bytesize.ByteSize) bytesize.ByteSize {
+	if !p.Koanf.Exists(key) {
+		return fallback
+	}
+
+	switch v := p.Koanf.Get(key).(type) {
+	case string:
+		// this type usually comes from user input
+		dec, err := bytesize.Parse(v)
+		if err != nil {
+			p.logger.WithField("key", key).WithField("raw_value", v).WithError(err).Warnf("error parsing byte size value, using fallback of %s", fallback)
+			return fallback
+		}
+		return dec
+	case float64:
+		// this type comes from json.Unmarshal
+		return bytesize.ByteSize(v)
+	case bytesize.ByteSize:
+		return v
+	default:
+		p.logger.WithField("key", key).WithField("raw_type", fmt.Sprintf("%T", v)).WithField("raw_value", fmt.Sprintf("%+v", v)).Errorf("error converting byte size value because of unknown type, using fallback of %s", fallback)
+		return fallback
+	}
 }
 
 func (p *Provider) GetF(key string, fallback interface{}) (val interface{}) {
