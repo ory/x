@@ -102,7 +102,7 @@ func connect(dialect, driver, dsn string) (db *sqlx.DB, err error) {
 	return db, nil
 }
 
-func connectPop(t *testing.T, url string) (c *pop.Connection) {
+func connectPop(t require.TestingT, url string) (c *pop.Connection) {
 	require.NoError(t, resilience.Retry(logrusx.New("", ""), time.Second*5, time.Minute*5, func() error {
 		var err error
 		c, err = pop.NewConnection(&pop.ConnectionDetails{
@@ -138,7 +138,7 @@ func startPostgreSQL() (*dockertest.Resource, error) {
 }
 
 // RunTestPostgreSQL runs a PostgreSQL database and returns the URL to it.
-func RunTestPostgreSQL(t *testing.T) string {
+func RunTestPostgreSQL(t testing.TB) string {
 	if dsn := os.Getenv("TEST_DATABASE_POSTGRESQL"); dsn != "" {
 		t.Logf("Skipping Docker setup because environment variable TEST_DATABASE_POSTGRESQL is set to: %s", dsn)
 		return dsn
@@ -175,7 +175,7 @@ func ConnectToTestPostgreSQL() (*sqlx.DB, error) {
 	return db, nil
 }
 
-func ConnectToTestPostgreSQLPop(t *testing.T) *pop.Connection {
+func ConnectToTestPostgreSQLPop(t testing.TB) *pop.Connection {
 	url := RunTestPostgreSQL(t)
 	return connectPop(t, url)
 }
@@ -206,7 +206,7 @@ func RunMySQL() (string, error) {
 }
 
 // RunTestMySQL runs a MySQL database and returns the URL to it.
-func RunTestMySQL(t *testing.T) string {
+func RunTestMySQL(t testing.TB) string {
 	if dsn := os.Getenv("TEST_DATABASE_MYSQL"); dsn != "" {
 		t.Logf("Skipping Docker setup because environment variable TEST_DATABASE_MYSQL is set to: %s", dsn)
 		return dsn
@@ -234,7 +234,7 @@ func ConnectToTestMySQL() (*sqlx.DB, error) {
 	return db, nil
 }
 
-func ConnectToTestMySQLPop(t *testing.T) *pop.Connection {
+func ConnectToTestMySQLPop(t testing.TB) *pop.Connection {
 	url := RunTestMySQL(t)
 	return connectPop(t, url)
 }
@@ -269,7 +269,7 @@ func RunCockroachDB() (string, error) {
 }
 
 // RunTestCockroachDB runs a CockroachDB database and returns the URL to it.
-func RunTestCockroachDB(t *testing.T) string {
+func RunTestCockroachDB(t testing.TB) string {
 	if dsn := os.Getenv("TEST_DATABASE_COCKROACHDB"); dsn != "" {
 		t.Logf("Skipping Docker setup because environment variable TEST_DATABASE_COCKROACHDB is set to: %s", dsn)
 		return dsn
@@ -297,7 +297,7 @@ func ConnectToTestCockroachDB() (*sqlx.DB, error) {
 	return db, nil
 }
 
-func ConnectToTestCockroachDBPop(t *testing.T) *pop.Connection {
+func ConnectToTestCockroachDBPop(t testing.TB) *pop.Connection {
 	url := RunTestCockroachDB(t)
 	return connectPop(t, url)
 }
