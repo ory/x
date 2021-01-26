@@ -106,10 +106,10 @@ func Exec(t testing.TB, cmd *cobra.Command, stdIn io.Reader, args ...string) (st
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
-	return ExecCtx(ctx, t, cmd, stdIn, args...)
+	return ExecCtx(ctx, cmd, stdIn, args...)
 }
 
-func ExecCtx(ctx context.Context, _ require.TestingT, cmd *cobra.Command, stdIn io.Reader, args ...string) (string, string, error) {
+func ExecCtx(ctx context.Context, cmd *cobra.Command, stdIn io.Reader, args ...string) (string, string, error) {
 	stdOut, stdErr := &bytes.Buffer{}, &bytes.Buffer{}
 	cmd.SetErr(stdErr)
 	cmd.SetOut(stdOut)
@@ -133,7 +133,7 @@ func ExecNoErr(t testing.TB, cmd *cobra.Command, args ...string) string {
 }
 
 func ExecNoErrCtx(ctx context.Context, t require.TestingT, cmd *cobra.Command, args ...string) string {
-	stdOut, stdErr, err := ExecCtx(ctx, t, cmd, nil, args...)
+	stdOut, stdErr, err := ExecCtx(ctx, cmd, nil, args...)
 	require.NoError(t, err, "std_out: %s\nstd_err: %s", stdOut, stdErr)
 	require.Len(t, stdErr, 0, stdOut)
 	return stdOut
@@ -149,7 +149,7 @@ func ExecExpectedErr(t testing.TB, cmd *cobra.Command, args ...string) string {
 }
 
 func ExecExpectedErrCtx(ctx context.Context, t require.TestingT, cmd *cobra.Command, args ...string) string {
-	stdOut, stdErr, err := ExecCtx(ctx, t, cmd, nil, args...)
+	stdOut, stdErr, err := ExecCtx(ctx, cmd, nil, args...)
 	require.True(t, errors.Is(err, ErrNoPrintButFail), "std_out: %s\nstd_err: %s", stdOut, stdErr)
 	require.Len(t, stdOut, 0, stdErr)
 	return stdErr
@@ -161,8 +161,8 @@ type CommandExecuter struct {
 	PersistentArgs []string
 }
 
-func (c *CommandExecuter) Exec(t require.TestingT, stdin io.Reader, args ...string) (string, string, error) {
-	return ExecCtx(c.Ctx, t, c.New(), stdin, append(c.PersistentArgs, args...)...)
+func (c *CommandExecuter) Exec(stdin io.Reader, args ...string) (string, string, error) {
+	return ExecCtx(c.Ctx, c.New(), stdin, append(c.PersistentArgs, args...)...)
 }
 
 func (c *CommandExecuter) ExecNoErr(t require.TestingT, args ...string) string {
