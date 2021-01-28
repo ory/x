@@ -4,10 +4,14 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/ory/x/stringsx"
 
 	"github.com/gobuffalo/pop/v5"
 
@@ -318,4 +322,40 @@ func bootstrap(u, port, d string, pool *dockertest.Pool, resource *dockertest.Re
 		log.Fatalf("Could not connect to docker: %s", err)
 	}
 	return
+}
+
+func getContainerID(t *testing.T, containerPort string) string {
+	cid, err := exec.Command("docker", "ps", "-f", fmt.Sprintf("expose=%s", containerPort), "-q").CombinedOutput()
+	require.NoError(t, err)
+	containerID := strings.TrimSuffix(string(cid), "\n")
+	require.False(t, strings.Contains(containerID, "\n"), "there is more than one docker container running with port %s, I am confused: %s", containerPort, containerID)
+	return containerID
+}
+
+var comments = regexp.MustCompile("(--[^\n]*\n)|(?s:/\\*.+\\*/)")
+
+func stripDump(d string) string {
+	d = comments.ReplaceAllLiteralString(d, "")
+	return strings.ReplaceAll(d, "\r\n", "")
+}
+
+func dumpArgs(t *testing.T, db string) []string {
+	cases := stringsx.RegisteredCases{}
+	switch db {
+	case cases.AddCase("postgres"):
+		return []string{"exec", "-t", getContainerID(t, "5432"), "pg_dump", "-U", "postgres", "-s", "-T", "hydra_*_migration", "-T", "schema_migration"}
+	case cases.AddCase("mysql"):
+		return []string{"exec", "-t", getContainerID(t, "3306"), "/usr/bin/mysqldump", "-u", "root", "--password=secret", "mysql"}
+	case cases.AddCase("cockroach"):
+		return []string{"exec", "-t", getContainerID(t, "26257"), "./cockroach", "dump", "defaultdb", "--insecure", "--dump-mode=schema"}
+	}
+	t.Log(cases.ToUnknownCaseErr(db))
+	t.FailNow()
+	return nil
+}
+
+func DumpSchema(t *testing.T, db string) string {
+	dump, err := exec.Command("docker", dumpArgs(t, db)...).CombinedOutput()
+	require.NoError(t, err, "%s", dump)
+	return stripDump(string(dump))
 }
