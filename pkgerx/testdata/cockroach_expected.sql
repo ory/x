@@ -1,0 +1,1 @@
+CREATE TABLE public.schema_migration ( version VARCHAR(14) NOT NULL, UNIQUE INDEX schema_migration_version_idx (version ASC), FAMILY "primary" (version, rowid));CREATE TABLE public.test_table_name ( id UUID NOT NULL, CONSTRAINT "primary" PRIMARY KEY (id ASC), FAMILY "primary" (id));

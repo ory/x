@@ -1,7 +1,9 @@
 package pkgerx
 
 import (
+	"context"
 	"io/ioutil"
+	"path/filepath"
 	"testing"
 
 	"github.com/gobuffalo/pop/v5"
@@ -14,25 +16,28 @@ import (
 )
 
 // none of this works...
-// var testData = pkger.Dir("github.com/ory/x:/pkgerx/testdata")
-var testData = pkger.Dir("/pkgerx/testdata")
+var testData = pkger.Dir("github.com/ory/x:/pkgerx/testdata")
 
 func TestMigrationBoxTemplating(t *testing.T) {
+	t.Cleanup(dockertest.KillAllTestDatabases)
+	templateVals := map[string]interface{}{
+		"tableName": "test_table_name",
+	}
+
 	for db, c := range map[string]*pop.Connection{
 		"cockroach": dockertest.ConnectToTestCockroachDBPop(t),
-		//"mysql": dockertest.ConnectToTestMySQLPop(t),
-		//"postgres": dockertest.ConnectToTestPostgreSQLPop(t),
+		"postgres":  dockertest.ConnectToTestPostgreSQLPop(t),
 	} {
-		mb, err := NewMigrationBox(testData, c, logrusx.New("", ""), WithTemplateValues(map[string]interface{}{
-			"tableName": "test_table_name",
-		}))
-		require.NoError(t, err)
-		require.NoError(t, mb.Up())
+		t.Run("db="+db, func(t *testing.T) {
+			mb, err := NewMigrationBox(testData, c, logrusx.New("", ""), WithTemplateValues(templateVals))
+			require.NoError(t, err)
+			require.NoError(t, mb.Up())
 
-		dump := dockertest.DumpSchema(t, db)
-		expected, err := ioutil.ReadFile("testdata/sql_create_tablename_template.sql")
-		require.NoError(t, err)
+			dump := dockertest.DumpSchema(context.Background(), t, db)
+			expectedDump, err := ioutil.ReadFile(filepath.Join("testdata", db+"_expected.sql"))
+			require.NoError(t, err)
 
-		assert.Equal(t, string(expected), dump)
+			assert.Equal(t, string(expectedDump), dump, "%#v", dump)
+		})
 	}
 }

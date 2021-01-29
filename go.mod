@@ -4,7 +4,10 @@ require (
 	github.com/DataDog/datadog-go v4.0.0+incompatible // indirect
 	github.com/bmatcuk/doublestar/v2 v2.0.3
 	github.com/cenkalti/backoff v2.2.1+incompatible
+	github.com/containerd/containerd v1.4.3 // indirect
 	github.com/dgraph-io/ristretto v0.0.2
+	github.com/docker/distribution v2.7.1+incompatible // indirect
+	github.com/docker/docker v20.10.2+incompatible
 	github.com/fatih/structs v1.1.0
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/ghodss/yaml v1.0.0
@@ -28,6 +31,8 @@ require (
 	github.com/luna-duclos/instrumentedsql/opentracing v0.0.0-20201103091713-40d03108b6f4
 	github.com/markbates/pkger v0.17.1
 	github.com/mattn/goveralls v0.0.2
+	github.com/moby/term v0.0.0-20201216013528-df9cb8a40635 // indirect
+	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/opentracing/opentracing-go v1.1.1-0.20190913142402-a7454ce5950e
 	github.com/openzipkin-contrib/zipkin-go-opentracing v0.4.5
 	github.com/openzipkin/zipkin-go v0.2.2
@@ -60,6 +65,7 @@ require (
 	gopkg.in/DataDog/dd-trace-go.v1 v1.27.0
 	gopkg.in/square/go-jose.v2 v2.2.2
 	gopkg.in/yaml.v2 v2.3.0 // indirect
+	gotest.tools/v3 v3.0.3 // indirect
 )
 
 go 1.14

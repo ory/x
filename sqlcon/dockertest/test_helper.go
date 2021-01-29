@@ -1,10 +1,11 @@
 package dockertest
 
 import (
+	"context"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
-	"os/exec"
 	"regexp"
 	"strings"
 	"sync"
@@ -18,6 +19,10 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
+
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/client"
 
 	"github.com/ory/dockertest/v3"
 
@@ -324,38 +329,63 @@ func bootstrap(u, port, d string, pool *dockertest.Pool, resource *dockertest.Re
 	return
 }
 
-func getContainerID(t *testing.T, containerPort string) string {
-	cid, err := exec.Command("docker", "ps", "-f", fmt.Sprintf("expose=%s", containerPort), "-q").CombinedOutput()
-	require.NoError(t, err)
-	containerID := strings.TrimSuffix(string(cid), "\n")
-	require.False(t, strings.Contains(containerID, "\n"), "there is more than one docker container running with port %s, I am confused: %s", containerPort, containerID)
-	return containerID
-}
-
 var comments = regexp.MustCompile("(--[^\n]*\n)|(?s:/\\*.+\\*/)")
 
-func stripDump(d string) string {
+func StripDump(d string) string {
 	d = comments.ReplaceAllLiteralString(d, "")
-	return strings.ReplaceAll(d, "\r\n", "")
+	d = strings.TrimPrefix(d, "Command \"dump\" is deprecated, cockroach dump will be removed in a subsequent release.\r\nFor details, see: https://github.com/cockroachdb/cockroach/issues/54040\r\n")
+	d = strings.ReplaceAll(d, "\r\n", "")
+	d = strings.ReplaceAll(d, "\t", " ")
+	d = strings.ReplaceAll(d, "\n", " ")
+	return d
 }
 
-func dumpArgs(t *testing.T, db string) []string {
+func DumpSchema(ctx context.Context, t *testing.T, db string) string {
+	var containerPort string
+	var cmd []string
 	cases := stringsx.RegisteredCases{}
 	switch db {
 	case cases.AddCase("postgres"):
-		return []string{"exec", "-t", getContainerID(t, "5432"), "pg_dump", "-U", "postgres", "-s", "-T", "hydra_*_migration", "-T", "schema_migration"}
+		containerPort = "5432"
+		cmd = []string{"pg_dump", "-U", "postgres", "-s", "-T", "hydra_*_migration", "-T", "schema_migration"}
 	case cases.AddCase("mysql"):
-		return []string{"exec", "-t", getContainerID(t, "3306"), "/usr/bin/mysqldump", "-u", "root", "--password=secret", "mysql"}
+		containerPort = "3306"
+		cmd = []string{"/usr/bin/mysqldump", "-u", "root", "--password=secret", "mysql"}
 	case cases.AddCase("cockroach"):
-		return []string{"exec", "-t", getContainerID(t, "26257"), "./cockroach", "dump", "defaultdb", "--insecure", "--dump-mode=schema"}
+		containerPort = "26257"
+		cmd = []string{"./cockroach", "dump", "defaultdb", "--insecure", "--dump-mode=schema"}
+	default:
+		t.Log(cases.ToUnknownCaseErr(db))
+		t.FailNow()
+		return ""
 	}
-	t.Log(cases.ToUnknownCaseErr(db))
-	t.FailNow()
-	return nil
-}
 
-func DumpSchema(t *testing.T, db string) string {
-	dump, err := exec.Command("docker", dumpArgs(t, db)...).CombinedOutput()
+	cli, err := client.NewClientWithOpts(client.FromEnv)
+	require.NoError(t, err)
+	containers, err := cli.ContainerList(ctx, types.ContainerListOptions{
+		Quiet:   true,
+		Filters: filters.NewArgs(filters.Arg("expose", containerPort)),
+	})
+	require.NoError(t, err)
+
+	if len(containers) != 1 {
+		t.Logf("Ambiguous amount of %s containers: %d", db, len(containers))
+		t.FailNow()
+	}
+
+	process, err := cli.ContainerExecCreate(ctx, containers[0].ID, types.ExecConfig{
+		Tty:          true,
+		AttachStdout: true,
+		Cmd:          cmd,
+	})
+	require.NoError(t, err)
+
+	resp, err := cli.ContainerExecAttach(ctx, process.ID, types.ExecStartCheck{
+		Tty: true,
+	})
+	require.NoError(t, err)
+	dump, err := ioutil.ReadAll(resp.Reader)
 	require.NoError(t, err, "%s", dump)
-	return stripDump(string(dump))
+
+	return StripDump(string(dump))
 }

@@ -2,6 +2,7 @@ package pkgerx
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -47,9 +48,12 @@ func templatingMigrationContent(params map[string]interface{}) func(pop.Migratio
 			}
 
 			var bb bytes.Buffer
-			err = t.Execute(&bb, map[string]interface{}{
-				"dialectDetails": c.Dialect.Details(),
-				"parameters":     params,
+			err = t.Execute(&bb, struct {
+				DialectDetails *pop.ConnectionDetails
+				Parameters     map[string]interface{}
+			}{
+				DialectDetails: c.Dialect.Details(),
+				Parameters:     params,
 			})
 			if err != nil {
 				return "", errors.Wrapf(err, "could not execute migration template %s", mf.Path)
@@ -124,6 +128,7 @@ func (fm *MigrationBox) findMigrations(runner func(f io.Reader) func(mf pop.Migr
 			return errors.WithStack(err)
 		}
 
+		fmt.Print(p)
 		match, err := pop.ParseMigrationFilename(info.Name())
 		if err != nil {
 			if strings.HasPrefix(err.Error(), "unsupported dialect") {
