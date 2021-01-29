@@ -2,7 +2,6 @@ package pkgerx
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -81,6 +80,16 @@ func WithTemplateValues(v map[string]interface{}) func(*MigrationBox) *Migration
 	}
 }
 
+func WithMigrationContentMiddleware(middleware func(content string, err error) (string, error)) func(*MigrationBox) *MigrationBox {
+	return func(m *MigrationBox) *MigrationBox {
+		prev := m.migrationContent
+		m.migrationContent = func(mf pop.Migration, c *pop.Connection, r io.Reader, usingTemplate bool) (string, error) {
+			return middleware(prev(mf, c, r, usingTemplate))
+		}
+		return m
+	}
+}
+
 // NewMigrationBox from a packr.Dir and a Connection.
 //
 //	migrations, err := NewMigrationBox(pkger.Dir("/migrations"))
@@ -128,7 +137,6 @@ func (fm *MigrationBox) findMigrations(runner func(f io.Reader) func(mf pop.Migr
 			return errors.WithStack(err)
 		}
 
-		fmt.Print(p)
 		match, err := pop.ParseMigrationFilename(info.Name())
 		if err != nil {
 			if strings.HasPrefix(err.Error(), "unsupported dialect") {

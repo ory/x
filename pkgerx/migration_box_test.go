@@ -1,43 +1,38 @@
 package pkgerx
 
 import (
-	"context"
+	"github.com/ory/x/sqlcon/dockertest"
+	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
 
-	"github.com/gobuffalo/pop/v5"
 	"github.com/markbates/pkger"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ory/x/logrusx"
-	"github.com/ory/x/sqlcon/dockertest"
 )
 
-// none of this works...
 var testData = pkger.Dir("github.com/ory/x:/pkgerx/testdata")
 
 func TestMigrationBoxTemplating(t *testing.T) {
-	t.Cleanup(dockertest.KillAllTestDatabases)
 	templateVals := map[string]interface{}{
 		"tableName": "test_table_name",
 	}
 
-	for db, c := range map[string]*pop.Connection{
-		"cockroach": dockertest.ConnectToTestCockroachDBPop(t),
-		"postgres":  dockertest.ConnectToTestPostgreSQLPop(t),
-	} {
-		t.Run("db="+db, func(t *testing.T) {
-			mb, err := NewMigrationBox(testData, c, logrusx.New("", ""), WithTemplateValues(templateVals))
-			require.NoError(t, err)
-			require.NoError(t, mb.Up())
+	expectedMigration, err := ioutil.ReadFile(filepath.Join("testdata", "0_sql_create_tablename_template.expected.sql"))
+	require.NoError(t, err)
 
-			dump := dockertest.DumpSchema(context.Background(), t, db)
-			expectedDump, err := ioutil.ReadFile(filepath.Join("testdata", db+"_expected.sql"))
-			require.NoError(t, err)
+	c := dockertest.ConnectToTestCockroachDBPop(t)
 
-			assert.Equal(t, string(expectedDump), dump, "%#v", dump)
-		})
-	}
+	mb, err := NewMigrationBox(testData, c, logrusx.New("", ""), WithTemplateValues(templateVals), WithMigrationContentMiddleware(func(content string, err error) (string, error) {
+		require.NoError(t, err)
+		assert.Equal(t, string(expectedMigration), content)
+
+		return content, err
+	}))
+	require.NoError(t, err)
+
+	err = mb.Up()
+	require.NoError(t, err)
 }
