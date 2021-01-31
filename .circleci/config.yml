@@ -13,16 +13,16 @@ jobs:
         - TEST_DATABASE_MYSQL=mysql://root:test@tcp(localhost:3306)/mysql?parseTime=true
         - TEST_DATABASE_COCKROACHDB=cockroach://root@localhost:26257/defaultdb?sslmode=disable
         - GO111MODULE=on
-      - image: postgres:9.5
+      - image: postgres:11.8
         environment:
         - POSTGRES_USER=test
         - POSTGRES_PASSWORD=test
         - POSTGRES_DB=sqlcon
-      - image: mysql:5.7
+      - image: mysql:8.0
         environment:
         - MYSQL_ROOT_PASSWORD=test
-      - image: cockroachdb/cockroach:v2.1.6
-        command: start --insecure
+      - image: cockroachdb/cockroach:v20.2.3
+        command: start-single-node --insecure
     working_directory: /go/src/github.com/ory/sqlcon
     steps:
       - checkout

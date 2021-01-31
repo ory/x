@@ -1,19 +1,28 @@
 package dockertest
 
 import (
+	"context"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/ory/x/stringsx"
 
 	"github.com/gobuffalo/pop/v5"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
+
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/client"
 
 	"github.com/ory/dockertest/v3"
 
@@ -318,4 +327,65 @@ func bootstrap(u, port, d string, pool *dockertest.Pool, resource *dockertest.Re
 		log.Fatalf("Could not connect to docker: %s", err)
 	}
 	return
+}
+
+var comments = regexp.MustCompile("(--[^\n]*\n)|(?s:/\\*.+\\*/)")
+
+func StripDump(d string) string {
+	d = comments.ReplaceAllLiteralString(d, "")
+	d = strings.TrimPrefix(d, "Command \"dump\" is deprecated, cockroach dump will be removed in a subsequent release.\r\nFor details, see: https://github.com/cockroachdb/cockroach/issues/54040\r\n")
+	d = strings.ReplaceAll(d, "\r\n", "")
+	d = strings.ReplaceAll(d, "\t", " ")
+	d = strings.ReplaceAll(d, "\n", " ")
+	return d
+}
+
+func DumpSchema(ctx context.Context, t *testing.T, db string) string {
+	var containerPort string
+	var cmd []string
+	cases := stringsx.RegisteredCases{}
+	switch db {
+	case cases.AddCase("postgres"):
+		containerPort = "5432"
+		cmd = []string{"pg_dump", "-U", "postgres", "-s", "-T", "hydra_*_migration", "-T", "schema_migration"}
+	case cases.AddCase("mysql"):
+		containerPort = "3306"
+		cmd = []string{"/usr/bin/mysqldump", "-u", "root", "--password=secret", "mysql"}
+	case cases.AddCase("cockroach"):
+		containerPort = "26257"
+		cmd = []string{"./cockroach", "dump", "defaultdb", "--insecure", "--dump-mode=schema"}
+	default:
+		t.Log(cases.ToUnknownCaseErr(db))
+		t.FailNow()
+		return ""
+	}
+
+	cli, err := client.NewClientWithOpts(client.FromEnv)
+	require.NoError(t, err)
+	containers, err := cli.ContainerList(ctx, types.ContainerListOptions{
+		Quiet:   true,
+		Filters: filters.NewArgs(filters.Arg("expose", containerPort)),
+	})
+	require.NoError(t, err)
+
+	if len(containers) != 1 {
+		t.Logf("Ambiguous amount of %s containers: %d", db, len(containers))
+		t.FailNow()
+	}
+
+	process, err := cli.ContainerExecCreate(ctx, containers[0].ID, types.ExecConfig{
+		Tty:          true,
+		AttachStdout: true,
+		Cmd:          cmd,
+	})
+	require.NoError(t, err)
+
+	resp, err := cli.ContainerExecAttach(ctx, process.ID, types.ExecStartCheck{
+		Tty: true,
+	})
+	require.NoError(t, err)
+	dump, err := ioutil.ReadAll(resp.Reader)
+	require.NoError(t, err, "%s", dump)
+
+	return StripDump(string(dump))
 }
