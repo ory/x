@@ -71,14 +71,14 @@ func PrintRow(cmd *cobra.Command, row TableRow) {
 }
 
 func PrintTable(cmd *cobra.Command, table Table) {
-	if table.Len() == 0 {
-		// don't print headers, ... when there is no content
-		return
-	}
 	f := getFormat(cmd)
 
 	switch f {
 	case FormatQuiet:
+		if table.Len() == 0 {
+			fmt.Fprintln(cmd.OutOrStdout())
+		}
+
 		for _, row := range table.Table() {
 			fmt.Fprintln(cmd.OutOrStdout(), row[0])
 		}
