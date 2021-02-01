@@ -71,10 +71,6 @@ func PrintRow(cmd *cobra.Command, row TableRow) {
 }
 
 func PrintTable(cmd *cobra.Command, table Table) {
-	if table.Len() == 0 {
-		// don't print headers, ... when there is no content
-		return
-	}
 	f := getFormat(cmd)
 
 	switch f {
