@@ -1,11 +1,13 @@
 package pkgerx
 
 import (
-	"github.com/ory/x/sqlcon/dockertest"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/ory/x/sqlcon/dockertest"
 
 	"github.com/markbates/pkger"
 	"github.com/stretchr/testify/require"

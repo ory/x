@@ -75,6 +75,10 @@ func PrintTable(cmd *cobra.Command, table Table) {
 
 	switch f {
 	case FormatQuiet:
+		if table.Len() == 0 {
+			fmt.Fprintln(cmd.OutOrStdout())
+		}
+
 		for _, row := range table.Table() {
 			fmt.Fprintln(cmd.OutOrStdout(), row[0])
 		}
