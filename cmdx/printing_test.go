@@ -20,12 +20,22 @@ type (
 		t  [][]string
 		cs int
 	}
-	dynamicRow []string
+	dynamicIDAbleTable struct {
+		*dynamicTable
+		idColumn int
+	}
+	dynamicRow       []string
+	dynamicIDAbleRow struct {
+		dynamicRow
+		idColumn int
+	}
 )
 
 var (
 	_ Table    = (*dynamicTable)(nil)
-	_ TableRow = (*dynamicRow)(nil)
+	_ Table    = (*dynamicIDAbleTable)(nil)
+	_ TableRow = (dynamicRow)(nil)
+	_ TableRow = (*dynamicIDAbleRow)(nil)
 )
 
 func dynamicHeader(l int) []string {
@@ -48,6 +58,14 @@ func (d *dynamicTable) Interface() interface{} {
 	return d.t
 }
 
+func (d *dynamicIDAbleTable) IDs() []string {
+	ids := make([]string, d.Len())
+	for i, row := range d.Table() {
+		ids[i] = row[d.idColumn]
+	}
+	return ids
+}
+
 func (d *dynamicTable) Len() int {
 	return len(d.t)
 }
@@ -64,7 +82,11 @@ func (d dynamicRow) Interface() interface{} {
 	return d
 }
 
-func TestRegisterFlags(t *testing.T) {
+func (d *dynamicIDAbleRow) ID() string {
+	return d.dynamicRow[d.idColumn]
+}
+
+func TestPrinting(t *testing.T) {
 	t.Run("case=format flags", func(t *testing.T) {
 		t.Run("format=no value", func(t *testing.T) {
 			flags := pflag.NewFlagSet("test flags", pflag.ContinueOnError)
@@ -79,53 +101,73 @@ func TestRegisterFlags(t *testing.T) {
 	})
 
 	t.Run("method=table row", func(t *testing.T) {
-		tr := dynamicRow{"0", "1", "2"}
-		allFields := append(tr.Header(), tr...)
+		t.Run("case=all formats", func(t *testing.T) {
+			tr := dynamicRow{"0", "1", "2"}
+			allFields := append(tr.Header(), tr...)
 
-		for _, tc := range []struct {
-			fArgs     []string
-			contained []string
-		}{
-			{
-				fArgs:     []string{"--" + FlagFormat, string(FormatTable)},
-				contained: allFields,
-			},
-			{
-				fArgs:     []string{"--" + FlagQuiet},
-				contained: []string{tr[0]},
-			},
-			{
-				fArgs:     []string{"--" + FlagFormat, string(FormatJSON)},
-				contained: tr,
-			},
-			{
-				fArgs:     []string{"--" + FlagFormat, string(FormatJSONPretty)},
-				contained: tr,
-			},
-		} {
-			t.Run(fmt.Sprintf("format=%v", tc.fArgs), func(t *testing.T) {
-				cmd := &cobra.Command{Use: "x"}
-				RegisterFormatFlags(cmd.Flags())
+			for _, tc := range []struct {
+				fArgs     []string
+				contained []string
+			}{
+				{
+					fArgs:     []string{"--" + FlagFormat, string(FormatTable)},
+					contained: allFields,
+				},
+				{
+					fArgs:     []string{"--" + FlagQuiet},
+					contained: []string{tr[0]},
+				},
+				{
+					fArgs:     []string{"--" + FlagFormat, string(FormatJSON)},
+					contained: tr,
+				},
+				{
+					fArgs:     []string{"--" + FlagFormat, string(FormatJSONPretty)},
+					contained: tr,
+				},
+			} {
+				t.Run(fmt.Sprintf("format=%v", tc.fArgs), func(t *testing.T) {
+					cmd := &cobra.Command{Use: "x"}
+					RegisterFormatFlags(cmd.Flags())
 
-				out := &bytes.Buffer{}
-				cmd.SetOut(out)
-				require.NoError(t, cmd.Flags().Parse(tc.fArgs))
+					out := &bytes.Buffer{}
+					cmd.SetOut(out)
+					require.NoError(t, cmd.Flags().Parse(tc.fArgs))
 
-				PrintRow(cmd, tr)
+					PrintRow(cmd, tr)
 
-				for _, s := range tc.contained {
-					assert.Contains(t, out.String(), s, "%s", out.String())
-				}
-				notContained := stringslice.Filter(allFields, func(s string) bool {
-					return stringslice.Has(tc.contained, s)
+					for _, s := range tc.contained {
+						assert.Contains(t, out.String(), s, "%s", out.String())
+					}
+					notContained := stringslice.Filter(allFields, func(s string) bool {
+						return stringslice.Has(tc.contained, s)
+					})
+					for _, s := range notContained {
+						assert.NotContains(t, out.String(), s, "%s", out.String())
+					}
+
+					assert.Equal(t, "\n", out.String()[len(out.String())-1:])
 				})
-				for _, s := range notContained {
-					assert.NotContains(t, out.String(), s, "%s", out.String())
-				}
+			}
+		})
 
-				assert.Equal(t, "\n", out.String()[len(out.String())-1:])
-			})
-		}
+		t.Run("case=uses ID()", func(t *testing.T) {
+			tr := &dynamicIDAbleRow{
+				dynamicRow: []string{"foo", "bar"},
+				idColumn:   1,
+			}
+
+			cmd := &cobra.Command{Use: "x"}
+			RegisterFormatFlags(cmd.Flags())
+
+			out := &bytes.Buffer{}
+			cmd.SetOut(out)
+			require.NoError(t, cmd.Flags().Parse([]string{"--" + FlagQuiet}))
+
+			PrintRow(cmd, tr)
+
+			assert.Equal(t, tr.dynamicRow[1]+"\n", out.String())
+		})
 	})
 
 	t.Run("method=table", func(t *testing.T) {
@@ -225,6 +267,29 @@ func TestRegisterFlags(t *testing.T) {
 					assert.Equal(t, tc.expected+"\n", out.String())
 				})
 			}
+		})
+
+		t.Run("case=uses IDs()", func(t *testing.T) {
+			tb := &dynamicIDAbleTable{
+				dynamicTable: &dynamicTable{
+					t: [][]string{
+						{"a0", "b0", "c0"},
+						{"a1", "b1", "c1"},
+					},
+					cs: 3,
+				},
+				idColumn: 1,
+			}
+			cmd := &cobra.Command{Use: "x"}
+			RegisterFormatFlags(cmd.Flags())
+
+			out := &bytes.Buffer{}
+			cmd.SetOut(out)
+			require.NoError(t, cmd.Flags().Parse([]string{"--" + FlagQuiet}))
+
+			PrintTable(cmd, tb)
+
+			assert.Equal(t, tb.t[0][1]+"\n"+tb.t[1][1]+"\n", out.String())
 		})
 	})
 }
