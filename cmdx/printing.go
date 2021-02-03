@@ -53,6 +53,10 @@ func PrintRow(cmd *cobra.Command, row TableRow) {
 
 	switch f {
 	case FormatQuiet:
+		if idAble, ok := row.(interface{ ID() string }); ok {
+			fmt.Fprintln(cmd.OutOrStdout(), idAble.ID())
+			break
+		}
 		fmt.Fprintln(cmd.OutOrStdout(), row.Columns()[0])
 	case FormatJSON:
 		printJSON(cmd.OutOrStdout(), row.Interface(), false)
@@ -77,6 +81,13 @@ func PrintTable(cmd *cobra.Command, table Table) {
 	case FormatQuiet:
 		if table.Len() == 0 {
 			fmt.Fprintln(cmd.OutOrStdout())
+		}
+
+		if idAble, ok := table.(interface{ IDs() []string }); ok {
+			for _, row := range idAble.IDs() {
+				fmt.Fprintln(cmd.OutOrStdout(), row)
+			}
+			break
 		}
 
 		for _, row := range table.Table() {
