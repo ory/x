@@ -174,7 +174,6 @@ func (p *Provider) forkKoanf() (*koanf.Koanf, context.Context, context.CancelFun
 		paths = append(paths, p...)
 	}
 
-	paths = append(p.files, paths...)
 	if err := p.addAndWatchConfigFiles(fork, append(p.files, paths...), k); err != nil {
 		cancel()
 		return nil, nil, nil, err
