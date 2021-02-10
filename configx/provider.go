@@ -10,6 +10,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -43,9 +44,13 @@ type tuple struct {
 }
 
 type Provider struct {
+	l sync.Mutex
 	*koanf.Koanf
-	immutables               []string
-	ctx                      context.Context
+	immutables []string
+
+	originalContext context.Context
+	cancelFork      context.CancelFunc
+
 	schema                   []byte
 	flags                    *pflag.FlagSet
 	validator                *jsonschema.Schema
@@ -91,7 +96,7 @@ func New(schema []byte, modifiers ...OptionModifier) (*Provider, error) {
 	l.Out = ioutil.Discard
 
 	p := &Provider{
-		ctx:                      context.Background(),
+		originalContext:          context.Background(),
 		schema:                   schema,
 		validator:                validator,
 		onValidationError:        func(k *koanf.Koanf, err error) {},
@@ -103,13 +108,23 @@ func New(schema []byte, modifiers ...OptionModifier) (*Provider, error) {
 		m(p)
 	}
 
-	k, err := p.newKoanf(p.ctx)
+	k, _, cancelFork, err := p.forkKoanf()
 	if err != nil {
 		return nil, err
 	}
-	p.Koanf = k
 
+	p.replaceKoanf(k, cancelFork)
 	return p, nil
+}
+
+func (p *Provider) replaceKoanf(k *koanf.Koanf, cancelFork context.CancelFunc) {
+	p.l.Lock()
+	defer p.l.Unlock()
+	if p.cancelFork != nil {
+		p.cancelFork()
+	}
+	p.Koanf = k
+	p.cancelFork = cancelFork
 }
 
 func (p *Provider) validate(k *koanf.Koanf) error {
@@ -125,25 +140,32 @@ func (p *Provider) validate(k *koanf.Koanf) error {
 		p.onValidationError(k, err)
 		return err
 	}
+
 	return nil
 }
 
-func (p *Provider) newKoanf(ctx context.Context) (*koanf.Koanf, error) {
-	k := koanf.New(Delimiter)
+func (p *Provider) forkKoanf() (*koanf.Koanf, context.Context, context.CancelFunc, error) {
+	fork, cancel := context.WithCancel(p.originalContext)
+	span, fork := p.startSpan(fork, LoadSpanOpName)
+	defer span.Finish()
 
+	k := koanf.New(Delimiter)
 	dp, err := NewKoanfSchemaDefaults(p.schema)
 	if err != nil {
-		return nil, err
+		cancel()
+		return nil, nil, nil, err
 	}
 
 	ep, err := NewKoanfEnv("", p.schema)
 	if err != nil {
-		return nil, err
+		cancel()
+		return nil, nil, nil, err
 	}
 
 	// Load defaults
 	if err := k.Load(dp, nil); err != nil {
-		return nil, err
+		cancel()
+		return nil, nil, nil, err
 	}
 
 	var paths []string
@@ -153,34 +175,38 @@ func (p *Provider) newKoanf(ctx context.Context) (*koanf.Koanf, error) {
 	}
 
 	paths = append(p.files, paths...)
-	for _, configFile := range append(p.files, paths...) {
-		if err := p.addConfigFile(ctx, configFile, k); err != nil {
-			return nil, err
-		}
+	if err := p.addAndWatchConfigFiles(fork, append(p.files, paths...), k); err != nil {
+		cancel()
+		return nil, nil, nil, err
 	}
 
 	if p.flags != nil {
 		if err := k.Load(posflag.Provider(p.flags, ".", k), nil); err != nil {
-			return nil, err
+			cancel()
+			return nil, nil, nil, err
 		}
 	}
 
 	if err := k.Load(ep, nil); err != nil {
-		return nil, err
+		cancel()
+		return nil, nil, nil, err
 	}
 
 	// Workaround for https://github.com/knadh/koanf/pull/47
 	for _, t := range p.forcedValues {
 		if err := k.Load(NewKoanfConfmap([]tuple{t}), nil); err != nil {
-			return nil, err
+			cancel()
+			return nil, nil, nil, err
 		}
 	}
 
 	if err := p.validate(k); err != nil {
-		return nil, err
+		cancel()
+		return nil, nil, nil, err
 	}
 
-	return k, nil
+	p.traceConfig(fork, k, LoadSpanOpName)
+	return k, fork, cancel, nil
 }
 
 // TraceSnapshot will send the configuration to the tracer.
@@ -228,83 +254,74 @@ func (p *Provider) runOnChanges(e watcherx.Event, err error) {
 	}
 }
 
-func (p *Provider) addConfigFile(ctx context.Context, path string, k *koanf.Koanf) error {
-	p.logger.WithField("file", path).Debug("Adding config file.")
+func (p *Provider) addAndWatchConfigFiles(ctx context.Context, paths []string, k *koanf.Koanf) error {
+	p.logger.WithField("files", paths).Debug("Adding config files.")
 
-	ctx, cancel := context.WithCancel(p.ctx)
-	fp, err := NewKoanfFile(ctx, path)
-	if err != nil {
-		cancel()
-		return err
-	}
-
-	c := make(watcherx.EventChannel)
-	go func(c watcherx.EventChannel) {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case e, ok := <-c:
-				if !ok {
-					return
+	watchForFileChanges := func(c watcherx.EventChannel) {
+		defer fmt.Println("closing watcher")
+		// Channel is closed automatically on ctx.Done() because of fp.WatchChannel()
+		for e := range c {
+			switch et := e.(type) {
+			case *watcherx.ErrorEvent:
+				p.runOnChanges(e, et)
+				continue
+			default:
+				nk, _, cancel, err := p.forkKoanf()
+				if err != nil {
+					p.runOnChanges(e, err)
+					continue
 				}
-				switch et := e.(type) {
-				case *watcherx.ErrorEvent:
-					p.runOnChanges(e, et)
-				default: // *watcherx.RemoveEvent, *watcherx.ChangeEvent
-					span, ctx := p.startSpan(ctx, UpdatedSpanOpName)
-					ctx, cancelInner := context.WithCancel(ctx)
 
-					var cancelReload bool
-					nk, err := p.newKoanf(ctx)
-					if err != nil {
+				var cancelReload bool
+				for _, key := range p.immutables {
+					if !reflect.DeepEqual(k.Get(key), nk.Get(key)) {
+						cancel()
 						cancelReload = true
-					} else {
-						for _, key := range p.immutables {
-							if !reflect.DeepEqual(k.Get(key), nk.Get(key)) {
-								err = NewImmutableError(key, fmt.Sprintf("%v", k.Get(key)), fmt.Sprintf("%v", nk.Get(key)))
-								cancelReload = true
-								break
-							}
-						}
+						p.runOnChanges(e, NewImmutableError(key, fmt.Sprintf("%v", k.Get(key)), fmt.Sprintf("%v", nk.Get(key))))
+						break
 					}
-
-					if cancelReload {
-						cancelInner()
-						p.runOnChanges(e, err)
-						span.Finish()
-						continue
-					}
-
-					p.traceConfig(ctx, k, UpdatedSpanOpName)
-					p.Koanf = nk
-					cancel()
-					cancel = cancelInner
-					p.runOnChanges(e, nil)
-					span.Finish()
-					return
 				}
+
+				if cancelReload {
+					continue
+				}
+
+				p.replaceKoanf(nk, cancel)
+				p.runOnChanges(e, nil)
 			}
 		}
-	}(c)
-
-	if _, err := fp.WatchChannel(c); err != nil {
-		close(c)
-		return err
 	}
 
-	return k.Load(fp, nil)
+	for _, path := range paths {
+		fp, err := NewKoanfFile(ctx, path)
+		if err != nil {
+			return err
+		}
+
+		if err := k.Load(fp, nil); err != nil {
+			return err
+		}
+
+		c := make(watcherx.EventChannel)
+		if _, err := fp.WatchChannel(c); err != nil {
+			return err
+		}
+
+		go watchForFileChanges(c)
+	}
+
+	return nil
 }
 
 func (p *Provider) Set(key string, value interface{}) error {
 	p.forcedValues = append(p.forcedValues, tuple{Key: key, Value: value})
 
-	k, err := p.newKoanf(p.ctx)
+	k, _, cancel, err := p.forkKoanf()
 	if err != nil {
 		return err
 	}
 
-	p.Koanf = k
+	p.replaceKoanf(k, cancel)
 	return nil
 }
 

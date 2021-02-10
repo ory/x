@@ -7,7 +7,10 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
+	"runtime"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -39,24 +42,40 @@ func tmpConfigFile(t *testing.T, dsn, foo string) *os.File {
 	return configFile
 }
 
-func updateConfigFile(t *testing.T, c <-chan struct{}, configFile *os.File, dsn, foo string) {
-	config := fmt.Sprintf("dsn: %s\nfoo: %s\n", dsn, foo)
+func updateConfigFile(t *testing.T, c <-chan struct{}, configFile *os.File, dsn, foo, bar string) {
+	config := fmt.Sprintf(`dsn: %s
+foo: %s
+bar: %s`, dsn, foo, bar)
 
 	_, err := configFile.Seek(0, 0)
 	require.NoError(t, err)
+	require.NoError(t, configFile.Truncate(0))
 	_, err = io.WriteString(configFile, config)
 	require.NoError(t, configFile.Sync())
 	<-c // Wait for changes to propagate
 }
 
+func checkLsof(t *testing.T, file string) string {
+	if runtime.GOOS == "windows" {
+		return ""
+	}
+	var b bytes.Buffer
+	c := exec.Command("bash", "-c", "lsof -n | grep "+file+" | wc -l")
+	c.Stdout = &b
+	require.NoError(t, c.Run())
+	return b.String()
+}
+
 func TestReload(t *testing.T) {
 	setup := func(t *testing.T, cf *os.File, c chan<- struct{}, modifiers ...OptionModifier) (*Provider, *logrusx.Logger) {
-		l := logrusx.New("", "")
+		l := logrusx.New("configx", "test")
 		ctx, cancel := context.WithCancel(context.Background())
 		t.Cleanup(cancel)
 		modifiers = append(modifiers,
 			WithLogrusWatcher(l),
+			WithLogger(l),
 			AttachWatcher(func(event watcherx.Event, err error) {
+				t.Logf("Received event: %+v error: %+v", event, err)
 				c <- struct{}{}
 			}),
 			WithContext(ctx),
@@ -73,11 +92,13 @@ func TestReload(t *testing.T) {
 		p, l := setup(t, configFile, c)
 		hook := test.NewLocal(l.Entry.Logger)
 
+		atStart := checkLsof(t, configFile.Name())
+
 		assert.Equal(t, []*logrus.Entry{}, hook.AllEntries())
 		assert.Equal(t, "memory", p.String("dsn"))
 		assert.Equal(t, "bar", p.String("foo"))
 
-		updateConfigFile(t, c, configFile, "memory", "not bar")
+		updateConfigFile(t, c, configFile, "memory", "not bar", "bar")
 
 		entries := hook.AllEntries()
 		require.Equal(t, 2, len(entries))
@@ -87,6 +108,13 @@ func TestReload(t *testing.T) {
 
 		assert.Equal(t, "memory", p.String("dsn"))
 		assert.Equal(t, "bar", p.String("foo"))
+
+		// but it is still watching the files
+		updateConfigFile(t, c, configFile, "memory", "bar", "baz")
+		assert.Equal(t, "baz", p.String("bar"))
+
+		atEnd := checkLsof(t, configFile.Name())
+		require.EqualValues(t, atStart, atEnd)
 	})
 
 	t.Run("case=rejects to update immutable", func(t *testing.T) {
@@ -97,11 +125,13 @@ func TestReload(t *testing.T) {
 			WithImmutables("dsn"))
 		hook := test.NewLocal(l.Entry.Logger)
 
+		atStart := checkLsof(t, configFile.Name())
+
 		assert.Equal(t, []*logrus.Entry{}, hook.AllEntries())
 		assert.Equal(t, "memory", p.String("dsn"))
 		assert.Equal(t, "bar", p.String("foo"))
 
-		updateConfigFile(t, c, configFile, "some db", "bar")
+		updateConfigFile(t, c, configFile, "some db", "bar", "baz")
 
 		entries := hook.AllEntries()
 		require.Equal(t, 2, len(entries))
@@ -109,6 +139,13 @@ func TestReload(t *testing.T) {
 		assert.Equal(t, "A configuration value marked as immutable has changed. Rolling back to the last working configuration revision. To reload the values please restart the process.", entries[1].Message)
 		assert.Equal(t, "memory", p.String("dsn"))
 		assert.Equal(t, "bar", p.String("foo"))
+
+		// but it is still watching the files
+		updateConfigFile(t, c, configFile, "memory", "bar", "baz")
+		assert.Equal(t, "baz", p.String("bar"))
+
+		atEnd := checkLsof(t, configFile.Name())
+		require.EqualValues(t, atStart, atEnd)
 	})
 
 	t.Run("case=runs without validation errors", func(t *testing.T) {
@@ -121,6 +158,21 @@ func TestReload(t *testing.T) {
 		assert.Equal(t, []*logrus.Entry{}, hook.AllEntries())
 		assert.Equal(t, "some string", p.String("dsn"))
 		assert.Equal(t, "bar", p.String("foo"))
+	})
+
+	t.Run("case=runs and reloads", func(t *testing.T) {
+		configFile := tmpConfigFile(t, "some string", "bar")
+		defer configFile.Close()
+		c := make(chan struct{})
+		p, l := setup(t, configFile, c)
+		hook := test.NewLocal(l.Entry.Logger)
+
+		assert.Equal(t, []*logrus.Entry{}, hook.AllEntries())
+		assert.Equal(t, "some string", p.String("dsn"))
+		assert.Equal(t, "bar", p.String("foo"))
+
+		updateConfigFile(t, c, configFile, "memory", "bar", "baz")
+		assert.Equal(t, "baz", p.String("bar"))
 	})
 
 	t.Run("case=has with validation errors", func(t *testing.T) {
@@ -139,5 +191,26 @@ func TestReload(t *testing.T) {
 		entries := hook.AllEntries()
 		require.Equal(t, 0, len(entries))
 		assert.Equal(t, "The configuration contains values or keys which are invalid:\nfoo: not bar\n     ^-- value must be \"bar\"\n\n", b.String())
+	})
+
+	t.Run("case=is not leaking open files", func(t *testing.T) {
+		configFile := tmpConfigFile(t, "some string", "bar")
+		defer configFile.Close()
+		c := make(chan struct{})
+		p, _ := setup(t, configFile, c)
+
+		atStart := checkLsof(t, configFile.Name())
+		require.EqualValues(t, "2", strings.TrimSpace(atStart))
+		for i := 0; i < 10; i++ {
+			t.Run(fmt.Sprintf("iteration=%d", i), func(t *testing.T) {
+				expected := []string{"foo", "bar", "baz"}[i%3]
+				updateConfigFile(t, c, configFile, "memory", "bar", expected)
+				require.EqualValues(t, atStart, checkLsof(t, configFile.Name()))
+				require.EqualValues(t, expected, p.String("bar"))
+			})
+		}
+
+		atEnd := checkLsof(t, configFile.Name())
+		require.EqualValues(t, atStart, atEnd)
 	})
 }
