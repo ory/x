@@ -9,6 +9,14 @@
     },
     "foo": {
       "const": "bar"
+    },
+    "bar": {
+      "type": "string",
+      "enum": [
+        "foo",
+        "bar",
+        "baz"
+      ]
     }
   },
   "required": [
