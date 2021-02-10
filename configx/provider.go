@@ -258,7 +258,6 @@ func (p *Provider) addAndWatchConfigFiles(ctx context.Context, paths []string, k
 	p.logger.WithField("files", paths).Debug("Adding config files.")
 
 	watchForFileChanges := func(c watcherx.EventChannel) {
-		defer fmt.Println("closing watcher")
 		// Channel is closed automatically on ctx.Done() because of fp.WatchChannel()
 		for e := range c {
 			switch et := e.(type) {
