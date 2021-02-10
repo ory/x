@@ -194,6 +194,10 @@ func TestReload(t *testing.T) {
 	})
 
 	t.Run("case=is not leaking open files", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Skip()
+		}
+
 		configFile := tmpConfigFile(t, "some string", "bar")
 		defer configFile.Close()
 		c := make(chan struct{})
