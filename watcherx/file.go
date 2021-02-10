@@ -13,15 +13,18 @@ import (
 func WatchFile(ctx context.Context, file string, c EventChannel) (Watcher, error) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
+		close(c)
 		return nil, errors.WithStack(err)
 	}
 	dir := filepath.Dir(file)
 	if err := watcher.Add(dir); err != nil {
+		close(c)
 		return nil, errors.WithStack(err)
 	}
 	resolvedFile, err := filepath.EvalSymlinks(file)
 	if err != nil {
 		if _, ok := err.(*os.PathError); !ok {
+			close(c)
 			return nil, errors.WithStack(err)
 		}
 		// The file does not exist. The watcher should still watch the directory
@@ -32,6 +35,7 @@ func WatchFile(ctx context.Context, file string, c EventChannel) (Watcher, error
 		// This is because fsnotify follows symlinks and watches the destination file, not the symlink
 		// itself. That is at least the case for unix systems. See: https://github.com/fsnotify/fsnotify/issues/199
 		if err := watcher.Add(file); err != nil {
+			close(c)
 			return nil, errors.WithStack(err)
 		}
 	}
@@ -43,6 +47,7 @@ func WatchFile(ctx context.Context, file string, c EventChannel) (Watcher, error
 // streamFileEvents watches for file changes and supports symlinks which requires several workarounds due to limitations of fsnotify.
 // Argument `resolvedFile` is the resolved symlink path of the file, or it is the watchedFile name itself. If `resolvedFile` is empty, then the watchedFile does not exist.
 func streamFileEvents(ctx context.Context, watcher *fsnotify.Watcher, c EventChannel, sendNow <-chan struct{}, sendNowDone chan<- int, watchedFile, resolvedFile string) {
+	defer close(c)
 	eventSource := source(watchedFile)
 	removeDirectFileWatcher := func() {
 		_ = watcher.Remove(watchedFile)
@@ -63,7 +68,6 @@ func streamFileEvents(ctx context.Context, watcher *fsnotify.Watcher, c EventCha
 		select {
 		case <-ctx.Done():
 			_ = watcher.Close()
-			close(c)
 			return
 		case <-sendNow:
 			if resolvedFile == "" {
@@ -89,7 +93,6 @@ func streamFileEvents(ctx context.Context, watcher *fsnotify.Watcher, c EventCha
 			sendNowDone <- 1
 		case e, ok := <-watcher.Events:
 			if !ok {
-				close(c)
 				return
 			}
 			// filter events to only watch watchedFile
