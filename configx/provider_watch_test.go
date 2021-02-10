@@ -200,8 +200,7 @@ func TestReload(t *testing.T) {
 		p, _ := setup(t, configFile, c)
 
 		atStart := checkLsof(t, configFile.Name())
-		require.EqualValues(t, "2", strings.TrimSpace(atStart))
-		for i := 0; i < 10; i++ {
+		for i := 0; i < 30; i++ {
 			t.Run(fmt.Sprintf("iteration=%d", i), func(t *testing.T) {
 				expected := []string{"foo", "bar", "baz"}[i%3]
 				updateConfigFile(t, c, configFile, "memory", "bar", expected)
@@ -212,5 +211,9 @@ func TestReload(t *testing.T) {
 
 		atEnd := checkLsof(t, configFile.Name())
 		require.EqualValues(t, atStart, atEnd)
+
+		atStartNum, err := strconv.ParseInt(strings.TrimSpace(atStart), 10, 32)
+		require.NoError(t, err)
+		require.True(t, atStartNum > 20, "should not be unreasonably high")
 	})
 }
