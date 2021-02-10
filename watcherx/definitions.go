@@ -12,6 +12,10 @@ type (
 	}
 	EventChannel chan Event
 	Watcher      interface {
+		// DispatchNow fires the watcher and causes an event.
+		//
+		// WARNING: The returned channel must be read or no further events will
+		// be propagated due to a deadlock.
 		DispatchNow() (<-chan int, error)
 	}
 	dispatcher struct {
