@@ -229,6 +229,8 @@ func (p *Provider) runOnChanges(e watcherx.Event, err error) {
 }
 
 func (p *Provider) addConfigFile(ctx context.Context, path string, k *koanf.Koanf) error {
+	p.logger.WithField("file", path).Debug("Adding config file.")
+
 	ctx, cancel := context.WithCancel(p.ctx)
 	fp, err := NewKoanfFile(ctx, path)
 	if err != nil {
