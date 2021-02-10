@@ -214,6 +214,6 @@ func TestReload(t *testing.T) {
 
 		atStartNum, err := strconv.ParseInt(strings.TrimSpace(atStart), 10, 32)
 		require.NoError(t, err)
-		require.True(t, atStartNum > 20, "should not be unreasonably high")
+		require.True(t, atStartNum < 20, "should not be unreasonably high: %s", atStartNum)
 	})
 }
