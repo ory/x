@@ -74,6 +74,14 @@ func WithValues(values map[string]interface{}) OptionModifier {
 	}
 }
 
+func WithBaseValues(values map[string]interface{}) OptionModifier {
+	return func(p *Provider) {
+		for key, value := range values {
+			p.baseValues = append(p.baseValues, tuple{Key: key, Value: value})
+		}
+	}
+}
+
 func OmitKeysFromTracing(keys ...string) OptionModifier {
 	return func(p *Provider) {
 		p.excludeFieldsFromTracing = keys

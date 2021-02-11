@@ -59,6 +59,7 @@ type Provider struct {
 	excludeFieldsFromTracing []string
 	tracer                   *tracing.Tracer
 	forcedValues             []tuple
+	baseValues               []tuple
 	files                    []string
 	skipValidation           bool
 	logger                   *logrusx.Logger
@@ -166,6 +167,13 @@ func (p *Provider) forkKoanf() (*koanf.Koanf, context.Context, context.CancelFun
 	if err := k.Load(dp, nil); err != nil {
 		cancel()
 		return nil, nil, nil, err
+	}
+
+	for _, t := range p.baseValues {
+		if err := k.Load(NewKoanfConfmap([]tuple{t}), nil); err != nil {
+			cancel()
+			return nil, nil, nil, err
+		}
 	}
 
 	var paths []string
