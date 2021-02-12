@@ -24,7 +24,7 @@ func TestMigratorUpgrading(t *testing.T) {
 	require.NoError(t, litedb.Close())
 
 	sqlite, err := pop.NewConnection(&pop.ConnectionDetails{
-		URL: "sqlite://file::memory:?_fk=true&cache=shared",
+		URL: "sqlite://file::memory:?_fk=true",
 	})
 	require.NoError(t, err)
 	require.NoError(t, sqlite.Open())
@@ -77,6 +77,13 @@ func TestMigratorUpgrading(t *testing.T) {
 
 			actual := transactional.DumpMigrationSchema()
 			assert.EqualValues(t, expected, actual)
+
+			// Re-set and re-try
+
+			require.NoError(t, legacy.Down(-1))
+			require.NoError(t, transactional.Up())
+			actual = transactional.DumpMigrationSchema()
+			assert.EqualValues(t, expected, actual)
 		})
 	}
 }
@@ -109,4 +116,21 @@ func filterMySQL(t *testing.T, name string, status string) string {
 	}
 
 	return strings.Join(lines, "\n")
+}
+
+func TestMigratorUpgradingFromStart(t *testing.T) {
+	litedb, err := ioutil.TempFile(os.TempDir(), "sqlite-*")
+	require.NoError(t, err)
+	require.NoError(t, litedb.Close())
+
+	c, err := pop.NewConnection(&pop.ConnectionDetails{
+		URL: "sqlite://file::memory:?_fk=true",
+	})
+	require.NoError(t, err)
+	require.NoError(t, c.Open())
+
+	l := logrusx.New("", "", logrusx.ForceLevel(logrus.DebugLevel))
+	transactional, err := NewMigrationBoxPkger("/popx/stub/migrations/transactional", c, l)
+	require.NoError(t, err)
+	require.NoError(t, transactional.Up())
 }
