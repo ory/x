@@ -70,8 +70,7 @@ func TestMigratorUpgrading(t *testing.T) {
 			var transactionalStatusBuffer bytes.Buffer
 			require.NoError(t, transactional.Status(&transactionalStatusBuffer))
 
-			transactionalStatus := filterMySQL(t, name, transactionalStatusBuffer.String())
-			require.NotContains(t, transactionalStatus, "Pending")
+			require.NotContains(t, transactionalStatusBuffer.String(), "Pending")
 
 			require.NoError(t, transactional.Up())
 

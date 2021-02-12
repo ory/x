@@ -293,7 +293,12 @@ func (m Migrator) Status(out io.Writer) error {
 	}
 	w := tabwriter.NewWriter(out, 0, 0, 3, ' ', tabwriter.TabIndent)
 	_, _ = fmt.Fprintln(w, "Version\tName\tStatus\t")
-	for _, mf := range m.Migrations["up"] {
+	mfs := m.Migrations["up"]
+	mfs.Filter(func(mf pop.Migration) bool {
+		return m.migrationIsCompatible(m.Connection.Dialect.Name(), mf)
+	})
+
+	for _, mf := range mfs {
 		exists, err := m.Connection.Where("version = ?", mf.Version).Exists(m.Connection.MigrationTableName())
 		if err != nil {
 			return errors.Wrapf(err, "problem with migration")
