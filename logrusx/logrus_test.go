@@ -62,6 +62,19 @@ func TestJSONFormatter(t *testing.T) {
 	})
 }
 
+func TestGelfFormatter(t *testing.T) {
+	t.Run("gelf formatter", func(t *testing.T) {
+		l := New("logrusx-audit", "v0.0.0", ForceFormat("gelf"), ForceLevel(logrus.DebugLevel))
+		var b bytes.Buffer
+		l.Logrus().Out = &b
+
+		l.Info("foo bar")
+		assert.Contains(t, b.String(), "_pid")
+		assert.Contains(t, b.String(), "level")
+		assert.Contains(t, b.String(), "short_message")
+	})
+}
+
 func TestTextLogger(t *testing.T) {
 	audit := NewAudit("logrusx-audit", "v0.0.0", ForceFormat("text"), ForceLevel(logrus.TraceLevel))
 	tracer := New("logrusx-app", "v0.0.0", ForceFormat("text"), ForceLevel(logrus.TraceLevel))
