@@ -2,6 +2,7 @@ package popx
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -22,6 +23,8 @@ func TestMigratorUpgrading(t *testing.T) {
 	litedb, err := ioutil.TempFile(os.TempDir(), "sqlite-*")
 	require.NoError(t, err)
 	require.NoError(t, litedb.Close())
+
+	ctx := context.Background()
 
 	sqlite, err := pop.NewConnection(&pop.ConnectionDetails{
 		URL: "sqlite://file::memory:?_fk=true",
@@ -68,7 +71,7 @@ func TestMigratorUpgrading(t *testing.T) {
 			require.NoError(t, err)
 
 			var transactionalStatusBuffer bytes.Buffer
-			statuses, err := transactional.Status()
+			statuses, err := transactional.Status(ctx)
 			require.NoError(t, err)
 
 			require.NoError(t, statuses.Write(&transactionalStatusBuffer))
@@ -76,16 +79,16 @@ func TestMigratorUpgrading(t *testing.T) {
 			require.NotContains(t, transactionalStatus, "Pending")
 			require.False(t, statuses.HasPending())
 
-			require.NoError(t, transactional.Up())
+			require.NoError(t, transactional.Up(ctx))
 
-			actual := transactional.DumpMigrationSchema()
+			actual := transactional.DumpMigrationSchema(ctx)
 			assert.EqualValues(t, expected, actual)
 
 			// Re-set and re-try
 
 			require.NoError(t, legacy.Down(-1))
-			require.NoError(t, transactional.Up())
-			actual = transactional.DumpMigrationSchema()
+			require.NoError(t, transactional.Up(ctx))
+			actual = transactional.DumpMigrationSchema(ctx)
 			assert.EqualValues(t, expected, actual)
 		})
 	}
@@ -126,6 +129,8 @@ func TestMigratorUpgradingFromStart(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, litedb.Close())
 
+	ctx := context.Background()
+
 	c, err := pop.NewConnection(&pop.ConnectionDetails{
 		URL: "sqlite://file::memory:?_fk=true",
 	})
@@ -135,5 +140,5 @@ func TestMigratorUpgradingFromStart(t *testing.T) {
 	l := logrusx.New("", "", logrusx.ForceLevel(logrus.DebugLevel))
 	transactional, err := NewMigrationBoxPkger("/popx/stub/migrations/transactional", c, l)
 	require.NoError(t, err)
-	require.NoError(t, transactional.Up())
+	require.NoError(t, transactional.Up(ctx))
 }
