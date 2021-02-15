@@ -1,6 +1,7 @@
 package popx
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -53,16 +54,16 @@ func (m Migrator) migrationIsCompatible(dialect string, mi pop.Migration) bool {
 }
 
 // Up runs pending "up" migrations and applies them to the database.
-func (m Migrator) Up() error {
-	_, err := m.UpTo(0)
+func (m Migrator) Up(ctx context.Context) error {
+	_, err := m.UpTo(ctx,0)
 	return err
 }
 
 // UpTo runs up to step "up" migrations and applies them to the database.
 // If step <= 0 all pending migrations are run.
-func (m Migrator) UpTo(step int) (applied int, err error) {
-	c := m.Connection
-	err = m.exec(func() error {
+func (m Migrator) UpTo(ctx context.Context, step int) (applied int, err error) {
+	c := m.Connection.WithContext(ctx)
+	err = m.exec(ctx, func() error {
 		mtn := c.MigrationTableName()
 		mfs := m.Migrations["up"]
 		mfs.Filter(func(mf pop.Migration) bool {
@@ -137,9 +138,9 @@ func (m Migrator) UpTo(step int) (applied int, err error) {
 
 // Down runs pending "down" migrations and rolls back the
 // database by the specified number of steps.
-func (m Migrator) Down(step int) error {
-	c := m.Connection
-	return m.exec(func() error {
+func (m Migrator) Down(ctx context.Context, step int) error {
+	c := m.Connection.WithContext(ctx)
+	return m.exec(ctx, func() error {
 		mtn := c.MigrationTableName()
 		count, err := c.Count(mtn)
 		if err != nil {
@@ -197,12 +198,12 @@ func (m Migrator) Down(step int) error {
 }
 
 // Reset the database by running the down migrations followed by the up migrations.
-func (m Migrator) Reset() error {
-	err := m.Down(-1)
+func (m Migrator) Reset(ctx context.Context) error {
+	err := m.Down(ctx,-1)
 	if err != nil {
 		return err
 	}
-	return m.Up()
+	return m.Up(ctx)
 }
 
 func createTransactionalMigrationTable(c *pop.Connection, l *logrusx.Logger) error {
@@ -301,8 +302,8 @@ func CreateSchemaMigrations(c *pop.Connection, l *logrusx.Logger) error {
 
 // CreateSchemaMigrations sets up a table to track migrations. This is an idempotent
 // operation.
-func (m Migrator) CreateSchemaMigrations() error {
-	return CreateSchemaMigrations(m.Connection, m.l)
+func (m Migrator) CreateSchemaMigrations(ctx context.Context) error {
+	return CreateSchemaMigrations(m.Connection.WithContext(ctx), m.l)
 }
 
 type MigrationStatus struct {
@@ -334,21 +335,22 @@ func (m MigrationStatuses) HasPending() bool {
 }
 
 // Status prints out the status of applied/pending migrations.
-func (m Migrator) Status() (MigrationStatuses, error) {
-	err := m.CreateSchemaMigrations()
+func (m Migrator) Status(ctx context.Context) (MigrationStatuses, error) {
+	err := m.CreateSchemaMigrations(ctx)
 	if err != nil {
 		return nil, err
 	}
+	con := m.Connection.WithContext(ctx)
 
 	migrations := m.Migrations["up"]
 	migrations.Filter(func(mf pop.Migration) bool {
-		return m.migrationIsCompatible(m.Connection.Dialect.Name(), mf)
+		return m.migrationIsCompatible(con.Dialect.Name(), mf)
 	})
 
 	var statuses MigrationStatuses
 
 	for _, mf := range migrations {
-		exists, err := m.Connection.Where("version = ?", mf.Version).Exists(m.Connection.MigrationTableName())
+		exists, err := con.Where("version = ?", mf.Version).Exists(con.MigrationTableName())
 		if err != nil {
 			return nil, errors.Wrapf(err, "problem with migration")
 		}
@@ -362,9 +364,9 @@ func (m Migrator) Status() (MigrationStatuses, error) {
 		if exists {
 			state.State = "Applied"
 		} else if len(mf.Version) > 14 {
-			mtn := m.Connection.MigrationTableName()
+			mtn := con.MigrationTableName()
 			legacyVersion := mf.Version[:14]
-			exists, err = m.Connection.Where("version = ?", legacyVersion).Exists(mtn)
+			exists, err = con.Where("version = ?", legacyVersion).Exists(mtn)
 			if err != nil {
 				return nil, errors.Wrapf(err, "problem checking for migration version %s", legacyVersion)
 			}
@@ -380,11 +382,11 @@ func (m Migrator) Status() (MigrationStatuses, error) {
 
 // DumpMigrationSchema will generate a file of the current database schema
 // based on the value of Migrator.SchemaPath
-func (m Migrator) DumpMigrationSchema() error {
+func (m Migrator) DumpMigrationSchema(ctx context.Context) error {
 	if m.SchemaPath == "" {
 		return nil
 	}
-	c := m.Connection
+	c := m.Connection.WithContext(ctx)
 	schema := filepath.Join(m.SchemaPath, "schema.sql")
 	f, err := os.Create(schema)
 	if err != nil {
@@ -398,17 +400,17 @@ func (m Migrator) DumpMigrationSchema() error {
 	return nil
 }
 
-func (m Migrator) exec(fn func() error) error {
+func (m Migrator) exec(ctx context.Context,fn func() error) error {
 	now := time.Now()
 	defer func() {
-		err := m.DumpMigrationSchema()
+		err := m.DumpMigrationSchema(ctx)
 		if err != nil {
 			m.l.WithError(err).Warn("Migrator: unable to dump schema")
 		}
 	}()
 	defer m.printTimer(now)
 
-	err := m.CreateSchemaMigrations()
+	err := m.CreateSchemaMigrations(ctx)
 	if err != nil {
 		return errors.Wrap(err, "migrator: problem creating schema migrations")
 	}
