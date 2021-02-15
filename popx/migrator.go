@@ -205,6 +205,75 @@ func (m Migrator) Reset() error {
 	return m.Up()
 }
 
+func createTransactionalMigrationTable(c *pop.Connection, l *logrusx.Logger) error {
+	mtn := c.MigrationTableName()
+	l.WithField("migration_table", mtn).Debug("An error occurred while checking for the legacy migration table, maybe it does not exist yet? Trying to create.")
+
+	if err := execMigrationTransaction(c, []string{
+		fmt.Sprintf(`CREATE TABLE %s (version VARCHAR (48) NOT NULL, version_self INT NOT NULL DEFAULT 0)`, mtn),
+		fmt.Sprintf(`CREATE UNIQUE INDEX %s_version_idx ON %s (version)`, mtn, mtn),
+		fmt.Sprintf(`CREATE INDEX %s_version_self_idx ON %s (version_self)`, mtn, mtn),
+	}); err != nil {
+		return err
+	}
+
+	l.WithField("migration_table", mtn).Debug("Transactional migration table created successfully.")
+
+	return nil
+}
+
+func migrateToTransactionalMigrationTable(c *pop.Connection, l *logrusx.Logger) error {
+	// This means the new pop migrator has also not yet been applied, do that now.
+	mtn := c.MigrationTableName()
+
+	l.WithField("migration_table", mtn).Debug("An error occurred while checking for the transactional migration table, maybe it does not exist yet? Trying to create.")
+
+	withOn := fmt.Sprintf(" ON %s", mtn)
+	if c.Dialect.Name() != "mysql" {
+		withOn = ""
+	}
+
+	interimTable := fmt.Sprintf("%s_transactional", mtn)
+	workload := [][]string{
+		{
+			fmt.Sprintf(`DROP INDEX %s_version_idx%s`, mtn, withOn),
+			fmt.Sprintf(`CREATE TABLE %s (version VARCHAR (48) NOT NULL, version_self INT NOT NULL DEFAULT 0)`, interimTable),
+			fmt.Sprintf(`CREATE UNIQUE INDEX %s_version_idx ON %s (version)`, mtn, interimTable),
+			fmt.Sprintf(`CREATE INDEX %s_version_self_idx ON %s (version_self)`, mtn, interimTable),
+			fmt.Sprintf(`INSERT INTO %s (version) SELECT version FROM %s`, interimTable, mtn),
+			fmt.Sprintf(`ALTER TABLE %s RENAME TO %s_pop_legacy`, mtn, mtn),
+		},
+		{
+			fmt.Sprintf(`ALTER TABLE %s RENAME TO %s`, interimTable, mtn),
+		},
+	}
+
+	if err := execMigrationTransaction(c, workload...); err != nil {
+		return err
+	}
+
+	l.WithField("migration_table", mtn).Debug("Successfully migrated legacy schema_migration to new transactional schema_migration table.")
+
+	return nil
+}
+
+func execMigrationTransaction(c *pop.Connection, transactions ...[]string) error {
+	for _, statements := range transactions {
+		if err := c.Transaction(func(tx *pop.Connection) error {
+			for _, statement := range statements {
+				if err := tx.RawQuery(statement).Exec(); err != nil {
+					return errors.Wrapf(err, "unable to execute statement: %s", statement)
+				}
+			}
+
+			return nil
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // CreateSchemaMigrations sets up a table to track migrations. This is an idempotent
 // operation.
 func CreateSchemaMigrations(c *pop.Connection, l *logrusx.Logger) error {
@@ -217,63 +286,14 @@ func CreateSchemaMigrations(c *pop.Connection, l *logrusx.Logger) error {
 	l.WithField("migration_table", mtn).Debug("Checking if legacy migration table exists.")
 	_, err = c.Store.Exec(fmt.Sprintf("select version from %s", mtn))
 	if err != nil {
-		l.WithError(err).WithField("migration_table", mtn).Debug("An error occurred while checking for the legacy migration table, maybe it does not exist yet? Trying to create.")
-
 		// This means that the legacy pop migrator has not yet been applied
-		if err := c.Transaction(func(tx *pop.Connection) error {
-			if err := tx.RawQuery(fmt.Sprintf(`CREATE TABLE "%s" ("version" VARCHAR (14) NOT NULL);`, mtn)).Exec(); err != nil {
-				return errors.WithStack(err)
-			}
-
-			return errors.WithStack(tx.RawQuery(fmt.Sprintf(`CREATE UNIQUE INDEX "schema_migration_version_idx" ON "%s" (version);`, mtn)).Exec())
-		}); err != nil {
-			return err
-		}
-
-		l.WithError(err).WithField("migration_table", mtn).Debug("Legacy migration table created successfully.")
+		return createTransactionalMigrationTable(c, l)
 	}
 
 	l.WithField("migration_table", mtn).Debug("Checking if transactional migration table exists.")
 	_, err = c.Store.Exec(fmt.Sprintf("select version, version_self from %s", mtn))
 	if err != nil {
-		l.WithError(err).WithField("migration_table", mtn).Debug("An error occurred while checking for the transactional migration table, maybe it does not exist yet? Trying to create.")
-		// This means the new pop migrator has also not yet been applied, do that now.
-
-		withOn := fmt.Sprintf(" ON %s", mtn)
-		if c.Dialect.Name() != "mysql" {
-			withOn = ""
-		}
-		workload := [][]string{
-			{
-				fmt.Sprintf(`DROP INDEX %s_version_idx%s`, mtn, withOn),
-				fmt.Sprintf(`ALTER TABLE %s RENAME TO %s_pop_legacy`, mtn, mtn),
-			},
-			{
-				fmt.Sprintf(`CREATE TABLE %s (version VARCHAR (48) NOT NULL, version_self INT NOT NULL DEFAULT 0)`, mtn),
-				fmt.Sprintf(`CREATE UNIQUE INDEX %s_version_idx ON %s (version)`, mtn, mtn),
-			},
-			{
-				fmt.Sprintf(`INSERT INTO %s (version) SELECT version FROM %s_pop_legacy`, mtn, mtn),
-			},
-		}
-
-		for _, statements := range workload {
-			// This means that the legacy pop migrator has not yet been applied
-			if err := c.Transaction(func(tx *pop.Connection) error {
-				for _, statement := range statements {
-					if err := tx.RawQuery(statement).Exec(); err != nil {
-						return errors.Wrapf(err, "unable to execute statement: %s", statement)
-					}
-				}
-
-				return nil
-			}); err != nil {
-				return err
-			}
-		}
-
-		l.WithError(err).WithField("migration_table", mtn).Debug("Transactional migration table created successfully.")
-		return nil
+		return migrateToTransactionalMigrationTable(c, l)
 	}
 
 	return nil
@@ -285,37 +305,77 @@ func (m Migrator) CreateSchemaMigrations() error {
 	return CreateSchemaMigrations(m.Connection, m.l)
 }
 
-// Status prints out the status of applied/pending migrations.
-func (m Migrator) Status(out io.Writer) error {
-	err := m.CreateSchemaMigrations()
-	if err != nil {
-		return err
-	}
+type MigrationStatus struct {
+	State string
+	Version string
+	Name string
+}
+
+type MigrationStatuses []MigrationStatus
+
+func (m MigrationStatuses) Write(out io.Writer) error {
 	w := tabwriter.NewWriter(out, 0, 0, 3, ' ', tabwriter.TabIndent)
 	_, _ = fmt.Fprintln(w, "Version\tName\tStatus\t")
-	for _, mf := range m.Migrations["up"] {
+
+	for _, mm := range m {
+		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t\n", mm.Version, mm.Name, mm.State)
+	}
+
+	return w.Flush()
+}
+
+func (m MigrationStatuses) HasPending() bool {
+	for _, mm := range m {
+		if mm.State == "Pending" {
+			return true
+		}
+	}
+	return false
+}
+
+// Status prints out the status of applied/pending migrations.
+func (m Migrator) Status() (MigrationStatuses, error) {
+	err := m.CreateSchemaMigrations()
+	if err != nil {
+		return nil, err
+	}
+
+	migrations := m.Migrations["up"]
+	migrations.Filter(func(mf pop.Migration) bool {
+		return m.migrationIsCompatible(m.Connection.Dialect.Name(), mf)
+	})
+
+	var statuses MigrationStatuses
+
+	for _, mf := range migrations {
 		exists, err := m.Connection.Where("version = ?", mf.Version).Exists(m.Connection.MigrationTableName())
 		if err != nil {
-			return errors.Wrapf(err, "problem with migration")
+			return nil, errors.Wrapf(err, "problem with migration")
 		}
-		state := "Pending"
+
+		state := MigrationStatus{
+			State:   "Pending",
+			Version: mf.Version,
+			Name:    mf.Name,
+		}
+
 		if exists {
-			state = "Applied"
+			state.State = "Applied"
 		} else if len(mf.Version) > 14 {
 			mtn := m.Connection.MigrationTableName()
 			legacyVersion := mf.Version[:14]
 			exists, err = m.Connection.Where("version = ?", legacyVersion).Exists(mtn)
 			if err != nil {
-				return errors.Wrapf(err, "problem checking for migration version %s", legacyVersion)
+				return nil, errors.Wrapf(err, "problem checking for migration version %s", legacyVersion)
 			}
 
 			if exists {
-				state = "Applied"
+				state.State = "Applied"
 			}
 		}
-		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t\n", mf.Version, mf.Name, state)
 	}
-	return w.Flush()
+
+	return statuses, nil
 }
 
 // DumpMigrationSchema will generate a file of the current database schema
