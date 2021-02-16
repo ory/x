@@ -6,6 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/ory/x/stringsx"
+	gelf "github.com/seatgeek/logrus-gelf-formatter"
 )
 
 type (
@@ -72,6 +73,8 @@ func setFormatter(l *logrus.Logger, o *options) {
 			l.Formatter = &logrus.JSONFormatter{PrettyPrint: false}
 		case "json_pretty":
 			l.Formatter = &logrus.JSONFormatter{PrettyPrint: true}
+		case "gelf":
+			l.Formatter = new(gelf.GelfFormatter)
 		default:
 			l.Formatter = &logrus.TextFormatter{
 				DisableQuote:     true,
