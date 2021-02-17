@@ -20,9 +20,6 @@ import (
 	"github.com/ory/x/sqlcon/dockertest"
 )
 
-//go:embed stub/migrations/legacy/*.sql
-var legacyMigrations embed.FS
-
 //go:embed stub/migrations/transactional/*.sql
 var transactionalMigrations embed.FS
 
