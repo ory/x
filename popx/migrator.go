@@ -109,7 +109,7 @@ func (m Migrator) UpTo(ctx context.Context, step int) (applied int, err error) {
 						// }
 
 						// #nosec G201 - mtn is a system-wide const
-						_, err := tx.Exec(fmt.Sprintf("INSERT INTO %s (version) VALUES ('%s')", mtn, mi.Version))
+						_, err := tx.Exec(tx.Rebind(fmt.Sprintf("INSERT INTO %s (version) VALUES (?)", mtn)), mi.Version)
 						return errors.Wrapf(err, "problem inserting migration version %s", mi.Version)
 					}); err != nil {
 						return err
@@ -200,7 +200,7 @@ func (m Migrator) Down(ctx context.Context, step int) error {
 				}
 
 				// #nosec G201 - mtn is a system-wide const
-				if _, err = tx.Exec(fmt.Sprintf("DELETE FROM %s WHERE VERSION = ?", mtn), mi.Version); err != nil {
+				if _, err = tx.Exec(tx.Rebind(fmt.Sprintf("DELETE FROM %s WHERE version = ?", mtn)), mi.Version); err != nil {
 					return errors.Wrapf(err, "problem deleting migration version %s", mi.Version)
 				}
 
