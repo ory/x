@@ -140,6 +140,10 @@ func NewTestMigrator(t *testing.T, c *pop.Connection, migrationPath, testDataPat
 		// FIXME https://github.com/gobuffalo/pop/issues/567
 		for _, statement := range strings.Split(string(data), ";\n") {
 			t.Logf("Executing %s query from %s: %s", c.Dialect.Name(), fileName, statement)
+			if strings.TrimSpace(statement) == "" {
+				t.Logf("Skipping %s query from %s because empty: \"%s\"", c.Dialect.Name(), fileName, statement)
+				continue
+			}
 			if _, err := tx.Exec(statement); err != nil {
 				t.Logf("Unable to execute %s: %s", mf.Version, err)
 				return errors.WithStack(err)
