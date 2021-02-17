@@ -464,7 +464,24 @@ func (m Migrator) exec(ctx context.Context, fn func() error) error {
 	if err != nil {
 		return errors.Wrap(err, "migrator: problem creating schema migrations")
 	}
-	return fn()
+
+	if m.Connection.Dialect.Name() == "sqlite3" {
+		if err := m.Connection.RawQuery("PRAGMA foreign_keys=OFF").Exec(); err!= nil {
+			return err
+		}
+	}
+
+	if err := fn(); err != nil {
+		return err
+	}
+
+	if m.Connection.Dialect.Name() == "sqlite3" {
+		if err := m.Connection.RawQuery("PRAGMA foreign_keys=ON").Exec(); err!= nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (m Migrator) printTimer(timerStart time.Time) {
