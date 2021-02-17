@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -98,6 +99,10 @@ func TestWatchDirectory(t *testing.T) {
 	})
 
 	t.Run("case=does not notify on directory deletion", func(t *testing.T) {
+		if runtime.GOOS != "linux" {
+			t.Skip("skipping test because IN_DELETE_SELF is unreliable on windows and macOS")
+		}
+
 		ctx, c, dir, cancel := setup(t)
 		defer cancel()
 

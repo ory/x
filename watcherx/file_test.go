@@ -92,8 +92,8 @@ func TestFileWatcher(t *testing.T) {
 	})
 
 	t.Run("case=notifies about changes in the linked file", func(t *testing.T) {
-		if runtime.GOOS == "windows" {
-			t.Skip("skipping test because watching symlinks on windows is not working properly")
+		if runtime.GOOS != "linux" {
+			t.Skip("skipping test because watching symlinks on windows and macOS is not working properly")
 		}
 
 		ctx, c, dir, cancel := setup(t)
@@ -119,8 +119,8 @@ func TestFileWatcher(t *testing.T) {
 	})
 
 	t.Run("case=notifies about symlink change", func(t *testing.T) {
-		if runtime.GOOS == "windows" {
-			t.Skip("skipping test because watching symlinks on windows is not working properly")
+		if runtime.GOOS != "linux" {
+			t.Skip("skipping test because watching symlinks on windows and macOS is not working properly")
 		}
 
 		ctx, c, dir, cancel := setup(t)
@@ -185,8 +185,8 @@ func TestFileWatcher(t *testing.T) {
 	//})
 
 	t.Run("case=kubernetes atomic writer update", func(t *testing.T) {
-		if runtime.GOOS == "windows" {
-			t.Skip("skipping test because watching symlinks on windows is not working properly")
+		if runtime.GOOS != "linux" {
+			t.Skip("skipping test because watching symlinks on windows and macOS is not working properly")
 		}
 
 		ctx, c, dir, cancel := setup(t)
