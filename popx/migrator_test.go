@@ -63,7 +63,7 @@ func TestMigratorUpgrading(t *testing.T) {
 
 			legacyStatus := filterMySQL(t, name, legacyStatusBuffer.String())
 
-			require.NotContains(t, legacyStatus, "Pending")
+			require.NotContains(t, legacyStatus, Pending)
 
 			expected := legacy.DumpMigrationSchema()
 
@@ -76,7 +76,7 @@ func TestMigratorUpgrading(t *testing.T) {
 
 			require.NoError(t, statuses.Write(&transactionalStatusBuffer))
 			transactionalStatus := filterMySQL(t, name, transactionalStatusBuffer.String())
-			require.NotContains(t, transactionalStatus, "Pending")
+			require.NotContains(t, transactionalStatus, Pending)
 			require.False(t, statuses.HasPending())
 
 			require.NoError(t, transactional.Up(ctx))
@@ -140,5 +140,26 @@ func TestMigratorUpgradingFromStart(t *testing.T) {
 	l := logrusx.New("", "", logrusx.ForceLevel(logrus.DebugLevel))
 	transactional, err := NewMigrationBoxPkger("/popx/stub/migrations/transactional", c, l)
 	require.NoError(t, err)
+	status, err := transactional.Status(ctx)
+	require.NoError(t, err)
+	require.True(t, status.HasPending())
+
 	require.NoError(t, transactional.Up(ctx))
+
+	status, err = transactional.Status(ctx)
+	require.NoError(t, err)
+	require.False(t, status.HasPending())
+
+	// Are all the tables here?
+	var rows []string
+	require.NoError(t, c.Store.Select(&rows, "SELECT name FROM sqlite_master WHERE type='table'"))
+
+	for _, expected := range []string{
+		"schema_migration",
+		"identities",
+	} {
+		require.Contains(t, rows, expected)
+	}
+
+	require.NoError(t, transactional.Down(ctx, -1))
 }
