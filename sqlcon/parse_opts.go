@@ -62,7 +62,7 @@ func ParseConnectionOptions(l *logrusx.Logger, dsn string) (maxConns int, maxIdl
 	if v := query.Get("max_conn_lifetime"); v != "" {
 		s, err := time.ParseDuration(v)
 		if err != nil {
-			l.WithError(err).Warnf(`SQL DSN query parameter "max_conn_lifetime" value %v could not be parsed to int, falling back to default value %d`, v, maxConnLifetime)
+			l.WithError(err).Warnf(`SQL DSN query parameter "max_conn_lifetime" value %v could not be parsed to duration, falling back to default value %d`, v, maxConnLifetime)
 		} else {
 			maxConnLifetime = s
 		}

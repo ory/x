@@ -1,11 +1,16 @@
 package popx
 
 import (
+	"context"
+	"database/sql"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
+
+	"github.com/ory/x/logrusx"
 
 	"github.com/gobuffalo/pop/v5"
 	"github.com/pkg/errors"
@@ -14,44 +19,89 @@ import (
 
 // TestMigrator is a modified pop.FileMigrator
 type TestMigrator struct {
-	pop.Migrator
+	Migrator
 }
 
 // Returns a new TestMigrator
 // After running each migration it applies it's corresponding testData sql files.
 // They are identified by having the same version (= number in the front of the filename).
 // The filenames are expected to be of the format ([0-9]+).*(_testdata(\.[dbtype])?.sql
-func NewTestMigrator(t *testing.T, c *pop.Connection, migrationPath, testDataPath string) *TestMigrator {
+func NewTestMigrator(t *testing.T, c *pop.Connection, migrationPath, testDataPath string, l *logrusx.Logger) *TestMigrator {
 	tm := TestMigrator{
-		Migrator: pop.NewMigrator(c),
+		Migrator: NewMigrator(c, l),
 	}
 	tm.SchemaPath = migrationPath
 	testDataPath = strings.TrimSuffix(testDataPath, "/")
 
-	runner := func(mf pop.Migration, tx *pop.Connection) error {
-		f, err := os.Open(mf.Path)
+	runner := func(mf Migration, c *pop.Connection, tx *pop.Tx) error {
+		b, err := ioutil.ReadFile(mf.Path)
 		require.NoError(t, err)
-		defer f.Close()
-		content, err := pop.MigrationContent(mf, tx, f, true)
+
+		content, err := ParameterizedMigrationContent(nil)(mf, c, b, true)
 		require.NoError(t, err)
-		if len(strings.TrimSpace(content)) == 0 {
-			return nil
+
+		if len(strings.TrimSpace(content)) != 0 {
+			_, err = tx.Exec(content)
+			if err != nil {
+				return errors.Wrapf(err, "error executing %s, sql: %s", mf.Path, content)
+			}
 		}
-		err = tx.RawQuery(content).Exec()
-		if err != nil {
-			return errors.Wrapf(err, "error executing %s, sql: %s", mf.Path, content)
-		}
+
+		t.Logf("Applied: %s", mf.Version)
 
 		if mf.Direction != "up" {
 			return nil
 		}
 
+		appliedVersion := mf.Version[:14]
+
+		// find migration index
+		if len(mf.Version) > 14 {
+			upMigrations := tm.Migrations["up"]
+			upMigrations.Filter(func(mf Migration) bool {
+				return tm.MigrationIsCompatible(c.Dialect.Name(), mf)
+			})
+			sort.Sort(upMigrations)
+			mgs := upMigrations
+
+			require.False(t, len(mgs) == 0)
+
+			var migrationIndex int = -1
+			for k, m := range mgs {
+				if m.Version == mf.Version {
+					migrationIndex = k
+					break
+				}
+			}
+
+			require.NotEqual(t, -1, migrationIndex)
+
+			if migrationIndex+1 > len(mgs)-1 {
+				//
+			} else {
+				require.EqualValues(t, mf.Version, mgs[migrationIndex].Version)
+				require.NotEqual(t, mf.Version, mgs[migrationIndex+1].Version)
+
+				nextMigration := mgs[migrationIndex+1]
+				if nextMigration.Version[:14] > appliedVersion {
+					t.Logf("Executing transactional interim version %s (%s) because next is %s (%s)", mf.Version, appliedVersion, nextMigration.Version, nextMigration.Version[:14])
+				} else if nextMigration.Version[:14] == appliedVersion {
+					t.Logf("Skipping transactional interim version %s (%s) because next is %s (%s)", mf.Version, appliedVersion, nextMigration.Version, nextMigration.Version[:14])
+					return nil
+				} else {
+					panic("asdf")
+				}
+			}
+		}
+
+		t.Logf("Adding migration test data %s (%s)", mf.Version, appliedVersion)
+
 		// exec testdata
 		var fileName string
-		if fi, err := os.Stat(filepath.Join(testDataPath, mf.Version+"_testdata."+tx.Dialect.Name()+".sql")); err == nil && !fi.IsDir() {
+		if fi, err := os.Stat(filepath.Join(testDataPath, appliedVersion+"_testdata."+c.Dialect.Name()+".sql")); err == nil && !fi.IsDir() {
 			// found specific test data
 			fileName = fi.Name()
-		} else if fi, err := os.Stat(filepath.Join(testDataPath, mf.Version+"_testdata.sql")); err == nil && !fi.IsDir() {
+		} else if fi, err := os.Stat(filepath.Join(testDataPath, appliedVersion+"_testdata.sql")); err == nil && !fi.IsDir() {
 			// found generic test data
 			fileName = fi.Name()
 		} else {
@@ -63,11 +113,14 @@ func NewTestMigrator(t *testing.T, c *pop.Connection, migrationPath, testDataPat
 		// Workaround for https://github.com/cockroachdb/cockroach/issues/42643#issuecomment-611475836
 		// This is not a problem as the test should fail anyway if there occurs any error
 		// (either within a transaction or on it's own).
-		if tx.Dialect.Name() == "cockroach" && tx.TX != nil {
-			if err := tx.TX.Commit(); err != nil {
+		if c.Dialect.Name() == "cockroach" && tx != nil {
+			if err := tx.Commit(); err != nil {
 				return errors.WithStack(err)
 			}
-			newTx, err := c.NewTransaction()
+			newTx, err := c.Store.TransactionContextOptions(context.Background(), &sql.TxOptions{
+				Isolation: sql.LevelSerializable,
+				ReadOnly:  false,
+			})
 			if err != nil {
 				return errors.WithStack(err)
 			}
@@ -79,16 +132,24 @@ func NewTestMigrator(t *testing.T, c *pop.Connection, migrationPath, testDataPat
 			return errors.WithStack(err)
 		}
 
-		t.Logf("executing %s query for: %s", tx.Dialect.Name(), fileName)
 		if len(strings.TrimSpace(string(data))) == 0 {
+			t.Logf("data is empty for: %s", fileName)
 			return nil
 		}
 
 		// FIXME https://github.com/gobuffalo/pop/issues/567
-		if _, err := tx.Store.Exec(string(data)); err != nil {
-			t.Logf(mf.Version)
-			return errors.WithStack(err)
+		for _, statement := range strings.Split(string(data), ";\n") {
+			t.Logf("Executing %s query from %s: %s", c.Dialect.Name(), fileName, statement)
+			if strings.TrimSpace(statement) == "" {
+				t.Logf("Skipping %s query from %s because empty: \"%s\"", c.Dialect.Name(), fileName, statement)
+				continue
+			}
+			if _, err := tx.Exec(statement); err != nil {
+				t.Logf("Unable to execute %s: %s", mf.Version, err)
+				return errors.WithStack(err)
+			}
 		}
+
 		return nil
 	}
 
@@ -112,7 +173,7 @@ func NewTestMigrator(t *testing.T, c *pop.Connection, migrationPath, testDataPat
 				return nil
 			}
 
-			mf := pop.Migration{
+			mf := Migration{
 				Path:      p,
 				Version:   match.Version,
 				Name:      match.Name,

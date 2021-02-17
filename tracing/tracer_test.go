@@ -100,9 +100,11 @@ func TestZipkinTracer(t *testing.T) {
 }
 
 func TestElastcApmTracer(t *testing.T) {
-	done := make(chan struct{})
+	done := make(chan struct{}, 2)
+	defer close(done)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer close(done)
+		t.Log("Got connection!")
+		done <- struct{}{}
 
 		switch r.URL.String() {
 		case "/config/v1/agents?service.name=ORY+X":
@@ -148,10 +150,16 @@ func TestElastcApmTracer(t *testing.T) {
 	span.SetTag("testTag", true)
 	span.Finish()
 
-	select {
-	case <-done:
-	case <-time.After(time.Millisecond * 1500):
-		t.Fatalf("Test server did not receive spans")
+	for i := 0; i < 2; i++ {
+		select {
+		case _, ok := <-done:
+			if !ok {
+				return
+			}
+		case <-time.After(time.Millisecond * 1500):
+			t.Fatalf("Test server did not receive spans")
+			return
+		}
 	}
 }
 

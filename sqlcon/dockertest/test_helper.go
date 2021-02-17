@@ -250,7 +250,7 @@ func ConnectToTestMySQLPop(t testing.TB) *pop.Connection {
 
 // ## CockroachDB
 
-func startCockroachDB() (*dockertest.Resource, error) {
+func startCockroachDB(version string) (*dockertest.Resource, error) {
 	pool, err := dockertest.NewPool("")
 	if err != nil {
 		return nil, errors.Wrap(err, "Could not connect to docker")
@@ -258,7 +258,7 @@ func startCockroachDB() (*dockertest.Resource, error) {
 
 	resource, err := pool.RunWithOptions(&dockertest.RunOptions{
 		Repository: "cockroachdb/cockroach",
-		Tag:        "v20.2.3",
+		Tag:        stringsx.Coalesce(version, "v20.2.5"),
 		Cmd:        []string{"start-single-node", "--insecure"},
 	})
 	if err == nil {
@@ -269,7 +269,12 @@ func startCockroachDB() (*dockertest.Resource, error) {
 
 // RunCockroachDB runs a CockroachDB database and returns the URL to it.
 func RunCockroachDB() (string, error) {
-	resource, err := startCockroachDB()
+	return RunCockroachDBWithVersion("")
+}
+
+// RunCockroachDB runs a CockroachDB database and returns the URL to it.
+func RunCockroachDBWithVersion(version string) (string, error) {
+	resource, err := startCockroachDB(version)
 	if err != nil {
 		return "", err
 	}
@@ -279,12 +284,17 @@ func RunCockroachDB() (string, error) {
 
 // RunTestCockroachDB runs a CockroachDB database and returns the URL to it.
 func RunTestCockroachDB(t testing.TB) string {
+	return RunTestCockroachDBWithVersion(t, "")
+}
+
+// RunTestCockroachDB runs a CockroachDB database and returns the URL to it.
+func RunTestCockroachDBWithVersion(t testing.TB, version string) string {
 	if dsn := os.Getenv("TEST_DATABASE_COCKROACHDB"); dsn != "" {
 		t.Logf("Skipping Docker setup because environment variable TEST_DATABASE_COCKROACHDB is set to: %s", dsn)
 		return dsn
 	}
 
-	u, err := RunCockroachDB()
+	u, err := RunCockroachDBWithVersion(version)
 	require.NoError(t, err)
 
 	return u
@@ -297,7 +307,7 @@ func ConnectToTestCockroachDB() (*sqlx.DB, error) {
 		return connect("pgx", "cockroach", dsn)
 	}
 
-	resource, err := startCockroachDB()
+	resource, err := startCockroachDB("")
 	if err != nil {
 		return nil, errors.Wrap(err, "Could not start resource")
 	}

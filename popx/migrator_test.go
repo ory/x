@@ -2,6 +2,7 @@ package popx
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -22,6 +23,8 @@ func TestMigratorUpgrading(t *testing.T) {
 	litedb, err := ioutil.TempFile(os.TempDir(), "sqlite-*")
 	require.NoError(t, err)
 	require.NoError(t, litedb.Close())
+
+	ctx := context.Background()
 
 	sqlite, err := pop.NewConnection(&pop.ConnectionDetails{
 		URL: "sqlite://file::memory:?_fk=true",
@@ -60,7 +63,7 @@ func TestMigratorUpgrading(t *testing.T) {
 
 			legacyStatus := filterMySQL(t, name, legacyStatusBuffer.String())
 
-			require.NotContains(t, legacyStatus, "Pending")
+			require.NotContains(t, legacyStatus, Pending)
 
 			expected := legacy.DumpMigrationSchema()
 
@@ -68,21 +71,24 @@ func TestMigratorUpgrading(t *testing.T) {
 			require.NoError(t, err)
 
 			var transactionalStatusBuffer bytes.Buffer
-			require.NoError(t, transactional.Status(&transactionalStatusBuffer))
+			statuses, err := transactional.Status(ctx)
+			require.NoError(t, err)
 
+			require.NoError(t, statuses.Write(&transactionalStatusBuffer))
 			transactionalStatus := filterMySQL(t, name, transactionalStatusBuffer.String())
-			require.NotContains(t, transactionalStatus, "Pending")
+			require.NotContains(t, transactionalStatus, Pending)
+			require.False(t, statuses.HasPending())
 
-			require.NoError(t, transactional.Up())
+			require.NoError(t, transactional.Up(ctx))
 
-			actual := transactional.DumpMigrationSchema()
+			actual := transactional.DumpMigrationSchema(ctx)
 			assert.EqualValues(t, expected, actual)
 
 			// Re-set and re-try
 
 			require.NoError(t, legacy.Down(-1))
-			require.NoError(t, transactional.Up())
-			actual = transactional.DumpMigrationSchema()
+			require.NoError(t, transactional.Up(ctx))
+			actual = transactional.DumpMigrationSchema(ctx)
 			assert.EqualValues(t, expected, actual)
 		})
 	}
@@ -123,6 +129,8 @@ func TestMigratorUpgradingFromStart(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, litedb.Close())
 
+	ctx := context.Background()
+
 	c, err := pop.NewConnection(&pop.ConnectionDetails{
 		URL: "sqlite://file::memory:?_fk=true",
 	})
@@ -132,5 +140,26 @@ func TestMigratorUpgradingFromStart(t *testing.T) {
 	l := logrusx.New("", "", logrusx.ForceLevel(logrus.DebugLevel))
 	transactional, err := NewMigrationBoxPkger("/popx/stub/migrations/transactional", c, l)
 	require.NoError(t, err)
-	require.NoError(t, transactional.Up())
+	status, err := transactional.Status(ctx)
+	require.NoError(t, err)
+	require.True(t, status.HasPending())
+
+	require.NoError(t, transactional.Up(ctx))
+
+	status, err = transactional.Status(ctx)
+	require.NoError(t, err)
+	require.False(t, status.HasPending())
+
+	// Are all the tables here?
+	var rows []string
+	require.NoError(t, c.Store.Select(&rows, "SELECT name FROM sqlite_master WHERE type='table'"))
+
+	for _, expected := range []string{
+		"schema_migration",
+		"identities",
+	} {
+		require.Contains(t, rows, expected)
+	}
+
+	require.NoError(t, transactional.Down(ctx, -1))
 }

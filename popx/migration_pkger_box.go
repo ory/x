@@ -1,16 +1,10 @@
 package popx
 
 import (
-	"bytes"
-	"io"
 	"io/ioutil"
 	"os"
 	"strings"
-	"text/template"
 
-	"github.com/ory/x/pkgerx"
-
-	"github.com/gobuffalo/fizz"
 	"github.com/gobuffalo/pop/v5"
 	"github.com/markbates/pkger"
 	"github.com/pkg/errors"
@@ -29,55 +23,12 @@ type (
 		l                *logrusx.Logger
 		migrationContent MigrationContent
 	}
-	MigrationContent func(mf pop.Migration, c *pop.Connection, r io.Reader, usingTemplate bool) (string, error)
+	MigrationContent func(mf Migration, c *pop.Connection, r []byte, usingTemplate bool) (string, error)
 )
-
-func templatingMigrationContent(params map[string]interface{}) func(pop.Migration, *pop.Connection, io.Reader, bool) (string, error) {
-	return func(mf pop.Migration, c *pop.Connection, r io.Reader, usingTemplate bool) (string, error) {
-		b, err := ioutil.ReadAll(r)
-		if err != nil {
-			return "", nil
-		}
-
-		content := ""
-		if usingTemplate {
-			t := template.New("migration")
-			t.Funcs(pkgerx.SQLTemplateFuncs)
-			t, err := t.Parse(string(b))
-			if err != nil {
-				return "", err
-			}
-
-			var bb bytes.Buffer
-			err = t.Execute(&bb, struct {
-				DialectDetails *pop.ConnectionDetails
-				Parameters     map[string]interface{}
-			}{
-				DialectDetails: c.Dialect.Details(),
-				Parameters:     params,
-			})
-			if err != nil {
-				return "", errors.Wrapf(err, "could not execute migration template %s", mf.Path)
-			}
-			content = bb.String()
-		} else {
-			content = string(b)
-		}
-
-		if mf.Type == "fizz" {
-			content, err = fizz.AString(content, c.Dialect.FizzTranslator())
-			if err != nil {
-				return "", errors.Wrapf(err, "could not fizz the migration %s", mf.Path)
-			}
-		}
-
-		return content, nil
-	}
-}
 
 func WithTemplateValues(v map[string]interface{}) func(*MigrationBoxPkger) *MigrationBoxPkger {
 	return func(m *MigrationBoxPkger) *MigrationBoxPkger {
-		m.migrationContent = templatingMigrationContent(v)
+		m.migrationContent = ParameterizedMigrationContent(v)
 		return m
 	}
 }
@@ -85,7 +36,7 @@ func WithTemplateValues(v map[string]interface{}) func(*MigrationBoxPkger) *Migr
 func WithMigrationContentMiddleware(middleware func(content string, err error) (string, error)) func(*MigrationBoxPkger) *MigrationBoxPkger {
 	return func(m *MigrationBoxPkger) *MigrationBoxPkger {
 		prev := m.migrationContent
-		m.migrationContent = func(mf pop.Migration, c *pop.Connection, r io.Reader, usingTemplate bool) (string, error) {
+		m.migrationContent = func(mf Migration, c *pop.Connection, r []byte, usingTemplate bool) (string, error) {
 			return middleware(prev(mf, c, r, usingTemplate))
 		}
 		return m
@@ -101,24 +52,24 @@ func NewMigrationBoxPkger(dir pkger.Dir, c *pop.Connection, l *logrusx.Logger, o
 		Migrator:         NewMigrator(c, l),
 		Dir:              dir,
 		l:                l,
-		migrationContent: pop.MigrationContent,
+		migrationContent: ParameterizedMigrationContent(nil),
 	}
 
 	for _, o := range opts {
 		mb = o(mb)
 	}
 
-	runner := func(f io.Reader) func(mf pop.Migration, tx *pop.Connection) error {
-		return func(mf pop.Migration, tx *pop.Connection) error {
-			content, err := mb.migrationContent(mf, tx, f, true)
+	runner := func(b []byte) func(Migration, *pop.Connection, *pop.Tx) error {
+		return func(mf Migration, c *pop.Connection, tx *pop.Tx) error {
+			content, err := mb.migrationContent(mf, c, b, true)
 			if err != nil {
 				return errors.Wrapf(err, "error processing %s", mf.Path)
 			}
 			if content == "" {
+				l.WithField("migration", mf.Path).Warn("Ignoring migration because content is empty.")
 				return nil
 			}
-			err = tx.RawQuery(content).Exec()
-			if err != nil {
+			if _, err = tx.Exec(content); err != nil {
 				return errors.Wrapf(err, "error executing %s, sql: %s", mf.Path, content)
 			}
 			return nil
@@ -133,7 +84,7 @@ func NewMigrationBoxPkger(dir pkger.Dir, c *pop.Connection, l *logrusx.Logger, o
 	return mb, nil
 }
 
-func (fm *MigrationBoxPkger) findMigrations(runner func(f io.Reader) func(mf pop.Migration, tx *pop.Connection) error) error {
+func (fm *MigrationBoxPkger) findMigrations(runner func([]byte) func(mf Migration, c *pop.Connection, tx *pop.Tx) error) error {
 	return pkger.Walk(string(fm.Dir), func(p string, info os.FileInfo, err error) error {
 		if err != nil {
 			return errors.WithStack(err)
@@ -168,14 +119,14 @@ func (fm *MigrationBoxPkger) findMigrations(runner func(f io.Reader) func(mf pop
 			return errors.WithStack(err)
 		}
 
-		mf := pop.Migration{
+		mf := Migration{
 			Path:      p,
 			Version:   match.Version,
 			Name:      match.Name,
 			DBType:    match.DBType,
 			Direction: match.Direction,
 			Type:      match.Type,
-			Runner:    runner(bytes.NewReader(content)),
+			Runner:    runner(content),
 		}
 		fm.Migrations[mf.Direction] = append(fm.Migrations[mf.Direction], mf)
 		return nil
