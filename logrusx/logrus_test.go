@@ -69,7 +69,6 @@ func TestGelfFormatter(t *testing.T) {
 		l.Logrus().Out = &b
 
 		l.Info("foo bar")
-		assert.Contains(t, b.String(), "_pid")
 		assert.Contains(t, b.String(), "level")
 		assert.Contains(t, b.String(), "short_message")
 	})
