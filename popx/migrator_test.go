@@ -3,6 +3,7 @@ package popx
 import (
 	"bytes"
 	"context"
+	"embed"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -18,6 +19,12 @@ import (
 	"github.com/ory/x/pkgerx"
 	"github.com/ory/x/sqlcon/dockertest"
 )
+
+//go:embed stub/migrations/legacy/*.sql
+var legacyMigrations embed.FS
+
+//go:embed stub/migrations/transactional/*.sql
+var transactionalMigrations embed.FS
 
 func TestMigratorUpgrading(t *testing.T) {
 	litedb, err := ioutil.TempFile(os.TempDir(), "sqlite-*")
@@ -67,7 +74,7 @@ func TestMigratorUpgrading(t *testing.T) {
 
 			expected := legacy.DumpMigrationSchema()
 
-			transactional, err := NewMigrationBoxPkger("/popx/stub/migrations/transactional", c, l)
+			transactional, err := NewMigrationBox(transactionalMigrations, c, l)
 			require.NoError(t, err)
 
 			var transactionalStatusBuffer bytes.Buffer
@@ -138,7 +145,7 @@ func TestMigratorUpgradingFromStart(t *testing.T) {
 	require.NoError(t, c.Open())
 
 	l := logrusx.New("", "", logrusx.ForceLevel(logrus.DebugLevel))
-	transactional, err := NewMigrationBoxPkger("/popx/stub/migrations/transactional", c, l)
+	transactional, err := NewMigrationBox(transactionalMigrations, c, l)
 	require.NoError(t, err)
 	status, err := transactional.Status(ctx)
 	require.NoError(t, err)
