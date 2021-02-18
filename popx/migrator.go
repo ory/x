@@ -13,6 +13,8 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/ory/x/tracing"
+
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/log"
 
@@ -34,7 +36,7 @@ var mrx = regexp.MustCompile(`^(\d+)_([^.]+)(\.[a-z0-9]+)?\.(up|down)\.(sql|fizz
 // to use something like MigrationBox or FileMigrator. A "blank"
 // Migrator should only be used as the basis for a new type of
 // migration system.
-func NewMigrator(c *pop.Connection, l *logrusx.Logger, tracer opentracing.Tracer, perMigrationTimeout time.Duration) *Migrator {
+func NewMigrator(c *pop.Connection, l *logrusx.Logger, tracer *tracing.Tracer, perMigrationTimeout time.Duration) *Migrator {
 	return &Migrator{
 		Connection: c,
 		l:          l,
@@ -57,7 +59,7 @@ type Migrator struct {
 	Migrations          map[string]Migrations
 	l                   *logrusx.Logger
 	perMigrationTimeout time.Duration
-	tracer              opentracing.Tracer
+	tracer              *tracing.Tracer
 }
 
 func (m *Migrator) MigrationIsCompatible(dialect string, mi Migration) bool {
@@ -489,8 +491,9 @@ func (m *Migrator) wrapSpan(ctx context.Context, opName string, f func(ctx conte
 
 func (m *Migrator) startSpan(ctx context.Context, opName string) (opentracing.Span, context.Context) {
 	tracer := opentracing.GlobalTracer()
-	if m.tracer != nil {
-		tracer = m.tracer
+	if m.tracer.IsLoaded() {
+		tracer = m.tracer.Tracer()
+
 	}
 
 	span, ctx := opentracing.StartSpanFromContextWithTracer(ctx, tracer, opName)
