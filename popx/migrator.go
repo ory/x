@@ -13,6 +13,9 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/log"
+
 	"github.com/gobuffalo/pop/v5"
 
 	"github.com/ory/x/logrusx"
@@ -31,14 +34,16 @@ var mrx = regexp.MustCompile(`^(\d+)_([^.]+)(\.[a-z0-9]+)?\.(up|down)\.(sql|fizz
 // to use something like MigrationBox or FileMigrator. A "blank"
 // Migrator should only be used as the basis for a new type of
 // migration system.
-func NewMigrator(c *pop.Connection, l *logrusx.Logger) Migrator {
-	return Migrator{
+func NewMigrator(c *pop.Connection, l *logrusx.Logger, tracer opentracing.Tracer, perMigrationTimeout time.Duration) *Migrator {
+	return &Migrator{
 		Connection: c,
 		l:          l,
 		Migrations: map[string]Migrations{
 			"up":   {},
 			"down": {},
 		},
+		tracer:              tracer,
+		perMigrationTimeout: perMigrationTimeout,
 	}
 }
 
@@ -47,13 +52,15 @@ func NewMigrator(c *pop.Connection, l *logrusx.Logger) Migrator {
 // When building a new migration system, you should embed this
 // type into your migrator.
 type Migrator struct {
-	Connection *pop.Connection
-	SchemaPath string
-	Migrations map[string]Migrations
-	l          *logrusx.Logger
+	Connection          *pop.Connection
+	SchemaPath          string
+	Migrations          map[string]Migrations
+	l                   *logrusx.Logger
+	perMigrationTimeout time.Duration
+	tracer              opentracing.Tracer
 }
 
-func (m Migrator) MigrationIsCompatible(dialect string, mi Migration) bool {
+func (m *Migrator) MigrationIsCompatible(dialect string, mi Migration) bool {
 	if mi.DBType == "all" || mi.DBType == dialect {
 		return true
 	}
@@ -61,14 +68,18 @@ func (m Migrator) MigrationIsCompatible(dialect string, mi Migration) bool {
 }
 
 // Up runs pending "up" migrations and applies them to the database.
-func (m Migrator) Up(ctx context.Context) error {
+func (m *Migrator) Up(ctx context.Context) error {
 	_, err := m.UpTo(ctx, 0)
 	return err
 }
 
 // UpTo runs up to step "up" migrations and applies them to the database.
 // If step <= 0 all pending migrations are run.
-func (m Migrator) UpTo(ctx context.Context, step int) (applied int, err error) {
+func (m *Migrator) UpTo(ctx context.Context, step int) (applied int, err error) {
+	span, ctx := m.startSpan(ctx, MigrationUpOpName)
+	defer span.Finish()
+	span.LogFields(log.Int("up_to_step", step))
+
 	c := m.Connection.WithContext(ctx)
 	err = m.exec(ctx, func() error {
 		mtn := m.migrationTableName(ctx, c)
@@ -99,7 +110,7 @@ func (m Migrator) UpTo(ctx context.Context, step int) (applied int, err error) {
 
 				if exists {
 					m.l.WithField("version", mi.Version).WithField("legacy_version", legacyVersion).WithField("migration_table", mtn).Debug("Migration has already been applied in a legacy migration run. Updating version in migration table.")
-					if err := m.isolatedTransaction(ctx, func(tx *pop.Tx) error {
+					if err := m.isolatedTransaction(ctx, "init-migrate", func(tx *pop.Tx) error {
 						// We do not want to remove the legacy migration version or subsequent migrations might be applied twice.
 						//
 						// Do not activate the following - it is just for reference.
@@ -120,7 +131,7 @@ func (m Migrator) UpTo(ctx context.Context, step int) (applied int, err error) {
 
 			m.l.WithField("version", mi.Version).Debug("Migration has not yet been applied, running migration.")
 
-			if err = m.isolatedTransaction(ctx, func(tx *pop.Tx) error {
+			if err = m.isolatedTransaction(ctx, "up", func(tx *pop.Tx) error {
 				if err := mi.Run(c, tx); err != nil {
 					return err
 				}
@@ -152,7 +163,10 @@ func (m Migrator) UpTo(ctx context.Context, step int) (applied int, err error) {
 
 // Down runs pending "down" migrations and rolls back the
 // database by the specified number of steps.
-func (m Migrator) Down(ctx context.Context, step int) error {
+func (m *Migrator) Down(ctx context.Context, step int) error {
+	span, ctx := m.startSpan(ctx, MigrationDownOpName)
+	defer span.Finish()
+
 	c := m.Connection.WithContext(ctx)
 	return m.exec(ctx, func() error {
 		mtn := m.migrationTableName(ctx, c)
@@ -193,7 +207,7 @@ func (m Migrator) Down(ctx context.Context, step int) error {
 				return errors.Errorf("migration version %s does not exist", mi.Version)
 			}
 
-			err = m.isolatedTransaction(ctx, func(tx *pop.Tx) error {
+			err = m.isolatedTransaction(ctx, "down", func(tx *pop.Tx) error {
 				err := mi.Run(c, tx)
 				if err != nil {
 					return err
@@ -217,7 +231,7 @@ func (m Migrator) Down(ctx context.Context, step int) error {
 }
 
 // Reset the database by running the down migrations followed by the up migrations.
-func (m Migrator) Reset(ctx context.Context) error {
+func (m *Migrator) Reset(ctx context.Context) error {
 	err := m.Down(ctx, -1)
 	if err != nil {
 		return err
@@ -225,7 +239,7 @@ func (m Migrator) Reset(ctx context.Context) error {
 	return m.Up(ctx)
 }
 
-func (m Migrator) createTransactionalMigrationTable(ctx context.Context, c *pop.Connection, l *logrusx.Logger) error {
+func (m *Migrator) createTransactionalMigrationTable(ctx context.Context, c *pop.Connection, l *logrusx.Logger) error {
 	mtn := m.migrationTableName(ctx, c)
 	unprefixedMtn := m.migrationTableName(ctx, c)
 
@@ -242,7 +256,7 @@ func (m Migrator) createTransactionalMigrationTable(ctx context.Context, c *pop.
 	return nil
 }
 
-func (m Migrator) migrateToTransactionalMigrationTable(ctx context.Context, c *pop.Connection, l *logrusx.Logger) error {
+func (m *Migrator) migrateToTransactionalMigrationTable(ctx context.Context, c *pop.Connection, l *logrusx.Logger) error {
 	// This means the new pop migrator has also not yet been applied, do that now.
 	mtn := m.migrationTableName(ctx, c)
 	unprefixedMtn := m.migrationTableName(ctx, c)
@@ -277,7 +291,17 @@ func (m Migrator) migrateToTransactionalMigrationTable(ctx context.Context, c *p
 	return nil
 }
 
-func (m Migrator) isolatedTransaction(ctx context.Context, fn func(tx *pop.Tx) error) error {
+func (m *Migrator) isolatedTransaction(ctx context.Context, direction string, fn func(tx *pop.Tx) error) error {
+	span, ctx := m.startSpan(ctx, MigrationRunTransactionOpName)
+	defer span.Finish()
+	span.SetTag("migration_direction", direction)
+
+	if m.perMigrationTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, m.perMigrationTimeout)
+		defer cancel()
+	}
+
 	c := m.Connection.WithContext(ctx)
 	tx, dberr := c.Store.TransactionContextOptions(ctx, &sql.TxOptions{
 		Isolation: sql.LevelSerializable,
@@ -301,9 +325,9 @@ func (m Migrator) isolatedTransaction(ctx context.Context, fn func(tx *pop.Tx) e
 	return err
 }
 
-func (m Migrator) execMigrationTransaction(ctx context.Context, c *pop.Connection, transactions ...[]string) error {
+func (m *Migrator) execMigrationTransaction(ctx context.Context, c *pop.Connection, transactions ...[]string) error {
 	for _, statements := range transactions {
-		if err := m.isolatedTransaction(ctx, func(tx *pop.Tx) error {
+		if err := m.isolatedTransaction(ctx, "init", func(tx *pop.Tx) error {
 			for _, statement := range statements {
 				if _, err := tx.ExecContext(ctx, statement); err != nil {
 					return errors.Wrapf(err, "unable to execute statement: %s", statement)
@@ -320,7 +344,10 @@ func (m Migrator) execMigrationTransaction(ctx context.Context, c *pop.Connectio
 
 // CreateSchemaMigrations sets up a table to track migrations. This is an idempotent
 // operation.
-func (m Migrator) CreateSchemaMigrations(ctx context.Context) error {
+func (m *Migrator) CreateSchemaMigrations(ctx context.Context) error {
+	span, ctx := m.startSpan(ctx, MigrationInitOpName)
+	defer span.Finish()
+
 	c := m.Connection.WithContext(ctx)
 
 	mtn := m.migrationTableName(ctx, c)
@@ -371,7 +398,7 @@ func (m MigrationStatuses) HasPending() bool {
 	return false
 }
 
-func (m Migrator) migrationTableName(ctx context.Context, con *pop.Connection) string {
+func (m *Migrator) migrationTableName(ctx context.Context, con *pop.Connection) string {
 	return con.MigrationTableName()
 }
 
@@ -382,7 +409,10 @@ func errIsTableNotFound(err error) bool {
 }
 
 // Status prints out the status of applied/pending migrations.
-func (m Migrator) Status(ctx context.Context) (MigrationStatuses, error) {
+func (m *Migrator) Status(ctx context.Context) (MigrationStatuses, error) {
+	span, ctx := m.startSpan(ctx, MigrationStatusOpName)
+	defer span.Finish()
+
 	con := m.Connection.WithContext(ctx)
 
 	migrations := m.Migrations["up"]
@@ -432,7 +462,7 @@ func (m Migrator) Status(ctx context.Context) (MigrationStatuses, error) {
 
 // DumpMigrationSchema will generate a file of the current database schema
 // based on the value of Migrator.SchemaPath
-func (m Migrator) DumpMigrationSchema(ctx context.Context) error {
+func (m *Migrator) DumpMigrationSchema(ctx context.Context) error {
 	if m.SchemaPath == "" {
 		return nil
 	}
@@ -450,7 +480,27 @@ func (m Migrator) DumpMigrationSchema(ctx context.Context) error {
 	return nil
 }
 
-func (m Migrator) exec(ctx context.Context, fn func() error) error {
+func (m *Migrator) wrapSpan(ctx context.Context, opName string, f func(ctx context.Context, span opentracing.Span) error) error {
+	span, ctx := m.startSpan(ctx, opName)
+	defer span.Finish()
+
+	return f(ctx, span)
+}
+
+func (m *Migrator) startSpan(ctx context.Context, opName string) (opentracing.Span, context.Context) {
+	tracer := opentracing.GlobalTracer()
+	if m.tracer != nil {
+		tracer = m.tracer
+	}
+
+	span, ctx := opentracing.StartSpanFromContextWithTracer(ctx, tracer, opName)
+	span.SetTag("component", "github.com/ory/x/popx")
+
+	span.LogFields()
+	return span, ctx
+}
+
+func (m *Migrator) exec(ctx context.Context, fn func() error) error {
 	now := time.Now()
 	defer func() {
 		err := m.DumpMigrationSchema(ctx)
@@ -466,7 +516,7 @@ func (m Migrator) exec(ctx context.Context, fn func() error) error {
 	}
 
 	if m.Connection.Dialect.Name() == "sqlite3" {
-		if err := m.Connection.RawQuery("PRAGMA foreign_keys=OFF").Exec(); err!= nil {
+		if err := m.Connection.RawQuery("PRAGMA foreign_keys=OFF").Exec(); err != nil {
 			return err
 		}
 	}
@@ -476,7 +526,7 @@ func (m Migrator) exec(ctx context.Context, fn func() error) error {
 	}
 
 	if m.Connection.Dialect.Name() == "sqlite3" {
-		if err := m.Connection.RawQuery("PRAGMA foreign_keys=ON").Exec(); err!= nil {
+		if err := m.Connection.RawQuery("PRAGMA foreign_keys=ON").Exec(); err != nil {
 			return err
 		}
 	}
@@ -484,7 +534,7 @@ func (m Migrator) exec(ctx context.Context, fn func() error) error {
 	return nil
 }
 
-func (m Migrator) printTimer(timerStart time.Time) {
+func (m *Migrator) printTimer(timerStart time.Time) {
 	diff := time.Since(timerStart).Seconds()
 	if diff > 60 {
 		m.l.Debugf("%.4f minutes", diff/60)

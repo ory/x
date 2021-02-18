@@ -71,7 +71,7 @@ func TestMigratorUpgrading(t *testing.T) {
 
 			expected := legacy.DumpMigrationSchema()
 
-			transactional, err := NewMigrationBox(transactionalMigrations, c, l)
+			transactional, err := NewMigrationBox(transactionalMigrations, NewMigrator(c, l, nil, 0))
 			require.NoError(t, err)
 
 			var transactionalStatusBuffer bytes.Buffer
@@ -142,7 +142,7 @@ func TestMigratorUpgradingFromStart(t *testing.T) {
 	require.NoError(t, c.Open())
 
 	l := logrusx.New("", "", logrusx.ForceLevel(logrus.DebugLevel))
-	transactional, err := NewMigrationBox(transactionalMigrations, c, l)
+	transactional, err := NewMigrationBox(transactionalMigrations, NewMigrator(c, l, nil, 0))
 	require.NoError(t, err)
 	status, err := transactional.Status(ctx)
 	require.NoError(t, err)

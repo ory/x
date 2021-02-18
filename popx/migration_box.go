@@ -14,7 +14,7 @@ import (
 type (
 	// MigrationBox is a embed migration box.
 	MigrationBox struct {
-		Migrator
+		*Migrator
 
 		Dir              embed.FS
 		l                *logrusx.Logger
@@ -44,11 +44,11 @@ func WithMigrationContentMiddleware(middleware func(content string, err error) (
 //
 //	migrations, err := NewMigrationBox(pkger.Dir("/migrations"))
 //
-func NewMigrationBox(dir embed.FS, c *pop.Connection, l *logrusx.Logger, opts ...func(*MigrationBox) *MigrationBox) (*MigrationBox, error) {
+func NewMigrationBox(dir embed.FS, m *Migrator, opts ...func(*MigrationBox) *MigrationBox) (*MigrationBox, error) {
 	mb := &MigrationBox{
-		Migrator:         NewMigrator(c, l),
+		Migrator:         m,
 		Dir:              dir,
-		l:                l,
+		l:                m.l,
 		migrationContent: ParameterizedMigrationContent(nil),
 	}
 
@@ -63,7 +63,7 @@ func NewMigrationBox(dir embed.FS, c *pop.Connection, l *logrusx.Logger, opts ..
 				return errors.Wrapf(err, "error processing %s", mf.Path)
 			}
 			if content == "" {
-				l.WithField("migration", mf.Path).Warn("Ignoring migration because content is empty.")
+				m.l.WithField("migration", mf.Path).Warn("Ignoring migration because content is empty.")
 				return nil
 			}
 			if _, err = tx.Exec(content); err != nil {
