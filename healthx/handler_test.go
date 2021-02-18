@@ -21,6 +21,7 @@
 package healthx
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
@@ -41,7 +42,7 @@ func TestHealth(t *testing.T) {
 		H:             herodot.NewJSONWriter(nil),
 		VersionString: "test version",
 		ReadyChecks: map[string]ReadyChecker{
-			"test": func() error {
+			"test": func(ctx context.Context) error {
 				return alive
 			},
 		},
