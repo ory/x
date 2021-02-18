@@ -5,8 +5,9 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/ory/x/stringsx"
 	gelf "github.com/seatgeek/logrus-gelf-formatter"
+
+	"github.com/ory/x/stringsx"
 )
 
 type (

@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ory/x/logrusx"
 
@@ -19,7 +20,7 @@ import (
 
 // TestMigrator is a modified pop.FileMigrator
 type TestMigrator struct {
-	Migrator
+	*Migrator
 }
 
 // Returns a new TestMigrator
@@ -28,7 +29,7 @@ type TestMigrator struct {
 // The filenames are expected to be of the format ([0-9]+).*(_testdata(\.[dbtype])?.sql
 func NewTestMigrator(t *testing.T, c *pop.Connection, migrationPath, testDataPath string, l *logrusx.Logger) *TestMigrator {
 	tm := TestMigrator{
-		Migrator: NewMigrator(c, l),
+		Migrator: NewMigrator(c, l, nil, time.Minute),
 	}
 	tm.SchemaPath = migrationPath
 	testDataPath = strings.TrimSuffix(testDataPath, "/")
