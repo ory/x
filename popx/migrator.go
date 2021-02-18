@@ -45,7 +45,7 @@ func NewMigrator(c *pop.Connection, l *logrusx.Logger, tracer *tracing.Tracer, p
 			"down": {},
 		},
 		tracer:              tracer,
-		perMigrationTimeout: perMigrationTimeout,
+		PerMigrationTimeout: perMigrationTimeout,
 	}
 }
 
@@ -58,7 +58,7 @@ type Migrator struct {
 	SchemaPath          string
 	Migrations          map[string]Migrations
 	l                   *logrusx.Logger
-	perMigrationTimeout time.Duration
+	PerMigrationTimeout time.Duration
 	tracer              *tracing.Tracer
 }
 
@@ -298,9 +298,9 @@ func (m *Migrator) isolatedTransaction(ctx context.Context, direction string, fn
 	defer span.Finish()
 	span.SetTag("migration_direction", direction)
 
-	if m.perMigrationTimeout > 0 {
+	if m.PerMigrationTimeout > 0 {
 		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, m.perMigrationTimeout)
+		ctx, cancel = context.WithTimeout(ctx, m.PerMigrationTimeout)
 		defer cancel()
 	}
 
