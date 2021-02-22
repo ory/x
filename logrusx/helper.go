@@ -153,7 +153,7 @@ func (l *Logger) WithError(err error) *Logger {
 }
 
 var popLevelTranslations = map[logging.Level]logrus.Level{
-	logging.SQL:   logrus.TraceLevel,
+	// logging.SQL:   logrus.TraceLevel, we never want to log SQL statements, see https://github.com/ory/keto/issues/454
 	logging.Debug: logrus.DebugLevel,
 	logging.Info:  logrus.InfoLevel,
 	logging.Warn:  logrus.WarnLevel,
@@ -161,6 +161,8 @@ var popLevelTranslations = map[logging.Level]logrus.Level{
 }
 
 func (l *Logger) PopLogger(lvl logging.Level, s string, args ...interface{}) {
-	level := popLevelTranslations[lvl]
-	l.WithField("source", "pop").Logf(level, s, args...)
+	level, ok := popLevelTranslations[lvl]
+	if ok {
+		l.WithField("source", "pop").Logf(level, s, args...)
+	}
 }
