@@ -12,13 +12,15 @@ require (
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-bindata/go-bindata v3.1.1+incompatible
+	github.com/go-openapi/errors v0.20.0 // indirect
+	github.com/go-openapi/runtime v0.19.26
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gobuffalo/fizz v1.10.0
 	github.com/gobuffalo/httptest v1.0.2
 	github.com/gobuffalo/packr v1.22.0
 	github.com/gobuffalo/pop/v5 v5.3.1
 	github.com/google/go-jsonnet v0.16.0
-	github.com/google/uuid v1.1.0
+	github.com/google/uuid v1.1.1
 	github.com/gorilla/websocket v1.4.2
 	github.com/inhies/go-bytesize v0.0.0-20201103132853-d0aed0d254f8
 	github.com/jackc/pgconn v1.6.0
@@ -30,7 +32,7 @@ require (
 	github.com/markbates/pkger v0.17.1
 	github.com/mattn/goveralls v0.0.2
 	github.com/morikuni/aec v1.0.0 // indirect
-	github.com/opentracing/opentracing-go v1.1.1-0.20190913142402-a7454ce5950e
+	github.com/opentracing/opentracing-go v1.2.0
 	github.com/openzipkin-contrib/zipkin-go-opentracing v0.4.5
 	github.com/openzipkin/zipkin-go v0.2.2
 	github.com/ory/analytics-go/v4 v4.0.0
@@ -62,7 +64,6 @@ require (
 	gonum.org/v1/plot v0.0.0-20200111075622-4abb28f724d5
 	gopkg.in/DataDog/dd-trace-go.v1 v1.27.0
 	gopkg.in/square/go-jose.v2 v2.2.2
-	gopkg.in/yaml.v2 v2.3.0 // indirect
 )
 
 go 1.16
