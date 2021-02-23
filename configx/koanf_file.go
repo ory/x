@@ -2,16 +2,13 @@ package configx
 
 import (
 	"context"
-	"io/ioutil"
+	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/json"
 	"github.com/knadh/koanf/parsers/toml"
 	"github.com/knadh/koanf/parsers/yaml"
-
-	"github.com/ory/x/stringslice"
 
 	"github.com/pkg/errors"
 
@@ -59,28 +56,13 @@ func (f *KoanfFile) ReadBytes() ([]byte, error) {
 
 // Read is not supported by the file provider.
 func (f *KoanfFile) Read() (map[string]interface{}, error) {
-	fc, err := ioutil.ReadFile(f.path)
+	fc, err := os.Open(f.path)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
+	defer fc.Close()
 
-	v, err := f.parser.Unmarshal(fc)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	if f.subKey == "" {
-		return v, nil
-	}
-
-	path := strings.Split(f.subKey, Delimiter)
-	for _, k := range stringslice.Reverse(path) {
-		v = map[string]interface{}{
-			k: v,
-		}
-	}
-
-	return v, nil
+	return StreamToKoanf(fc, f.subKey, f.parser)
 }
 
 // WatchChannel watches the file and triggers a callback when it changes. It is a
