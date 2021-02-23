@@ -27,8 +27,6 @@ require (
 	github.com/julienschmidt/httprouter v1.2.0
 	github.com/knadh/koanf v0.14.1-0.20201201075439-e0853799f9ec
 	github.com/lib/pq v1.3.0
-	github.com/luna-duclos/instrumentedsql v1.1.3
-	github.com/luna-duclos/instrumentedsql/opentracing v0.0.0-20201103091713-40d03108b6f4
 	github.com/markbates/pkger v0.17.1
 	github.com/mattn/goveralls v0.0.2
 	github.com/morikuni/aec v1.0.0 // indirect
@@ -47,6 +45,7 @@ require (
 	github.com/pkg/profile v1.2.1
 	github.com/rs/cors v1.6.0
 	github.com/rubenv/sql-migrate v0.0.0-20190212093014-1007f53448d7
+	github.com/seatgeek/logrus-gelf-formatter v0.0.0-20210219220335-367fa274be2c
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cast v1.3.2-0.20200723214538-8d17101741c8
 	github.com/spf13/cobra v1.0.0
@@ -60,7 +59,6 @@ require (
 	go.elastic.co/apm/module/apmot v1.8.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace v0.13.0
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
-	golang.org/x/sys v0.0.0-20200831180312-196b9ba8737a // indirect
 	gonum.org/v1/plot v0.0.0-20200111075622-4abb28f724d5
 	gopkg.in/DataDog/dd-trace-go.v1 v1.27.0
 	gopkg.in/square/go-jose.v2 v2.2.2
