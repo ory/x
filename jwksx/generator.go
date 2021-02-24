@@ -32,8 +32,8 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/google/uuid"
+	"github.com/square/go-jose/v3"
 	"golang.org/x/crypto/ed25519"
-	"gopkg.in/square/go-jose.v2"
 )
 
 // GenerateSigningKeys generates a JSON Web Key Set for signing.

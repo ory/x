@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/square/go-jose/v3"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/square/go-jose.v2"
 )
 
 func TestGenerateSigningKeys(t *testing.T) {
