@@ -47,7 +47,7 @@ func RoutesToObserve() []string {
 }
 
 // ReadyChecker should return an error if the component is not ready yet.
-type ReadyChecker func() error
+type ReadyChecker func(r *http.Request) error
 
 // ReadyCheckers is a map of ReadyCheckers.
 type ReadyCheckers map[string]ReadyChecker
@@ -139,7 +139,7 @@ func (h *Handler) Ready(shareErrors bool) httprouter.Handle {
 		}
 
 		for n, c := range h.ReadyChecks {
-			if err := c(); err != nil {
+			if err := c(r); err != nil {
 				if shareErrors {
 					notReady.Errors[n] = err.Error()
 				} else {

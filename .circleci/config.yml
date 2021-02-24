@@ -7,7 +7,7 @@ orbs:
 jobs:
   test:
     docker:
-      - image: circleci/golang:1.15
+      - image: cimg/go:1.16
         environment:
         - TEST_DATABASE_POSTGRESQL=postgres://test:test@localhost:5432/sqlcon?sslmode=disable
         - TEST_DATABASE_MYSQL=mysql://root:test@tcp(localhost:3306)/mysql?parseTime=true
@@ -23,7 +23,6 @@ jobs:
         - MYSQL_ROOT_PASSWORD=test
       - image: cockroachdb/cockroach:v20.2.3
         command: start-single-node --insecure
-    working_directory: /go/src/github.com/ory/sqlcon
     steps:
       - checkout
       - run: curl -L https://git.io/vp6lP | sh
@@ -35,8 +34,7 @@ jobs:
 
   docs:
     docker:
-      - image: circleci/golang:1.12
-    working_directory: /go/src/github.com/ory/oathkeeper
+      - image: cimg/go:1.16
     steps:
       - checkout
       - run: git config --global user.email "hi@ory.sh"
@@ -47,7 +45,7 @@ jobs:
 
   validate:
     docker:
-      - image: circleci/golang:1.15
+      - image: cimg/go:1.16
         environment:
           GO11MODULES: 'on'
     steps:

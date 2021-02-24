@@ -41,7 +41,7 @@ func TestHealth(t *testing.T) {
 		H:             herodot.NewJSONWriter(nil),
 		VersionString: "test version",
 		ReadyChecks: map[string]ReadyChecker{
-			"test": func() error {
+			"test": func(r *http.Request) error {
 				return alive
 			},
 		},

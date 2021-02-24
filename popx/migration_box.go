@@ -1,40 +1,37 @@
 package popx
 
 import (
-	"io/ioutil"
-	"os"
+	"embed"
+	"io/fs"
 	"strings"
 
 	"github.com/gobuffalo/pop/v5"
-	"github.com/markbates/pkger"
 	"github.com/pkg/errors"
 
 	"github.com/ory/x/logrusx"
 )
 
 type (
-	// MigrationBoxPkger is a wrapper around pkger.Dir and Migrator.
-	// This will allow you to run migrations from migrations packed
-	// inside of a compiled binary.
-	MigrationBoxPkger struct {
-		Migrator
+	// MigrationBox is a embed migration box.
+	MigrationBox struct {
+		*Migrator
 
-		Dir              pkger.Dir
+		Dir              embed.FS
 		l                *logrusx.Logger
 		migrationContent MigrationContent
 	}
 	MigrationContent func(mf Migration, c *pop.Connection, r []byte, usingTemplate bool) (string, error)
 )
 
-func WithTemplateValues(v map[string]interface{}) func(*MigrationBoxPkger) *MigrationBoxPkger {
-	return func(m *MigrationBoxPkger) *MigrationBoxPkger {
+func WithTemplateValues(v map[string]interface{}) func(*MigrationBox) *MigrationBox {
+	return func(m *MigrationBox) *MigrationBox {
 		m.migrationContent = ParameterizedMigrationContent(v)
 		return m
 	}
 }
 
-func WithMigrationContentMiddleware(middleware func(content string, err error) (string, error)) func(*MigrationBoxPkger) *MigrationBoxPkger {
-	return func(m *MigrationBoxPkger) *MigrationBoxPkger {
+func WithMigrationContentMiddleware(middleware func(content string, err error) (string, error)) func(*MigrationBox) *MigrationBox {
+	return func(m *MigrationBox) *MigrationBox {
 		prev := m.migrationContent
 		m.migrationContent = func(mf Migration, c *pop.Connection, r []byte, usingTemplate bool) (string, error) {
 			return middleware(prev(mf, c, r, usingTemplate))
@@ -43,15 +40,15 @@ func WithMigrationContentMiddleware(middleware func(content string, err error) (
 	}
 }
 
-// NewMigrationBoxPkger from a packr.Dir and a Connection.
+// NewMigrationBox from a packr.Dir and a Connection.
 //
-//	migrations, err := NewMigrationBoxPkger(pkger.Dir("/migrations"))
+//	migrations, err := NewMigrationBox(pkger.Dir("/migrations"))
 //
-func NewMigrationBoxPkger(dir pkger.Dir, c *pop.Connection, l *logrusx.Logger, opts ...func(*MigrationBoxPkger) *MigrationBoxPkger) (*MigrationBoxPkger, error) {
-	mb := &MigrationBoxPkger{
-		Migrator:         NewMigrator(c, l),
+func NewMigrationBox(dir embed.FS, m *Migrator, opts ...func(*MigrationBox) *MigrationBox) (*MigrationBox, error) {
+	mb := &MigrationBox{
+		Migrator:         m,
 		Dir:              dir,
-		l:                l,
+		l:                m.l,
 		migrationContent: ParameterizedMigrationContent(nil),
 	}
 
@@ -66,7 +63,7 @@ func NewMigrationBoxPkger(dir pkger.Dir, c *pop.Connection, l *logrusx.Logger, o
 				return errors.Wrapf(err, "error processing %s", mf.Path)
 			}
 			if content == "" {
-				l.WithField("migration", mf.Path).Warn("Ignoring migration because content is empty.")
+				m.l.WithField("migration", mf.Path).Warn("Ignoring migration because content is empty.")
 				return nil
 			}
 			if _, err = tx.Exec(content); err != nil {
@@ -84,8 +81,8 @@ func NewMigrationBoxPkger(dir pkger.Dir, c *pop.Connection, l *logrusx.Logger, o
 	return mb, nil
 }
 
-func (fm *MigrationBoxPkger) findMigrations(runner func([]byte) func(mf Migration, c *pop.Connection, tx *pop.Tx) error) error {
-	return pkger.Walk(string(fm.Dir), func(p string, info os.FileInfo, err error) error {
+func (fm *MigrationBox) findMigrations(runner func([]byte) func(mf Migration, c *pop.Connection, tx *pop.Tx) error) error {
+	return fs.WalkDir(fm.Dir, ".", func(p string, info fs.DirEntry, err error) error {
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -108,13 +105,7 @@ func (fm *MigrationBoxPkger) findMigrations(runner func([]byte) func(mf Migratio
 			return nil
 		}
 
-		file, err := pkger.Open(p)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-		defer file.Close()
-
-		content, err := ioutil.ReadAll(file)
+		content, err := fm.Dir.ReadFile(p)
 		if err != nil {
 			return errors.WithStack(err)
 		}
