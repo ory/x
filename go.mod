@@ -47,7 +47,7 @@ require (
 	github.com/pkg/profile v1.2.1
 	github.com/rs/cors v1.6.0
 	github.com/rubenv/sql-migrate v0.0.0-20190212093014-1007f53448d7
-	github.com/seatgeek/logrus-gelf-formatter v0.0.0-20180829220724-ce23ecb3f367
+	github.com/seatgeek/logrus-gelf-formatter v0.0.0-20210219220335-367fa274be2c
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cast v1.3.2-0.20200723214538-8d17101741c8
 	github.com/spf13/cobra v1.0.0
