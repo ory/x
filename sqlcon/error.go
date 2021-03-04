@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strings"
 
+	"google.golang.org/grpc/codes"
+
 	"github.com/go-sql-driver/mysql"
 	"github.com/jackc/pgconn"
 	"github.com/lib/pq"
@@ -18,21 +20,24 @@ import (
 var (
 	// ErrUniqueViolation is returned when^a SQL INSERT / UPDATE command returns a conflict.
 	ErrUniqueViolation = &herodot.DefaultError{
-		CodeField:   http.StatusConflict,
-		StatusField: http.StatusText(http.StatusConflict),
-		ErrorField:  "Unable to insert or update resource because a resource with that value exists already",
+		CodeField:     http.StatusConflict,
+		GRPCCodeField: codes.AlreadyExists,
+		StatusField:   http.StatusText(http.StatusConflict),
+		ErrorField:    "Unable to insert or update resource because a resource with that value exists already",
 	}
 	// ErrNoRows is returned when a SQL SELECT statement returns no rows.
 	ErrNoRows = &herodot.DefaultError{
-		CodeField:   http.StatusNotFound,
-		StatusField: http.StatusText(http.StatusNotFound),
-		ErrorField:  "Unable to locate the resource",
+		CodeField:     http.StatusNotFound,
+		GRPCCodeField: codes.NotFound,
+		StatusField:   http.StatusText(http.StatusNotFound),
+		ErrorField:    "Unable to locate the resource",
 	}
 	// ErrConcurrentUpdate is returned when the database is unable to serialize access due to a concurrent update.
 	ErrConcurrentUpdate = &herodot.DefaultError{
-		CodeField:   http.StatusBadRequest,
-		StatusField: http.StatusText(http.StatusBadRequest),
-		ErrorField:  "Unable to serialize access due to a concurrent update in another session",
+		CodeField:     http.StatusBadRequest,
+		GRPCCodeField: codes.Aborted,
+		StatusField:   http.StatusText(http.StatusBadRequest),
+		ErrorField:    "Unable to serialize access due to a concurrent update in another session",
 	}
 )
 
