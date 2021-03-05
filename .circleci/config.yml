@@ -10,7 +10,7 @@ jobs:
       - image: cimg/go:1.16
         environment:
         - TEST_DATABASE_POSTGRESQL=postgres://test:test@localhost:5432/sqlcon?sslmode=disable
-        - TEST_DATABASE_MYSQL=mysql://root:test@tcp(localhost:3306)/mysql?parseTime=true
+        - TEST_DATABASE_MYSQL=mysql://root:test@tcp(localhost:3306)/mysql?parseTime=true&multiStatements=true
         - TEST_DATABASE_COCKROACHDB=cockroach://root@localhost:26257/defaultdb?sslmode=disable
         - GO111MODULE=on
       - image: postgres:11.8
