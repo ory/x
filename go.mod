@@ -23,7 +23,7 @@ require (
 	github.com/gobuffalo/packr v1.22.0
 	github.com/gobuffalo/pop/v5 v5.3.1
 	github.com/google/go-jsonnet v0.16.0
-	github.com/google/uuid v1.1.1
+	github.com/google/uuid v1.1.2
 	github.com/gorilla/websocket v1.4.2
 	github.com/inhies/go-bytesize v0.0.0-20201103132853-d0aed0d254f8
 	github.com/jackc/pgconn v1.6.0
@@ -41,7 +41,7 @@ require (
 	github.com/ory/analytics-go/v4 v4.0.0
 	github.com/ory/dockertest/v3 v3.6.3
 	github.com/ory/go-acc v0.2.6
-	github.com/ory/herodot v0.8.3
+	github.com/ory/herodot v0.9.2
 	github.com/ory/jsonschema/v3 v3.0.1
 	github.com/pborman/uuid v1.2.0
 	github.com/pelletier/go-toml v1.8.0
@@ -66,6 +66,7 @@ require (
 	go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace v0.13.0
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 	gonum.org/v1/plot v0.0.0-20200111075622-4abb28f724d5
+	google.golang.org/grpc v1.36.0
 	gopkg.in/DataDog/dd-trace-go.v1 v1.27.0
 	gopkg.in/square/go-jose.v2 v2.2.2
 )

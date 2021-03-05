@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ory/x/logrusx"
+
 	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,7 +25,9 @@ func TestWatchWebsocket(t *testing.T) {
 	t.Run("case=forwards events", func(t *testing.T) {
 		ctx, c, dir, cancel := setup(t)
 		defer cancel()
-		l, hook := test.NewNullLogger()
+
+		hook := &test.Hook{}
+		l := logrusx.New("", "", logrusx.WithHook(hook))
 
 		fn := filepath.Join(dir, "some.file")
 		f, err := os.Create(fn)
@@ -54,7 +58,9 @@ func TestWatchWebsocket(t *testing.T) {
 	t.Run("case=client closes itself on context cancel", func(t *testing.T) {
 		ctx1, c, dir, cancel1 := setup(t)
 		defer cancel1()
-		l, hook := test.NewNullLogger()
+
+		hook := &test.Hook{}
+		l := logrusx.New("", "", logrusx.WithHook(hook))
 
 		fn := filepath.Join(dir, "some.file")
 
@@ -78,7 +84,9 @@ func TestWatchWebsocket(t *testing.T) {
 	t.Run("case=quits client watcher when server connection is closed", func(t *testing.T) {
 		ctxClient, c, dir, cancel := setup(t)
 		defer cancel()
-		l, hook := test.NewNullLogger()
+
+		hook := &test.Hook{}
+		l := logrusx.New("", "", logrusx.WithHook(hook))
 
 		fn := filepath.Join(dir, "some.file")
 
@@ -102,7 +110,9 @@ func TestWatchWebsocket(t *testing.T) {
 	t.Run("case=successive watching works after client connection is closed", func(t *testing.T) {
 		ctxServer, c, dir, cancel := setup(t)
 		defer cancel()
-		l, hook := test.NewNullLogger()
+
+		hook := &test.Hook{}
+		l := logrusx.New("", "", logrusx.WithHook(hook))
 
 		fn := filepath.Join(dir, "some.file")
 
@@ -138,7 +148,9 @@ func TestWatchWebsocket(t *testing.T) {
 	t.Run("case=broadcasts to multiple client connections", func(t *testing.T) {
 		ctxServer, c1, dir, cancel := setup(t)
 		defer cancel()
-		l, hook := test.NewNullLogger()
+
+		hook := &test.Hook{}
+		l := logrusx.New("", "", logrusx.WithHook(hook))
 
 		fn := filepath.Join(dir, "some.file")
 
@@ -176,7 +188,8 @@ func TestWatchWebsocket(t *testing.T) {
 		// buffered channel to allow usage of DispatchNow().done
 		c = make(EventChannel, 1)
 
-		l, hook := test.NewNullLogger()
+		hook := &test.Hook{}
+		l := logrusx.New("", "", logrusx.WithHook(hook))
 
 		fn := filepath.Join(dir, "some.file")
 		initialContent := "initial content"
