@@ -3,7 +3,6 @@ package watcherx
 import (
 	"context"
 	"fmt"
-	"github.com/ory/x/logrusx"
 	"io/ioutil"
 	"net/http/httptest"
 	"os"
@@ -11,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/ory/x/logrusx"
 
 	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
