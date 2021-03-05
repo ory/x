@@ -13,6 +13,8 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/ory/x/cmdx"
+
 	"github.com/ory/x/tracing"
 
 	"github.com/opentracing/opentracing-go"
@@ -373,13 +375,44 @@ func (m *Migrator) CreateSchemaMigrations(ctx context.Context) error {
 }
 
 type MigrationStatus struct {
-	State   string
-	Version string
-	Name    string
+	State   string `json:"state"`
+	Version string `json:"version"`
+	Name    string `json:"name"`
 }
 
 type MigrationStatuses []MigrationStatus
 
+var _ cmdx.Table = (MigrationStatuses)(nil)
+
+func (m MigrationStatuses) Header() []string {
+	return []string{"Version", "Name", "Status"}
+}
+
+func (m MigrationStatuses) Table() [][]string {
+	t := make([][]string, len(m))
+	for i, s := range m {
+		t[i] = []string{s.Version, s.Name, s.State}
+	}
+	return t
+}
+
+func (m MigrationStatuses) Interface() interface{} {
+	return m
+}
+
+func (m MigrationStatuses) Len() int {
+	return len(m)
+}
+
+func (m MigrationStatuses) IDs() []string {
+	ids := make([]string, len(m))
+	for i, s := range m {
+		ids[i] = s.Version
+	}
+	return ids
+}
+
+// In the context of a cobra.Command, use cmdx.PrintTable instead.
 func (m MigrationStatuses) Write(out io.Writer) error {
 	w := tabwriter.NewWriter(out, 0, 0, 3, ' ', tabwriter.TabIndent)
 	_, _ = fmt.Fprintln(w, "Version\tName\tStatus\t")
