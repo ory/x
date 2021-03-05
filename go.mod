@@ -1,5 +1,8 @@
 module github.com/ory/x
 
+// remove once https://github.com/seatgeek/logrus-gelf-formatter/pull/5 is merged
+replace github.com/seatgeek/logrus-gelf-formatter => github.com/zepatrik/logrus-gelf-formatter v0.0.0-20210305135027-b8b3731dba10
+
 require (
 	github.com/DataDog/datadog-go v4.0.0+incompatible // indirect
 	github.com/bmatcuk/doublestar/v2 v2.0.3

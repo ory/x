@@ -84,7 +84,6 @@ func setFormatter(l *logrus.Logger, o *options) {
 			}
 		}
 	}
-
 }
 
 func ForceLevel(level logrus.Level) Option {
