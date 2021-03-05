@@ -38,7 +38,7 @@ require (
 	github.com/ory/analytics-go/v4 v4.0.0
 	github.com/ory/dockertest/v3 v3.6.3
 	github.com/ory/go-acc v0.0.0-20181118080137-ddc355013f90
-	github.com/ory/herodot v0.9.2-0.20210304171823-e813ddd0217f
+	github.com/ory/herodot v0.9.2
 	github.com/ory/jsonschema/v3 v3.0.1
 	github.com/pborman/uuid v1.2.0
 	github.com/pelletier/go-toml v1.7.0
