@@ -1,4 +1,4 @@
-package pkgerx
+package popx
 
 import (
 	"fmt"

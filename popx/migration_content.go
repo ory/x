@@ -13,7 +13,9 @@ func ParameterizedMigrationContent(params map[string]interface{}) func(mf Migrat
 	return func(mf Migration, c *pop.Connection, b []byte, usingTemplate bool) (string, error) {
 		content := ""
 		if usingTemplate {
-			t, err := template.New("migration").Parse(string(b))
+			t := template.New("migration")
+			t.Funcs(SQLTemplateFuncs)
+			t, err := t.Parse(string(b))
 			if err != nil {
 				return "", errors.Wrapf(err, "could not parse template %s", mf.Path)
 			}
