@@ -454,6 +454,7 @@ func (m *Migrator) Status(ctx context.Context) (MigrationStatuses, error) {
 	migrations.Filter(func(mf Migration) bool {
 		return m.MigrationIsCompatible(con.Dialect.Name(), mf)
 	})
+	sort.Sort(migrations)
 
 	if len(migrations) == 0 {
 		return nil, errors.Errorf("unable to find any migrations for dialect: %s", con.Dialect.Name())
