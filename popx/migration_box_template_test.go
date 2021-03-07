@@ -1,7 +1,6 @@
 package popx
 
 import (
-	"context"
 	"embed"
 	"testing"
 
@@ -11,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ory/x/logrusx"
-	"github.com/ory/x/sqlcon/dockertest"
 )
 
 //go:embed stub/migrations/templating/*.sql
@@ -25,42 +23,17 @@ func TestMigrationBoxTemplating(t *testing.T) {
 	expectedMigration, err := migrations.ReadFile("stub/migrations/templating/0_sql_create_tablename_template.expected.sql")
 	require.NoError(t, err)
 
-	sqlite, err := pop.NewConnection(&pop.ConnectionDetails{
+	c, err := pop.NewConnection(&pop.ConnectionDetails{
 		URL: "sqlite://file::memory:?_fk=true",
 	})
 	require.NoError(t, err)
-	require.NoError(t, sqlite.Open())
+	require.NoError(t, c.Open())
 
-	connections := map[string]*pop.Connection{
-		"sqlite": sqlite,
-	}
+	_, err = NewMigrationBox(migrations, NewMigrator(c, logrusx.New("", ""), nil, 0), WithTemplateValues(templateVals), WithMigrationContentMiddleware(func(content string, err error) (string, error) {
+		require.NoError(t, err)
+		assert.Equal(t, string(expectedMigration), content)
 
-	if !testing.Short() {
-		dockertest.Parallel([]func(){
-			func() {
-				connections["postgres"] = dockertest.ConnectToTestPostgreSQLPop(t)
-			},
-			func() {
-				connections["mysql"] = dockertest.ConnectToTestMySQLPop(t)
-			},
-			func() {
-				connections["cockroach"] = dockertest.ConnectToTestCockroachDBPop(t)
-			},
-		})
-	}
-
-	for n, c := range connections {
-		t.Run("db="+n, func(t *testing.T) {
-			mb, err := NewMigrationBox(migrations, NewMigrator(c, logrusx.New("", ""), nil, 0), WithTemplateValues(templateVals), WithMigrationContentMiddleware(func(content string, err error) (string, error) {
-				require.NoError(t, err)
-				assert.Equal(t, string(expectedMigration), content)
-
-				return content, err
-			}))
-			require.NoError(t, err)
-
-			err = mb.Up(context.Background())
-			require.NoError(t, err)
-		})
-	}
+		return content, err
+	}))
+	require.NoError(t, err)
 }
