@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"text/template"
 
+	"github.com/ory/x/pkgerx"
+
 	"github.com/gobuffalo/fizz"
 	"github.com/gobuffalo/pop/v5"
 	"github.com/pkg/errors"
@@ -14,7 +16,7 @@ func ParameterizedMigrationContent(params map[string]interface{}) func(mf Migrat
 		content := ""
 		if usingTemplate {
 			t := template.New("migration")
-			t.Funcs(SQLTemplateFuncs)
+			t.Funcs(pkgerx.SQLTemplateFuncs)
 			t, err := t.Parse(string(b))
 			if err != nil {
 				return "", errors.Wrapf(err, "could not parse template %s", mf.Path)
