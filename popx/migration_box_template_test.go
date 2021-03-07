@@ -3,8 +3,9 @@ package popx
 import (
 	"context"
 	"embed"
-	"github.com/gobuffalo/pop/v5"
 	"testing"
+
+	"github.com/gobuffalo/pop/v5"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
