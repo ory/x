@@ -1,5 +1,6 @@
 package dbal
 
 const (
-	InMemoryDSN = "sqlite://file::memory:?_fk=true&cache=shared"
+	SQLiteInMemory       = "sqlite://file::memory:?_fk=true"
+	SQLiteSharedInMemory = "sqlite://file::memory:?_fk=true&cache=shared"
 )
