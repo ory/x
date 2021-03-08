@@ -3,6 +3,7 @@ package popx
 import (
 	"embed"
 	"io/fs"
+	"sort"
 	"strings"
 
 	"github.com/gobuffalo/pop/v5"
@@ -120,6 +121,11 @@ func (fm *MigrationBox) findMigrations(runner func([]byte) func(mf Migration, c 
 			Runner:    runner(content),
 		}
 		fm.Migrations[mf.Direction] = append(fm.Migrations[mf.Direction], mf)
+		mod := sortIdent(fm.Migrations[mf.Direction])
+		if mf.Direction == "down" {
+			mod = sort.Reverse(mod)
+		}
+		sort.Sort(mod)
 		return nil
 	})
 }
