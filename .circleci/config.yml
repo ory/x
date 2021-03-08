@@ -29,7 +29,7 @@ jobs:
       - run: mv ./bin/* $GOPATH/bin
       - run: go mod download
       - run: make init
-      - run: go-acc -o coverage.txt ./... -- -v -tags sqlite
+      - run: go-acc -o coverage.txt ./... -- -v -tags sqlite --failfast
       - run: test -z "$CIRCLE_PR_NUMBER" && goveralls -service=circle-ci -coverprofile=coverage.txt -repotoken=$COVERALLS_REPO_TOKEN || echo "forks are not allowed to push to coveralls"
 
   docs:

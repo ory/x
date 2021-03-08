@@ -67,8 +67,23 @@ func checkLsof(t *testing.T, file string) string {
 	return b.String()
 }
 
+func watcher(t *testing.T, c chan struct{}, cb func(err error)) OptionModifier {
+	return AttachWatcher(func(event watcherx.Event, err error) {
+		t.Logf("event: %+v", event)
+		t.Logf("error: %+v", err)
+
+		go func() {
+			c <- struct{}{}
+		}()
+
+		if cb != nil {
+			cb(err)
+		}
+	})
+}
+
 func TestReload(t *testing.T) {
-	setup := func(t *testing.T, cf *os.File, c chan<- struct{}, modifiers ...OptionModifier) (*Provider, *logrusx.Logger) {
+	setup := func(t *testing.T, cf *os.File, modifiers ...OptionModifier) (*Provider, *logrusx.Logger) {
 		l := logrusx.New("configx", "test")
 		ctx, cancel := context.WithCancel(context.Background())
 		t.Cleanup(cancel)
@@ -86,12 +101,7 @@ func TestReload(t *testing.T) {
 		configFile := tmpConfigFile(t, "memory", "bar")
 		defer configFile.Close()
 		c := make(chan struct{})
-		p, l := setup(t, configFile, c,
-			AttachWatcher(func(event watcherx.Event, err error) {
-				require.Error(t, err)
-				t.Logf("Received event: %+v error: %+v", event, err)
-				c <- struct{}{}
-			}))
+		p, l := setup(t, configFile, watcher(t, c, nil))
 		hook := test.NewLocal(l.Entry.Logger)
 
 		atStart := checkLsof(t, configFile.Name())
@@ -123,13 +133,9 @@ func TestReload(t *testing.T) {
 		configFile := tmpConfigFile(t, "memory", "bar")
 		defer configFile.Close()
 		c := make(chan struct{})
-		p, l := setup(t, configFile, c,
+		p, l := setup(t, configFile,
 			WithImmutables("dsn"),
-			AttachWatcher(func(event watcherx.Event, err error) {
-				require.Error(t, err)
-				t.Logf("Received event: %+v error: %+v", event, err)
-				c <- struct{}{}
-			}),
+			watcher(t, c, nil),
 		)
 		hook := test.NewLocal(l.Entry.Logger)
 
@@ -160,12 +166,9 @@ func TestReload(t *testing.T) {
 		configFile := tmpConfigFile(t, "some string", "bar")
 		defer configFile.Close()
 		c := make(chan struct{})
-		p, l := setup(t, configFile, c,
-			AttachWatcher(func(event watcherx.Event, err error) {
-				require.NoError(t, err)
-				t.Logf("Received event: %+v error: %+v", event, err)
-				c <- struct{}{}
-			}))
+		p, l := setup(t, configFile, watcher(t, c, func(err error) {
+			require.NoError(t, err)
+		}))
 		hook := test.NewLocal(l.Entry.Logger)
 
 		assert.Equal(t, []*logrus.Entry{}, hook.AllEntries())
@@ -177,12 +180,9 @@ func TestReload(t *testing.T) {
 		configFile := tmpConfigFile(t, "some string", "bar")
 		defer configFile.Close()
 		c := make(chan struct{})
-		p, l := setup(t, configFile, c,
-			AttachWatcher(func(event watcherx.Event, err error) {
-				require.NoError(t, err)
-				t.Logf("Received event: %+v error: %+v", event, err)
-				c <- struct{}{}
-			}))
+		p, l := setup(t, configFile, watcher(t, c, func(err error) {
+			require.NoError(t, err)
+		}))
 		hook := test.NewLocal(l.Entry.Logger)
 
 		assert.Equal(t, []*logrus.Entry{}, hook.AllEntries())
@@ -219,15 +219,12 @@ func TestReload(t *testing.T) {
 		configFile := tmpConfigFile(t, "some string", "bar")
 		defer configFile.Close()
 		c := make(chan struct{})
-		p, _ := setup(t, configFile, c,
-			AttachWatcher(func(event watcherx.Event, err error) {
-				require.NoError(t, err)
-				t.Logf("Received event: %+v error: %+v", event, err)
-				c <- struct{}{}
-			}))
+		p, _ := setup(t, configFile, watcher(t, c, func(err error) {
+			require.NoError(t, err)
+		}))
 
 		atStart := checkLsof(t, configFile.Name())
-		for i := 0; i < 100; i++ {
+		for i := 0; i < 30; i++ {
 			t.Run(fmt.Sprintf("iteration=%d", i), func(t *testing.T) {
 				expected := []string{"foo", "bar", "baz"}[i%3]
 				updateConfigFile(t, c, configFile, "memory", "bar", expected)
