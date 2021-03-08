@@ -2,6 +2,8 @@ package httpx
 
 import (
 	"context"
+	"io"
+	"log"
 	"net/http"
 	"time"
 
@@ -14,7 +16,7 @@ import (
 type resilientOptions struct {
 	ctx          context.Context
 	c            *http.Client
-	l            *logrusx.Logger
+	l            interface{}
 	retryWaitMin time.Duration
 	retryWaitMax time.Duration
 	retryMax     int
@@ -22,21 +24,15 @@ type resilientOptions struct {
 
 func newResilientOptions() *resilientOptions {
 	return &resilientOptions{
-		ctx:          context.Background(),
 		c:            &http.Client{Timeout: time.Minute},
 		retryWaitMin: 1 * time.Second,
 		retryWaitMax: 30 * time.Second,
 		retryMax:     4,
+		l:            log.New(io.Discard, "", log.LstdFlags),
 	}
 }
 
 type ResilientOptions func(o *resilientOptions)
-
-func ResilientClientWithContext(ctx context.Context) ResilientOptions {
-	return func(o *resilientOptions) {
-		o.ctx = ctx
-	}
-}
 
 func ResilientClientWithClient(c *http.Client) ResilientOptions {
 	return func(o *resilientOptions) {
