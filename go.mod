@@ -6,7 +6,6 @@ replace github.com/seatgeek/logrus-gelf-formatter => github.com/zepatrik/logrus-
 require (
 	github.com/DataDog/datadog-go v4.0.0+incompatible // indirect
 	github.com/bmatcuk/doublestar/v2 v2.0.3
-	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/containerd/containerd v1.4.3 // indirect
 	github.com/dgraph-io/ristretto v0.0.2
 	github.com/docker/distribution v2.7.1+incompatible // indirect
@@ -25,6 +24,8 @@ require (
 	github.com/google/go-jsonnet v0.16.0
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/websocket v1.4.2
+	github.com/hashicorp/go-cleanhttp v0.5.1
+	github.com/hashicorp/go-retryablehttp v0.6.8
 	github.com/inhies/go-bytesize v0.0.0-20201103132853-d0aed0d254f8
 	github.com/jackc/pgconn v1.6.0
 	github.com/jackc/pgx/v4 v4.6.0

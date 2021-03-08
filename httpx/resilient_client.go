@@ -1,76 +1,86 @@
 package httpx
 
 import (
+	"context"
 	"net/http"
 	"time"
+
+	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-retryablehttp"
+
+	"github.com/ory/x/logrusx"
 )
 
-// NewResilientClientLatencyToleranceSmall creates a new http.Client for environments with small latency tolerance.
-// If transport is set (not nil) it will be wrapped by NewDefaultResilientRoundTripper.
-func NewResilientClientLatencyToleranceSmall(rt http.RoundTripper) *http.Client {
-	transport := NewDefaultResilientRoundTripper(time.Millisecond*50, time.Second)
-	if rt != nil {
-		transport = NewResilientRoundTripper(rt, time.Millisecond*50, time.Second)
-	}
+type resilientOptions struct {
+	ctx          context.Context
+	c            *http.Client
+	l            *logrusx.Logger
+	retryWaitMin time.Duration
+	retryWaitMax time.Duration
+	retryMax     int
+}
 
-	return &http.Client{
-		Timeout:   time.Millisecond * 500,
-		Transport: transport,
+func newResilientOptions() *resilientOptions {
+	return &resilientOptions{
+		ctx:          context.Background(),
+		c:            &http.Client{Timeout: time.Minute},
+		retryWaitMin: 1 * time.Second,
+		retryWaitMax: 30 * time.Second,
+		retryMax:     4,
 	}
 }
 
-// NewResilientClientLatencyToleranceMedium creates a new http.Client for environments with medium latency tolerance.
-// If transport is set (not nil) it will be wrapped by NewDefaultResilientRoundTripper.
-// The client will stop requests after 5 seconds.
-func NewResilientClientLatencyToleranceMedium(rt http.RoundTripper) *http.Client {
-	transport := NewDefaultResilientRoundTripper(time.Millisecond*500, time.Second*5)
-	if rt != nil {
-		transport = NewResilientRoundTripper(rt, time.Millisecond*500, time.Second*5)
-	}
+type ResilientOptions func(o *resilientOptions)
 
-	return &http.Client{
-		Timeout:   time.Second,
-		Transport: transport,
+func ResilientClientWithContext(ctx context.Context) ResilientOptions {
+	return func(o *resilientOptions) {
+		o.ctx = ctx
 	}
 }
 
-// NewResilientClientLatencyToleranceHigh creates a new http.Client for environments with high latency tolerance.
-// If transport is set (not nil) it will be wrapped by NewDefaultResilientRoundTripper.
-// The client will stop requests after 15 seconds.
-func NewResilientClientLatencyToleranceHigh(rt http.RoundTripper) *http.Client {
-	transport := NewDefaultResilientRoundTripper(time.Second*5, time.Second*15)
-	if rt != nil {
-		transport = NewResilientRoundTripper(rt, time.Second*5, time.Second*15)
-	}
-	return &http.Client{
-		Timeout:   time.Second * 5,
-		Transport: transport,
+func ResilientClientWithClient(c *http.Client) ResilientOptions {
+	return func(o *resilientOptions) {
+		o.c = c
 	}
 }
 
-// NewResilientClientLatencyToleranceExtreme creates a new http.Client for environments with extreme latency tolerance.
-// If transport is set (not nil) it will be wrapped by NewDefaultResilientRoundTripper.
-// The client will stop requests after 30 minutes.
-func NewResilientClientLatencyToleranceExtreme(rt http.RoundTripper) *http.Client {
-	transport := NewDefaultResilientRoundTripper(time.Minute, time.Minute*30)
-	if rt != nil {
-		transport = NewResilientRoundTripper(rt, time.Minute, time.Minute*30)
-	}
-	return &http.Client{
-		Timeout:   time.Minute,
-		Transport: transport,
+func ResilientClientWithMaxRetry(retryMax int) ResilientOptions {
+	return func(o *resilientOptions) {
+		o.retryMax = retryMax
 	}
 }
 
-// NewResilientClientLatencyToleranceConfigurable creates a new http.Client for environments with configurable latency tolerance.
-// If transport is set (not nil) it will be wrapped by NewDefaultResilientRoundTripper.
-func NewResilientClientLatencyToleranceConfigurable(rt http.RoundTripper, timeout time.Duration, backOffDieAfter time.Duration) *http.Client {
-	transport := NewDefaultResilientRoundTripper(timeout, backOffDieAfter)
-	if rt != nil {
-		transport = NewResilientRoundTripper(rt, timeout, backOffDieAfter)
+func ResilientClientWithMinxRetryWait(retryWaitMin time.Duration) ResilientOptions {
+	return func(o *resilientOptions) {
+		o.retryWaitMin = retryWaitMin
 	}
-	return &http.Client{
-		Timeout:   timeout,
-		Transport: transport,
+}
+
+func ResilientClientWithMaxRetryWait(retryWaitMax time.Duration) ResilientOptions {
+	return func(o *resilientOptions) {
+		o.retryWaitMax = retryWaitMax
+	}
+}
+
+func ResilientClientWithLogger(l *logrusx.Logger) ResilientOptions {
+	return func(o *resilientOptions) {
+		o.l = l
+	}
+}
+
+func NewResilientClient(opts ...ResilientOptions) *retryablehttp.Client {
+	var o resilientOptions
+	for _, f := range opts {
+		f(&o)
+	}
+
+	return &retryablehttp.Client{
+		HTTPClient:   cleanhttp.DefaultPooledClient(),
+		Logger:       o.l,
+		RetryWaitMin: o.retryWaitMin,
+		RetryWaitMax: o.retryWaitMax,
+		RetryMax:     o.retryMax,
+		CheckRetry:   retryablehttp.DefaultRetryPolicy,
+		Backoff:      retryablehttp.DefaultBackoff,
 	}
 }
