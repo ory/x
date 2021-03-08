@@ -16,10 +16,6 @@ var (
 	ErrSQLiteSupportMissing     = errors.New(`the DSN connection string looks like a SQLite connection, but SQLite support was not built into the binary. Please check if you have downloaded the correct binary or are using the correct Docker Image. Binary archives and Docker Images indicate SQLite support by appending the -sqlite suffix`)
 )
 
-const (
-	InMemoryDSN = "sqlite://:memory:?_fk=true"
-)
-
 // Driver represents a driver
 type Driver interface {
 	// CanHandle returns true if the driver is capable of handling the given DSN or false otherwise.
