@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/pkg/errors"
 
 	"github.com/ory/x/httpx"
@@ -15,23 +16,23 @@ import (
 
 // Fetcher is able to load file contents from http, https, file, and base64 locations.
 type Fetcher struct {
-	hc *http.Client
+	hc *retryablehttp.Client
 }
 
 type opts struct {
-	hc *http.Client
+	hc *retryablehttp.Client
 }
 
 // WithClient sets the http.Client the fetcher uses.
 func WithClient(hc *http.Client) func(*opts) {
 	return func(o *opts) {
-		o.hc = hc
+		o.hc = httpx.NewResilientClient(httpx.ResilientClientWithClient(hc))
 	}
 }
 
 func newOpts() *opts {
 	return &opts{
-		hc: httpx.NewResilientClientLatencyToleranceMedium(nil),
+		hc: httpx.NewResilientClient(),
 	}
 }
 
