@@ -2,6 +2,7 @@ package popx
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/gobuffalo/pop/v5"
 )
@@ -52,12 +53,41 @@ func (mfs Migrations) Swap(i, j int) {
 	mfs[i], mfs[j] = mfs[j], mfs[i]
 }
 
-func (mfs *Migrations) Filter(f func(mf Migration) bool) {
+func sortIdent(i sort.Interface) sort.Interface {
+	return i
+}
+
+func (mfs Migrations) SortAndFilter(dialect string, modifiers ...func(sort.Interface) sort.Interface) Migrations {
+	// We need to sort mfs in order to push the dbType=="all" migrations
+	// to the back.
+	m := append(Migrations{}, mfs...)
+	sort.Sort(m)
+
 	vsf := make(Migrations, 0)
-	for _, v := range *mfs {
-		if f(v) {
+	for k, v := range m {
+		if v.DBType == "all" {
+			// Add "all" only if we can not find a more specific migration for the dialect.
+			var hasSpecific bool
+			for kk, vv := range m {
+				if v.Version == vv.Version && kk != k && vv.DBType == dialect {
+					hasSpecific = true
+					break
+				}
+			}
+
+			if !hasSpecific {
+				vsf = append(vsf, v)
+			}
+		} else if v.DBType == dialect {
 			vsf = append(vsf, v)
 		}
 	}
-	*mfs = vsf
+
+	mod := sortIdent(vsf)
+	for _, m := range modifiers {
+		mod = m(mod)
+	}
+
+	sort.Sort(mod)
+	return vsf
 }

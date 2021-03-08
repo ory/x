@@ -87,11 +87,7 @@ func (m *Migrator) UpTo(ctx context.Context, step int) (applied int, err error) 
 	c := m.Connection.WithContext(ctx)
 	err = m.exec(ctx, func() error {
 		mtn := m.migrationTableName(ctx, c)
-		mfs := m.Migrations["up"]
-		mfs.Filter(func(mf Migration) bool {
-			return m.MigrationIsCompatible(c.Dialect.Name(), mf)
-		})
-		sort.Sort(mfs)
+		mfs := m.Migrations["up"].SortAndFilter(c.Dialect.Name())
 		for _, mi := range mfs {
 			exists, err := c.Where("version = ?", mi.Version).Exists(mtn)
 			if err != nil {
@@ -178,11 +174,7 @@ func (m *Migrator) Down(ctx context.Context, step int) error {
 		if err != nil {
 			return errors.Wrap(err, "migration down: unable count existing migration")
 		}
-		mfs := m.Migrations["down"]
-		mfs.Filter(func(mf Migration) bool {
-			return m.MigrationIsCompatible(c.Dialect.Name(), mf)
-		})
-		sort.Sort(sort.Reverse(mfs))
+		mfs := m.Migrations["down"].SortAndFilter(c.Dialect.Name(), sort.Reverse)
 		// skip all ran migration
 		if len(mfs) > count {
 			mfs = mfs[len(mfs)-count:]
@@ -450,10 +442,7 @@ func (m *Migrator) Status(ctx context.Context) (MigrationStatuses, error) {
 
 	con := m.Connection.WithContext(ctx)
 
-	migrations := m.Migrations["up"]
-	migrations.Filter(func(mf Migration) bool {
-		return m.MigrationIsCompatible(con.Dialect.Name(), mf)
-	})
+	migrations := m.Migrations["up"].SortAndFilter(con.Dialect.Name())
 
 	if len(migrations) == 0 {
 		return nil, errors.Errorf("unable to find any migrations for dialect: %s", con.Dialect.Name())
