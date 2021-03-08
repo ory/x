@@ -7,34 +7,50 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var migrations = Migrations{
+	{
+		Version: "1",
+		DBType:  "all",
+	},
+	{
+		Version: "1",
+		DBType:  "postgres",
+	},
+	{
+		Version: "2",
+		DBType:  "cockroach",
+	},
+	{
+		Version: "2",
+		DBType:  "all",
+	},
+	{
+		Version: "3",
+		DBType:  "all",
+	},
+	{
+		Version: "3",
+		DBType:  "mysql",
+	},
+}
+
+func TestFilterMigrations(t *testing.T) {
+	t.Run("db=mysql", func(t *testing.T) {
+		assert.Equal(t, Migrations{
+			migrations[0],
+			migrations[3],
+			migrations[5],
+		}, migrations.SortAndFilter("mysql"))
+		assert.Equal(t, Migrations{
+			migrations[5],
+			migrations[3],
+			migrations[0],
+		}, migrations.SortAndFilter("mysql", sort.Reverse))
+	})
+}
+
 func TestSortingMigrations(t *testing.T) {
 	t.Run("case=enforces precedence for specific migrations", func(t *testing.T) {
-		migrations := Migrations{
-			{
-				Version: "1",
-				DBType:  "all",
-			},
-			{
-				Version: "1",
-				DBType:  "postgres",
-			},
-			{
-				Version: "2",
-				DBType:  "cockroach",
-			},
-			{
-				Version: "2",
-				DBType:  "all",
-			},
-			{
-				Version: "3",
-				DBType:  "all",
-			},
-			{
-				Version: "3",
-				DBType:  "mysql",
-			},
-		}
 		expectedOrder := Migrations{
 			migrations[1],
 			migrations[0],

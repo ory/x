@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -58,11 +57,7 @@ func NewTestMigrator(t *testing.T, c *pop.Connection, migrationPath, testDataPat
 
 		// find migration index
 		if len(mf.Version) > 14 {
-			upMigrations := tm.Migrations["up"]
-			upMigrations.Filter(func(mf Migration) bool {
-				return tm.MigrationIsCompatible(c.Dialect.Name(), mf)
-			})
-			sort.Sort(upMigrations)
+			upMigrations := tm.Migrations["up"].SortAndFilter(c.Dialect.Name())
 			mgs := upMigrations
 
 			require.False(t, len(mgs) == 0)
