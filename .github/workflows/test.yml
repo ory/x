@@ -43,10 +43,10 @@ jobs:
         env:
           MYSQL_ROOT_PASSWORD: test
       cockroach:
-        image: cockroachdb/cockroach:v20.2.3
+        image: cockroachdb/cockroach:v20.2.5
         ports:
           - 26257:26257
-        options: start-single-node --insecure
+        options: "-- start-single-node --insecure"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
