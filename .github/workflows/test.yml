@@ -39,7 +39,7 @@ jobs:
       mysql:
         image: mysql:8.0
         ports:
-          - 5432:5432
+          - 3306:3306
         env:
           MYSQL_ROOT_PASSWORD: test
       cockroach:
