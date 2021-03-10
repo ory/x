@@ -44,7 +44,7 @@ jobs:
           MYSQL_ROOT_PASSWORD: test
     steps:
       - name: Start cockroach
-        run: docker create --name cockroach -p 26257:26257 cockroachdb/cockroach:v20.2.5 -- start-single-node --insecure
+        run: docker run --name cockroach -p 26257:26257 cockroachdb/cockroach:v20.2.5 -d -- start-single-node --insecure
       - run: docker ps -a
       - run: docker logs cockroach
       - name: Checkout repository
