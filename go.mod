@@ -21,6 +21,7 @@ require (
 	github.com/gobuffalo/httptest v1.0.2
 	github.com/gobuffalo/packr v1.22.0
 	github.com/gobuffalo/pop/v5 v5.3.1
+	github.com/golang/mock v1.3.1
 	github.com/google/go-jsonnet v0.16.0
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/websocket v1.4.2
@@ -33,7 +34,6 @@ require (
 	github.com/knadh/koanf v0.14.1-0.20201201075439-e0853799f9ec
 	github.com/lib/pq v1.3.0
 	github.com/markbates/pkger v0.17.1
-	github.com/mattn/goveralls v0.0.2
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/openzipkin-contrib/zipkin-go-opentracing v0.4.5
