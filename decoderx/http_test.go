@@ -143,6 +143,12 @@ func TestHTTPFormDecoder(t *testing.T) {
 }`,
 		},
 		{
+			d:             "should fail json request formatted as form if payload is invalid",
+			request:       newRequest(t, "POST", "/", bytes.NewBufferString(`{"name.first":"Aeneas", "name.last":"Rekkas","age":"not-a-number"}`), httpContentTypeJSON),
+			options:       []HTTPDecoderOption{HTTPJSONSchemaCompiler("stub/person.json", nil)},
+			expectedError: "expected integer, but got string",
+		},
+		{
 			d: "should pass JSON request formatted as a form",
 			request: newRequest(t, "POST", "/", bytes.NewBufferString(`{
 	"name.first": "Aeneas",

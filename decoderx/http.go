@@ -288,7 +288,15 @@ func (t *HTTP) decodeJSONForm(r *http.Request, destination interface{}, o *httpD
 		return err
 	}
 
-	return errors.WithStack(json.Unmarshal(raw, destination))
+	if err := json.Unmarshal(raw, destination); err != nil {
+		return errors.WithStack(err)
+	}
+
+	if err := t.validatePayload(raw, o); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecoderOptions) error {
