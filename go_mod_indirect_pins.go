@@ -7,4 +7,5 @@ import (
 	_ "github.com/gorilla/websocket"
 	_ "github.com/ory/go-acc"
 	_"github.com/golang/mock/mockgen"
+	_ "github.com/jandelgado/gcov2lcov"
 )

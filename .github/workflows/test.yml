@@ -58,7 +58,10 @@ jobs:
         uses: sonatype-nexus-community/nancy-github-action@main
       - run: make init
       - run: go-acc -o coverage.txt ./... -- -v -failfast -timeout=20m -tags sqlite
+      - name: Convert coverage report to lcov
+        run: gcov2lcov -infile=coverage.out -outfile=coverage.lcov
       - name: Coveralls
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: coverage.lcov
