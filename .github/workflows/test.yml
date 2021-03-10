@@ -42,12 +42,9 @@ jobs:
           - 3306:3306
         env:
           MYSQL_ROOT_PASSWORD: test
-      cockroach:
-        image: cockroachdb/cockroach:v20.2.5
-        ports:
-          - 26257:26257
-        options: "-- --start-single-node --insecure"
     steps:
+      - name: Start cockroach
+        run: docker create -p 26257:26257 cockroachdb/cockroach:v20.2.5 --start-single-node --insecure
       - name: Checkout repository
         uses: actions/checkout@v2
       - uses: actions/setup-go@v2
