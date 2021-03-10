@@ -1,0 +1,67 @@
+name: "Run Tests and Lint Code"
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  test-windows:
+    name: Run Tests on Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.16'
+      - run: |
+          go test -tags sqlite -failfast -short -timeout=20m $(go list ./... | grep -v sqlcon | grep -v watcherx | grep -v pkgerx | grep -v configx)
+        shell: bash
+  test:
+    name: Run Tests and Lint Code
+    runs-on: ubuntu-latest
+    env:
+      TEST_DATABASE_POSTGRESQL: postgres://test:test@localhost:5432/sqlcon?sslmode=disable
+      TEST_DATABASE_MYSQL: mysql://root:test@tcp(localhost:3306)/mysql?parseTime=true&multiStatements=true
+      TEST_DATABASE_COCKROACHDB: cockroach://root@localhost:26257/defaultdb?sslmode=disable
+    services:
+      postgres:
+        image: postgres:11.8
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: sqlcon
+      mysql:
+        image: mysql:8.0
+        ports:
+          - 5432:5432
+        env:
+          MYSQL_ROOT_PASSWORD: test
+      cockroach:
+        image: cockroachdb/cockroach:v20.2.3
+        ports:
+          - 26257:26257
+        options: start-single-node --insecure
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.16.0'
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+      - name: Prepare nancy dependency list
+        run: go list -json -m all > go.list
+      - name: Run nancy
+        uses: sonatype-nexus-community/nancy-github-action@main
+      - run: make init
+      - run: go-acc -o coverage.txt ./... -- -v -failfast -timeout=20m -tags sqlite
+      - name: Coveralls
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
