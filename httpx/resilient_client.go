@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-retryablehttp"
 
 	"github.com/ory/x/logrusx"
@@ -20,6 +19,7 @@ type resilientOptions struct {
 	retryWaitMin time.Duration
 	retryWaitMax time.Duration
 	retryMax     int
+	connTimeout  time.Duration
 }
 
 func newResilientOptions() *resilientOptions {
@@ -27,6 +27,7 @@ func newResilientOptions() *resilientOptions {
 		c:            &http.Client{Timeout: time.Minute},
 		retryWaitMin: 1 * time.Second,
 		retryWaitMax: 30 * time.Second,
+		connTimeout:  5 * time.Second,
 		retryMax:     4,
 		l:            log.New(io.Discard, "", log.LstdFlags),
 	}
@@ -71,7 +72,9 @@ func NewResilientClient(opts ...ResilientOptions) *retryablehttp.Client {
 	}
 
 	return &retryablehttp.Client{
-		HTTPClient:   cleanhttp.DefaultPooledClient(),
+		HTTPClient: &http.Client{
+			Timeout: o.connTimeout,
+		},
 		Logger:       o.l,
 		RetryWaitMin: o.retryWaitMin,
 		RetryWaitMax: o.retryWaitMax,
