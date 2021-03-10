@@ -21,6 +21,7 @@ require (
 	github.com/gobuffalo/httptest v1.0.2
 	github.com/gobuffalo/packr v1.22.0
 	github.com/gobuffalo/pop/v5 v5.3.1
+	github.com/golang/mock v1.3.1
 	github.com/google/go-jsonnet v0.16.0
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/websocket v1.4.2
@@ -28,12 +29,12 @@ require (
 	github.com/inhies/go-bytesize v0.0.0-20201103132853-d0aed0d254f8
 	github.com/jackc/pgconn v1.6.0
 	github.com/jackc/pgx/v4 v4.6.0
+	github.com/jandelgado/gcov2lcov v1.0.4-0.20210120124023-b83752c6dc08 // indirect
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/julienschmidt/httprouter v1.2.0
 	github.com/knadh/koanf v0.14.1-0.20201201075439-e0853799f9ec
 	github.com/lib/pq v1.3.0
 	github.com/markbates/pkger v0.17.1
-	github.com/mattn/goveralls v0.0.2
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/openzipkin-contrib/zipkin-go-opentracing v0.4.5
