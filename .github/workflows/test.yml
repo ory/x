@@ -45,7 +45,7 @@ jobs:
     steps:
       - name: Start cockroach
         run: docker create --name cockroach -p 26257:26257 cockroachdb/cockroach:v20.2.5 -- start-single-node --insecure
-      - run: docker ps
+      - run: docker ps -a
       - run: docker logs cockroach
       - name: Checkout repository
         uses: actions/checkout@v2
