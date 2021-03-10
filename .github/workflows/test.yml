@@ -44,7 +44,7 @@ jobs:
           MYSQL_ROOT_PASSWORD: test
     steps:
       - name: Start cockroach
-        run: docker create -p 26257:26257 cockroachdb/cockroach:v20.2.5 --start-single-node --insecure
+        run: docker create -p 26257:26257 cockroachdb/cockroach:v20.2.5 -- start-single-node --insecure
       - name: Checkout repository
         uses: actions/checkout@v2
       - uses: actions/setup-go@v2
