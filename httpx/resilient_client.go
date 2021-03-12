@@ -19,15 +19,14 @@ type resilientOptions struct {
 	retryWaitMin time.Duration
 	retryWaitMax time.Duration
 	retryMax     int
-	connTimeout  time.Duration
 }
 
 func newResilientOptions() *resilientOptions {
+	connTimeout := time.Minute
 	return &resilientOptions{
-		c:            &http.Client{Timeout: time.Minute},
+		c:            &http.Client{Timeout: connTimeout},
 		retryWaitMin: 1 * time.Second,
 		retryWaitMax: 30 * time.Second,
-		connTimeout:  5 * time.Second,
 		retryMax:     4,
 		l:            log.New(io.Discard, "", log.LstdFlags),
 	}
@@ -59,6 +58,12 @@ func ResilientClientWithMaxRetryWait(retryWaitMax time.Duration) ResilientOption
 	}
 }
 
+func ResilientClientWithConnectionTimeout(connTimeout time.Duration) ResilientOptions {
+	return func(o *resilientOptions) {
+		o.c.Timeout = connTimeout
+	}
+}
+
 func ResilientClientWithLogger(l *logrusx.Logger) ResilientOptions {
 	return func(o *resilientOptions) {
 		o.l = l
@@ -66,15 +71,13 @@ func ResilientClientWithLogger(l *logrusx.Logger) ResilientOptions {
 }
 
 func NewResilientClient(opts ...ResilientOptions) *retryablehttp.Client {
-	var o resilientOptions
+	o := newResilientOptions()
 	for _, f := range opts {
-		f(&o)
+		f(o)
 	}
 
 	return &retryablehttp.Client{
-		HTTPClient: &http.Client{
-			Timeout: o.connTimeout,
-		},
+		HTTPClient:   o.c,
 		Logger:       o.l,
 		RetryWaitMin: o.retryWaitMin,
 		RetryWaitMax: o.retryWaitMax,
