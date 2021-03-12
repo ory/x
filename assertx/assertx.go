@@ -11,8 +11,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func PrettifyJSONPayload(t *testing.T, payload interface{}) string {
+	o, err := json.MarshalIndent(payload, "", "  ")
+	require.NoError(t, err)
+	return string(o)
+}
+
 func EqualAsJSON(t *testing.T, expected, actual interface{}, args ...interface{}) {
 	var eb, ab bytes.Buffer
+	if len(args) == 0 {
+		args = []interface{}{PrettifyJSONPayload(t, actual)}
+	}
+
 	require.NoError(t, json.NewEncoder(&eb).Encode(expected), args...)
 	require.NoError(t, json.NewEncoder(&ab).Encode(actual), args...)
 	assert.JSONEq(t, eb.String(), ab.String(), args...)
@@ -20,6 +30,10 @@ func EqualAsJSON(t *testing.T, expected, actual interface{}, args ...interface{}
 
 func EqualAsJSONExcept(t *testing.T, expected, actual interface{}, except []string, args ...interface{}) {
 	var eb, ab bytes.Buffer
+	if len(args) == 0 {
+		args = []interface{}{PrettifyJSONPayload(t, actual)}
+	}
+
 	require.NoError(t, json.NewEncoder(&eb).Encode(expected), args...)
 	require.NoError(t, json.NewEncoder(&ab).Encode(actual), args...)
 
