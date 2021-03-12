@@ -6,8 +6,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
+	"sync"
 	"testing"
+
+	"github.com/tidwall/gjson"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -17,8 +21,7 @@ import (
 )
 
 func newRequest(t *testing.T, method, url string, body io.Reader, ct string) *http.Request {
-	req, err := http.NewRequest(method, url, body)
-	require.NoError(t, err)
+	req := httptest.NewRequest(method, url, body)
 	req.Header.Set("Content-Type", ct)
 	return req
 }
@@ -232,4 +235,27 @@ func TestHTTPFormDecoder(t *testing.T) {
 			assert.JSONEq(t, tc.expected, string(destination))
 		})
 	}
+
+	t.Run("description=read body twice", func(t *testing.T) {
+		var wg sync.WaitGroup
+		wg.Add(1)
+
+		dec := NewHTTP()
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			defer wg.Done()
+
+			var destination json.RawMessage
+			require.NoError(t, dec.Decode(r, &destination, HTTPJSONSchemaCompiler("stub/person.json", nil), HTTPKeepRequestBody(true)))
+			assert.EqualValues(t, "12345", gjson.GetBytes(destination, "name.first").String())
+
+			require.NoError(t, dec.Decode(r, &destination, HTTPJSONSchemaCompiler("stub/person.json", nil), HTTPKeepRequestBody(true)))
+			assert.EqualValues(t, "12345", gjson.GetBytes(destination, "name.first").String())
+		}))
+		t.Cleanup(ts.Close)
+
+		_, err := ts.Client().PostForm(ts.URL, url.Values{"name.first": {"12345"}})
+		require.NoError(t, err)
+
+		wg.Wait()
+	})
 }

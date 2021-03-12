@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -29,6 +30,7 @@ type (
 	HTTP struct{}
 
 	httpDecoderOptions struct {
+		keepRequestBody           bool
 		allowedContentTypes       []string
 		allowedHTTPMethods        []string
 		jsonSchemaRef             string
@@ -89,6 +91,15 @@ func HTTPFormDecoder() HTTPDecoderOption {
 func HTTPJSONDecoder() HTTPDecoderOption {
 	return func(o *httpDecoderOptions) {
 		o.allowedContentTypes = []string{httpContentTypeJSON}
+	}
+}
+
+// HTTPKeepRequestBody configures the HTTP decoder to allow other
+// HTTP request body readers to read the body as well by keeping
+// the data in memory.
+func HTTPKeepRequestBody(keep bool) HTTPDecoderOption {
+	return func(o *httpDecoderOptions) {
+		o.keepRequestBody = keep
 	}
 }
 
@@ -257,6 +268,22 @@ func (t *HTTP) Decode(r *http.Request, destination interface{}, opts ...HTTPDeco
 	return errors.WithStack(herodot.ErrInternalServerError.WithReasonf("Unable to determine decoder for content type: %s", r.Header.Get("Content-Type")))
 }
 
+func (t *HTTP) requestBody(r *http.Request, o *httpDecoderOptions) (reader io.ReadCloser, err error) {
+	if !o.keepRequestBody {
+		return r.Body, nil
+	}
+
+	bodyBytes, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to read body")
+	}
+
+	_ = r.Body.Close() //  must close
+	r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+
+	return ioutil.NopCloser(bytes.NewBuffer(bodyBytes)), nil
+}
+
 func (t *HTTP) decodeJSONForm(r *http.Request, destination interface{}, o *httpDecoderOptions) error {
 	if o.jsonSchemaCompiler == nil {
 		return errors.WithStack(herodot.ErrInternalServerError.WithReasonf("Unable to decode HTTP Form Body because no validation schema was provided. This is a code bug."))
@@ -267,8 +294,13 @@ func (t *HTTP) decodeJSONForm(r *http.Request, destination interface{}, o *httpD
 		return errors.WithStack(herodot.ErrInternalServerError.WithTrace(err).WithReasonf("Unable to prepare JSON Schema for HTTP Post Body Form parsing: %s", err).WithDebugf("%+v", err))
 	}
 
+	reader, err := t.requestBody(r, o)
+	if err != nil {
+		return err
+	}
+
 	var interim json.RawMessage
-	if err := json.NewDecoder(r.Body).Decode(&interim); err != nil {
+	if err := json.NewDecoder(reader).Decode(&interim); err != nil {
 		return err
 	}
 
@@ -303,6 +335,15 @@ func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecod
 	if o.jsonSchemaCompiler == nil {
 		return errors.WithStack(herodot.ErrInternalServerError.WithReasonf("Unable to decode HTTP Form Body because no validation schema was provided. This is a code bug."))
 	}
+
+	reader, err := t.requestBody(r, o)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		r.Body = reader
+	}()
 
 	if err := r.ParseForm(); err != nil {
 		return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Unable to decode HTTP %s form body: %s", strings.ToUpper(r.Method), err).WithDebug(err.Error()))
@@ -431,7 +472,12 @@ func (t *HTTP) decodeURLValues(values url.Values, paths []jsonschemax.Path, o *h
 }
 
 func (t *HTTP) decodeJSON(r *http.Request, destination interface{}, o *httpDecoderOptions) error {
-	raw, err := ioutil.ReadAll(r.Body)
+	reader, err := t.requestBody(r, o)
+	if err != nil {
+		return err
+	}
+
+	raw, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Unable to read HTTP POST body: %s", err))
 	}
