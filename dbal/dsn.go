@@ -14,7 +14,7 @@ const (
 // - shared connection
 // - shared but unique in the same process
 // see: https://sqlite.org/inmemorydb.html
-func IsSqlite(dsn string) bool {
+func IsMemorySQLite(dsn string) bool {
 	r := regexp.MustCompile(`sqlite://file::?\w+:\?_fk=true&*(cache=shared)?(mode=memory)?`)
 
 	if r.MatchString(dsn) {
