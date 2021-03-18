@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestIsSqlite(t *testing.T) {
+func TestIsMemorySQLite(t *testing.T) {
 	require.True(t, IsMemorySQLite(SQLiteInMemory))
 	require.True(t, IsMemorySQLite(SQLiteSharedInMemory))
 	require.True(t, IsMemorySQLite("sqlite://file:uniquedb:?_fk=true&mode=memory"))
