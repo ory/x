@@ -5,6 +5,7 @@ import (
 	"golang.org/x/mod/modfile"
 )
 
+// FindVersion returns the version for a module given the contents of a go.mod file.
 func FindVersion(gomod []byte, module string) (string, error) {
 	m, err := modfile.Parse("go.mod", gomod, nil)
 	if err != nil {
@@ -20,6 +21,7 @@ func FindVersion(gomod []byte, module string) (string, error) {
 	return "", errors.Errorf("no go.mod entry found for: %s", module)
 }
 
+// MustFindVersion returns the version for a module given the contents of a go.mod file or panics.
 func MustFindVersion(gomod []byte, module string) string {
 	v, err := FindVersion(gomod, module)
 	if err != nil {
