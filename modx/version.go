@@ -19,3 +19,11 @@ func FindVersion(gomod []byte, module string) (string, error) {
 
 	return "", errors.Errorf("no go.mod entry found for: %s", module)
 }
+
+func MustFindVersion(gomod []byte, module string) string {
+	v, err := FindVersion(gomod, module)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
