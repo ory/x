@@ -47,7 +47,8 @@ func TestHealth(t *testing.T) {
 		},
 	}
 	router := httprouter.New()
-	handler.SetRoutes(router, true)
+	handler.SetHealthRoutes(router, true)
+	handler.SetVersionRoutes(router)
 	ts := httptest.NewServer(router)
 	c := http.DefaultClient
 
