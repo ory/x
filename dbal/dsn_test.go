@@ -1,8 +1,9 @@
 package dbal
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestIsMemorySQLite(t *testing.T) {
