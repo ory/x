@@ -3,7 +3,7 @@ package dbal
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestIsMemorySQLite(t *testing.T) {
@@ -30,6 +30,6 @@ func TestIsMemorySQLite(t *testing.T) {
 
 	for k, v := range testCases {
 		t.Logf("testing: %s\nexpected:%v\n", k, v)
-		require.Equal(t, v, IsMemorySQLite(k))
+		assert.Equal(t, v, IsMemorySQLite(k))
 	}
 }
