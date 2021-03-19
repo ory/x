@@ -2,8 +2,9 @@ package dbal
 
 import (
 	"fmt"
-	"github.com/ory/x/urlx"
 	"regexp"
+
+	"github.com/ory/x/urlx"
 )
 
 const (
