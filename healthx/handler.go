@@ -77,10 +77,14 @@ func NewHandler(
 	}
 }
 
-// SetRoutes registers this handler's routes.
-func (h *Handler) SetRoutes(r *httprouter.Router, shareErrors bool) {
+// SetHealthRoutes registers this handler's routes for health checking.
+func (h *Handler) SetHealthRoutes(r *httprouter.Router, shareErrors bool) {
 	r.GET(AliveCheckPath, h.Alive)
 	r.GET(ReadyCheckPath, h.Ready(shareErrors))
+}
+
+// SetHealthRoutes registers this handler's routes for health checking.
+func (h *Handler) SetVersionRoutes(r *httprouter.Router) {
 	r.GET(VersionPath, h.Version)
 }
 
