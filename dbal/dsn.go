@@ -1,6 +1,8 @@
 package dbal
 
 import (
+	"fmt"
+	"github.com/ory/x/urlx"
 	"regexp"
 )
 
@@ -19,7 +21,13 @@ func IsMemorySQLite(dsn string) bool {
 		return true
 	}
 
-	r := regexp.MustCompile(`(?P<a>sqlite://)(?P<b>(file:)?:?\w+)(?P<c>:\?_fk=true)(?P<d>&cache=shared)?(?P<e>&mode=memory)?(${a}${b}${c}${d}${e})?`)
+	r := regexp.MustCompile(`sqlite://(file)?:?:\w+:`)
 
-	return r.MatchString(dsn)
+	url, err := urlx.Parse(dsn)
+
+	if err != nil {
+		return false
+	}
+
+	return r.MatchString(fmt.Sprintf("%s://%s", url.Scheme, url.Host))
 }
