@@ -1,10 +1,7 @@
 package dbal
 
 import (
-	"fmt"
 	"regexp"
-
-	"github.com/ory/x/urlx"
 )
 
 const (
@@ -18,17 +15,6 @@ const (
 // - shared but unique in the same process
 // see: https://sqlite.org/inmemorydb.html
 func IsMemorySQLite(dsn string) bool {
-	if dsn == "memory" {
-		return true
-	}
-
-	r := regexp.MustCompile(`sqlite://(file)?:?:\w+:`)
-
-	url, err := urlx.Parse(dsn)
-
-	if err != nil {
-		return false
-	}
-
-	return r.MatchString(fmt.Sprintf("%s://%s", url.Scheme, url.Host))
+	r := regexp.MustCompile(`^(?:sqlite://((file:((:memory)|(\w+)):)|(:memory:))(\?.*))$|(?:^(memory|:memory:)$)`)
+	return r.MatchString(dsn)
 }

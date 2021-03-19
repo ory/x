@@ -16,6 +16,7 @@ func TestIsMemorySQLite(t *testing.T) {
 		"sqlite://file:uniquedb:?_fk=true&cache=shared":             true,
 		"sqlite://file:uniquedb:?_fk=true&mode=memory&cache=shared": true,
 		"sqlite://file:uniquedb:?_fk=true&cache=shared&mode=memory": true,
+		"sqlite://file:uniquedb:?mode=memory":                       true,
 		"sqlite://file:::uniquedb:?_fk=true&mode=memory":            false,
 		"sqlite://":                                            false,
 		"sqlite://file":                                        false,
