@@ -15,7 +15,11 @@ const (
 // - shared but unique in the same process
 // see: https://sqlite.org/inmemorydb.html
 func IsMemorySQLite(dsn string) bool {
-	r := regexp.MustCompile(`sqlite://file::?\w+:\?_fk=true&*(cache=shared)?(mode=memory)?`)
+	if dsn == "memory" {
+		return true
+	}
+
+	r := regexp.MustCompile(`sqlite://(file)?::?\w+:\?_fk=true&*(cache=shared)?(mode=memory)?`)
 
 	if r.MatchString(dsn) {
 		return true
