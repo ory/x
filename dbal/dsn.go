@@ -19,11 +19,7 @@ func IsMemorySQLite(dsn string) bool {
 		return true
 	}
 
-	r := regexp.MustCompile(`sqlite://(file)?::?\w+:\?_fk=true&*(cache=shared)?(mode=memory)?`)
+	r := regexp.MustCompile(`(?P<a>sqlite://)(?P<b>(file:)?:?\w+)(?P<c>:\?_fk=true)(?P<d>&cache=shared)?(?P<e>&mode=memory)?(${a}${b}${c}${d}${e})?`)
 
-	if r.MatchString(dsn) {
-		return true
-	}
-
-	return false
+	return r.MatchString(dsn)
 }

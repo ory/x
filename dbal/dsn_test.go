@@ -1,8 +1,9 @@
 package dbal
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestIsMemorySQLite(t *testing.T) {
@@ -28,11 +29,6 @@ func TestIsMemorySQLite(t *testing.T) {
 
 	for k, v := range testCases {
 		t.Logf("testing: %s\nexpected:%v\n", k, v)
-		ok := IsMemorySQLite(k)
-		if v {
-			require.True(t, ok)
-		} else {
-			require.False(t, ok)
-		}
+		require.Equal(t, v, IsMemorySQLite(k))
 	}
 }
