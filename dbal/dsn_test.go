@@ -3,23 +3,36 @@ package dbal
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestIsMemorySQLite(t *testing.T) {
-	require.True(t, IsMemorySQLite(SQLiteInMemory))
-	require.True(t, IsMemorySQLite(SQLiteSharedInMemory))
-	require.True(t, IsMemorySQLite("sqlite://file:uniquedb:?_fk=true&mode=memory"))
-	require.True(t, IsMemorySQLite("sqlite://file:uniquedb:?_fk=true&cache=shared"))
-	require.True(t, IsMemorySQLite("sqlite://file:uniquedb:?_fk=true&mode=memory&cache=shared"))
-	require.True(t, IsMemorySQLite("sqlite://file:uniquedb:?_fk=true&cache=shared&mode=memory"))
-	require.False(t, IsMemorySQLite("sqlite://file:::uniquedb:?_fk=true&mode=memory"))
-	require.False(t, IsMemorySQLite("sqlite://"))
-	require.False(t, IsMemorySQLite("sqlite://file"))
-	require.False(t, IsMemorySQLite("sqlite://file:::"))
-	require.False(t, IsMemorySQLite("sqlite://?_fk=true&mode=memory"))
-	require.False(t, IsMemorySQLite("sqlite://?_fk=true&cache=shared"))
-	require.False(t, IsMemorySQLite("sqlite://file::?_fk=true"))
-	require.False(t, IsMemorySQLite("sqlite://file:::?_fk=true"))
-	require.False(t, IsMemorySQLite("postgresql://username:secret@localhost:5432/database"))
+	testCases := map[string]bool{
+		SQLiteInMemory:               true,
+		SQLiteSharedInMemory:         true,
+		"memory":                     true,
+		":memory:":                   true,
+		"sqlite://:memory:?_fk=true": true,
+		"sqlite://file:uniquedb:?_fk=true&mode=memory":              true,
+		"sqlite://file:uniquedb:?_fk=true&mode=memory&cache=shared": true,
+		"sqlite://file:uniquedb:?_fk=true&cache=shared&mode=memory": true,
+		"sqlite://file:uniquedb:?mode=memory":                       true,
+		"sqlite://file:::uniquedb:?_fk=true&mode=memory":            true,
+		"sqlite://file:memdb1?mode=memory&cache=shared":             true,
+		"sqlite://file:uniquedb:?_fk=true&cache=shared":             false,
+		"sqlite://":                                            false,
+		"sqlite://file":                                        false,
+		"sqlite://file:::":                                     false,
+		"sqlite://?_fk=true&mode=memory":                       false,
+		"sqlite://?_fk=true&cache=shared":                      false,
+		"sqlite://file::?_fk=true":                             false,
+		"sqlite://file:::?_fk=true":                            false,
+		"postgresql://username:secret@localhost:5432/database": false,
+	}
+
+	for dsn, expected := range testCases {
+		t.Run("dsn="+dsn, func(t *testing.T) {
+			assert.Equal(t, expected, IsMemorySQLite(dsn))
+		})
+	}
 }
