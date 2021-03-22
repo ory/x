@@ -16,6 +16,8 @@ import (
 	"github.com/tidwall/sjson"
 )
 
+const sideBarLabel = "Command Line Interface (CLI)"
+
 // Generate generates markdown documentation for a cobra command and its children.
 func Generate(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
@@ -40,14 +42,14 @@ func Generate(cmd *cobra.Command, args []string) error {
 
 	var index int
 	gjson.GetBytes(sidebar, `Reference`).ForEach(func(key, value gjson.Result) bool {
-		if strings.Contains(value.Get("label").String(), "CLI") {
+		if strings.Contains(value.Raw, sideBarLabel) {
 			return false
 		}
 		index++
 		return true
 	})
 
-	sidebar, err = sjson.SetBytes(sidebar, fmt.Sprintf(`Reference.%d.items`, index), navItems)
+	sidebar, err = sjson.SetBytes(sidebar, fmt.Sprintf(`Reference.%d.%s`, index, sideBarLabel), navItems)
 	if err != nil {
 		return err
 	}
