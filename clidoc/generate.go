@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -109,7 +110,7 @@ To improve this file please make your change against the appropriate "./cmd/*.go
 		return err
 	}
 
-	*navItems = append(*navItems, filepath.Join("cli", basename))
+	*navItems = append(*navItems, path.Join("cli", basename))
 	if err := doc.GenMarkdownCustom(cmd, f, trimExt); err != nil {
 		return err
 	}
