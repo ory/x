@@ -1,6 +1,7 @@
 package clidoc
 
 import (
+	"bytes"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -56,6 +57,7 @@ func snapshotDir(t *testing.T, path ...string) (assertNoChange func(t *testing.T
 func snapshotFile(t *testing.T, path ...string) (assertNoChange func(t *testing.T)) {
 	pre, err := os.ReadFile(filepath.Join(path...))
 	require.NoError(t, err)
+	pre = bytes.ReplaceAll(pre, []byte("\r\n"), []byte("\n"))
 
 	return func(t *testing.T) {
 		post, err := os.ReadFile(filepath.Join(path...))
