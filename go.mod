@@ -58,8 +58,8 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/square/go-jose/v3 v3.0.0-20200630053402-0a67ce9b0693
 	github.com/stretchr/testify v1.6.1
-	github.com/tidwall/gjson v1.3.2
-	github.com/tidwall/sjson v1.0.4
+	github.com/tidwall/gjson v1.7.1
+	github.com/tidwall/sjson v1.1.5
 	github.com/uber/jaeger-client-go v2.22.1+incompatible
 	github.com/urfave/negroni v1.0.0
 	go.elastic.co/apm v1.8.0
