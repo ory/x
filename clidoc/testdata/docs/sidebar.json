@@ -3,13 +3,13 @@
   "Concepts": ["concepts/relation-tuples", "concepts/graph-of-relations"],
   "Examples": ["examples/olymp-file-sharing"],
   "Reference": [
-    "reference/configuration", 
-    "reference/proto-api", 
+    "reference/configuration",
+    "reference/proto-api",
     {
       "Command Line Interface (CLI)": [
-        "cli/root", 
-        "cli/root-child1", 
-        "cli/root-child1-subChild1", 
+        "cli/root",
+        "cli/root-child1",
+        "cli/root-child1-subChild1",
         "cli/root-child2"
       ]
     }
