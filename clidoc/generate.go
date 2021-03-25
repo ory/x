@@ -1,8 +1,10 @@
 package clidoc
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"html"
 	"io"
 	"io/ioutil"
 	"os"
@@ -111,9 +113,12 @@ To improve this file please make your change against the appropriate "./cmd/*.go
 	}
 
 	*navItems = append(*navItems, path.Join("cli", basename))
-	if err := doc.GenMarkdownCustom(cmd, f, trimExt); err != nil {
+
+	var b bytes.Buffer
+	if err := doc.GenMarkdownCustom(cmd, &b, trimExt); err != nil {
 		return err
 	}
 
-	return nil
+	_, err = f.WriteString(html.EscapeString(b.String()))
+	return err
 }
