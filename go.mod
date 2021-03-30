@@ -3,6 +3,8 @@ module github.com/ory/x
 // remove once https://github.com/seatgeek/logrus-gelf-formatter/pull/5 is merged
 replace github.com/seatgeek/logrus-gelf-formatter => github.com/zepatrik/logrus-gelf-formatter v0.0.0-20210305135027-b8b3731dba10
 
+replace github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
+
 require (
 	github.com/DataDog/datadog-go v4.0.0+incompatible // indirect
 	github.com/bmatcuk/doublestar/v2 v2.0.3
@@ -65,8 +67,8 @@ require (
 	go.elastic.co/apm v1.8.0
 	go.elastic.co/apm/module/apmot v1.8.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace v0.13.0
-	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
-	golang.org/x/mod v0.2.0
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+	golang.org/x/mod v0.3.0
 	gonum.org/v1/plot v0.0.0-20200111075622-4abb28f724d5
 	google.golang.org/grpc v1.36.0
 	gopkg.in/DataDog/dd-trace-go.v1 v1.27.0
