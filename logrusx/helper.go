@@ -13,6 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace"
+	"go.opentelemetry.io/otel/propagation"
 
 	"github.com/ory/x/errorsx"
 )
@@ -24,6 +25,8 @@ type Logger struct {
 	name          string
 	version       string
 }
+
+var opts = otelhttptrace.WithPropagators(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 
 func (l *Logger) LeakSensitiveData() bool {
 	return l.leakSensitive
@@ -81,7 +84,7 @@ func (l *Logger) WithRequest(r *http.Request) *Logger {
 		"headers": headers,
 	})
 
-	if _, _, spanCtx := otelhttptrace.Extract(r.Context(), r); spanCtx.IsValid() {
+	if _, _, spanCtx := otelhttptrace.Extract(r.Context(), r, opts); spanCtx.IsValid() {
 		traces := map[string]string{}
 		if spanCtx.HasTraceID() {
 			traces["trace_id"] = spanCtx.TraceID.String()
