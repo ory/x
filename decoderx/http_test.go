@@ -172,6 +172,28 @@ func TestHTTPFormDecoder(t *testing.T) {
 }`,
 		},
 		{
+			d: "should pass JSON request GET request",
+			request: newRequest(t, "GET", "/?"+url.Values{
+				"name.first": {"Aeneas"},
+				"name.last":  {"Rekkas"},
+				"age":        {"29"},
+				"ratio":      {"0.9"},
+				"consent":    {"false"},
+				"newsletter": {"true"},
+			}.Encode(), nil, ""),
+			options: []HTTPDecoderOption{
+				HTTPJSONSchemaCompiler("stub/person.json", nil),
+				HTTPDecoderAllowedMethods("GET"),
+			},
+			expected: `{
+	"name": {"first": "Aeneas", "last": "Rekkas"},
+	"age": 29,
+	"newsletter": true,
+	"consent": false,
+	"ratio": 0.9
+}`,
+		},
+		{
 			d:       "should fail because json is not an object when using form format",
 			request: newRequest(t, "POST", "/", bytes.NewBufferString(`[]`), httpContentTypeJSON),
 			options: []HTTPDecoderOption{HTTPDecoderJSONFollowsFormFormat(),

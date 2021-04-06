@@ -214,12 +214,14 @@ func (t *HTTP) validateRequest(r *http.Request, c *httpDecoderOptions) error {
 		return errors.WithStack(herodot.ErrBadRequest.WithReasonf(`Unable to decode body because HTTP Request Method was "%s" but only %v are supported.`, method, c.allowedHTTPMethods))
 	}
 
-	if r.ContentLength == 0 {
-		return errors.WithStack(herodot.ErrBadRequest.WithReasonf(`Unable to decode HTTP Request Body because its HTTP Header "Content-Length" is zero.`))
-	}
+	if method != "GET" {
+		if r.ContentLength == 0 && method != "GET" {
+			return errors.WithStack(herodot.ErrBadRequest.WithReasonf(`Unable to decode HTTP Request Body because its HTTP Header "Content-Length" is zero.`))
+		}
 
-	if !httpx.HasContentType(r, c.allowedContentTypes...) {
-		return errors.WithStack(herodot.ErrBadRequest.WithReasonf(`HTTP %s Request used unknown HTTP Header "Content-Type: %s", only %v are supported.`, method, r.Header.Get("Content-Type"), c.allowedContentTypes))
+		if !httpx.HasContentType(r, c.allowedContentTypes...) {
+			return errors.WithStack(herodot.ErrBadRequest.WithReasonf(`HTTP %s Request used unknown HTTP Header "Content-Type: %s", only %v are supported.`, method, r.Header.Get("Content-Type"), c.allowedContentTypes))
+		}
 	}
 
 	return nil
@@ -256,7 +258,9 @@ func (t *HTTP) Decode(r *http.Request, destination interface{}, opts ...HTTPDeco
 		return err
 	}
 
-	if httpx.HasContentType(r, httpContentTypeJSON) {
+	if r.Method == "GET" {
+		return t.decodeForm(r, destination, c)
+	} else if httpx.HasContentType(r, httpContentTypeJSON) {
 		if c.expectJSONFlattened {
 			return t.decodeJSONForm(r, destination, c)
 		}
@@ -269,6 +273,10 @@ func (t *HTTP) Decode(r *http.Request, destination interface{}, opts ...HTTPDeco
 }
 
 func (t *HTTP) requestBody(r *http.Request, o *httpDecoderOptions) (reader io.ReadCloser, err error) {
+	if strings.ToUpper(r.Method) == "GET" {
+		return ioutil.NopCloser(bytes.NewBufferString(r.URL.Query().Encode())), nil
+	}
+
 	if !o.keepRequestBody {
 		return r.Body, nil
 	}
@@ -354,7 +362,12 @@ func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecod
 		return errors.WithStack(herodot.ErrInternalServerError.WithTrace(err).WithReasonf("Unable to prepare JSON Schema for HTTP Post Body Form parsing: %s", err).WithDebugf("%+v", err))
 	}
 
-	raw, err := t.decodeURLValues(r.PostForm, paths, o)
+	values := r.PostForm
+	if r.Method == "GET" {
+		values = r.Form
+	}
+
+	raw, err := t.decodeURLValues(values, paths, o)
 	if err != nil {
 		return err
 	}
