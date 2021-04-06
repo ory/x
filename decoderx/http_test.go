@@ -146,6 +146,52 @@ func TestHTTPFormDecoder(t *testing.T) {
 }`,
 		},
 		{
+			d: "should pass form request with payload in query and type assert data",
+			request: newRequest(t, "POST", "/?age=29", bytes.NewBufferString(url.Values{
+				"name.first": {"Aeneas"},
+				"name.last":  {"Rekkas"},
+				"ratio":      {"0.9"},
+				"consent":    {"true"},
+				// newsletter represents a special case for checkbox input with true/false and raw HTML.
+				"newsletter": {
+					"false", // comes from <input type="hidden" name="newsletter" value="false">
+					"true",  // comes from <input type="checkbox" name="newsletter" value="true" checked>
+				},
+			}.Encode()), httpContentTypeURLEncodedForm),
+			options: []HTTPDecoderOption{HTTPJSONSchemaCompiler("stub/person.json", nil)},
+			expected: `{
+	"name": {"first": "Aeneas", "last": "Rekkas"},
+	"newsletter": true,
+	"consent": true,
+	"ratio": 0.9
+}`,
+		},
+		{
+			d: "should pass form request with payload in query and type assert data",
+			request: newRequest(t, "POST", "/?age=29", bytes.NewBufferString(url.Values{
+				"name.first": {"Aeneas"},
+				"name.last":  {"Rekkas"},
+				"ratio":      {"0.9"},
+				"consent":    {"true"},
+				// newsletter represents a special case for checkbox input with true/false and raw HTML.
+				"newsletter": {
+					"false", // comes from <input type="hidden" name="newsletter" value="false">
+					"true",  // comes from <input type="checkbox" name="newsletter" value="true" checked>
+				},
+			}.Encode()), httpContentTypeURLEncodedForm),
+			options: []HTTPDecoderOption{
+				HTTPDecoderUseQueryAndBody(),
+				HTTPJSONSchemaCompiler("stub/person.json", nil),
+			},
+			expected: `{
+	"name": {"first": "Aeneas", "last": "Rekkas"},
+	"age": 29,
+	"newsletter": true,
+	"consent": true,
+	"ratio": 0.9
+}`,
+		},
+		{
 			d:             "should fail json request formatted as form if payload is invalid",
 			request:       newRequest(t, "POST", "/", bytes.NewBufferString(`{"name.first":"Aeneas", "name.last":"Rekkas","age":"not-a-number"}`), httpContentTypeJSON),
 			options:       []HTTPDecoderOption{HTTPJSONSchemaCompiler("stub/person.json", nil)},

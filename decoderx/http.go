@@ -39,6 +39,7 @@ type (
 		maxCircularReferenceDepth uint8
 		handleParseErrors         parseErrorStrategy
 		expectJSONFlattened       bool
+		queryAndBody              bool
 	}
 
 	// HTTPDecoderOption configures the HTTP decoder.
@@ -122,6 +123,14 @@ func HTTPDecoderJSONFollowsFormFormat() HTTPDecoderOption {
 func HTTPDecoderAllowedMethods(method ...string) HTTPDecoderOption {
 	return func(o *httpDecoderOptions) {
 		o.allowedHTTPMethods = method
+	}
+}
+
+// HTTPDecoderUseQueryAndBody will check both the HTTP body and the HTTP query params when decoding.
+// Only relevant for non-GET operations.
+func HTTPDecoderUseQueryAndBody() HTTPDecoderOption {
+	return func(o *httpDecoderOptions) {
+		o.queryAndBody = true
 	}
 }
 
@@ -363,7 +372,7 @@ func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecod
 	}
 
 	values := r.PostForm
-	if r.Method == "GET" {
+	if r.Method == "GET" || o.queryAndBody {
 		values = r.Form
 	}
 
