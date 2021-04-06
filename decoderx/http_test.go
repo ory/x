@@ -218,6 +218,45 @@ func TestHTTPFormDecoder(t *testing.T) {
 }`,
 		},
 		{
+			d: "should pass JSON request formatted as a form",
+			request: newRequest(t, "POST", "/?age=29", bytes.NewBufferString(`{
+	"name.first": "Aeneas",
+	"name.last":  "Rekkas",
+	"ratio":      0.9,
+	"consent":    false,
+	"newsletter": true
+}`), httpContentTypeJSON),
+			options: []HTTPDecoderOption{HTTPDecoderJSONFollowsFormFormat(),
+				HTTPJSONSchemaCompiler("stub/person.json", nil)},
+			expected: `{
+	"name": {"first": "Aeneas", "last": "Rekkas"},
+	"newsletter": true,
+	"consent": false,
+	"ratio": 0.9
+}`,
+		},
+		{
+			d: "should pass JSON request formatted as a form",
+			request: newRequest(t, "POST", "/?age=29", bytes.NewBufferString(`{
+	"name.first": "Aeneas",
+	"name.last":  "Rekkas",
+	"ratio":      0.9,
+	"consent":    false,
+	"newsletter": true
+}`), httpContentTypeJSON),
+			options: []HTTPDecoderOption{
+				HTTPDecoderUseQueryAndBody(),
+				HTTPDecoderJSONFollowsFormFormat(),
+				HTTPJSONSchemaCompiler("stub/person.json", nil)},
+			expected: `{
+	"name": {"first": "Aeneas", "last": "Rekkas"},
+	"age": 29,
+	"newsletter": true,
+	"consent": false,
+	"ratio": 0.9
+}`,
+		},
+		{
 			d: "should pass JSON request GET request",
 			request: newRequest(t, "GET", "/?"+url.Values{
 				"name.first": {"Aeneas"},

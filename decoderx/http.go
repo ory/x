@@ -332,6 +332,13 @@ func (t *HTTP) decodeJSONForm(r *http.Request, destination interface{}, o *httpD
 		return true
 	})
 
+	if o.queryAndBody {
+		_ = r.ParseForm()
+		for k := range r.Form {
+			values.Set(k, r.Form.Get(k))
+		}
+	}
+
 	raw, err := t.decodeURLValues(values, paths, o)
 	if err != nil {
 		return err
