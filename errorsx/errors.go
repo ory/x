@@ -31,7 +31,7 @@ func Cause(err error) error {
 // WithStack mirror pkg/errors.WithStack but does not wrap existing stack
 // traces.
 func WithStack(err error) error {
-	if _, ok := err.(StackTracer); ok {
+	if e, ok := err.(StackTracer); ok && len(e.StackTrace()) > 0 {
 		return err
 	}
 
