@@ -79,7 +79,7 @@ jobs:
         with:
           node-version: '14'
       - name: Define next tag
-        run: npx -y semver $(git describe --tags `git rev-list --tags --max-count=1`)
+        run: npx semver $(git describe --tags `git rev-list --tags --max-count=1`)
       - name: Create git tag
         run: |
           git tag "v$(npx semver $(git describe --tags `git rev-list --tags --max-count=1`) --increment=patch)"
