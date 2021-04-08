@@ -79,6 +79,6 @@ jobs:
         with:
           node-version: '14'
       - name: Create git tag
-        run: git tag "v$(npx -x semver $(git describe --tags `git rev-list --tags --max-count=1`) --increment=patch)"
+        run: git tag "v$(npx -y semver $(git describe --tags `git rev-list --tags --max-count=1`) --increment=patch)"
       - name: Push git tag
         run: git push --tags
