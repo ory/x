@@ -45,6 +45,15 @@ const (
 
 // Path represents a JSON Schema Path.
 type Path struct {
+	// Title of the path.
+	Title string
+
+	// Description of the path.
+	Description string
+
+	// Examples of the path.
+	Examples []interface{}
+
 	// Name is the JSON path name.
 	Name string
 
@@ -257,20 +266,23 @@ func listPaths(schema *jsonschema.Schema, parents []string, pointers map[string]
 	}
 	if (pathType != nil || schema.Default != nil) && len(parents) > 0 {
 		path := Path{
-			Name:       strings.Join(parents, "."),
-			Default:    def,
-			Type:       pathType,
-			TypeHint:   pathTypeHint,
-			Format:     schema.Format,
-			Pattern:    schema.Pattern,
-			Enum:       schema.Enum,
-			Constant:   schema.Constant,
-			MinLength:  schema.MinLength,
-			MaxLength:  schema.MaxLength,
-			Minimum:    schema.Minimum,
-			Maximum:    schema.Maximum,
-			MultipleOf: schema.MultipleOf,
-			ReadOnly:   schema.ReadOnly,
+			Name:        strings.Join(parents, "."),
+			Default:     def,
+			Type:        pathType,
+			TypeHint:    pathTypeHint,
+			Format:      schema.Format,
+			Pattern:     schema.Pattern,
+			Enum:        schema.Enum,
+			Constant:    schema.Constant,
+			MinLength:   schema.MinLength,
+			MaxLength:   schema.MaxLength,
+			Minimum:     schema.Minimum,
+			Maximum:     schema.Maximum,
+			MultipleOf:  schema.MultipleOf,
+			ReadOnly:    schema.ReadOnly,
+			Title:       schema.Title,
+			Description: schema.Description,
+			Examples:    schema.Examples,
 		}
 		for _, e := range schema.Extensions {
 			if enhancer, ok := e.(PathEnhancer); ok {
