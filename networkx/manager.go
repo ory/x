@@ -34,10 +34,11 @@ func NewManager(
 
 func (m *Manager) Determine(ctx context.Context) (*Network, error) {
 	var p Network
-	if err := sqlcon.HandleError(m.c.Q().Order("created_at ASC").First(&p)); err != nil {
+	c := m.c.WithContext(ctx)
+	if err := sqlcon.HandleError(c.Q().Order("created_at ASC").First(&p)); err != nil {
 		if errors.Is(err, sqlcon.ErrNoRows) {
 			np := NewProject()
-			if err := m.c.Create(np); err != nil {
+			if err := c.Create(np); err != nil {
 				return nil, err
 			}
 			return np, nil
@@ -48,10 +49,10 @@ func (m *Manager) Determine(ctx context.Context) (*Network, error) {
 }
 
 func (m *Manager) MigrateUp(ctx context.Context) error {
-	mm, err := popx.NewMigrationBox(migrations, popx.NewMigrator(m.c, m.l, m.t, 0))
+	mm, err := popx.NewMigrationBox(migrations, popx.NewMigrator(m.c.WithContext(ctx), m.l, m.t, 0))
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 
-	return mm.Up(ctx)
+	return sqlcon.HandleError(mm.Up(ctx))
 }
