@@ -37,7 +37,7 @@ func (m *Manager) Determine(ctx context.Context) (*Network, error) {
 	c := m.c.WithContext(ctx)
 	if err := sqlcon.HandleError(c.Q().Order("created_at ASC").First(&p)); err != nil {
 		if errors.Is(err, sqlcon.ErrNoRows) {
-			np := NewProject()
+			np := NewNetwork()
 			if err := c.Create(np); err != nil {
 				return nil, err
 			}
