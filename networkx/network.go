@@ -19,7 +19,7 @@ func (p Network) TableName() string {
 	return "networks"
 }
 
-func NewProject() *Network {
+func NewNetwork() *Network {
 	return &Network{
 		ID: uuid.Must(uuid.NewV4()),
 	}
