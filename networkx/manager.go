@@ -3,12 +3,14 @@ package networkx
 import (
 	"context"
 	"embed"
+
 	"github.com/gobuffalo/pop/v5"
+	"github.com/pkg/errors"
+
 	"github.com/ory/x/logrusx"
 	"github.com/ory/x/popx"
 	"github.com/ory/x/sqlcon"
 	"github.com/ory/x/tracing"
-	"github.com/pkg/errors"
 )
 
 //go:embed migrations/sql/*.sql
