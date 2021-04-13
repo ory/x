@@ -55,10 +55,24 @@ bar: %s`, dsn, foo, bar)
 	<-c // Wait for changes to propagate
 }
 
+func lsof(t *testing.T, file string) string {
+	if runtime.GOOS == "windows" {
+		return ""
+	}
+
+	var b bytes.Buffer
+	c := exec.Command("bash", "-c", "lsof -n | grep "+file+"")
+	c.Stdout = &b
+	require.NoError(t, c.Run())
+	return b.String()
+}
+
 func checkLsof(t *testing.T, file string) string {
 	if runtime.GOOS == "windows" {
 		return ""
 	}
+
+	time.Sleep(time.Second) // grace period for lsof
 	var b bytes.Buffer
 	c := exec.Command("bash", "-c", "lsof -n | grep "+file+" | wc -l")
 	c.Stdout = &b
@@ -93,6 +107,7 @@ func TestReload(t *testing.T) {
 		hook := test.NewLocal(l.Entry.Logger)
 
 		atStart := checkLsof(t, configFile.Name())
+		lsofAtStart := lsof(t, configFile.Name())
 
 		assert.Equal(t, []*logrus.Entry{}, hook.AllEntries())
 		assert.Equal(t, "memory", p.String("dsn"))
@@ -114,7 +129,8 @@ func TestReload(t *testing.T) {
 		assert.Equal(t, "baz", p.String("bar"))
 
 		atEnd := checkLsof(t, configFile.Name())
-		require.EqualValues(t, atStart, atEnd)
+		lsofAtEnd := lsof(t, configFile.Name())
+		require.EqualValues(t, atStart, atEnd, "\n\t%s\n\t%s", lsofAtStart, lsofAtEnd)
 	})
 
 	t.Run("case=rejects to update immutable", func(t *testing.T) {
@@ -126,6 +142,7 @@ func TestReload(t *testing.T) {
 		hook := test.NewLocal(l.Entry.Logger)
 
 		atStart := checkLsof(t, configFile.Name())
+		lsofAtStart := lsof(t, configFile.Name())
 
 		assert.Equal(t, []*logrus.Entry{}, hook.AllEntries())
 		assert.Equal(t, "memory", p.String("dsn"))
@@ -145,7 +162,8 @@ func TestReload(t *testing.T) {
 		assert.Equal(t, "baz", p.String("bar"))
 
 		atEnd := checkLsof(t, configFile.Name())
-		require.EqualValues(t, atStart, atEnd)
+		lsofAtEnd := lsof(t, configFile.Name())
+		require.EqualValues(t, atStart, atEnd, "\n\t%s\n\t%s", lsofAtStart, lsofAtEnd)
 	})
 
 	t.Run("case=runs without validation errors", func(t *testing.T) {
@@ -204,6 +222,7 @@ func TestReload(t *testing.T) {
 		p, _ := setup(t, configFile, c)
 
 		atStart := checkLsof(t, configFile.Name())
+		lsofAtStart := lsof(t, configFile.Name())
 		for i := 0; i < 30; i++ {
 			t.Run(fmt.Sprintf("iteration=%d", i), func(t *testing.T) {
 				expected := []string{"foo", "bar", "baz"}[i%3]
@@ -214,10 +233,11 @@ func TestReload(t *testing.T) {
 		}
 
 		atEnd := checkLsof(t, configFile.Name())
+		lsofAtEnd := lsof(t, configFile.Name())
 		require.EqualValues(t, atStart, atEnd)
 
 		atStartNum, err := strconv.ParseInt(strings.TrimSpace(atStart), 10, 32)
 		require.NoError(t, err)
-		require.True(t, atStartNum < 20, "should not be unreasonably high: %s", atStartNum)
+		require.True(t, atStartNum < 20, "should not be unreasonably high: %s\n\t%s\n\t%s", atStartNum, lsofAtStart, lsofAtEnd)
 	})
 }

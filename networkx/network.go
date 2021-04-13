@@ -1,8 +1,9 @@
 package networkx
 
 import (
-	"github.com/gofrs/uuid"
 	"time"
+
+	"github.com/gofrs/uuid"
 )
 
 type Network struct {

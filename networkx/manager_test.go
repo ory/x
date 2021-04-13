@@ -2,12 +2,14 @@ package networkx
 
 import (
 	"context"
+	"testing"
+
 	"github.com/gobuffalo/pop/v5"
-	"github.com/ory/x/dbal"
-	"github.com/ory/x/logrusx"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
+
+	"github.com/ory/x/dbal"
+	"github.com/ory/x/logrusx"
 )
 
 func TestManager(t *testing.T) {
