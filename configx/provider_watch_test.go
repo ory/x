@@ -53,6 +53,7 @@ bar: %s`, dsn, foo, bar)
 	_, err = io.WriteString(configFile, config)
 	require.NoError(t, configFile.Sync())
 	<-c // Wait for changes to propagate
+	time.Sleep(time.Millisecond)
 }
 
 func lsof(t *testing.T, file string) string {
