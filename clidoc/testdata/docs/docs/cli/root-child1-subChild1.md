@@ -13,10 +13,6 @@ To improve this file please make your change against the appropriate "./cmd/*.go
 
 
 
-### Synopsis
-
-
-
 ```
 root child1 subChild1 [flags]
 ```
