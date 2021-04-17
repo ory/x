@@ -26,6 +26,7 @@ type (
 		Interface() interface{}
 		Len() int
 	}
+	Nil struct{}
 
 	format string
 )
@@ -41,6 +42,14 @@ const (
 
 	None = "<none>"
 )
+
+func (Nil) String() string {
+	return "null"
+}
+
+func (Nil) Interface() interface{} {
+	return nil
+}
 
 func PrintErrors(cmd *cobra.Command, errs map[string]error) {
 	for src, err := range errs {
@@ -114,6 +123,9 @@ func PrintTable(cmd *cobra.Command, table Table) {
 }
 
 func PrintJSONAble(cmd *cobra.Command, d interface{ String() string }) {
+	if d == nil {
+		d = Nil{}
+	}
 	switch getFormat(cmd) {
 	default:
 		_, _ = fmt.Fprint(cmd.OutOrStdout(), d.String())
