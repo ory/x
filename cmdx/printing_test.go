@@ -292,4 +292,21 @@ func TestPrinting(t *testing.T) {
 			assert.Equal(t, tb.t[0][1]+"\n"+tb.t[1][1]+"\n", out.String())
 		})
 	})
+
+	t.Run("method=jsonable", func(t *testing.T) {
+		t.Run("case=nil", func(t *testing.T) {
+			for _, f := range []format{FormatDefault, FormatJSON, FormatJSONPretty} {
+				t.Run("format="+string(f), func(t *testing.T) {
+					out := &bytes.Buffer{}
+					cmd := &cobra.Command{}
+					cmd.SetOut(out)
+					RegisterJSONFormatFlags(cmd.Flags())
+
+					PrintJSONAble(cmd, nil)
+
+					assert.Equal(t, "null", out.String())
+				})
+			}
+		})
+	})
 }

@@ -1,8 +1,5 @@
 module github.com/ory/x
 
-// remove once https://github.com/seatgeek/logrus-gelf-formatter/pull/5 is merged
-replace github.com/seatgeek/logrus-gelf-formatter => github.com/zepatrik/logrus-gelf-formatter v0.0.0-20210305135027-b8b3731dba10
-
 replace github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
 
 // Required because github.com/ory/kratos rewrites github.com/ory/kratos-client-go to
@@ -10,6 +7,8 @@ replace github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
 replace github.com/ory/kratos-client-go => github.com/ory/kratos-client-go v0.5.4-alpha.1.0.20210210170256-960b093d8bf9
 
 replace github.com/ory/kratos/corp => github.com/ory/kratos/corp v0.0.0-20210118092700-c2358be1e867
+
+replace github.com/oleiade/reflections => github.com/oleiade/reflections v1.0.1
 
 require (
 	github.com/bmatcuk/doublestar/v2 v2.0.3
@@ -55,7 +54,7 @@ require (
 	github.com/pkg/profile v1.2.1
 	github.com/rs/cors v1.6.0
 	github.com/rubenv/sql-migrate v0.0.0-20190212093014-1007f53448d7
-	github.com/seatgeek/logrus-gelf-formatter v0.0.0-20210219220335-367fa274be2c
+	github.com/seatgeek/logrus-gelf-formatter v0.0.0-20210414080842-5b05eb8ff761
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cast v1.3.2-0.20200723214538-8d17101741c8
 	github.com/spf13/cobra v1.1.3
