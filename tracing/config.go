@@ -7,6 +7,7 @@ type JaegerConfig struct {
 	SamplerValue       float64
 	SamplerServerURL   string
 	Propagation        string
+	MaxTagValueLength  int
 }
 
 // ZipkinConfig encapsulates zipkin's configuration.
