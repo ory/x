@@ -1,6 +1,7 @@
 package tracing
 
 import (
+	"github.com/uber/jaeger-client-go"
 	"io"
 	"os"
 	"strings"
@@ -70,6 +71,10 @@ func (t *Tracer) setup() error {
 		}
 
 		var configs []jaegerConf.Option
+
+		if t.Config.Jaeger.MaxTagValueLength != jaeger.DefaultMaxTagValueLength {
+			configs = append(configs, jaegerConf.MaxTagValueLength(t.Config.Jaeger.MaxTagValueLength))
+		}
 
 		// This works in other jaeger clients, but is not part of jaeger-client-go
 		if t.Config.Jaeger.Propagation == "b3" {
