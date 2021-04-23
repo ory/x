@@ -88,9 +88,9 @@ func compareLsof(t *testing.T, file, atStart, expected string) {
 		}
 	}
 
-	e, err := strconv.ParseInt(expected,10,64)
+	e, err := strconv.ParseInt(strings.TrimSpace(expected),10,64)
 	require.NoError(t, err)
-	a, err := strconv.ParseInt(actual,10,64)
+	a, err := strconv.ParseInt(strings.TrimSpace(actual),10,64)
 	require.NoError(t, err)
 
 	const deviation = 2
