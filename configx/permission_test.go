@@ -1,0 +1,32 @@
+package configx
+
+import (
+        "io/ioutil"
+        "os"
+        "testing"
+
+        "github.com/stretchr/testify/assert"
+        "github.com/stretchr/testify/require"
+)
+
+func TestSetPerm(t *testing.T) {
+        f, e := ioutil.TempFile("", "test")
+        require.NoError(t, e)
+        path := f.Name()
+
+        // We cannot test setting owner and group, because we don't know what the
+        // tester has access to.
+        _ = (&UnixPermission{
+                Owner: "",
+                Group: "",
+                Mode:  0654,
+        }).SetPermission(path)
+
+        stat, err := f.Stat()
+        require.NoError(t, err)
+
+        assert.Equal(t, os.FileMode(0654), stat.Mode())
+
+        require.NoError(t, f.Close())
+        require.NoError(t, os.Remove(path))
+}
