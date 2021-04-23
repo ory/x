@@ -42,7 +42,6 @@ func Generate(cmd *cobra.Command, args []string) error {
 	if !gjson.ValidBytes(sidebar) {
 		return errors.New("sidebar file is not valid JSON")
 	}
-
 	var index int
 	gjson.GetBytes(sidebar, `Reference`).ForEach(func(key, value gjson.Result) bool {
 		if strings.Contains(value.Raw, sideBarLabel) {
@@ -63,6 +62,20 @@ func Generate(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+func replaceItems(node []byte, parents []string, result *[]byte, replace string) (bool,err error) {
+	gjson.ParseBytes(node).ForEach(func(key, value gjson.Result) bool {
+		if strings.Contains(key.String(), "Command Line Interface") {
+			return replaceItems(node, append(parents, key), result, replace)
+		}
+		interim, err := sjson.SetBytes(node, strings.Join(parents, "."), replace)
+		if err != nil {
+
+		}
+		return false
+	})
+
 }
 
 func trimExt(s string) string {
