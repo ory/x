@@ -1,7 +1,5 @@
 module github.com/ory/x
 
-replace github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
-
 // Required because github.com/ory/kratos rewrites github.com/ory/kratos-client-go to
 // github.com/ory/kratos/internal/httpclient
 replace github.com/ory/kratos-client-go => github.com/ory/kratos-client-go v0.5.4-alpha.1.0.20210210170256-960b093d8bf9
@@ -10,11 +8,16 @@ replace github.com/ory/kratos/corp => github.com/ory/kratos/corp v0.0.0-20210118
 
 replace github.com/oleiade/reflections => github.com/oleiade/reflections v1.0.1
 
+replace github.com/dgrijalva/jwt-go => github.com/form3tech-oss/jwt-go v3.2.1+incompatible
+
+replace github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
+
 require (
 	github.com/bmatcuk/doublestar/v2 v2.0.3
 	github.com/dgraph-io/ristretto v0.0.3
 	github.com/docker/docker v17.12.0-ce-rc1.0.20201201034508-7d75c1d40d88+incompatible
 	github.com/fatih/structs v1.1.0
+	github.com/form3tech-oss/jwt-go v3.2.2+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-bindata/go-bindata v3.1.1+incompatible
