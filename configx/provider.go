@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/uber/jaeger-client-go"
 	"io"
 	"io/ioutil"
 	"net/url"
@@ -438,6 +439,7 @@ func (p *Provider) TracingConfig(serviceName string) *tracing.Config {
 			SamplerType:        p.StringF("tracing.providers.jaeger.sampling.type", "const"),
 			SamplerValue:       p.Float64F("tracing.providers.jaeger.sampling.value", float64(1)),
 			SamplerServerURL:   p.String("tracing.providers.jaeger.sampling.server_url"),
+			MaxTagValueLength:  p.IntF("tracing.providers.jaeger.max_tag_value_length", jaeger.DefaultMaxTagValueLength),
 			Propagation: stringsx.Coalesce(
 				os.Getenv("JAEGER_PROPAGATION"),
 				p.String("tracing.providers.jaeger.propagation"),
