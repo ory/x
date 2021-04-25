@@ -58,19 +58,31 @@ func Generate(cmd *cobra.Command, args []string) error {
 }
 
 func findKey(node []byte, parents []string, ) (result []string) {
-	gjson.ParseBytes(node).ForEach(func(key, value gjson.Result) bool {
-		current := append(parents, key.String())
-		if strings.EqualFold(key.String(), sideBarLabel) {
-			items := findKey(node, current)
-			if len(items) == 0 {
-				return true
-			}
+	var index int
+	parsed := gjson.ParseBytes(node)
 
-			result = items
+	parsed.ForEach(func(key, value gjson.Result) bool {
+		var current []string
+		if parsed.IsArray() {
+			current = append(parents, fmt.Sprintf("%d",index))
+			index++
+		} else if parsed.IsObject() {
+			current = append(parents, key.String())
+		} else {
 			return false
 		}
 
-		result = current
+		if strings.EqualFold(key.String(), sideBarLabel) {
+			result = parents
+			return false
+		}
+
+		items := findKey([]byte(value.Raw), current)
+		if len(items) == 0 {
+			return true
+		}
+
+		result = items
 		return false
 	})
 
