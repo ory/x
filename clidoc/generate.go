@@ -42,16 +42,9 @@ func Generate(cmd *cobra.Command, args []string) error {
 	if !gjson.ValidBytes(sidebar) {
 		return errors.New("sidebar file is not valid JSON")
 	}
-	var index int
-	gjson.GetBytes(sidebar, `Reference`).ForEach(func(key, value gjson.Result) bool {
-		if strings.Contains(value.Raw, sideBarLabel) {
-			return false
-		}
-		index++
-		return true
-	})
 
-	sidebar, err = sjson.SetBytes(sidebar, fmt.Sprintf(`Reference.%d.%s`, index, sideBarLabel), navItems)
+	key := strings.Join(findKey(sidebar, nil), ".")
+	sidebar, err = sjson.SetBytes(sidebar, fmt.Sprintf(`%s.%s`, key, sideBarLabel), navItems)
 	if err != nil {
 		return err
 	}
@@ -64,18 +57,24 @@ func Generate(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func replaceItems(node []byte, parents []string, result *[]byte, replace string) (bool,err error) {
+func findKey(node []byte, parents []string, ) (result []string) {
 	gjson.ParseBytes(node).ForEach(func(key, value gjson.Result) bool {
-		if strings.Contains(key.String(), "Command Line Interface") {
-			return replaceItems(node, append(parents, key), result, replace)
-		}
-		interim, err := sjson.SetBytes(node, strings.Join(parents, "."), replace)
-		if err != nil {
+		current := append(parents, key.String())
+		if strings.EqualFold(key.String(), sideBarLabel) {
+			items := findKey(node, current)
+			if len(items) == 0 {
+				return true
+			}
 
+			result = items
+			return false
 		}
+
+		result = current
 		return false
 	})
 
+	return
 }
 
 func trimExt(s string) string {

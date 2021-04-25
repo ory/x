@@ -63,7 +63,7 @@ func snapshotFile(t *testing.T, path ...string) (assertNoChange func(t *testing.
 		post, err := os.ReadFile(filepath.Join(path...))
 		require.NoError(t, err)
 
-		assert.Equal(t, string(pre), string(post))
+		assert.Equal(t, string(pre), string(post), "%s", post)
 	}
 }
 
