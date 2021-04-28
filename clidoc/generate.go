@@ -57,14 +57,14 @@ func Generate(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func findKey(node []byte, parents []string, ) (result []string) {
+func findKey(node []byte, parents []string) (result []string) {
 	var index int
 	parsed := gjson.ParseBytes(node)
 
 	parsed.ForEach(func(key, value gjson.Result) bool {
 		var current []string
 		if parsed.IsArray() {
-			current = append(parents, fmt.Sprintf("%d",index))
+			current = append(parents, fmt.Sprintf("%d", index))
 			index++
 		} else if parsed.IsObject() {
 			current = append(parents, key.String())

@@ -88,13 +88,13 @@ func compareLsof(t *testing.T, file, atStart, expected string) {
 		}
 	}
 
-	e, err := strconv.ParseInt(strings.TrimSpace(expected),10,64)
+	e, err := strconv.ParseInt(strings.TrimSpace(expected), 10, 64)
 	require.NoError(t, err)
-	a, err := strconv.ParseInt(strings.TrimSpace(actual),10,64)
+	a, err := strconv.ParseInt(strings.TrimSpace(actual), 10, 64)
 	require.NoError(t, err)
 
 	const deviation = 2
-	assert.True(t, e < a + deviation && e > a - deviation, "\n\t%s\n\t%s", atStart, lsof(t, file))
+	assert.True(t, e < a+deviation && e > a-deviation, "\n\t%s\n\t%s", atStart, lsof(t, file))
 }
 
 func TestReload(t *testing.T) {
