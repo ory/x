@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/uber/jaeger-client-go"
 	"io"
 	"io/ioutil"
 	"net/url"
@@ -13,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/uber/jaeger-client-go"
 
 	"github.com/sirupsen/logrus"
 
