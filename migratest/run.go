@@ -1,0 +1,36 @@
+package migratest
+
+import (
+	"encoding/json"
+	"io/ioutil"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func ContainsExpectedIds(t *testing.T, path string, ids []string) {
+	files, err := ioutil.ReadDir(path)
+	require.NoError(t, err)
+
+	for _, f := range files {
+		if filepath.Ext(f.Name()) == ".json" {
+			expected := strings.TrimSuffix(filepath.Base(f.Name()), ".json")
+			assert.Contains(t, ids, expected)
+		}
+	}
+}
+func CompareWithFixture(t *testing.T, actual interface{}, prefix string, id string) {
+	location := filepath.Join("fixtures", prefix, id+".json")
+	expected, err := ioutil.ReadFile(location)
+	writeFixtureOnError(t, err, actual, location)
+
+	actualJSON, err := json.Marshal(actual)
+	require.NoError(t, err)
+
+	if !assert.JSONEq(t, string(expected), string(actualJSON)) {
+		writeFixtureOnError(t, nil, actual, location)
+	}
+}
