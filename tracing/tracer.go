@@ -1,10 +1,11 @@
 package tracing
 
 import (
-	"github.com/uber/jaeger-client-go"
 	"io"
 	"os"
 	"strings"
+
+	"github.com/uber/jaeger-client-go"
 
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
