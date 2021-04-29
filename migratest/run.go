@@ -25,12 +25,12 @@ func ContainsExpectedIds(t *testing.T, path string, ids []string) {
 func CompareWithFixture(t *testing.T, actual interface{}, prefix string, id string) {
 	location := filepath.Join("fixtures", prefix, id+".json")
 	expected, err := ioutil.ReadFile(location)
-	writeFixtureOnError(t, err, actual, location)
+	WriteFixtureOnError(t, err, actual, location)
 
 	actualJSON, err := json.Marshal(actual)
 	require.NoError(t, err)
 
 	if !assert.JSONEq(t, string(expected), string(actualJSON)) {
-		writeFixtureOnError(t, nil, actual, location)
+		WriteFixtureOnError(t, nil, actual, location)
 	}
 }

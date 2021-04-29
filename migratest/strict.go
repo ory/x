@@ -8,6 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func writeFixtureOnError(t *testing.T, err error, actual interface{}, location string) {
+func WriteFixtureOnError(t *testing.T, err error, actual interface{}, location string) {
 	require.NoError(t, err)
 }
