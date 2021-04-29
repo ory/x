@@ -14,6 +14,7 @@ replace github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
 
 require (
 	github.com/bmatcuk/doublestar/v2 v2.0.3
+	github.com/cockroachdb/cockroach-go/v2 v2.1.1
 	github.com/dgraph-io/ristretto v0.0.3
 	github.com/docker/docker v17.12.0-ce-rc1.0.20201201034508-7d75c1d40d88+incompatible
 	github.com/fatih/structs v1.1.0
@@ -37,10 +38,10 @@ require (
 	github.com/jackc/pgconn v1.8.0
 	github.com/jackc/pgx/v4 v4.10.1
 	github.com/jandelgado/gcov2lcov v1.0.4
-	github.com/jmoiron/sqlx v1.2.0
+	github.com/jmoiron/sqlx v1.3.1
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/knadh/koanf v0.14.1-0.20201201075439-e0853799f9ec
-	github.com/lib/pq v1.3.0
+	github.com/lib/pq v1.10.0
 	github.com/markbates/pkger v0.17.1
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/openzipkin-contrib/zipkin-go-opentracing v0.4.5
@@ -72,7 +73,7 @@ require (
 	go.elastic.co/apm/module/apmot v1.8.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace v0.18.0
 	go.opentelemetry.io/otel v0.18.0
-	golang.org/x/crypto v0.0.0-20201124201722-c8d3bf9c5392
+	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 	golang.org/x/mod v0.4.2
 	gonum.org/v1/plot v0.0.0-20200111075622-4abb28f724d5
 	google.golang.org/grpc v1.36.0
