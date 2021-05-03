@@ -262,6 +262,15 @@ func TestHTTPFormDecoder(t *testing.T) {
 			expectedError: "I[#] S[#/required] missing properties",
 		},
 		{
+			d: "should indicate the true missing fields from nested form",
+			request: newRequest(t, "POST", "/",  bytes.NewBufferString(url.Values{"leaf": {"foo"}}.Encode()), httpContentTypeURLEncodedForm),
+			options: []HTTPDecoderOption{
+				HTTPDecoderUseQueryAndBody(),
+				HTTPDecoderSetIgnoreParseErrorsStrategy(ParseErrorIgnoreConversionErrors),
+				HTTPJSONSchemaCompiler("stub/nested.json", nil)},
+			expectedError: `I[#/node/node/node] S[#/properties/node/properties/node/properties/node/required] missing properties: "leaf"`,
+		},
+		{
 			d: "should pass JSON request formatted as a form",
 			request: newRequest(t, "POST", "/?age=29", bytes.NewBufferString(`{
 	"name.first": "Aeneas",
@@ -321,7 +330,7 @@ func TestHTTPFormDecoder(t *testing.T) {
 				HTTPDecoderSetIgnoreParseErrorsStrategy(ParseErrorIgnoreConversionErrors),
 				HTTPDecoderSetValidatePayloads(false),
 			},
-			expected: `{"ratio": "foobar"}`,
+			expected: `{"name": {}, "ratio": "foobar"}`,
 		},
 		{
 			d: "should work with ParseErrorIgnoreConversionErrors",
@@ -329,7 +338,7 @@ func TestHTTPFormDecoder(t *testing.T) {
 				"ratio": {"foobar"},
 			}.Encode()), httpContentTypeURLEncodedForm),
 			options:  []HTTPDecoderOption{HTTPJSONSchemaCompiler("stub/person.json", nil), HTTPDecoderSetIgnoreParseErrorsStrategy(ParseErrorUseEmptyValueOnConversionErrors)},
-			expected: `{"ratio": 0.0}`,
+			expected: `{"name": {}, "ratio": 0.0}`,
 		},
 		{
 			d: "should work with ParseErrorIgnoreConversionErrors",

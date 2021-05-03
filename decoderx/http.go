@@ -510,6 +510,21 @@ func (t *HTTP) decodeURLValues(values url.Values, paths []jsonschemax.Path, o *h
 			}
 		}
 	}
+
+	for _, path := range paths {
+		if path.TypeHint != jsonschemax.JSON {
+			continue
+		}
+
+		if !gjson.GetBytes(raw, path.Name).Exists() {
+			var err error
+			raw, err = sjson.SetRawBytes(raw, path.Name, []byte(`{}`))
+			if err != nil {
+				return nil, errors.WithStack(err)
+			}
+		}
+	}
+
 	return raw, nil
 }
 
