@@ -93,7 +93,7 @@ func compareLsof(t *testing.T, file, atStart, expected string) {
 	a, err := strconv.ParseInt(strings.TrimSpace(actual), 10, 64)
 	require.NoError(t, err)
 
-	const deviation = 2
+	const deviation = 6
 	assert.True(t, e < a+deviation && e > a-deviation, "\n\t%s\n\t%s", atStart, lsof(t, file))
 }
 
@@ -144,6 +144,8 @@ func TestReload(t *testing.T) {
 		// but it is still watching the files
 		updateConfigFile(t, c, configFile, "memory", "bar", "baz")
 		assert.Equal(t, "baz", p.String("bar"))
+
+		time.Sleep(time.Millisecond * 250)
 
 		compareLsof(t, configFile.Name(), lsofAtStart, atStart)
 	})
