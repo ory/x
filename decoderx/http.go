@@ -79,6 +79,8 @@ const (
 	ParseErrorReturnOnConversionErrors
 )
 
+var errKeyNotFound = errors.New("key not found")
+
 // HTTPFormDecoder configures the HTTP decoder to only accept form-data
 // (application/x-www-form-urlencoded, multipart/form-data)
 func HTTPFormDecoder() HTTPDecoderOption {
@@ -108,6 +110,7 @@ func HTTPKeepRequestBody(keep bool) HTTPDecoderOption {
 func HTTPDecoderSetValidatePayloads(validate bool) HTTPDecoderOption {
 	return func(o *httpDecoderOptions) {
 		o.jsonSchemaValidate = validate
+		o.keepRequestBody = true
 	}
 }
 
@@ -116,6 +119,7 @@ func HTTPDecoderSetValidatePayloads(validate bool) HTTPDecoderOption {
 func HTTPDecoderJSONFollowsFormFormat() HTTPDecoderOption {
 	return func(o *httpDecoderOptions) {
 		o.expectJSONFlattened = true
+		o.keepRequestBody = true
 	}
 }
 
@@ -273,7 +277,7 @@ func (t *HTTP) Decode(r *http.Request, destination interface{}, opts ...HTTPDeco
 		if c.expectJSONFlattened {
 			return t.decodeJSONForm(r, destination, c)
 		}
-		return t.decodeJSON(r, destination, c)
+		return t.decodeJSON(r, destination, c, false)
 	} else if httpx.HasContentType(r, httpContentTypeMultipartForm, httpContentTypeURLEncodedForm) {
 		return t.decodeForm(r, destination, c)
 	}
@@ -341,6 +345,9 @@ func (t *HTTP) decodeJSONForm(r *http.Request, destination interface{}, o *httpD
 
 	raw, err := t.decodeURLValues(values, paths, o)
 	if err != nil {
+		if errors.Is(err, errKeyNotFound) {
+			return t.decodeJSON(r, destination, o, true)
+		}
 		return err
 	}
 
@@ -384,7 +391,7 @@ func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecod
 	}
 
 	raw, err := t.decodeURLValues(values, paths, o)
-	if err != nil {
+	if err != nil && !errors.Is(err, errKeyNotFound) {
 		return err
 	}
 
@@ -400,10 +407,14 @@ func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecod
 }
 
 func (t *HTTP) decodeURLValues(values url.Values, paths []jsonschemax.Path, o *httpDecoderOptions) (json.RawMessage, error) {
+	var err error
 	raw := json.RawMessage(`{}`)
 	for key := range values {
+		var found bool
 		for _, path := range paths {
 			if key == path.Name {
+				found = true
+
 				var err error
 				switch path.Type.(type) {
 				case []string:
@@ -496,11 +507,14 @@ func (t *HTTP) decodeURLValues(values url.Values, paths []jsonschemax.Path, o *h
 				break
 			}
 		}
+		if !found {
+			err = errKeyNotFound
+		}
 	}
-	return raw, nil
+	return raw, err
 }
 
-func (t *HTTP) decodeJSON(r *http.Request, destination interface{}, o *httpDecoderOptions) error {
+func (t *HTTP) decodeJSON(r *http.Request, destination interface{}, o *httpDecoderOptions, isRetry bool) error {
 	reader, err := t.requestBody(r, o)
 	if err != nil {
 		return err
@@ -511,11 +525,16 @@ func (t *HTTP) decodeJSON(r *http.Request, destination interface{}, o *httpDecod
 		return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Unable to read HTTP POST body: %s", err))
 	}
 
-	if err := json.NewDecoder(bytes.NewReader(raw)).Decode(destination); err != nil {
+	dc := json.NewDecoder(bytes.NewReader(raw))
+	dc.DisallowUnknownFields()
+	if err := dc.Decode(destination); err != nil {
 		return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Unable to decode JSON payload: %s", err))
 	}
 
 	if err := t.validatePayload(raw, o); err != nil {
+		if o.expectJSONFlattened && strings.Contains(err.Error(), "json: unknown field") && !isRetry {
+			return t.decodeJSONForm(r, destination, o)
+		}
 		return err
 	}
 

@@ -236,6 +236,32 @@ func TestHTTPFormDecoder(t *testing.T) {
 }`,
 		},
 		{
+			d: "should pass JSON request formatted as a JSON even if HTTPDecoderJSONFollowsFormFormat is used",
+			request: newRequest(t, "POST", "/?age=29", bytes.NewBufferString(`{
+	"name": {"first": "Aeneas", "last": "Rekkas"},
+	"ratio":      0.9,
+	"consent":    false,
+	"newsletter": true
+}`), httpContentTypeJSON),
+			options: []HTTPDecoderOption{HTTPDecoderJSONFollowsFormFormat(),
+				HTTPJSONSchemaCompiler("stub/person.json", nil)},
+			expected: `{
+	"name": {"first": "Aeneas", "last": "Rekkas"},
+	"newsletter": true,
+	"consent": false,
+	"ratio": 0.9
+}`,
+		},
+		{
+			d: "should not retry indefinitely if key does not exist",
+			request: newRequest(t, "POST", "/?age=29", bytes.NewBufferString(`{
+	"not-foo": "bar"
+}`), httpContentTypeJSON),
+			options: []HTTPDecoderOption{HTTPDecoderJSONFollowsFormFormat(),
+				HTTPJSONSchemaCompiler("stub/schema.json", nil)},
+			expectedError: "I[#] S[#/required] missing properties",
+		},
+		{
 			d: "should pass JSON request formatted as a form",
 			request: newRequest(t, "POST", "/?age=29", bytes.NewBufferString(`{
 	"name.first": "Aeneas",
