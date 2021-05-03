@@ -331,10 +331,19 @@ func (t *HTTP) decodeJSONForm(r *http.Request, destination interface{}, o *httpD
 	}
 
 	values := url.Values{}
+	var notJSONForm bool
 	parsed.ForEach(func(k, v gjson.Result) bool {
+		if v.IsArray() || v.IsObject() {
+			notJSONForm = true
+			return false
+		}
 		values.Set(k.String(), v.String())
 		return true
 	})
+
+	if notJSONForm {
+		return t.decodeJSON(r, destination, o, true)
+	}
 
 	if o.queryAndBody {
 		_ = r.ParseForm()
@@ -345,9 +354,6 @@ func (t *HTTP) decodeJSONForm(r *http.Request, destination interface{}, o *httpD
 
 	raw, err := t.decodeURLValues(values, paths, o)
 	if err != nil {
-		if errors.Is(err, errKeyNotFound) {
-			return t.decodeJSON(r, destination, o, true)
-		}
 		return err
 	}
 
@@ -407,14 +413,10 @@ func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecod
 }
 
 func (t *HTTP) decodeURLValues(values url.Values, paths []jsonschemax.Path, o *httpDecoderOptions) (json.RawMessage, error) {
-	var err error
 	raw := json.RawMessage(`{}`)
 	for key := range values {
-		var found bool
 		for _, path := range paths {
 			if key == path.Name {
-				found = true
-
 				var err error
 				switch path.Type.(type) {
 				case []string:
@@ -507,11 +509,8 @@ func (t *HTTP) decodeURLValues(values url.Values, paths []jsonschemax.Path, o *h
 				break
 			}
 		}
-		if !found {
-			err = errKeyNotFound
-		}
 	}
-	return raw, err
+	return raw, nil
 }
 
 func (t *HTTP) decodeJSON(r *http.Request, destination interface{}, o *httpDecoderOptions, isRetry bool) error {
@@ -526,8 +525,10 @@ func (t *HTTP) decodeJSON(r *http.Request, destination interface{}, o *httpDecod
 	}
 
 	dc := json.NewDecoder(bytes.NewReader(raw))
-	dc.DisallowUnknownFields()
-	if err := dc.Decode(destination); err != nil {
+	if !isRetry {
+		dc.DisallowUnknownFields()
+	}
+	if err := json.NewDecoder(bytes.NewReader(raw)).Decode(destination); err != nil {
 		return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Unable to decode JSON payload: %s", err))
 	}
 
