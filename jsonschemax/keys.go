@@ -249,10 +249,7 @@ func listPaths(schema *jsonschema.Schema, parents []string, pointers map[string]
 				}
 			}
 		case "object":
-			// Only store paths for objects that have properties
-			if len(schema.Properties) == 0 {
-				pathType = map[string]interface{}{}
-			}
+			pathType = map[string]interface{}{}
 			pathTypeHint = JSON
 		}
 	} else if len(schema.Types) > 2 {
