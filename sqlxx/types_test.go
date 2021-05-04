@@ -13,3 +13,10 @@ func TestNullTime(t *testing.T) {
 	require.NoError(t, err)
 	assert.EqualValues(t, "null", string(out))
 }
+
+func TestNullString_UnmarshalJSON(t *testing.T) {
+	data := []byte(`"hello"`)
+	var ns NullString
+	require.NoError(t, json.Unmarshal(data, &ns))
+	assert.EqualValues(t, "hello", ns)
+}
