@@ -221,14 +221,19 @@ func listPaths(schema *jsonschema.Schema, parents []string, pointers map[string]
 		case "array":
 			pathType = []interface{}{}
 			if schema.Items != nil {
-				var types []string
+				var itemSchemas []*jsonschema.Schema
 				switch t := schema.Items.(type) {
 				case []*jsonschema.Schema:
-					for _, tt := range t {
-						types = append(types, tt.Types...)
-					}
+					itemSchemas = t
 				case *jsonschema.Schema:
-					types = append(types, t.Types...)
+					itemSchemas = []*jsonschema.Schema{t}
+				}
+				var types []string
+				for _, is := range itemSchemas {
+					types = append(types, is.Types...)
+					if is.Ref != nil {
+						types = append(types, is.Ref.Types...)
+					}
 				}
 				types = stringslice.Unique(types)
 				if len(types) == 1 {
@@ -245,6 +250,9 @@ func listPaths(schema *jsonschema.Schema, parents []string, pointers map[string]
 					case "string":
 						pathType = []string{}
 						pathTypeHint = StringSlice
+					default:
+						pathType = []interface{}{}
+						pathTypeHint = JSON
 					}
 				}
 			}

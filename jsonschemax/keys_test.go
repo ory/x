@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/ory/x/assertx"
 	"io/ioutil"
 	"testing"
+
+	"github.com/ory/x/assertx"
 
 	"github.com/pkg/errors"
 
@@ -3486,6 +3487,146 @@ func TestListPaths(t *testing.T) {
     "Default": null,
     "Type": false,
     "TypeHint": 4,
+    "Format": "",
+    "Pattern": null,
+    "Enum": null,
+    "Constant": null,
+    "ReadOnly": false,
+    "MinLength": -1,
+    "MaxLength": -1,
+    "Minimum": null,
+    "Maximum": null,
+    "MultipleOf": null,
+    "CustomProperties": null
+  }
+]`),
+		},
+		{
+			schema: `{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "test.json",
+  "type": "object",
+  "definitions": {
+    "foo": {
+      "type": "string"
+    }
+  },
+  "properties": {
+    "bar": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/foo"
+      }
+    }
+  }
+}`,
+			expected: json.RawMessage(`[
+  {
+    "Title": "",
+    "Description": "",
+    "Examples": null,
+    "Name": "bar",
+    "Default": null,
+    "Type": [],
+    "TypeHint": 8,
+    "Format": "",
+    "Pattern": null,
+    "Enum": null,
+    "Constant": null,
+    "ReadOnly": false,
+    "MinLength": -1,
+    "MaxLength": -1,
+    "Minimum": null,
+    "Maximum": null,
+    "MultipleOf": null,
+    "CustomProperties": null
+  }
+]`),
+		},
+		{
+			schema: `{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "test.json",
+  "type": "object",
+  "definitions": {
+    "foo": {
+      "type": "string"
+    },
+    "bar": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/foo"
+      }
+    }
+  },
+  "properties": {
+    "baz": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/bar"
+      }
+    }
+  }
+}`,
+			expected: json.RawMessage(`[
+  {
+    "Title": "",
+    "Description": "",
+    "Examples": null,
+    "Name": "baz",
+    "Default": null,
+    "Type": [],
+    "TypeHint": 5,
+    "Format": "",
+    "Pattern": null,
+    "Enum": null,
+    "Constant": null,
+    "ReadOnly": false,
+    "MinLength": -1,
+    "MaxLength": -1,
+    "Minimum": null,
+    "Maximum": null,
+    "MultipleOf": null,
+    "CustomProperties": null
+  }
+]`),
+		},
+		{
+			schema: `{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "test.json",
+  "type": "object",
+  "definitions": {
+    "foo": {
+      "type": "string"
+    },
+    "bar": {
+      "type": "object",
+      "properties": {
+        "foo": {
+          "$ref": "#/definitions/foo"
+        }
+      }
+    }
+  },
+  "properties": {
+    "baz": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/bar"
+      }
+    }
+  }
+}`,
+			expected: json.RawMessage(`[
+  {
+    "Title": "",
+    "Description": "",
+    "Examples": null,
+    "Name": "baz",
+    "Default": null,
+    "Type": [],
+    "TypeHint": 5,
     "Format": "",
     "Pattern": null,
     "Enum": null,
