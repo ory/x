@@ -56,7 +56,7 @@ func (ns *NullString) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 {
 		return nil
 	}
-	return errors.WithStack(json.Unmarshal(data, ns))
+	return errors.WithStack(json.Unmarshal(data, (*string)(ns)))
 }
 
 // Scan implements the Scanner interface.
