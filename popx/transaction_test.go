@@ -3,6 +3,7 @@ package popx
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"testing"
 
 	"github.com/cockroachdb/cockroach-go/v2/crdb"
@@ -14,6 +15,10 @@ import (
 )
 
 func newDB(t *testing.T) *pop.Connection {
+	if runtime.GOOS == "windows" {
+		t.Skip("CockroachDB test suite does not support windows")
+	}
+
 	ts, err := testserver.NewTestServer()
 	require.NoError(t, err)
 
