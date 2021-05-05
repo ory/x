@@ -309,12 +309,6 @@ func (m *Migrator) isolatedTransaction(ctx context.Context, direction string, fn
 		return dberr
 	}
 
-	if c.Dialect.Name() == "cockroach" {
-		return crdb.ExecuteInTx(ctx, sqlxTxAdapter{tx.Tx}, func() error {
-			return fn(tx)
-		})
-	}
-
 	err := fn(tx)
 	if err != nil {
 		dberr = tx.Rollback()
@@ -551,6 +545,13 @@ func (m *Migrator) exec(ctx context.Context, fn func() error) error {
 	if m.Connection.Dialect.Name() == "sqlite3" {
 		if err := m.Connection.RawQuery("PRAGMA foreign_keys=OFF").Exec(); err != nil {
 			return err
+		}
+	}
+
+	if m.Connection.Dialect.Name() == "cockroach" {
+		outer := fn
+		fn = func() error {
+			return crdb.Execute(outer)
 		}
 	}
 
