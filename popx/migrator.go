@@ -13,6 +13,8 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/cockroachdb/cockroach-go/v2/crdb"
+
 	"github.com/ory/x/cmdx"
 
 	"github.com/ory/x/tracing"
@@ -315,7 +317,7 @@ func (m *Migrator) isolatedTransaction(ctx context.Context, direction string, fn
 	}
 
 	if dberr != nil {
-		return errors.Wrap(dberr, "error committing or rolling back transaction")
+		return errors.Wrapf(dberr, "error committing or rolling back transaction: %s", err)
 	}
 
 	return err
@@ -543,6 +545,13 @@ func (m *Migrator) exec(ctx context.Context, fn func() error) error {
 	if m.Connection.Dialect.Name() == "sqlite3" {
 		if err := m.Connection.RawQuery("PRAGMA foreign_keys=OFF").Exec(); err != nil {
 			return err
+		}
+	}
+
+	if m.Connection.Dialect.Name() == "cockroach" {
+		outer := fn
+		fn = func() error {
+			return crdb.Execute(outer)
 		}
 	}
 
