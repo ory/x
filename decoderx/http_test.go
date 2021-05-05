@@ -262,8 +262,8 @@ func TestHTTPFormDecoder(t *testing.T) {
 			expectedError: "I[#] S[#/required] missing properties",
 		},
 		{
-			d: "should indicate the true missing fields from nested form",
-			request: newRequest(t, "POST", "/",  bytes.NewBufferString(url.Values{"leaf": {"foo"}}.Encode()), httpContentTypeURLEncodedForm),
+			d:       "should indicate the true missing fields from nested form",
+			request: newRequest(t, "POST", "/", bytes.NewBufferString(url.Values{"leaf": {"foo"}}.Encode()), httpContentTypeURLEncodedForm),
 			options: []HTTPDecoderOption{
 				HTTPDecoderUseQueryAndBody(),
 				HTTPDecoderSetIgnoreParseErrorsStrategy(ParseErrorIgnoreConversionErrors),

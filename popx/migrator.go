@@ -13,6 +13,8 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/cockroachdb/cockroach-go/v2/crdb"
+
 	"github.com/ory/x/cmdx"
 
 	"github.com/ory/x/tracing"
@@ -307,6 +309,12 @@ func (m *Migrator) isolatedTransaction(ctx context.Context, direction string, fn
 		return dberr
 	}
 
+	if c.Dialect.Name() == "cockroach" {
+		return crdb.ExecuteInTx(ctx, sqlxTxAdapter{tx.Tx}, func() error {
+			return fn(tx)
+		})
+	}
+
 	err := fn(tx)
 	if err != nil {
 		dberr = tx.Rollback()
@@ -315,7 +323,7 @@ func (m *Migrator) isolatedTransaction(ctx context.Context, direction string, fn
 	}
 
 	if dberr != nil {
-		return errors.Wrap(dberr, "error committing or rolling back transaction")
+		return errors.Wrapf(dberr, "error committing or rolling back transaction: %s", err)
 	}
 
 	return err
