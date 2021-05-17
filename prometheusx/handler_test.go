@@ -1,13 +1,15 @@
 package prometheus_test
 
 import (
-	"github.com/julienschmidt/httprouter"
-	"github.com/ory/herodot"
-	"github.com/ory/x/logrusx"
-	prometheus "github.com/ory/x/prometheusx"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/julienschmidt/httprouter"
+
+	"github.com/ory/herodot"
+	"github.com/ory/x/logrusx"
+	prometheus "github.com/ory/x/prometheusx"
 
 	"github.com/prometheus/common/expfmt"
 	"github.com/stretchr/testify/require"

@@ -1,12 +1,13 @@
 package prometheus
 
 import (
-	"github.com/julienschmidt/httprouter"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/julienschmidt/httprouter"
+	"github.com/stretchr/testify/assert"
 )
 
 func EmptyHandle(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -46,7 +47,6 @@ func TestMetricsManagerGetLabelForPath(t *testing.T) {
 		assert.Equal(t, "/test/{param}", mm.getLabelForPath(r))
 	})
 }
-
 
 func TestEndpointsReconstruction(t *testing.T) {
 	//c := internal.NewConfigurationWithDefaults()

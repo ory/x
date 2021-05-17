@@ -3,6 +3,7 @@ package assertx
 import (
 	"bytes"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/tidwall/sjson"
@@ -25,7 +26,7 @@ func EqualAsJSON(t *testing.T, expected, actual interface{}, args ...interface{}
 
 	require.NoError(t, json.NewEncoder(&eb).Encode(expected), args...)
 	require.NoError(t, json.NewEncoder(&ab).Encode(actual), args...)
-	assert.JSONEq(t, eb.String(), ab.String(), args...)
+	assert.JSONEq(t, strings.TrimSpace(eb.String()), strings.TrimSpace(ab.String()), args...)
 }
 
 func EqualAsJSONExcept(t *testing.T, expected, actual interface{}, except []string, args ...interface{}) {
@@ -47,5 +48,5 @@ func EqualAsJSONExcept(t *testing.T, expected, actual interface{}, except []stri
 		require.NoError(t, err)
 	}
 
-	assert.JSONEq(t, ebs, abs, args...)
+	assert.JSONEq(t, strings.TrimSpace(ebs), strings.TrimSpace(abs), args...)
 }
