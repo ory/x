@@ -10,7 +10,7 @@ import (
 
 type MetricsManager struct {
 	prometheusMetrics *Metrics
-	routers []*httprouter.Router
+	routers           []*httprouter.Router
 }
 
 func NewMetricsManager(app, version, hash, buildTime string) *MetricsManager {
