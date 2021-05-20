@@ -35,6 +35,7 @@ func cleanURLQuery(in url.Values) (out url.Values) {
 	out.Del("max_conns")
 	out.Del("max_idle_conns")
 	out.Del("max_conn_lifetime")
+	out.Del("max_idle_conn_time")
 	out.Del("parseTime")
 	return out
 }

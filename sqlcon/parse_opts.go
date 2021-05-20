@@ -12,10 +12,11 @@ import (
 
 // ParseConnectionOptions parses values for max_conns, max_idle_conns, max_conn_lifetime from DSNs.
 // It also returns the URI without those query parameters.
-func ParseConnectionOptions(l *logrusx.Logger, dsn string) (maxConns int, maxIdleConns int, maxConnLifetime time.Duration, cleanedDSN string) {
+func ParseConnectionOptions(l *logrusx.Logger, dsn string) (maxConns int, maxIdleConns int, maxConnLifetime, maxIdleConnTime time.Duration, cleanedDSN string) {
 	maxConns = maxParallelism() * 2
 	maxIdleConns = maxParallelism()
 	maxConnLifetime = time.Duration(0)
+	maxIdleConnTime = time.Duration(0)
 	cleanedDSN = dsn
 
 	parts := strings.Split(dsn, "?")
@@ -24,6 +25,7 @@ func ParseConnectionOptions(l *logrusx.Logger, dsn string) (maxConns int, maxIdl
 			WithField("sql_max_connections", maxConns).
 			WithField("sql_max_idle_connections", maxIdleConns).
 			WithField("sql_max_connection_lifetime", maxConnLifetime).
+			WithField("sql_max_idle_connection_time", maxIdleConnTime).
 			Debugf("No SQL connection options have been defined, falling back to default connection options.")
 		return
 	}
@@ -34,6 +36,7 @@ func ParseConnectionOptions(l *logrusx.Logger, dsn string) (maxConns int, maxIdl
 			WithField("sql_max_connections", maxConns).
 			WithField("sql_max_idle_connections", maxIdleConns).
 			WithField("sql_max_connection_lifetime", maxConnLifetime).
+			WithField("sql_max_idle_connection_time", maxIdleConnTime).
 			WithError(err).
 			Warnf("Unable to parse SQL DSN query, falling back to default connection options.")
 		return
@@ -67,6 +70,16 @@ func ParseConnectionOptions(l *logrusx.Logger, dsn string) (maxConns int, maxIdl
 			maxConnLifetime = s
 		}
 		query.Del("max_conn_lifetime")
+	}
+
+	if v := query.Get("max_conn_idle_time"); v != "" {
+		s, err := time.ParseDuration(v)
+		if err != nil {
+			l.WithError(err).Warnf(`SQL DSN query parameter "max_conn_idle_time" value %v could not be parsed to duration, falling back to default value %d`, v, maxIdleConnTime)
+		} else {
+			maxIdleConnTime = s
+		}
+		query.Del("max_conn_idle_time")
 	}
 	cleanedDSN = fmt.Sprintf("%s?%s", parts[0], query.Encode())
 
