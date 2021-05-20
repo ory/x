@@ -180,7 +180,7 @@ func (m *JSONRawMessage) UnmarshalJSON(data []byte) error {
 
 // NullJSONRawMessage represents a json.RawMessage that works well with JSON, SQL, and Swagger and is NULLable-
 //
-// nullable: true
+// swagger:model nullJsonRawMessage
 type NullJSONRawMessage json.RawMessage
 
 // Scan implements the Scanner interface.
