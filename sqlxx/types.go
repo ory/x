@@ -83,6 +83,9 @@ func (ns NullString) String() string {
 }
 
 // NullTime implements sql.NullTime functionality.
+//
+// swagger:model nullTime
+// required: false
 type NullTime time.Time
 
 // Scan implements the Scanner interface.
@@ -176,6 +179,8 @@ func (m *JSONRawMessage) UnmarshalJSON(data []byte) error {
 }
 
 // NullJSONRawMessage represents a json.RawMessage that works well with JSON, SQL, and Swagger and is NULLable-
+//
+// swagger:model nullJsonRawMessage
 type NullJSONRawMessage json.RawMessage
 
 // Scan implements the Scanner interface.
