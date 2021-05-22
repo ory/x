@@ -64,12 +64,14 @@ func TestClassifyDSN(t *testing.T) {
 }
 
 func TestCleanQueryURL(t *testing.T) {
-	a, err := url.ParseQuery("max_conn_lifetime=1h&max_idle_conns=10&max_conns=10")
+	a, err := url.ParseQuery("max_conn_lifetime=1h&max_idle_conn_time=1h&max_idle_conns=10&max_conns=10")
 	require.NoError(t, err)
 
 	b := cleanURLQuery(a)
 	assert.NotEqual(t, a, b)
 	assert.NotEqual(t, a.Encode(), b.Encode())
+	assert.Equal(t, true, strings.Contains(a.Encode(), "max_idle_conn_time"))
+	assert.Equal(t, false, strings.Contains(b.Encode(), "max_idle_conn_time"))
 	assert.Equal(t, true, strings.Contains(a.Encode(), "max_conn_lifetime"))
 	assert.Equal(t, false, strings.Contains(b.Encode(), "max_conn_lifetime"))
 }

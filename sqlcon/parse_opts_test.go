@@ -11,12 +11,12 @@ import (
 )
 
 func TestParseConnectionOptions(t *testing.T) {
-	defaultMaxConns, defaultMaxIdleConns, defaultMaxConnLifetime := maxParallelism()*2, maxParallelism(), time.Duration(0)
+	defaultMaxConns, defaultMaxIdleConns, defaultMaxConnIdleTime, defaultMaxConnLifetime := maxParallelism()*2, maxParallelism(), time.Duration(0), time.Duration(0)
 	logger := logrusx.New("", "")
 	for i, tc := range []struct {
-		name, dsn, cleanedDSN  string
-		maxConns, maxIdleConns int
-		maxConnLifetime        time.Duration
+		name, dsn, cleanedDSN            string
+		maxConns, maxIdleConns           int
+		maxConnIdleTime, maxConnLifetime time.Duration
 	}{
 		{
 			name:            "no parameters",
@@ -24,6 +24,7 @@ func TestParseConnectionOptions(t *testing.T) {
 			cleanedDSN:      "postgres://user:pwd@host:port",
 			maxConns:        defaultMaxConns,
 			maxIdleConns:    defaultMaxIdleConns,
+			maxConnIdleTime: defaultMaxConnIdleTime,
 			maxConnLifetime: defaultMaxConnLifetime,
 		},
 		{
@@ -32,6 +33,7 @@ func TestParseConnectionOptions(t *testing.T) {
 			cleanedDSN:      "postgres://user:pwd@host:port?bar=value&foo=other_value",
 			maxConns:        defaultMaxConns,
 			maxIdleConns:    defaultMaxIdleConns,
+			maxConnIdleTime: defaultMaxConnIdleTime,
 			maxConnLifetime: defaultMaxConnLifetime,
 		},
 		{
@@ -40,6 +42,7 @@ func TestParseConnectionOptions(t *testing.T) {
 			cleanedDSN:      "postgres://user:pwd@host:port?",
 			maxConns:        5254,
 			maxIdleConns:    defaultMaxIdleConns,
+			maxConnIdleTime: defaultMaxConnIdleTime,
 			maxConnLifetime: defaultMaxConnLifetime,
 		},
 		{
@@ -48,6 +51,16 @@ func TestParseConnectionOptions(t *testing.T) {
 			cleanedDSN:      "postgres://user:pwd@host:port?",
 			maxConns:        defaultMaxConns,
 			maxIdleConns:    9342,
+			maxConnIdleTime: defaultMaxConnIdleTime,
+			maxConnLifetime: defaultMaxConnLifetime,
+		},
+		{
+			name:            "only maxConnIdleTime",
+			dsn:             "postgres://user:pwd@host:port?max_conn_idle_time=112s",
+			cleanedDSN:      "postgres://user:pwd@host:port?",
+			maxConns:        defaultMaxConns,
+			maxIdleConns:    defaultMaxIdleConns,
+			maxConnIdleTime: 112 * time.Second,
 			maxConnLifetime: defaultMaxConnLifetime,
 		},
 		{
@@ -56,6 +69,7 @@ func TestParseConnectionOptions(t *testing.T) {
 			cleanedDSN:      "postgres://user:pwd@host:port?",
 			maxConns:        defaultMaxConns,
 			maxIdleConns:    defaultMaxIdleConns,
+			maxConnIdleTime: defaultMaxConnIdleTime,
 			maxConnLifetime: 112 * time.Second,
 		},
 		{
@@ -64,14 +78,16 @@ func TestParseConnectionOptions(t *testing.T) {
 			cleanedDSN:      "postgres://user:pwd@host:port?bar=value&foo=other_value",
 			maxConns:        5254,
 			maxIdleConns:    9342,
+			maxConnIdleTime: defaultMaxConnIdleTime,
 			maxConnLifetime: 112 * time.Second,
 		},
 	} {
 		t.Run(fmt.Sprintf("case=%d/name=%s", i, tc.name), func(t *testing.T) {
-			maxConns, maxIdleConns, maxConnLifetime, cleanedDSN := ParseConnectionOptions(logger, tc.dsn)
+			maxConns, maxIdleConns, maxConnLifetime, maxConnIdleTime, cleanedDSN := ParseConnectionOptions(logger, tc.dsn)
 			assert.Equal(t, tc.maxConns, maxConns)
 			assert.Equal(t, tc.maxIdleConns, maxIdleConns)
 			assert.Equal(t, tc.maxConnLifetime, maxConnLifetime)
+			assert.Equal(t, tc.maxConnIdleTime, maxConnIdleTime)
 			assert.Equal(t, tc.cleanedDSN, cleanedDSN)
 		})
 	}
