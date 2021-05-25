@@ -39,7 +39,7 @@ func (h *Handler) SetRoutes(r *httprouter.Router) {
 //
 // swagger:route GET /metrics/prometheus admin prometheus
 //
-// Get snapshot metrics from the Hydra service. If you're using k8s, you can then add annotations to
+// Get snapshot metrics from the service. If you're using k8s, you can then add annotations to
 // your deployment like so:
 //
 // ```
