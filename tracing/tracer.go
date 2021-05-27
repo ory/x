@@ -153,7 +153,11 @@ func (t *Tracer) setup() error {
 
 	case "instana":
 		opts := instana.DefaultOptions()
-		opts.Service = t.Config.ServiceName
+		var serviceName = os.Getenv("INSTANA_SERVICE_NAME")
+		if serviceName == "" {
+			serviceName = t.Config.ServiceName
+		}
+		opts.Service = serviceName
 		// all other settings can be configured using environment variables
 
 		t.tracer = instana.NewTracerWithOptions(opts)
