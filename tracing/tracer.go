@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	instana "github.com/instana/go-sensor"
 	"github.com/uber/jaeger-client-go"
 
 	"github.com/opentracing/opentracing-go"
@@ -150,6 +151,19 @@ func (t *Tracer) setup() error {
 		t.tracer = opentracing.GlobalTracer()
 		t.l.Infof("Elastic APM tracer configured!")
 
+	case "instana":
+		opts := instana.DefaultOptions()
+		var serviceName = os.Getenv("INSTANA_SERVICE_NAME")
+		if serviceName == "" {
+			serviceName = t.Config.ServiceName
+		}
+		opts.Service = serviceName
+		// all other settings can be configured using environment variables
+
+		t.tracer = instana.NewTracerWithOptions(opts)
+		opentracing.SetGlobalTracer(t.tracer)
+
+		t.l.Infof("Instana tracer configured!")
 	case "":
 		t.l.Infof("No tracer configured - skipping tracing setup")
 	default:
