@@ -213,15 +213,15 @@ func TestInstanaTracer(t *testing.T) {
 
 	type traceRequest struct {
 		Timestamp uint64 `json:"ts"`
-		Data struct {
+		Data      struct {
 			Service string `json:"service"`
-			Sdk struct {
-				Name string `json:"name"`
-				Type string `json:"type"`
+			Sdk     struct {
+				Name   string `json:"name"`
+				Type   string `json:"type"`
 				Custom struct {
-					Baggage map[string]interface{} `json:"baggage"`
-					Logs map[uint64]map[string]interface{} `json:"logs"`
-					Tags map[string]interface{} `json:"tags"`
+					Baggage map[string]interface{}            `json:"baggage"`
+					Logs    map[uint64]map[string]interface{} `json:"logs"`
+					Tags    map[string]interface{}            `json:"tags"`
 				} `json:"custom"`
 			} `json:"sdk"`
 		} `json:"data"`
@@ -263,7 +263,7 @@ func TestInstanaTracer(t *testing.T) {
 			assert.NoError(t, err)
 
 			var req []traceRequest
-			assert.NoError(t,json.Unmarshal(body, &req))
+			assert.NoError(t, json.Unmarshal(body, &req))
 
 			assert.Equal(t, "ORY X", req[0].Data.Service)
 			assert.Equal(t, "testOperation", req[0].Data.Sdk.Name)
