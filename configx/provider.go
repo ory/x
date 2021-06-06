@@ -51,7 +51,7 @@ type Provider struct {
 	immutables []string
 
 	originalContext context.Context
-	cancelFork      context.CancelFunc
+	//cancelFork      context.CancelFunc
 
 	schema                   []byte
 	flags                    *pflag.FlagSet
@@ -60,11 +60,16 @@ type Provider struct {
 	onValidationError        func(k *koanf.Koanf, err error)
 	excludeFieldsFromTracing []string
 	tracer                   *tracing.Tracer
-	forcedValues             []tuple
-	baseValues               []tuple
-	files                    []string
-	skipValidation           bool
-	logger                   *logrusx.Logger
+
+	forcedValues []tuple
+	baseValues   []tuple
+	files        []string
+	changefeeds  []string
+
+	skipValidation bool
+	logger         *logrusx.Logger
+
+	providers []koanf.Provider
 }
 
 const (
@@ -105,29 +110,86 @@ func New(schema []byte, modifiers ...OptionModifier) (*Provider, error) {
 		onValidationError:        func(k *koanf.Koanf, err error) {},
 		excludeFieldsFromTracing: []string{"dsn", "secret", "password", "key"},
 		logger:                   logrusx.New("discarding config logger", "", logrusx.UseLogger(l)),
+		Koanf:                    koanf.New(Delimiter),
 	}
 
 	for _, m := range modifiers {
 		m(p)
 	}
 
-	k, _, cancelFork, err := p.forkKoanf()
+	providers, err := p.createProviders(p.originalContext)
 	if err != nil {
 		return nil, err
 	}
 
-	p.replaceKoanf(k, cancelFork)
+	p.providers = providers
+
+	k, err := p.newKoanf()
+	if err != nil {
+		return nil, err
+	}
+
+	p.replaceKoanf(k)
 	return p, nil
 }
 
-func (p *Provider) replaceKoanf(k *koanf.Koanf, cancelFork context.CancelFunc) {
+func (p *Provider) createProviders(ctx context.Context) (providers []koanf.Provider, err error) {
+	defaultsProvider, err := NewKoanfSchemaDefaults(p.schema)
+	if err != nil {
+		return nil, err
+	}
+	providers = append(providers, defaultsProvider)
+
+	// Workaround for https://github.com/knadh/koanf/pull/47
+	for _, t := range p.baseValues {
+		providers = append(providers, NewKoanfConfmap([]tuple{t}))
+	}
+
+	var paths []string
+	if p.flags != nil {
+		p, _ := p.flags.GetStringSlice(FlagConfig)
+		paths = append(paths, p...)
+	}
+
+	p.logger.WithField("files", paths).Debug("Adding config file s.")
+	for _, path := range paths {
+		fp, err := NewKoanfFile(ctx, path)
+		if err != nil {
+			return nil, err
+		}
+
+		c := make(watcherx.EventChannel)
+		if _, err := fp.WatchChannel(c); err != nil {
+			return nil, err
+		}
+
+		go p.watchForFileChanges(c)
+
+		providers = append(providers, fp)
+	}
+
+	if p.flags != nil {
+		providers = append(providers, posflag.Provider(p.flags, ".", p.Koanf))
+	}
+
+	envProvider, err := NewKoanfEnv("", p.schema)
+	if err != nil {
+		return nil, err
+	}
+	providers = append(providers, envProvider)
+
+	// Workaround for https://github.com/knadh/koanf/pull/47
+	for _, t := range p.forcedValues {
+		providers = append(providers, NewKoanfConfmap([]tuple{t}))
+	}
+
+	return providers, nil
+}
+
+func (p *Provider) replaceKoanf(k *koanf.Koanf) {
 	p.l.Lock()
 	defer p.l.Unlock()
-	if p.cancelFork != nil {
-		p.cancelFork()
-	}
 	p.Koanf = k
-	p.cancelFork = cancelFork
 }
 
 func (p *Provider) validate(k *koanf.Koanf) error {
@@ -147,78 +209,39 @@ func (p *Provider) validate(k *koanf.Koanf) error {
 	return nil
 }
 
-func (p *Provider) forkKoanf() (*koanf.Koanf, context.Context, context.CancelFunc, error) {
-	fork, cancel := context.WithCancel(p.originalContext)
-	span, fork := p.startSpan(fork, LoadSpanOpName)
+// newKoanf creates a new koanf instance with all the updated config
+//
+// This is unfortunately required due to several limitations / bugs in koanf:
+//
+// - https://github.com/knadh/koanf/issues/77
+// - https://github.com/knadh/koanf/pull/47
+func (p *Provider) newKoanf() (*koanf.Koanf, error) {
+	span, ctx := p.startSpan(p.originalContext, LoadSpanOpName)
 	defer span.Finish()
 
 	k := koanf.New(Delimiter)
-	dp, err := NewKoanfSchemaDefaults(p.schema)
-	if err != nil {
-		cancel()
-		return nil, nil, nil, err
-	}
 
-	ep, err := NewKoanfEnv("", p.schema)
-	if err != nil {
-		cancel()
-		return nil, nil, nil, err
-	}
-
-	// Load defaults
-	if err := k.Load(dp, nil); err != nil {
-		cancel()
-		return nil, nil, nil, err
-	}
-
-	for _, t := range p.baseValues {
-		if err := k.Load(NewKoanfConfmap([]tuple{t}), nil); err != nil {
-			cancel()
-			return nil, nil, nil, err
+	for _, provider := range p.providers {
+		// posflag.Posflag requires access to Koanf instance so we recreate the provider here which is a workaround
+		// for posflag.Provider's API.
+		if _, ok := provider.(*posflag.Posflag); ok {
+			provider = posflag.Provider(p.flags, ".", k)
 		}
-	}
 
-	var paths []string
-	if p.flags != nil {
-		p, _ := p.flags.GetStringSlice(FlagConfig)
-		paths = append(paths, p...)
-	}
-
-	if err := p.addAndWatchConfigFiles(fork, append(p.files, paths...), k); err != nil {
-		cancel()
-		return nil, nil, nil, err
-	}
-
-	if p.flags != nil {
-		if err := k.Load(posflag.Provider(p.flags, ".", k), nil); err != nil {
-			cancel()
-			return nil, nil, nil, err
-		}
-	}
-
-	if err := k.Load(ep, nil); err != nil {
-		cancel()
-		return nil, nil, nil, err
-	}
-
-	// Workaround for https://github.com/knadh/koanf/pull/47
-	for _, t := range p.forcedValues {
-		if err := k.Load(NewKoanfConfmap([]tuple{t}), nil); err != nil {
-			cancel()
-			return nil, nil, nil, err
+		if err := k.Load(provider, nil); err != nil {
+			return nil, err
 		}
 	}
 
 	if err := p.validate(k); err != nil {
-		cancel()
-		return nil, nil, nil, err
+		return nil, err
 	}
 
-	p.traceConfig(fork, k, LoadSpanOpName)
-	return k, fork, cancel, nil
+	p.traceConfig(ctx, k, LoadSpanOpName)
+	return k, nil
 }
 
-// TraceSnapshot will send the configuration to the tracer.
+// SetTracer sets the tracer.
 func (p *Provider) SetTracer(ctx context.Context, t *tracing.Tracer) {
 	p.tracer = t
 	p.traceConfig(ctx, p.Koanf, SnapshotSpanOpName)
@@ -263,73 +286,52 @@ func (p *Provider) runOnChanges(e watcherx.Event, err error) {
 	}
 }
 
-func (p *Provider) addAndWatchConfigFiles(ctx context.Context, paths []string, k *koanf.Koanf) error {
-	p.logger.WithField("files", paths).Debug("Adding config files.")
+func (p *Provider) reload(e watcherx.Event) {
+	nk, err := p.newKoanf()
+	if err != nil {
+		p.runOnChanges(e, err)
+		return
+	}
 
-	watchForFileChanges := func(c watcherx.EventChannel) {
-		// Channel is closed automatically on ctx.Done() because of fp.WatchChannel()
-		for e := range c {
-			switch et := e.(type) {
-			case *watcherx.ErrorEvent:
-				p.runOnChanges(e, et)
-				continue
-			default:
-				nk, _, cancel, err := p.forkKoanf()
-				if err != nil {
-					p.runOnChanges(e, err)
-					continue
-				}
-
-				var cancelReload bool
-				for _, key := range p.immutables {
-					if !reflect.DeepEqual(k.Get(key), nk.Get(key)) {
-						cancel()
-						cancelReload = true
-						p.runOnChanges(e, NewImmutableError(key, fmt.Sprintf("%v", k.Get(key)), fmt.Sprintf("%v", nk.Get(key))))
-						break
-					}
-				}
-
-				if cancelReload {
-					continue
-				}
-
-				p.replaceKoanf(nk, cancel)
-				p.runOnChanges(e, nil)
-			}
+	for _, key := range p.immutables {
+		if !reflect.DeepEqual(p.Koanf.Get(key), nk.Get(key)) {
+			p.runOnChanges(e, NewImmutableError(key, fmt.Sprintf("%v", p.Koanf.Get(key)), fmt.Sprintf("%v", nk.Get(key))))
+			return
 		}
 	}
 
-	for _, path := range paths {
-		fp, err := NewKoanfFile(ctx, path)
-		if err != nil {
-			return err
-		}
+	p.replaceKoanf(nk)
+	p.runOnChanges(e, nil)
+}
 
-		if err := k.Load(fp, nil); err != nil {
-			return err
+func (p *Provider) watchForFileChanges(c watcherx.EventChannel) {
+	// Channel is closed automatically on ctx.Done() because of fp.WatchChannel()
+	for e := range c {
+		switch et := e.(type) {
+		case *watcherx.ErrorEvent:
+			p.runOnChanges(e, et)
+		default:
+			p.reload(e)
 		}
-
-		c := make(watcherx.EventChannel)
-		if _, err := fp.WatchChannel(c); err != nil {
-			return err
-		}
-
-		go watchForFileChanges(c)
 	}
+}
+
+func (p *Provider) addAndWatchChangeFeeds(ctx context.Context, sources []ChangeFeedSource, k *koanf.Koanf) error {
+	p.logger.WithField("sources", sources).Debug("Watching changefeeds.")
 
 	return nil
 }
 
 func (p *Provider) Set(key string, value interface{}) error {
 	p.forcedValues = append(p.forcedValues, tuple{Key: key, Value: value})
+	p.providers = append(p.providers, NewKoanfConfmap([]tuple{{Key: key, Value: value}}))
 
-	k, _, cancel, err := p.forkKoanf()
+	k, err := p.newKoanf()
 	if err != nil {
 		return err
 	}
 
-	p.replaceKoanf(k, cancel)
+	p.replaceKoanf(k)
 	return nil
 }
 
