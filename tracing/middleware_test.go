@@ -29,14 +29,20 @@ func init() {
 
 func TestTracingServeHttp(t *testing.T) {
 	expectedTagsSuccess := map[string]interface{}{
-		string(ext.HTTPStatusCode): uint16(200),
+		string(ext.Component):      "Ory Hydra Test",
+		string(ext.SpanKind):       ext.SpanKindRPCServerEnum,
 		string(ext.HTTPMethod):     "GET",
+		string(ext.HTTPUrl):        "https://apis.somecompany.com/endpoint",
+		string(ext.HTTPStatusCode): uint16(200),
 	}
 
 	expectedTagsError := map[string]interface{}{
-		string(ext.HTTPStatusCode): uint16(400),
+		string(ext.Component):      "Ory Hydra Test",
+		string(ext.SpanKind):       ext.SpanKindRPCServerEnum,
 		string(ext.HTTPMethod):     "GET",
-		"error":                    true,
+		string(ext.HTTPUrl):        "https://apis.somecompany.com/endpoint",
+		string(ext.HTTPStatusCode): uint16(400),
+		string(ext.Error):          true,
 	}
 
 	testCases := []struct {

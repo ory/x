@@ -22,24 +22,19 @@ func (t *Tracer) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.Ha
 
 	// It's very possible that Hydra is fronted by a proxy which could have initiated a trace.
 	// If so, we should attempt to join it.
-	remoteContext, err := opentracing.GlobalTracer().Extract(
-		opentracing.HTTPHeaders,
-		opentracing.HTTPHeadersCarrier(r.Header),
-	)
-
-	if err != nil {
-		span = opentracing.StartSpan(opName)
-	} else {
-		span = opentracing.StartSpan(opName, opentracing.ChildOf(remoteContext))
-	}
+	carrier := opentracing.HTTPHeadersCarrier(r.Header)
+	remoteContext, _ := opentracing.GlobalTracer().Extract(opentracing.HTTPHeaders, carrier)
+	span = opentracing.StartSpan(opName, ext.RPCServerOption(remoteContext))
 
 	defer span.Finish()
 
+	ext.HTTPMethod.Set(span, r.Method)
+	ext.HTTPUrl.Set(span, r.URL.String())
+	ext.Component.Set(span, t.Config.ServiceName)
 	r = r.WithContext(opentracing.ContextWithSpan(r.Context(), span))
 
 	next(rw, r)
 
-	ext.HTTPMethod.Set(span, r.Method)
 	if negroniWriter, ok := rw.(negroni.ResponseWriter); ok {
 		statusCode := uint16(negroniWriter.Status())
 		if statusCode >= 400 {
