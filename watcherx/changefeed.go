@@ -118,14 +118,11 @@ func WatchChangeFeed(ctx context.Context, cx *sqlx.DB, tableName string, c Event
 	}()
 
 	go func() {
-		defer func() {
-			close(done)
-		}()
-
 		// naive attempt at context cancellation
 		select {
 		case <-ctx.Done():
 		case <-done:
+			close(done)
 		}
 
 		// We need to execute this without a context or else this will fail because the parent context was already canceled.
