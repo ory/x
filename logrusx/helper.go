@@ -87,10 +87,10 @@ func (l *Logger) WithRequest(r *http.Request) *Logger {
 	if _, _, spanCtx := otelhttptrace.Extract(r.Context(), r, opts); spanCtx.IsValid() {
 		traces := map[string]string{}
 		if spanCtx.HasTraceID() {
-			traces["trace_id"] = spanCtx.TraceID.String()
+			traces["trace_id"] = spanCtx.TraceID().String()
 		}
 		if spanCtx.HasSpanID() {
-			traces["span_id"] = spanCtx.SpanID.String()
+			traces["span_id"] = spanCtx.SpanID().String()
 		}
 		ll = ll.WithField("otel", traces)
 	}
