@@ -2,9 +2,7 @@ module github.com/ory/x
 
 // Required because github.com/ory/kratos rewrites github.com/ory/kratos-client-go to
 // github.com/ory/kratos/internal/httpclient
-replace github.com/ory/kratos-client-go => github.com/ory/kratos-client-go v0.5.4-alpha.1.0.20210210170256-960b093d8bf9
-
-replace github.com/ory/kratos/corp => github.com/ory/kratos/corp v0.0.0-20210118092700-c2358be1e867
+replace github.com/ory/kratos-client-go => github.com/ory/kratos-client-go v0.6.3-alpha.1
 
 replace github.com/oleiade/reflections => github.com/oleiade/reflections v1.0.1
 
@@ -12,13 +10,18 @@ replace github.com/dgrijalva/jwt-go => github.com/form3tech-oss/jwt-go v3.2.1+in
 
 replace github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
 
+replace github.com/gobuffalo/pop/v5 => github.com/gobuffalo/pop/v5 v5.3.2-0.20210412125924-f5ad9021d6ac
+
+replace github.com/ory/cli => github.com/ory/cli v0.0.54-0.20210608133353-c4151d03309d
+
+replace github.com/ory/kratos => github.com/ory/kratos v0.6.3-alpha.1.0.20210608133603-d34a72c661cc
+
 require (
 	github.com/bmatcuk/doublestar/v2 v2.0.3
 	github.com/cockroachdb/cockroach-go/v2 v2.1.1
 	github.com/dgraph-io/ristretto v0.0.3
 	github.com/docker/docker v17.12.0-ce-rc1.0.20201201034508-7d75c1d40d88+incompatible
 	github.com/fatih/structs v1.1.0
-	github.com/form3tech-oss/jwt-go v3.2.2+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-bindata/go-bindata v3.1.1+incompatible
@@ -30,7 +33,7 @@ require (
 	github.com/gobuffalo/pop/v5 v5.3.3
 	github.com/gofrs/uuid v3.2.0+incompatible
 	github.com/golang/mock v1.5.0
-	github.com/google/go-jsonnet v0.16.0
+	github.com/google/go-jsonnet v0.17.0
 	github.com/google/uuid v1.2.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/hashicorp/go-retryablehttp v0.6.8
@@ -48,11 +51,12 @@ require (
 	github.com/openzipkin-contrib/zipkin-go-opentracing v0.4.5
 	github.com/openzipkin/zipkin-go v0.2.2
 	github.com/ory/analytics-go/v4 v4.0.0
-	github.com/ory/cli v0.0.49
-	github.com/ory/dockertest/v3 v3.6.3
+	github.com/ory/cli v0.0.54-0.20210608132413-b82ff3493cdf
+	github.com/ory/dockertest/v3 v3.6.5
 	github.com/ory/go-acc v0.2.6
-	github.com/ory/herodot v0.9.3
+	github.com/ory/herodot v0.9.6
 	github.com/ory/jsonschema/v3 v3.0.3
+	github.com/ory/kratos v0.6.3-alpha.1.0.20210608134109-08a793287aed // indirect
 	github.com/pborman/uuid v1.2.1
 	github.com/pelletier/go-toml v1.8.1
 	github.com/pkg/errors v0.9.1
