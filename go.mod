@@ -56,7 +56,7 @@ require (
 	github.com/ory/go-acc v0.2.6
 	github.com/ory/herodot v0.9.6
 	github.com/ory/jsonschema/v3 v3.0.3
-	github.com/ory/kratos v0.0.0-00010101000000-000000000000 // indirect
+	github.com/ory/kratos v0.6.3-alpha.1.0.20210608134109-08a793287aed // indirect
 	github.com/pborman/uuid v1.2.1
 	github.com/pelletier/go-toml v1.8.1
 	github.com/pkg/errors v0.9.1
