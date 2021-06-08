@@ -64,12 +64,13 @@ type Provider struct {
 	forcedValues []tuple
 	baseValues   []tuple
 	files        []string
-	changefeeds  []string
+	changeFeed   *KoanfMemory
 
 	skipValidation bool
 	logger         *logrusx.Logger
 
-	providers []koanf.Provider
+	providers     []koanf.Provider
+	userProviders []koanf.Provider
 }
 
 const (
@@ -145,13 +146,13 @@ func (p *Provider) createProviders(ctx context.Context) (providers []koanf.Provi
 		providers = append(providers, NewKoanfConfmap([]tuple{t}))
 	}
 
-	var paths []string
+	paths := p.files
 	if p.flags != nil {
 		p, _ := p.flags.GetStringSlice(FlagConfig)
 		paths = append(paths, p...)
 	}
 
-	p.logger.WithField("files", paths).Debug("Adding config file s.")
+	p.logger.WithField("files", paths).Debug("Adding config files.")
 	for _, path := range paths {
 		fp, err := NewKoanfFile(ctx, path)
 		if err != nil {
@@ -167,6 +168,8 @@ func (p *Provider) createProviders(ctx context.Context) (providers []koanf.Provi
 
 		providers = append(providers, fp)
 	}
+
+	providers = append(providers, p.userProviders...)
 
 	if p.flags != nil {
 		providers = append(providers, posflag.Provider(p.flags, ".", p.Koanf))
@@ -314,12 +317,6 @@ func (p *Provider) watchForFileChanges(c watcherx.EventChannel) {
 			p.reload(e)
 		}
 	}
-}
-
-func (p *Provider) addAndWatchChangeFeeds(ctx context.Context, sources []ChangeFeedSource, k *koanf.Koanf) error {
-	p.logger.WithField("sources", sources).Debug("Watching changefeeds.")
-
-	return nil
 }
 
 func (p *Provider) Set(key string, value interface{}) error {

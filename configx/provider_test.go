@@ -101,6 +101,7 @@ func TestAdvancedConfigs(t *testing.T) {
 		stub      string
 		configs   []string
 		envs      [][2]string
+		ops       []OptionModifier
 		isValid   bool
 		expectedF func(*testing.T, *Provider)
 	}{
@@ -116,6 +117,12 @@ func TestAdvancedConfigs(t *testing.T) {
 			isValid: true, envs: [][2]string{
 				{"DSN", "sqlite:///var/lib/sqlite/db.sqlite?_fk=true"},
 			}},
+		{
+			stub:    "from-files",
+			isValid: true, envs: [][2]string{
+				{"DSN", "sqlite:///var/lib/sqlite/db.sqlite?_fk=true"},
+			},
+			ops: []OptionModifier{WithConfigFiles("stub/multi/a.yaml", "stub/multi/b.yaml")}},
 		{
 			stub:    "hydra",
 			configs: []string{"stub/hydra/hydra.yaml"},
@@ -136,10 +143,23 @@ func TestAdvancedConfigs(t *testing.T) {
 		{
 			stub:    "hydra",
 			configs: []string{"stub/hydra/hydra.yaml"},
-			isValid: false, envs: [][2]string{
+			isValid: false,
+			ops:     []OptionModifier{WithUserProviders(NewKoanfMemory(context.Background(), []byte(`{"dsn": null}`)))},
+		},
+		{
+			stub:    "hydra",
+			configs: []string{"stub/hydra/hydra.yaml"},
+			isValid: true,
+			ops:     []OptionModifier{WithUserProviders(NewKoanfMemory(context.Background(), []byte(`{"dsn": "invalid"}`)))},
+			envs: [][2]string{
 				{"DSN", "sqlite:///var/lib/sqlite/db.sqlite?_fk=true"},
-				{"TRACING_PROVIDER", "not-jaeger"},
-			}},
+				{"TRACING_PROVIDER", "jaeger"},
+				{"TRACING_PROVIDERS_JAEGER_SAMPLING_SERVER_URL", "http://jaeger:5778/sampling"},
+				{"TRACING_PROVIDERS_JAEGER_LOCAL_AGENT_ADDRESS", "jaeger:6832"},
+				{"TRACING_PROVIDERS_JAEGER_SAMPLING_TYPE", "const"},
+				{"TRACING_PROVIDERS_JAEGER_SAMPLING_VALUE", "1"},
+			},
+		},
 	} {
 		t.Run("service="+tc.stub, func(t *testing.T) {
 			setEnvs(t, tc.envs)
@@ -150,7 +170,7 @@ func TestAdvancedConfigs(t *testing.T) {
 			schemaPath := path.Join("stub", tc.stub, "config.schema.json")
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
-			k, err := newKoanf(schemaPath, tc.configs, WithContext(ctx))
+			k, err := newKoanf(schemaPath, tc.configs, append(tc.ops, WithContext(ctx))...)
 			if !tc.isValid {
 				require.Error(t, err)
 				return
