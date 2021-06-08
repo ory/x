@@ -12,15 +12,12 @@ replace github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
 
 replace github.com/gobuffalo/pop/v5 => github.com/gobuffalo/pop/v5 v5.3.2-0.20210412125924-f5ad9021d6ac
 
-replace github.com/ory/cli => ../cli
-
 require (
 	github.com/bmatcuk/doublestar/v2 v2.0.3
 	github.com/cockroachdb/cockroach-go/v2 v2.1.1
 	github.com/dgraph-io/ristretto v0.0.3
 	github.com/docker/docker v17.12.0-ce-rc1.0.20201201034508-7d75c1d40d88+incompatible
 	github.com/fatih/structs v1.1.0
-	github.com/form3tech-oss/jwt-go v3.2.2+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-bindata/go-bindata v3.1.1+incompatible
@@ -50,11 +47,12 @@ require (
 	github.com/openzipkin-contrib/zipkin-go-opentracing v0.4.5
 	github.com/openzipkin/zipkin-go v0.2.2
 	github.com/ory/analytics-go/v4 v4.0.0
-	github.com/ory/cli v0.0.54-0.20210608132413-b82ff3493cdf // indirect
+	github.com/ory/cli v0.0.54-0.20210608132413-b82ff3493cdf
 	github.com/ory/dockertest/v3 v3.6.5
 	github.com/ory/go-acc v0.2.6
 	github.com/ory/herodot v0.9.6
 	github.com/ory/jsonschema/v3 v3.0.3
+	github.com/ory/kratos v0.6.3-alpha.1.0.20210608132915-60701624164c // indirect
 	github.com/pborman/uuid v1.2.1
 	github.com/pelletier/go-toml v1.8.1
 	github.com/pkg/errors v0.9.1
