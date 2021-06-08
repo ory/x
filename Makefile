@@ -15,8 +15,9 @@ endef
 $(foreach dep, $(GO_DEPENDENCIES), $(eval $(call make-go-dependency, $(dep))))
 $(call make-lint-dependency)
 
-.bin/cli: go.mod go.sum Makefile
-		go build -o .bin/cli -tags sqlite github.com/ory/cli
+.bin/ory: Makefile
+		bash <(curl https://raw.githubusercontent.com/ory/cli/master/install.sh) -b .bin v0.0.53
+		touch -a -m .bin/ory
 
 .PHONY: format
 format:
@@ -47,9 +48,9 @@ lint: .bin/golangci-lint
 		GO111MODULE=on golangci-lint run -v ./...
 
 .PHONY: migrations-render
-migrations-render: .bin/cli
-		cli dev pop migration render networkx/migrations/templates networkx/migrations/sql
+migrations-render: .bin/ory
+		ory dev pop migration render networkx/migrations/templates networkx/migrations/sql
 
 .PHONY: migrations-render-replace
-migrations-render-replace: .bin/cli
-		cli dev pop migration render -r networkx/migrations/templates networkx/migrations/sql
+migrations-render-replace: .bin/ory
+		ory dev pop migration render -r networkx/migrations/templates networkx/migrations/sql

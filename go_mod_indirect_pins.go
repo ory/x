@@ -7,6 +7,5 @@ import (
 	_ "github.com/golang/mock/mockgen"
 	_ "github.com/gorilla/websocket"
 	_ "github.com/jandelgado/gcov2lcov"
-	_ "github.com/ory/cli"
 	_ "github.com/ory/go-acc"
 )

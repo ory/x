@@ -26,6 +26,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/julienschmidt/httprouter"
@@ -72,7 +73,7 @@ func TestHealth(t *testing.T) {
 	out, err := ioutil.ReadAll(response.Body)
 	require.NoError(t, err)
 	assert.EqualValues(t, "ok", healthBody.Status)
-	assert.Equal(t, `{"errors":{"test":"not alive"}}`, string(out))
+	assert.Equal(t, `{"errors":{"test":"not alive"}}`, strings.TrimSpace(string(out)))
 
 	alive = nil
 	response, err = c.Get(ts.URL + ReadyCheckPath)
