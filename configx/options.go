@@ -82,6 +82,12 @@ func WithBaseValues(values map[string]interface{}) OptionModifier {
 	}
 }
 
+func WithUserProviders(providers ...koanf.Provider) OptionModifier {
+	return func(p *Provider) {
+		p.userProviders = providers
+	}
+}
+
 func OmitKeysFromTracing(keys ...string) OptionModifier {
 	return func(p *Provider) {
 		p.excludeFieldsFromTracing = keys
