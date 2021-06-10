@@ -1,5 +1,11 @@
 module github.com/ory/x
 
+replace github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
+
+replace github.com/dgrijalva/jwt-go => github.com/form3tech-oss/jwt-go v3.2.1+incompatible
+
+replace github.com/oleiade/reflections => github.com/oleiade/reflections v1.0.1
+
 require (
 	github.com/bmatcuk/doublestar/v2 v2.0.3
 	github.com/cockroachdb/cockroach-go/v2 v2.1.1
