@@ -154,5 +154,9 @@ func WatchChangeFeed(ctx context.Context, cx *sqlx.DB, tableName string, c Event
 		// end close
 	}()
 
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+
 	return d, nil
 }
