@@ -61,7 +61,7 @@ func WatchChangeFeed(ctx context.Context, cx *sqlx.DB, tableName string, c Event
 		}
 	} else {
 		var err error
-		rows, err = cx.QueryContext(ctx, fmt.Sprintf("EXPERIMENTAL CHANGEFEED FOR %s WITH CURSOR = $1", tableName), fmt.Sprintf("%d", time.Now().UnixNano()))
+		rows, err = cx.QueryContext(ctx, fmt.Sprintf("EXPERIMENTAL CHANGEFEED FOR %s WITH CURSOR = $1", tableName), fmt.Sprintf("%d", cursor.UnixNano()))
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
