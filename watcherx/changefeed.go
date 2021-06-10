@@ -2,6 +2,7 @@ package watcherx
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"strings"
 	"time"
@@ -51,10 +52,19 @@ func NewChangeFeedConnection(ctx context.Context, l *logrusx.Logger, dsn string)
 // Watcher.DispatchNow() does not have an effect in this method.
 //
 // This watcher is blocking to allow proper context cancellation and clean up.
-func WatchChangeFeed(ctx context.Context, cx *sqlx.DB, tableName string, c EventChannel) (Watcher, error) {
-	rows, err := cx.QueryContext(ctx, fmt.Sprintf("EXPERIMENTAL CHANGEFEED FOR %s WITH CURSOR = $1", tableName), fmt.Sprintf("%d", time.Now().UnixNano()))
-	if err != nil {
-		return nil, errors.WithStack(err)
+func WatchChangeFeed(ctx context.Context, cx *sqlx.DB, tableName string, c EventChannel, cursor time.Time) (_ Watcher, err error) {
+	var rows *sql.Rows
+	if cursor.IsZero() {
+		rows, err = cx.QueryContext(ctx, fmt.Sprintf("EXPERIMENTAL CHANGEFEED FOR %s", tableName))
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+	} else {
+		var err error
+		rows, err = cx.QueryContext(ctx, fmt.Sprintf("EXPERIMENTAL CHANGEFEED FOR %s WITH CURSOR = $1", tableName), fmt.Sprintf("%d", time.Now().UnixNano()))
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
 	}
 
 	d := newDispatcher()
