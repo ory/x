@@ -38,6 +38,9 @@ func TestChangeFeed(t *testing.T) {
 	_, err = cx.Exec("CREATE TABLE " + tableName + " (id UUID PRIMARY KEY, value VARCHAR(64))")
 	require.NoError(t, err)
 
+	time.Sleep(time.Second)
+	start := time.Now()
+
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
@@ -53,7 +56,7 @@ func TestChangeFeed(t *testing.T) {
 		_, err = WatchChangeFeed(ctx, c, tableName, events, time.Now().Add(time.Minute))
 		require.Error(t, err, "not able to watch changes from the future")
 
-		_, err = WatchChangeFeed(ctx, c, tableName, events, time.Now())
+		_, err = WatchChangeFeed(ctx, c, tableName, events, start)
 		require.NoError(t, err)
 	}
 
