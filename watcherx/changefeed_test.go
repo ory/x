@@ -24,6 +24,7 @@ import (
 // export TEST_DATABASE_COCKROACHDB="cockroach://root@127.0.0.1:3446/defaultdb?sslmode=disable"
 func TestChangeFeed(t *testing.T) {
 	tableName := "t_" + strings.ReplaceAll(uuid.New().String(), "-", "")
+	tableName= "asdfuhasdfuih"
 
 	var watcherCount = 1
 	var itemCount int = 5
@@ -35,7 +36,7 @@ func TestChangeFeed(t *testing.T) {
 	cx, err := NewChangeFeedConnection(ctx, l, dsn)
 	require.NoError(t, err)
 
-	_, err = cx.Exec("CREATE TABLE " + tableName + " (id UUID PRIMARY KEY, value VARCHAR(64))")
+	_, err = cx.Exec("CREATE TABLE IF NOT EXISTS " + tableName + " (id UUID PRIMARY KEY, value VARCHAR(64))")
 	require.NoError(t, err)
 
 	time.Sleep(time.Second)

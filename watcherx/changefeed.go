@@ -34,6 +34,11 @@ func NewChangeFeedConnection(ctx context.Context, l *logrusx.Logger, dsn string)
 		return nil, err
 	}
 
+	cx.SetMaxIdleConns(1)
+	cx.SetMaxOpenConns(1)
+	cx.SetConnMaxLifetime(-1)
+	cx.SetConnMaxIdleTime(-1)
+
 	// Ensure CHANGEFEED is enabled
 	_, err = cx.ExecContext(ctx, "SET CLUSTER SETTING kv.rangefeed.enabled = true")
 	if err != nil {
@@ -66,6 +71,8 @@ func WatchChangeFeed(ctx context.Context, cx *sqlx.DB, tableName string, c Event
 			return nil, errors.WithStack(err)
 		}
 	}
+
+	fmt.Printf("\n\n\n NEXT %s \n\n\n",tableName)
 
 	d := newDispatcher()
 
@@ -138,7 +145,7 @@ func WatchChangeFeed(ctx context.Context, cx *sqlx.DB, tableName string, c Event
 		// We need to execute this without a context or else this will fail because the parent context was already canceled.
 		//
 		// See also https://www.cockroachlabs.com/docs/v21.1/changefeed-for#considerations
-		if _, err = cx.Exec("CANCEL QUERY (SELECT query_id FROM [SHOW CLUSTER QUERIES] WHERE query LIKE 'EXPERIMENTAL CHANGEFEED')"); err != nil {
+		if _, err = cx.Exec("CANCEL QUERY (SELECT query_id FROM [SHOW CLUSTER QUERIES] WHERE query LIKE 'EXPERIMENTAL CHANGEFEED %')"); err != nil {
 			c <- &ErrorEvent{
 				error: err,
 			}
