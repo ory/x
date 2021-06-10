@@ -49,7 +49,7 @@ func TestChangeFeed(t *testing.T) {
 		c, err := NewChangeFeedConnection(ctx, l, dsn)
 		require.NoError(t, err)
 
-		_, err = WatchChangeFeed(ctx, c, tableName, events)
+		_, err = WatchChangeFeed(ctx, c, tableName, events, time.Now())
 		require.NoError(t, err)
 	}
 
