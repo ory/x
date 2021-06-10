@@ -45,9 +45,13 @@ func TestChangeFeed(t *testing.T) {
 	t.Cleanup(cancel)
 
 	events := make(EventChannel)
+
 	worker := func() {
 		c, err := NewChangeFeedConnection(ctx, l, dsn)
 		require.NoError(t, err)
+
+		_, err = WatchChangeFeed(ctx, c, tableName, events, time.Now().Add(time.Minute))
+		require.Error(t, err, "not able to watch changes from the future")
 
 		_, err = WatchChangeFeed(ctx, c, tableName, events, time.Now())
 		require.NoError(t, err)
