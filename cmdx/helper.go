@@ -5,12 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"golang.org/x/sync/errgroup"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"testing"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
