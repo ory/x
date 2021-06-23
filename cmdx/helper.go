@@ -11,6 +11,8 @@ import (
 	"os"
 	"testing"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
 
@@ -100,6 +102,50 @@ func ExpectDependency(logger *logrusx.Logger, dependencies ...interface{}) {
 	}
 }
 
+// CallbackWriter will execute each callback once the message is received.
+// The full matched message is passed to the callback. An error returned from the callback is returned by Write.
+type CallbackWriter struct {
+	Callbacks map[string]func([]byte) error
+	buf       bytes.Buffer
+}
+
+func (c *CallbackWriter) Write(msg []byte) (int, error) {
+	for p, cb := range c.Callbacks {
+		if bytes.Contains(msg, []byte(p)) {
+			if err := cb(msg); err != nil {
+				return 0, err
+			}
+		}
+	}
+	return c.buf.Write(msg)
+}
+
+func (c *CallbackWriter) String() string {
+	return c.buf.String()
+}
+
+var _ io.Writer = (*CallbackWriter)(nil)
+
+// ExecBackgroundCtx runs the cobra command in the background.
+func ExecBackgroundCtx(ctx context.Context, cmd *cobra.Command, stdIn io.Reader, stdOut, stdErr io.Writer, args ...string) *errgroup.Group {
+	cmd.SetIn(stdIn)
+	cmd.SetOut(stdOut)
+	cmd.SetErr(stdErr)
+
+	if args == nil {
+		args = []string{}
+	}
+	cmd.SetArgs(args)
+
+	eg := &errgroup.Group{}
+	eg.Go(func() error {
+		defer cmd.SetIn(nil)
+		return cmd.ExecuteContext(ctx)
+	})
+
+	return eg
+}
+
 // Exec runs the provided cobra command with the given reader as STD_IN and the given args.
 // Returns STD_OUT, STD_ERR and the error from the execution.
 func Exec(t testing.TB, cmd *cobra.Command, stdIn io.Reader, args ...string) (string, string, error) {
@@ -111,15 +157,7 @@ func Exec(t testing.TB, cmd *cobra.Command, stdIn io.Reader, args ...string) (st
 
 func ExecCtx(ctx context.Context, cmd *cobra.Command, stdIn io.Reader, args ...string) (string, string, error) {
 	stdOut, stdErr := &bytes.Buffer{}, &bytes.Buffer{}
-	cmd.SetErr(stdErr)
-	cmd.SetOut(stdOut)
-	cmd.SetIn(stdIn)
-	defer cmd.SetIn(nil)
-	if args == nil {
-		args = []string{}
-	}
-	cmd.SetArgs(args)
-	err := cmd.ExecuteContext(ctx)
+	err := ExecBackgroundCtx(ctx, cmd, stdIn, stdOut, stdErr, args...).Wait()
 	return stdOut.String(), stdErr.String(), err
 }
 
@@ -163,6 +201,10 @@ type CommandExecuter struct {
 
 func (c *CommandExecuter) Exec(stdin io.Reader, args ...string) (string, string, error) {
 	return ExecCtx(c.Ctx, c.New(), stdin, append(c.PersistentArgs, args...)...)
+}
+
+func (c *CommandExecuter) ExecBackground(stdin io.Reader, stdOut, stdErr io.Writer, args ...string) *errgroup.Group {
+	return ExecBackgroundCtx(c.Ctx, c.New(), stdin, stdOut, stdErr, append(c.PersistentArgs, args...)...)
 }
 
 func (c *CommandExecuter) ExecNoErr(t require.TestingT, args ...string) string {

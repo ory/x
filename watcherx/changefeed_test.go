@@ -24,7 +24,7 @@ import (
 // export TEST_DATABASE_COCKROACHDB="cockroach://root@127.0.0.1:3446/defaultdb?sslmode=disable"
 func TestChangeFeed(t *testing.T) {
 	tableName := "t_" + strings.ReplaceAll(uuid.New().String(), "-", "")
-	tableName= "asdfuhasdfuih"
+	tableName = "asdfuhasdfuih"
 
 	var watcherCount = 1
 	var itemCount int = 5
