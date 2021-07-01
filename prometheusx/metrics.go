@@ -1,6 +1,9 @@
 package prometheus
 
-import "github.com/prometheus/client_golang/prometheus"
+import (
+	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
+)
 
 // Metrics prototypes
 type Metrics struct {
@@ -24,9 +27,11 @@ func NewMetrics(app, version, hash, date string) *Metrics {
 		),
 	}
 	err := prometheus.Register(pm.ResponseTime)
-
-	if err != nil {
+	if e := new(prometheus.AlreadyRegisteredError); errors.As(err, e) {
+		return pm
+	} else if err != nil {
 		panic(err)
 	}
+
 	return pm
 }
