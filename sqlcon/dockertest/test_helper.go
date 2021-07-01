@@ -53,6 +53,8 @@ func KillAllTestDatabases() {
 			panic(err)
 		}
 	}
+
+	resources = []*dockertest.Resource{}
 }
 
 // Register sets up OnExit.
