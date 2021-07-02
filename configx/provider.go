@@ -46,7 +46,7 @@ type tuple struct {
 }
 
 type Provider struct {
-	l sync.Mutex
+	l sync.RWMutex
 	*koanf.Koanf
 	immutables []string
 
@@ -190,8 +190,6 @@ func (p *Provider) createProviders(ctx context.Context) (providers []koanf.Provi
 }
 
 func (p *Provider) replaceKoanf(k *koanf.Koanf) {
-	p.l.Lock()
-	defer p.l.Unlock()
 	p.Koanf = k
 }
 
@@ -290,6 +288,9 @@ func (p *Provider) runOnChanges(e watcherx.Event, err error) {
 }
 
 func (p *Provider) reload(e watcherx.Event) {
+	p.l.Lock()
+	defer p.l.Unlock()
+
 	nk, err := p.newKoanf()
 	if err != nil {
 		p.runOnChanges(e, err)
@@ -320,6 +321,9 @@ func (p *Provider) watchForFileChanges(c watcherx.EventChannel) {
 }
 
 func (p *Provider) Set(key string, value interface{}) error {
+	p.l.Lock()
+	defer p.l.Unlock()
+
 	p.forcedValues = append(p.forcedValues, tuple{Key: key, Value: value})
 	p.providers = append(p.providers, NewKoanfConfmap([]tuple{{Key: key, Value: value}}))
 
@@ -333,6 +337,9 @@ func (p *Provider) Set(key string, value interface{}) error {
 }
 
 func (p *Provider) BoolF(key string, fallback bool) bool {
+	p.l.RLock()
+	defer p.l.RUnlock()
+
 	if !p.Koanf.Exists(key) {
 		return fallback
 	}
@@ -341,6 +348,9 @@ func (p *Provider) BoolF(key string, fallback bool) bool {
 }
 
 func (p *Provider) StringF(key string, fallback string) string {
+	p.l.RLock()
+	defer p.l.RUnlock()
+
 	if !p.Koanf.Exists(key) {
 		return fallback
 	}
@@ -349,6 +359,9 @@ func (p *Provider) StringF(key string, fallback string) string {
 }
 
 func (p *Provider) StringsF(key string, fallback []string) (val []string) {
+	p.l.RLock()
+	defer p.l.RUnlock()
+
 	if !p.Koanf.Exists(key) {
 		return fallback
 	}
@@ -357,6 +370,9 @@ func (p *Provider) StringsF(key string, fallback []string) (val []string) {
 }
 
 func (p *Provider) IntF(key string, fallback int) (val int) {
+	p.l.RLock()
+	defer p.l.RUnlock()
+
 	if !p.Koanf.Exists(key) {
 		return fallback
 	}
@@ -365,6 +381,9 @@ func (p *Provider) IntF(key string, fallback int) (val int) {
 }
 
 func (p *Provider) Float64F(key string, fallback float64) (val float64) {
+	p.l.RLock()
+	defer p.l.RUnlock()
+
 	if !p.Koanf.Exists(key) {
 		return fallback
 	}
@@ -373,6 +392,9 @@ func (p *Provider) Float64F(key string, fallback float64) (val float64) {
 }
 
 func (p *Provider) DurationF(key string, fallback time.Duration) (val time.Duration) {
+	p.l.RLock()
+	defer p.l.RUnlock()
+
 	if !p.Koanf.Exists(key) {
 		return fallback
 	}
@@ -381,6 +403,9 @@ func (p *Provider) DurationF(key string, fallback time.Duration) (val time.Durat
 }
 
 func (p *Provider) ByteSizeF(key string, fallback bytesize.ByteSize) bytesize.ByteSize {
+	p.l.RLock()
+	defer p.l.RUnlock()
+
 	if !p.Koanf.Exists(key) {
 		return fallback
 	}
@@ -406,6 +431,9 @@ func (p *Provider) ByteSizeF(key string, fallback bytesize.ByteSize) bytesize.By
 }
 
 func (p *Provider) GetF(key string, fallback interface{}) (val interface{}) {
+	p.l.RLock()
+	defer p.l.RUnlock()
+
 	if !p.Exists(key) {
 		return fallback
 	}
@@ -452,6 +480,9 @@ func (p *Provider) TracingConfig(serviceName string) *tracing.Config {
 }
 
 func (p *Provider) RequestURIF(path string, fallback *url.URL) *url.URL {
+	p.l.RLock()
+	defer p.l.RUnlock()
+
 	switch t := p.Get(path).(type) {
 	case *url.URL:
 		return t
@@ -467,6 +498,9 @@ func (p *Provider) RequestURIF(path string, fallback *url.URL) *url.URL {
 }
 
 func (p *Provider) URIF(path string, fallback *url.URL) *url.URL {
+	p.l.RLock()
+	defer p.l.RUnlock()
+
 	switch t := p.Get(path).(type) {
 	case *url.URL:
 		return t
