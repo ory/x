@@ -2,7 +2,10 @@ package fsx
 
 import (
 	"embed"
+	"io/fs"
 	"testing"
+
+	"github.com/pkg/errors"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -20,4 +23,6 @@ func TestMergeFS(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = mergedFS.Open("merge_test.go")
 	assert.NoError(t, err)
+	_, err = mergedFS.Open("unknown file")
+	assert.True(t, errors.Is(err, fs.ErrNotExist))
 }
