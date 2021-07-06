@@ -13,8 +13,10 @@ import (
 	"github.com/ory/x/tracing"
 )
 
+// Migrations of the network manager. Apply by merging with your local migrations using
+// fsx.Merge() and then passing all to the migration box.
 //go:embed migrations/sql/*.sql
-var migrations embed.FS
+var Migrations embed.FS
 
 type Manager struct {
 	c *pop.Connection
@@ -50,8 +52,11 @@ func (m *Manager) Determine(ctx context.Context) (*Network, error) {
 	return &p, nil
 }
 
+// MigrateUp applies pending up migrations.
+//
+// Deprecated: use fsx.Merge() instead to merge your local migrations with the ones exported here
 func (m *Manager) MigrateUp(ctx context.Context) error {
-	mm, err := popx.NewMigrationBox(migrations, popx.NewMigrator(m.c.WithContext(ctx), m.l, m.t, 0))
+	mm, err := popx.NewMigrationBox(Migrations, popx.NewMigrator(m.c.WithContext(ctx), m.l, m.t, 0))
 	if err != nil {
 		return errors.WithStack(err)
 	}
