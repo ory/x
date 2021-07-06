@@ -1,7 +1,7 @@
 package popx
 
 import (
-	"embed"
+	"io"
 	"io/fs"
 	"sort"
 	"strings"
@@ -17,7 +17,7 @@ type (
 	MigrationBox struct {
 		*Migrator
 
-		Dir              embed.FS
+		Dir              fs.FS
 		l                *logrusx.Logger
 		migrationContent MigrationContent
 	}
@@ -45,7 +45,7 @@ func WithMigrationContentMiddleware(middleware func(content string, err error) (
 //
 //	migrations, err := NewMigrationBox(pkger.Dir("/migrations"))
 //
-func NewMigrationBox(dir embed.FS, m *Migrator, opts ...func(*MigrationBox) *MigrationBox) (*MigrationBox, error) {
+func NewMigrationBox(dir fs.FS, m *Migrator, opts ...func(*MigrationBox) *MigrationBox) (*MigrationBox, error) {
 	mb := &MigrationBox{
 		Migrator:         m,
 		Dir:              dir,
@@ -106,7 +106,11 @@ func (fm *MigrationBox) findMigrations(runner func([]byte) func(mf Migration, c 
 			return nil
 		}
 
-		content, err := fm.Dir.ReadFile(p)
+		f, err := fm.Dir.Open(p)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		content, err := io.ReadAll(f)
 		if err != nil {
 			return errors.WithStack(err)
 		}
