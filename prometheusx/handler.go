@@ -37,7 +37,7 @@ func (h *Handler) SetRoutes(r *httprouter.Router) {
 
 // Metrics outputs prometheus metrics
 //
-// swagger:route GET /metrics/prometheus admin prometheus
+// swagger:route GET /metrics/prometheus metadata prometheus
 //
 // Get snapshot metrics from the service. If you're using k8s, you can then add annotations to
 // your deployment like so:
