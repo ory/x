@@ -45,4 +45,6 @@ func TestToFloatSliceE(t *testing.T) {
 
 func TestToStringSlice(t *testing.T) {
 	assert.Equal(t, []string{"foo", "bar"}, ToStringSlice("foo,bar"))
+	assert.Equal(t, []string{"foo bar baz"}, ToStringSlice("foo bar baz,"))
+	assert.Equal(t, []string{"foo", "bar", "baz"}, ToStringSlice("foo bar baz"))
 }
