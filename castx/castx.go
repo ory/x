@@ -1,12 +1,10 @@
 package castx
 
 import (
+	"encoding/csv"
 	"fmt"
 	"reflect"
 	"strings"
-
-	"github.com/ory/x/stringslice"
-	"github.com/ory/x/stringsx"
 
 	"github.com/spf13/cast"
 )
@@ -56,10 +54,14 @@ func ToStringSlice(i interface{}) []string {
 func ToStringSliceE(i interface{}) ([]string, error) {
 	switch s := i.(type) {
 	case string:
-		if strings.Contains(s, ",") {
-			return stringslice.TrimSpaceEmptyFilter(stringsx.Splitx(s, ",")), nil
-		}
+		return parseCSV(s)
 	}
 
 	return cast.ToStringSliceE(i)
+}
+
+func parseCSV(v string) ([]string, error) {
+	stringReader := strings.NewReader(v)
+	csvReader := csv.NewReader(stringReader)
+	return csvReader.Read()
 }
