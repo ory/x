@@ -81,7 +81,18 @@
         "enabled": true
       },
       "oidc": {
-        "enabled": false
+        "enabled": true,
+        "config": {
+          "providers": [
+            {
+              "id": "google",
+              "provider": "google",
+              "mapper_url": "file:///etc/config/kratos/oidc.google.jsonnet",
+              "client_id": "client@example.com",
+              "client_secret": "secret"
+            }
+          ]
+        }
       },
       "password": {
         "enabled": true

@@ -42,8 +42,16 @@ func NewKoanfEnv(prefix string, schema []byte) (*env.Env, error) {
 	}
 
 	decode := func(value string) (v interface{}) {
-		_ = json.Unmarshal([]byte(value), v)
-		return v
+		b := []byte(value)
+		var arr []interface{}
+		if err := json.Unmarshal(b, &arr); err == nil {
+			return &arr
+		}
+		h := map[string]interface{}{}
+		if err := json.Unmarshal(b, &h); err == nil {
+			return &h
+		}
+		return nil
 	}
 
 	return env.ProviderWithValue(prefix, ".", func(key string, value string) (string, interface{}) {
