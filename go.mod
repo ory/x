@@ -19,7 +19,7 @@ require (
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gobuffalo/fizz v1.13.1-0.20201104174146-3416f0e6618f
 	github.com/gobuffalo/httptest v1.0.2
-	github.com/gobuffalo/packr v1.22.0
+	github.com/gobuffalo/packr v1.30.1
 	github.com/gobuffalo/pop/v5 v5.3.3
 	github.com/gofrs/uuid v3.2.0+incompatible
 	github.com/golang/mock v1.5.0
