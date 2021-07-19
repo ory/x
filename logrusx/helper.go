@@ -62,11 +62,12 @@ func (l *Logger) WithRequest(r *http.Request) *Logger {
 		headers["authorization"] = auth
 	}
 
-	for _, key := range []string{"Referer", "Origin", "Accept", "X-Request-ID", "If-None-Match",
-		"X-Forwarded-For", "X-Forwarded-Proto", "Cache-Control", "Accept-Encoding", "Accept-Language", "If-Modified-Since"} {
-		if value := r.Header.Get(key); len(value) > 0 {
-			headers[strings.ToLower(key)] = value
+	for key, value := range r.Header {
+		if strings.ToLower(key) == "cookie" ||
+			strings.ToLower(key) == "authorization" {
+			continue
 		}
+		headers[strings.ToLower(key)] = value
 	}
 
 	scheme := "https"
