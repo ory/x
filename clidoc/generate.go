@@ -50,11 +50,7 @@ func Generate(cmd *cobra.Command, args []string) error {
 	}
 
 	/* #nosec G306 - TODO evaluate why */
-	if err := ioutil.WriteFile(spath, []byte(gjson.GetBytes(sidebar, "@pretty").Raw), 0644); err != nil {
-		return err
-	}
-
-	return nil
+	return ioutil.WriteFile(spath, []byte(gjson.GetBytes(sidebar, "@pretty").Raw), 0644)
 }
 
 func findKey(node []byte, parents []string) (result []string) {

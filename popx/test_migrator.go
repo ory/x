@@ -62,7 +62,7 @@ func NewTestMigrator(t *testing.T, c *pop.Connection, migrationPath, testDataPat
 
 			require.False(t, len(mgs) == 0)
 
-			var migrationIndex int = -1
+			var migrationIndex = -1
 			for k, m := range mgs {
 				if m.Version == mf.Version {
 					migrationIndex = k

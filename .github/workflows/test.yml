@@ -53,7 +53,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2
         with:
-          version: v1.41.0
+          version: v1.41.1
           skip-go-installation: true
       - name: Install cockroach DB
         run: |

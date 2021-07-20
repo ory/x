@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/ory/x/tracing"
+
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/tidwall/gjson"
@@ -22,6 +24,8 @@ func newCompiler(schema []byte) (string, *jsonschema.Compiler, error) {
 		return "", nil, errors.WithStack(err)
 	}
 	compiler.ExtractAnnotations = true
+
+	tracing.AddConfigSchema(compiler)
 
 	return id, compiler, nil
 }
