@@ -39,7 +39,7 @@ type ProvidersConfig struct {
 //go:embed config.schema.json
 var ConfigSchema embed.FS
 
-const ConfigSchemaID = "ory-schemas/tracing-config"
+const ConfigSchemaID = "ory://tracing-config"
 
 // AddConfigSchema adds the tracing schema to the compiler.
 // The interface is specified instead of `jsonschema.Compiler` to allow the use of any jsonschema library fork or version.
