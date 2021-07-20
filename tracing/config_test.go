@@ -24,7 +24,7 @@ const rootSchema = `{
 func TestTracing(t *testing.T) {
 	t.Run("func=AddConfigSchema", func(t *testing.T) {
 		c := jsonschema.NewCompiler()
-		require.NoError(t, AddConfigSchema(c, "Ory X"))
+		require.NoError(t, AddConfigSchema(c))
 
 		conf := Config{
 			ServiceName: "Ory X",
