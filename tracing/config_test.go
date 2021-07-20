@@ -21,7 +21,7 @@ const rootSchema = `{
 }
 `
 
-func TestTracing(t *testing.T) {
+func TestConfigSchema(t *testing.T) {
 	t.Run("func=AddConfigSchema", func(t *testing.T) {
 		c := jsonschema.NewCompiler()
 		require.NoError(t, AddConfigSchema(c))
