@@ -3,7 +3,6 @@ package tracing
 import (
 	"bytes"
 	"embed"
-	"fmt"
 	"io"
 )
 
@@ -46,13 +45,11 @@ const ConfigSchemaID = "https://ory.sh/schemas/tracing.schema.json"
 // The interface is specified instead of `jsonschema.Compiler` to allow the use of any jsonschema library fork or version.
 func AddConfigSchema(c interface {
 	AddResource(url string, r io.Reader) error
-}, serviceName string) error {
-	s, err := ConfigSchema.ReadFile("config.schema.json")
+}) error {
+	schema, err := ConfigSchema.ReadFile("config.schema.json")
 	if err != nil {
 		panic("unrecoverable error: could not read file from embed.FS: " + err.Error())
 	}
 
-	finalSchema := fmt.Sprintf(string(s), serviceName)
-
-	return c.AddResource(ConfigSchemaID, bytes.NewBufferString(finalSchema))
+	return c.AddResource(ConfigSchemaID, bytes.NewBuffer(schema))
 }

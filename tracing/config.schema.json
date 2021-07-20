@@ -3,7 +3,7 @@
   "$id": "https://ory.sh/schemas/tracing.schema.json",
   "type": "object",
   "additionalProperties": false,
-  "description": "%[1]s supports distributed tracing.",
+  "description": "Configure distributed tracing.",
   "properties": {
     "provider": {
       "type": "string",
@@ -23,7 +23,10 @@
       "type": "string",
       "description": "Specifies the service name to use on the tracer.",
       "examples": [
-        "%[1]s"
+        "Ory Hydra",
+        "Ory Kratos",
+        "Ory Keto",
+        "Ory Oathkeeper"
       ]
     },
     "providers": {
