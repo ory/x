@@ -159,6 +159,6 @@ func DefaultAfter(entry *logrusx.Logger, req *http.Request, res negroni.Response
 		"size":        res.Size(),
 		"text_status": http.StatusText(res.Status()),
 		"took":        latency,
-		"headers":     entry.HttpHeadersRedacted(res.Header()),
+		"headers":     entry.HTTPHeadersRedacted(res.Header()),
 	})
 }

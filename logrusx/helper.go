@@ -48,7 +48,7 @@ func (l *Logger) WithContext(ctx context.Context) *Logger {
 	return &ll
 }
 
-func (l *Logger) HttpHeadersRedacted(h http.Header) map[string]interface{} {
+func (l *Logger) HTTPHeadersRedacted(h http.Header) map[string]interface{} {
 	headers := map[string]interface{}{}
 	if cookie := l.maybeRedact(h.Get("Cookie")); cookie != nil {
 		headers["cookie"] = cookie
@@ -70,7 +70,7 @@ func (l *Logger) HttpHeadersRedacted(h http.Header) map[string]interface{} {
 }
 
 func (l *Logger) WithRequest(r *http.Request) *Logger {
-	headers := l.HttpHeadersRedacted(r.Header)
+	headers := l.HTTPHeadersRedacted(r.Header)
 	if ua := r.UserAgent(); len(ua) > 0 {
 		headers["user-agent"] = ua
 	}
