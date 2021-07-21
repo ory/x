@@ -2,7 +2,7 @@ package tracing
 
 import (
 	"bytes"
-	"embed"
+	_ "embed"
 	"io"
 )
 
@@ -37,7 +37,7 @@ type ProvidersConfig struct {
 }
 
 //go:embed config.schema.json
-var ConfigSchema embed.FS
+var ConfigSchema string
 
 const ConfigSchemaID = "ory://tracing-config"
 
@@ -46,10 +46,5 @@ const ConfigSchemaID = "ory://tracing-config"
 func AddConfigSchema(c interface {
 	AddResource(url string, r io.Reader) error
 }) error {
-	schema, err := ConfigSchema.ReadFile("config.schema.json")
-	if err != nil {
-		panic("unrecoverable error: could not read file from embed.FS: " + err.Error())
-	}
-
-	return c.AddResource(ConfigSchemaID, bytes.NewBuffer(schema))
+	return c.AddResource(ConfigSchemaID, bytes.NewBufferString(ConfigSchema))
 }
