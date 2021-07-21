@@ -3,7 +3,6 @@ package prometheus
 import (
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -21,12 +20,7 @@ func NewMetricsManager(app, version, hash, buildTime string) *MetricsManager {
 
 // Main middleware method to collect metrics for Prometheus.
 func (pmm *MetricsManager) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	start := time.Now()
-	next(rw, r)
-
-	pmm.prometheusMetrics.ResponseTime.WithLabelValues(
-		pmm.getLabelForPath(r),
-	).Observe(time.Since(start).Seconds())
+	pmm.prometheusMetrics.Instrument(rw, next, pmm.getLabelForPath(r))(rw, r)
 }
 
 func (pmm *MetricsManager) RegisterRouter(router *httprouter.Router) {
