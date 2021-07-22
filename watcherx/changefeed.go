@@ -72,8 +72,6 @@ func WatchChangeFeed(ctx context.Context, cx *sqlx.DB, tableName string, c Event
 		}
 	}
 
-	fmt.Printf("\n\n\n NEXT %s \n\n\n", tableName)
-
 	d := newDispatcher()
 
 	go func() {
