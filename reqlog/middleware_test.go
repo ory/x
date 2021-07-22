@@ -118,10 +118,10 @@ func TestMiddleware_ServeHTTP(t *testing.T) {
 	lines := strings.Split(strings.TrimSpace(mw.Logger.Logger.Out.(*bytes.Buffer).String()), "\n")
 	assert.Len(t, lines, 2)
 	assert.JSONEq(t,
-		fmt.Sprintf(`{"http_request":{"headers":{"x-request-id":"22035D08-98EF-413C-BBA0-C4E66A11B28D"},"host":"example.com","method":"GET","path":"/stuff","query":"Value is sensitive and has been redacted. To see the value set config key \"log.leak_sensitive_values = true\" or environment variable \"LOG_LEAK_SENSITIVE_VALUES=true\".","remote":"","scheme":"http"},"level":"info","msg":"started handling request","time":"%s"}`, nowToday),
+		fmt.Sprintf(`{"http_request":{"headers":{"x-real-ip":"10.10.10.10","x-request-id":"22035D08-98EF-413C-BBA0-C4E66A11B28D"},"host":"example.com","method":"GET","path":"/stuff","query":"Value is sensitive and has been redacted. To see the value set config key \"log.leak_sensitive_values = true\" or environment variable \"LOG_LEAK_SENSITIVE_VALUES=true\".","remote":"","scheme":"http"},"level":"info","msg":"started handling request","time":"%s"}`, nowToday),
 		lines[0], lines[0])
 	assert.JSONEq(t,
-		fmt.Sprintf(`{"http_request":{"headers":{"x-request-id":"22035D08-98EF-413C-BBA0-C4E66A11B28D"},"host":"example.com","method":"GET","path":"/stuff","query":"Value is sensitive and has been redacted. To see the value set config key \"log.leak_sensitive_values = true\" or environment variable \"LOG_LEAK_SENSITIVE_VALUES=true\".","remote":"","scheme":"http"},"http_response":{"status":418,"text_status":"I'm a teapot","took":10000},"level":"info","msg":"completed handling request","time":"%s"}`, nowToday),
+		fmt.Sprintf(`{"http_request":{"headers":{"x-real-ip":"10.10.10.10","x-request-id":"22035D08-98EF-413C-BBA0-C4E66A11B28D"},"host":"example.com","method":"GET","path":"/stuff","query":"Value is sensitive and has been redacted. To see the value set config key \"log.leak_sensitive_values = true\" or environment variable \"LOG_LEAK_SENSITIVE_VALUES=true\".","remote":"","scheme":"http"},"http_response":{"headers":{},"size":0,"status":418,"text_status":"I'm a teapot","took":10000},"level":"info","msg":"completed handling request","time":"%s"}`, nowToday),
 		lines[1], lines[1])
 }
 
@@ -135,10 +135,10 @@ func TestMiddleware_ServeHTTP_nilHooks(t *testing.T) {
 	lines := strings.Split(strings.TrimSpace(mw.Logger.Logger.Out.(*bytes.Buffer).String()), "\n")
 	assert.Len(t, lines, 2)
 	assert.JSONEq(t,
-		fmt.Sprintf(`{"http_request":{"headers":{"x-request-id":"22035D08-98EF-413C-BBA0-C4E66A11B28D"},"host":"example.com","method":"GET","path":"/stuff","query":"Value is sensitive and has been redacted. To see the value set config key \"log.leak_sensitive_values = true\" or environment variable \"LOG_LEAK_SENSITIVE_VALUES=true\".","remote":"","scheme":"http"},"level":"info","msg":"started handling request","time":"%s"}`, nowToday),
+		fmt.Sprintf(`{"http_request":{"headers":{"x-real-ip":"10.10.10.10","x-request-id":"22035D08-98EF-413C-BBA0-C4E66A11B28D"},"host":"example.com","method":"GET","path":"/stuff","query":"Value is sensitive and has been redacted. To see the value set config key \"log.leak_sensitive_values = true\" or environment variable \"LOG_LEAK_SENSITIVE_VALUES=true\".","remote":"","scheme":"http"},"level":"info","msg":"started handling request","time":"%s"}`, nowToday),
 		lines[0], lines[0])
 	assert.JSONEq(t,
-		fmt.Sprintf(`{"http_request":{"headers":{"x-request-id":"22035D08-98EF-413C-BBA0-C4E66A11B28D"},"host":"example.com","method":"GET","path":"/stuff","query":"Value is sensitive and has been redacted. To see the value set config key \"log.leak_sensitive_values = true\" or environment variable \"LOG_LEAK_SENSITIVE_VALUES=true\".","remote":"","scheme":"http"},"http_response":{"status":418,"text_status":"I'm a teapot","took":10000},"level":"info","msg":"completed handling request","time":"%s"}`, nowToday),
+		fmt.Sprintf(`{"http_request":{"headers":{"x-real-ip":"10.10.10.10","x-request-id":"22035D08-98EF-413C-BBA0-C4E66A11B28D"},"host":"example.com","method":"GET","path":"/stuff","query":"Value is sensitive and has been redacted. To see the value set config key \"log.leak_sensitive_values = true\" or environment variable \"LOG_LEAK_SENSITIVE_VALUES=true\".","remote":"","scheme":"http"},"http_response":{"headers":{},"size":0,"status":418,"text_status":"I'm a teapot","took":10000},"level":"info","msg":"completed handling request","time":"%s"}`, nowToday),
 		lines[1], lines[1])
 }
 
@@ -153,7 +153,7 @@ func TestMiddleware_ServeHTTP_BeforeOverride(t *testing.T) {
 	lines := strings.Split(strings.TrimSpace(mw.Logger.Logger.Out.(*bytes.Buffer).String()), "\n")
 	assert.Len(t, lines, 2)
 	assert.JSONEq(t,
-		fmt.Sprintf(`{"http_request":{"headers":{"x-request-id":"22035D08-98EF-413C-BBA0-C4E66A11B28D"},"host":"example.com","method":"GET","path":"/stuff","query":"Value is sensitive and has been redacted. To see the value set config key \"log.leak_sensitive_values = true\" or environment variable \"LOG_LEAK_SENSITIVE_VALUES=true\".","remote":"","scheme":"http"},"http_response":{"status":418,"text_status":"I'm a teapot","took":10000},"level":"info","msg":"completed handling request","time":"%s","wat":200}`, nowToday),
+		fmt.Sprintf(`{"http_request":{"headers":{"x-real-ip":"10.10.10.10","x-request-id":"22035D08-98EF-413C-BBA0-C4E66A11B28D"},"host":"example.com","method":"GET","path":"/stuff","query":"Value is sensitive and has been redacted. To see the value set config key \"log.leak_sensitive_values = true\" or environment variable \"LOG_LEAK_SENSITIVE_VALUES=true\".","remote":"","scheme":"http"},"http_response":{"headers":{},"size":0,"status":418,"text_status":"I'm a teapot","took":10000},"level":"info","msg":"completed handling request","time":"%s","wat":200}`, nowToday),
 		lines[1], lines[1])
 }
 
@@ -168,7 +168,7 @@ func TestMiddleware_ServeHTTP_AfterOverride(t *testing.T) {
 	lines := strings.Split(strings.TrimSpace(mw.Logger.Logger.Out.(*bytes.Buffer).String()), "\n")
 	assert.Len(t, lines, 2)
 	assert.JSONEq(t,
-		fmt.Sprintf(`{"hambone":57,"http_request":{"headers":{"x-request-id":"22035D08-98EF-413C-BBA0-C4E66A11B28D"},"host":"example.com","method":"GET","path":"/stuff","query":"Value is sensitive and has been redacted. To see the value set config key \"log.leak_sensitive_values = true\" or environment variable \"LOG_LEAK_SENSITIVE_VALUES=true\".","remote":"","scheme":"http"},"level":"info","msg":"completed handling request","time":"%s"}`, nowToday),
+		fmt.Sprintf(`{"hambone":57,"http_request":{"headers":{"x-real-ip":"10.10.10.10","x-request-id":"22035D08-98EF-413C-BBA0-C4E66A11B28D"},"host":"example.com","method":"GET","path":"/stuff","query":"Value is sensitive and has been redacted. To see the value set config key \"log.leak_sensitive_values = true\" or environment variable \"LOG_LEAK_SENSITIVE_VALUES=true\".","remote":"","scheme":"http"},"level":"info","msg":"completed handling request","time":"%s"}`, nowToday),
 		lines[1], lines[1])
 }
 
@@ -181,7 +181,7 @@ func TestMiddleware_ServeHTTP_logStartingFalse(t *testing.T) {
 	lines := strings.Split(strings.TrimSpace(mw.Logger.Logger.Out.(*bytes.Buffer).String()), "\n")
 	assert.Len(t, lines, 1)
 	assert.JSONEq(t,
-		fmt.Sprintf(`{"http_request":{"headers":{"x-request-id":"22035D08-98EF-413C-BBA0-C4E66A11B28D"},"host":"example.com","method":"GET","path":"/stuff","query":"Value is sensitive and has been redacted. To see the value set config key \"log.leak_sensitive_values = true\" or environment variable \"LOG_LEAK_SENSITIVE_VALUES=true\".","remote":"","scheme":"http"},"http_response":{"status":418,"text_status":"I'm a teapot","took":10000},"level":"info","msg":"completed handling request","time":"%s"}`, nowToday),
+		fmt.Sprintf(`{"http_request":{"headers":{"x-real-ip":"10.10.10.10","x-request-id":"22035D08-98EF-413C-BBA0-C4E66A11B28D"},"host":"example.com","method":"GET","path":"/stuff","query":"Value is sensitive and has been redacted. To see the value set config key \"log.leak_sensitive_values = true\" or environment variable \"LOG_LEAK_SENSITIVE_VALUES=true\".","remote":"","scheme":"http"},"http_response":{"headers":{},"size":0,"status":418,"text_status":"I'm a teapot","took":10000},"level":"info","msg":"completed handling request","time":"%s"}`, nowToday),
 		lines[0], lines[0])
 }
 

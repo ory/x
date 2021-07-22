@@ -156,7 +156,9 @@ func DefaultBefore(entry *logrusx.Logger, req *http.Request, remoteAddr string) 
 func DefaultAfter(entry *logrusx.Logger, req *http.Request, res negroni.ResponseWriter, latency time.Duration, name string) *logrusx.Logger {
 	return entry.WithRequest(req).WithField("http_response", map[string]interface{}{
 		"status":      res.Status(),
+		"size":        res.Size(),
 		"text_status": http.StatusText(res.Status()),
 		"took":        latency,
+		"headers":     entry.HTTPHeadersRedacted(res.Header()),
 	})
 }
