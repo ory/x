@@ -84,8 +84,10 @@ func TestZipkinTracer(t *testing.T) {
 	_, err := tracing.New(logrusx.New("ory/x", "1"), &tracing.Config{
 		ServiceName: "ORY X",
 		Provider:    "zipkin",
-		Zipkin: &tracing.ZipkinConfig{
-			ServerURL: ts.URL,
+		Providers: &tracing.ProvidersConfig{
+			Zipkin: &tracing.ZipkinConfig{
+				ServerURL: ts.URL,
+			},
 		},
 	})
 	assert.NoError(t, err)
@@ -142,8 +144,10 @@ func TestElastcApmTracer(t *testing.T) {
 	_, err = tracing.New(logrusx.New("ory/x", "1"), &tracing.Config{
 		ServiceName: "ORY X",
 		Provider:    "elastic-apm",
-		Zipkin: &tracing.ZipkinConfig{
-			ServerURL: ts.URL,
+		Providers: &tracing.ProvidersConfig{
+			Zipkin: &tracing.ZipkinConfig{
+				ServerURL: ts.URL,
+			},
 		},
 	})
 	require.NoError(t, err)
