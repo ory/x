@@ -56,30 +56,30 @@ func (t *Tracer) setup() error {
 			return err
 		}
 
-		if t.Config.Jaeger.SamplerServerURL != "" {
-			jc.Sampler.SamplingServerURL = t.Config.Jaeger.SamplerServerURL
+		if t.Config.Providers.Jaeger.Sampling.ServerURL != "" {
+			jc.Sampler.SamplingServerURL = t.Config.Providers.Jaeger.Sampling.ServerURL
 		}
 
-		if t.Config.Jaeger.SamplerType != "" {
-			jc.Sampler.Type = t.Config.Jaeger.SamplerType
+		if t.Config.Providers.Jaeger.Sampling.Type != "" {
+			jc.Sampler.Type = t.Config.Providers.Jaeger.Sampling.Type
 		}
 
-		if t.Config.Jaeger.SamplerValue != 0 {
-			jc.Sampler.Param = t.Config.Jaeger.SamplerValue
+		if t.Config.Providers.Jaeger.Sampling.Value != 0 {
+			jc.Sampler.Param = t.Config.Providers.Jaeger.Sampling.Value
 		}
 
-		if t.Config.Jaeger.LocalAgentHostPort != "" {
-			jc.Reporter.LocalAgentHostPort = t.Config.Jaeger.LocalAgentHostPort
+		if t.Config.Providers.Jaeger.LocalAgentAddress != "" {
+			jc.Reporter.LocalAgentHostPort = t.Config.Providers.Jaeger.LocalAgentAddress
 		}
 
 		var configs []jaegerConf.Option
 
-		if t.Config.Jaeger.MaxTagValueLength != jaeger.DefaultMaxTagValueLength {
-			configs = append(configs, jaegerConf.MaxTagValueLength(t.Config.Jaeger.MaxTagValueLength))
+		if t.Config.Providers.Jaeger.MaxTagValueLength != jaeger.DefaultMaxTagValueLength {
+			configs = append(configs, jaegerConf.MaxTagValueLength(t.Config.Providers.Jaeger.MaxTagValueLength))
 		}
 
 		// This works in other jaeger clients, but is not part of jaeger-client-go
-		if t.Config.Jaeger.Propagation == "b3" {
+		if t.Config.Providers.Jaeger.Propagation == "b3" {
 			zipkinPropagator := jaegerZipkin.NewZipkinB3HTTPHeaderPropagator()
 			configs = append(
 				configs,
@@ -101,11 +101,11 @@ func (t *Tracer) setup() error {
 		t.tracer = opentracing.GlobalTracer()
 		t.l.Infof("Jaeger tracer configured!")
 	case "zipkin":
-		if t.Config.Zipkin.ServerURL == "" {
+		if t.Config.Providers.Zipkin.ServerURL == "" {
 			return errors.Errorf("Zipkin's server url is required")
 		}
 
-		reporter := zipkinHttp.NewReporter(t.Config.Zipkin.ServerURL)
+		reporter := zipkinHttp.NewReporter(t.Config.Providers.Zipkin.ServerURL)
 
 		endpoint, err := zipkin.NewEndpoint(t.Config.ServiceName, "")
 
