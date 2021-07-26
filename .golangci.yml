@@ -2,7 +2,7 @@ linters:
   enable:
     - gosec
     - vet
-    - golint
+    - revive
   disable-all: true
 
 run:

@@ -361,11 +361,7 @@ func (t *HTTP) decodeJSONForm(r *http.Request, destination interface{}, o *httpD
 		return errors.WithStack(err)
 	}
 
-	if err := t.validatePayload(raw, o); err != nil {
-		return err
-	}
-
-	return nil
+	return t.validatePayload(raw, o)
 }
 
 func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecoderOptions) error {
@@ -405,11 +401,7 @@ func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecod
 		return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Unable to decode JSON payload: %s", err))
 	}
 
-	if err := t.validatePayload(raw, o); err != nil {
-		return err
-	}
-
-	return nil
+	return t.validatePayload(raw, o)
 }
 
 func (t *HTTP) decodeURLValues(values url.Values, paths []jsonschemax.Path, o *httpDecoderOptions) (json.RawMessage, error) {
