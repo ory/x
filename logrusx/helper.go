@@ -48,26 +48,31 @@ func (l *Logger) WithContext(ctx context.Context) *Logger {
 	return &ll
 }
 
-func (l *Logger) WithRequest(r *http.Request) *Logger {
+func (l *Logger) HTTPHeadersRedacted(h http.Header) map[string]interface{} {
 	headers := map[string]interface{}{}
-	if ua := r.UserAgent(); len(ua) > 0 {
-		headers["user-agent"] = ua
-	}
-
-	if cookie := l.maybeRedact(r.Header.Get("Cookie")); cookie != nil {
+	if cookie := l.maybeRedact(h.Get("Cookie")); cookie != nil {
 		headers["cookie"] = cookie
 	}
 
-	if auth := l.maybeRedact(r.Header.Get("Authorization")); auth != nil {
+	if auth := l.maybeRedact(h.Get("Authorization")); auth != nil {
 		headers["authorization"] = auth
 	}
 
-	for key, value := range r.Header {
+	for key := range h {
 		if strings.ToLower(key) == "cookie" ||
 			strings.ToLower(key) == "authorization" {
 			continue
 		}
-		headers[strings.ToLower(key)] = value
+		headers[strings.ToLower(key)] = h.Get(key)
+	}
+
+	return headers
+}
+
+func (l *Logger) WithRequest(r *http.Request) *Logger {
+	headers := l.HTTPHeadersRedacted(r.Header)
+	if ua := r.UserAgent(); len(ua) > 0 {
+		headers["user-agent"] = ua
 	}
 
 	scheme := "https"
