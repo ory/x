@@ -19,7 +19,6 @@ require (
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gobuffalo/fizz v1.13.1-0.20201104174146-3416f0e6618f
 	github.com/gobuffalo/httptest v1.0.2
-	github.com/gobuffalo/packr v1.30.1
 	github.com/gobuffalo/pop/v5 v5.3.3
 	github.com/gofrs/uuid v3.2.0+incompatible
 	github.com/golang/mock v1.5.0
@@ -52,7 +51,6 @@ require (
 	github.com/prometheus/client_golang v1.9.0
 	github.com/prometheus/common v0.15.0
 	github.com/rs/cors v1.6.0
-	github.com/rubenv/sql-migrate v0.0.0-20190212093014-1007f53448d7
 	github.com/seatgeek/logrus-gelf-formatter v0.0.0-20210414080842-5b05eb8ff761
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cast v1.3.2-0.20200723214538-8d17101741c8
