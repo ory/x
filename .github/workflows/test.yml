@@ -62,7 +62,7 @@ jobs:
           sudo cp -i cockroach-v21.1.2.linux-amd64/cockroach /usr/local/bin/
           rm -rf cockroach-v21.1.2.linux-amd64
       - name: Prepare nancy dependency list
-        run: go list -json all > go.list
+        run: go list -json -m all > go.list
       - name: Run nancy
         uses: sonatype-nexus-community/nancy-github-action@main
       - run: make .bin/go-acc .bin/gcov2lcov
