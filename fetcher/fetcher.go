@@ -6,7 +6,6 @@ import (
 	stderrors "errors"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
 
@@ -52,25 +51,19 @@ func NewFetcher(opts ...func(*opts)) *Fetcher {
 
 // Fetch fetches the file contents from the source.
 func (f *Fetcher) Fetch(source string) (*bytes.Buffer, error) {
-	u, err := url.Parse(source)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	knownSchemes := stringsx.RegisteredCases{}
-	switch u.Scheme {
-	case knownSchemes.AddCase("http"), knownSchemes.AddCase("https"):
+	switch s := stringsx.SwitchPrefix(source); {
+	case s.HasPrefix("http"), s.HasPrefix("https"):
 		return f.fetchRemote(source)
-	case knownSchemes.AddCase("file"):
+	case s.HasPrefix("file"):
 		return f.fetchFile(strings.Replace(source, "file://", "", 1))
-	case knownSchemes.AddCase("base64"):
+	case s.HasPrefix("base64"):
 		src, err := base64.StdEncoding.DecodeString(strings.Replace(source, "base64://", "", 1))
 		if err != nil {
 			return nil, errors.Wrapf(err, "rule: %s", source)
 		}
 		return bytes.NewBuffer(src), nil
 	default:
-		return nil, errors.Wrap(ErrUnknownScheme, knownSchemes.ToUnknownCaseErr(u.Scheme).Error())
+		return nil, errors.Wrap(ErrUnknownScheme, s.ToUnknownPrefixErr().Error())
 	}
 }
 
