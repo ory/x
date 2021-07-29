@@ -52,11 +52,11 @@ func NewFetcher(opts ...func(*opts)) *Fetcher {
 // Fetch fetches the file contents from the source.
 func (f *Fetcher) Fetch(source string) (*bytes.Buffer, error) {
 	switch s := stringsx.SwitchPrefix(source); {
-	case s.HasPrefix("http"), s.HasPrefix("https"):
+	case s.HasPrefix("http://"), s.HasPrefix("https://"):
 		return f.fetchRemote(source)
-	case s.HasPrefix("file"):
+	case s.HasPrefix("file://"):
 		return f.fetchFile(strings.Replace(source, "file://", "", 1))
-	case s.HasPrefix("base64"):
+	case s.HasPrefix("base64://"):
 		src, err := base64.StdEncoding.DecodeString(strings.Replace(source, "base64://", "", 1))
 		if err != nil {
 			return nil, errors.Wrapf(err, "rule: %s", source)
