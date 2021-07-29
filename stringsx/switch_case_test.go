@@ -11,11 +11,11 @@ func TestRegisteredCases(t *testing.T) {
 	t.Run("case=adds values", func(t *testing.T) {
 		v1, v2 := "value 1", "value 2"
 
-		e := registeredCases{}
+		e := RegisteredCases{}
 		e.AddCase(v1)
 		e.AddCase(v2)
 
-		p := registeredPrefixes{}
+		p := RegisteredPrefixes{}
 		p.HasPrefix(v1)
 		p.HasPrefix(v2)
 

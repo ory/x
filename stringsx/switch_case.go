@@ -6,19 +6,19 @@ import (
 )
 
 type (
-	registeredCases struct {
+	RegisteredCases struct {
 		cases  []string
 		actual string
 	}
 	errUnknownCase struct {
-		*registeredCases
+		*RegisteredCases
 	}
-	registeredPrefixes struct {
+	RegisteredPrefixes struct {
 		prefixes []string
 		actual   string
 	}
 	errUnknownPrefix struct {
-		*registeredPrefixes
+		*RegisteredPrefixes
 	}
 )
 
@@ -27,41 +27,41 @@ var (
 	ErrUnknownPrefix = errUnknownPrefix{}
 )
 
-func SwitchExact(actual string) *registeredCases {
-	return &registeredCases{
+func SwitchExact(actual string) *RegisteredCases {
+	return &RegisteredCases{
 		actual: actual,
 	}
 }
 
-func SwitchPrefix(actual string) *registeredPrefixes {
-	return &registeredPrefixes{
+func SwitchPrefix(actual string) *RegisteredPrefixes {
+	return &RegisteredPrefixes{
 		actual: actual,
 	}
 }
 
-func (r *registeredCases) AddCase(c string) bool {
+func (r *RegisteredCases) AddCase(c string) bool {
 	r.cases = append(r.cases, c)
 	return r.actual == c
 }
 
-func (r *registeredPrefixes) HasPrefix(prefix string) bool {
+func (r *RegisteredPrefixes) HasPrefix(prefix string) bool {
 	r.prefixes = append(r.prefixes, prefix)
 	return strings.HasPrefix(r.actual, prefix)
 }
 
-func (r *registeredCases) String() string {
+func (r *RegisteredCases) String() string {
 	return "[" + strings.Join(r.cases, ", ") + "]"
 }
 
-func (r *registeredPrefixes) String() string {
+func (r *RegisteredPrefixes) String() string {
 	return "[" + strings.Join(r.prefixes, ", ") + "]"
 }
 
-func (r *registeredCases) ToUnknownCaseErr() error {
+func (r *RegisteredCases) ToUnknownCaseErr() error {
 	return errUnknownCase{r}
 }
 
-func (r *registeredPrefixes) ToUnknownPrefixErr() error {
+func (r *RegisteredPrefixes) ToUnknownPrefixErr() error {
 	return errUnknownPrefix{r}
 }
 
