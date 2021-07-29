@@ -10,6 +10,7 @@ import (
 
 	"github.com/gobuffalo/httptest"
 	"github.com/julienschmidt/httprouter"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -57,4 +58,12 @@ func TestFetcher(t *testing.T) {
 			})
 		}
 	}
+
+	t.Run("case=returns proper error on unknown scheme", func(t *testing.T) {
+		_, err := NewFetcher().Fetch("unknown-scheme://foo")
+		require.NotNil(t, err)
+
+		assert.True(t, errors.Is(err, ErrUnknownScheme))
+		assert.Contains(t, err.Error(), "unknown-scheme")
+	})
 }
