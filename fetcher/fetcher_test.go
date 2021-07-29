@@ -3,6 +3,7 @@ package fetcher
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/pkg/errors"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -57,4 +58,12 @@ func TestFetcher(t *testing.T) {
 			})
 		}
 	}
+
+	t.Run("case=returns proper error on unknown scheme", func(t *testing.T) {
+		_, err := NewFetcher().Fetch("unknown-scheme://foo")
+		require.NotNil(t, err)
+
+		assert.True(t, errors.Is(err, ErrUnknownScheme))
+		assert.Contains(t, err.Error(), "unknown-scheme")
+	})
 }

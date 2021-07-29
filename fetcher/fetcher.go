@@ -3,8 +3,11 @@ package fetcher
 import (
 	"bytes"
 	"encoding/base64"
+	stderrors "errors"
+	"github.com/ory/x/stringsx"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 
@@ -22,6 +25,8 @@ type Fetcher struct {
 type opts struct {
 	hc *retryablehttp.Client
 }
+
+var ErrUnknownScheme = stderrors.New("unknown scheme")
 
 // WithClient sets the http.Client the fetcher uses.
 func WithClient(hc *http.Client) func(*opts) {
@@ -47,19 +52,26 @@ func NewFetcher(opts ...func(*opts)) *Fetcher {
 
 // Fetch fetches the file contents from the source.
 func (f *Fetcher) Fetch(source string) (*bytes.Buffer, error) {
-	if strings.HasPrefix(source, "http") || strings.HasPrefix(source, "https") {
+	u, err := url.Parse(source)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	knownSchemes := stringsx.RegisteredCases{}
+	switch u.Scheme {
+	case knownSchemes.AddCase("http"), knownSchemes.AddCase("https"):
 		return f.fetchRemote(source)
-	} else if strings.HasPrefix(source, "file") {
+	case knownSchemes.AddCase("file"):
 		return f.fetchFile(strings.Replace(source, "file://", "", 1))
-	} else if strings.HasPrefix(source, "base64") {
+	case knownSchemes.AddCase("base64"):
 		src, err := base64.StdEncoding.DecodeString(strings.Replace(source, "base64://", "", 1))
 		if err != nil {
 			return nil, errors.Wrapf(err, "rule: %s", source)
 		}
 		return bytes.NewBuffer(src), nil
+	default:
+		return nil, errors.Wrap(ErrUnknownScheme, knownSchemes.ToUnknownCaseErr(u.Scheme).Error())
 	}
-
-	return nil, errors.Errorf("source url uses an unknown scheme: %s", source)
 }
 
 func (f *Fetcher) fetchRemote(source string) (*bytes.Buffer, error) {
