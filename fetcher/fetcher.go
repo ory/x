@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	stderrors "errors"
-	"github.com/ory/x/stringsx"
 	"io"
 	"net/http"
 	"net/url"
@@ -15,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/ory/x/httpx"
+	"github.com/ory/x/stringsx"
 )
 
 // Fetcher is able to load file contents from http, https, file, and base64 locations.

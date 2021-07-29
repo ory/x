@@ -3,7 +3,6 @@ package fetcher
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/pkg/errors"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/gobuffalo/httptest"
 	"github.com/julienschmidt/httprouter"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
