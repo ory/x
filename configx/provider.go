@@ -91,12 +91,7 @@ func RegisterConfigFlag(flags *pflag.FlagSet, fallback []string) {
 // 3. Command line flags
 // 4. Environment variables
 func New(schema []byte, modifiers ...OptionModifier) (*Provider, error) {
-	schemaID, comp, err := newCompiler(schema)
-	if err != nil {
-		return nil, err
-	}
-
-	validator, err := comp.Compile(schemaID)
+	validator, err := getSchema(schema)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +130,7 @@ func New(schema []byte, modifiers ...OptionModifier) (*Provider, error) {
 }
 
 func (p *Provider) createProviders(ctx context.Context) (providers []koanf.Provider, err error) {
-	defaultsProvider, err := NewKoanfSchemaDefaults(p.schema)
+	defaultsProvider, err := NewKoanfSchemaDefaults(p.schema, p.validator)
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +170,7 @@ func (p *Provider) createProviders(ctx context.Context) (providers []koanf.Provi
 		providers = append(providers, posflag.Provider(p.flags, ".", p.Koanf))
 	}
 
-	envProvider, err := NewKoanfEnv("", p.schema)
+	envProvider, err := NewKoanfEnv("", p.schema, p.validator)
 	if err != nil {
 		return nil, err
 	}
