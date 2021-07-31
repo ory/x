@@ -1,13 +1,11 @@
 package configx
 
 import (
-	"crypto/sha256"
 	"encoding/json"
-	"fmt"
 	"strings"
-	"unsafe"
 
-	"github.com/dgraph-io/ristretto"
+	"github.com/ory/jsonschema/v3"
+
 	"github.com/knadh/koanf/providers/env"
 	"github.com/spf13/cast"
 	"github.com/tidwall/gjson"
@@ -16,29 +14,10 @@ import (
 	"github.com/ory/x/jsonschemax"
 )
 
-var pathCache, _ = ristretto.NewCache(&ristretto.Config{
-	NumCounters: 1000,
-	MaxCost:     100000000, // maximum cost of cache (100MB).
-	BufferItems: 64,        // number of keys per Get buffer.
-})
-
-func NewKoanfEnv(prefix string, schema []byte) (*env.Env, error) {
-	cacheKey := fmt.Sprintf("%x", sha256.Sum256(schema))
-
-	pathsFromCache, found := pathCache.Get(cacheKey)
-	paths, ok := pathsFromCache.([]jsonschemax.Path)
-	if !found || !ok {
-		id, compiler, err := newCompiler(schema)
-		if err != nil {
-			return nil, err
-		}
-
-		paths, err = jsonschemax.ListPaths(id, compiler)
-		if err != nil {
-			return nil, err
-		}
-
-		_ = pathCache.Set(cacheKey, paths, int64(unsafe.Sizeof(paths)))
+func NewKoanfEnv(prefix string, rawSchema []byte, schema *jsonschema.Schema) (*env.Env, error) {
+	paths, err := getSchemaPaths(rawSchema, schema)
+	if err != nil {
+		return nil, err
 	}
 
 	decode := func(value string) (v interface{}) {

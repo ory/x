@@ -9,7 +9,7 @@ replace github.com/oleiade/reflections => github.com/oleiade/reflections v1.0.1
 require (
 	github.com/bmatcuk/doublestar/v2 v2.0.3
 	github.com/cockroachdb/cockroach-go/v2 v2.1.1
-	github.com/dgraph-io/ristretto v0.0.3
+	github.com/dgraph-io/ristretto v0.1.0
 	github.com/docker/docker v17.12.0-ce-rc1.0.20201201034508-7d75c1d40d88+incompatible
 	github.com/fatih/structs v1.1.0
 	github.com/fsnotify/fsnotify v1.4.9
@@ -62,8 +62,8 @@ require (
 	github.com/tidwall/sjson v1.1.5
 	github.com/uber/jaeger-client-go v2.22.1+incompatible
 	github.com/urfave/negroni v1.0.0
-	go.elastic.co/apm v1.8.0
-	go.elastic.co/apm/module/apmot v1.8.0
+	go.elastic.co/apm v1.13.0
+	go.elastic.co/apm/module/apmot v1.13.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace v0.20.0
 	go.opentelemetry.io/otel v0.20.0
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
