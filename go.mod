@@ -6,6 +6,8 @@ replace github.com/dgrijalva/jwt-go => github.com/form3tech-oss/jwt-go v3.2.1+in
 
 replace github.com/oleiade/reflections => github.com/oleiade/reflections v1.0.1
 
+replace github.com/gobuffalo/packr => github.com/gobuffalo/packr v1.30.1
+
 require (
 	github.com/bmatcuk/doublestar/v2 v2.0.3
 	github.com/cockroachdb/cockroach-go/v2 v2.1.1
