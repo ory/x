@@ -355,19 +355,19 @@ func StripDump(d string) string {
 func DumpSchema(ctx context.Context, t *testing.T, db string) string {
 	var containerPort string
 	var cmd []string
-	cases := stringsx.RegisteredCases{}
-	switch db {
-	case cases.AddCase("postgres"):
+
+	switch c := stringsx.SwitchExact(db); {
+	case c.AddCase("postgres"):
 		containerPort = "5432"
 		cmd = []string{"pg_dump", "-U", "postgres", "-s", "-T", "hydra_*_migration", "-T", "schema_migration"}
-	case cases.AddCase("mysql"):
+	case c.AddCase("mysql"):
 		containerPort = "3306"
 		cmd = []string{"/usr/bin/mysqldump", "-u", "root", "--password=secret", "mysql"}
-	case cases.AddCase("cockroach"):
+	case c.AddCase("cockroach"):
 		containerPort = "26257"
 		cmd = []string{"./cockroach", "dump", "defaultdb", "--insecure", "--dump-mode=schema"}
 	default:
-		t.Log(cases.ToUnknownCaseErr(db))
+		t.Log(c.ToUnknownCaseErr())
 		t.FailNow()
 		return ""
 	}

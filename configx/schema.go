@@ -23,6 +23,8 @@ func newCompiler(schema []byte) (string, *jsonschema.Compiler, error) {
 	if err := compiler.AddResource(id, bytes.NewBuffer(schema)); err != nil {
 		return "", nil, errors.WithStack(err)
 	}
+
+	// DO NOT REMOVE THIS
 	compiler.ExtractAnnotations = true
 
 	tracing.AddConfigSchema(compiler)

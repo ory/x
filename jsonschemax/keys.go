@@ -101,34 +101,45 @@ func ListPathsBytes(raw json.RawMessage, maxRecursion int16) ([]Path, error) {
 		return nil, err
 	}
 	compiler.ExtractAnnotations = true
-	return runPaths(id, compiler, maxRecursion)
+	return runPathsFromCompiler(id, compiler, maxRecursion)
 }
 
 // ListPathsWithRecursion will follow circular references until maxRecursion is reached, without
 // returning an error.
 func ListPathsWithRecursion(ref string, compiler *jsonschema.Compiler, maxRecursion uint8) ([]Path, error) {
-	return runPaths(ref, compiler, int16(maxRecursion))
+	return runPathsFromCompiler(ref, compiler, int16(maxRecursion))
 }
 
 // ListPaths lists all paths of a JSON Schema. Will return an error
 // if circular references are found.
 func ListPaths(ref string, compiler *jsonschema.Compiler) ([]Path, error) {
-	return runPaths(ref, compiler, -1)
+	return runPathsFromCompiler(ref, compiler, -1)
 }
 
-func runPaths(ref string, compiler *jsonschema.Compiler, maxRecursion int16) ([]Path, error) {
+// ListPathsWithInitializedSchema loads the paths from the schema without compiling it.
+//
+// You MUST ensure that the compiler was using `ExtractAnnotations = true`.
+func ListPathsWithInitializedSchema(schema *jsonschema.Schema) ([]Path, error) {
+	return runPaths(schema, -1)
+}
+
+func runPathsFromCompiler(ref string, compiler *jsonschema.Compiler, maxRecursion int16) ([]Path, error) {
 	if compiler == nil {
 		compiler = jsonschema.NewCompiler()
 	}
 
 	compiler.ExtractAnnotations = true
-	pointers := map[string]bool{}
 
 	schema, err := compiler.Compile(ref)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
+	return runPaths(schema, maxRecursion)
+}
+
+func runPaths(schema *jsonschema.Schema, maxRecursion int16) ([]Path, error) {
+	pointers := map[string]bool{}
 	paths, err := listPaths(schema, nil, pointers, 0, maxRecursion)
 	if err != nil {
 		return nil, errors.WithStack(err)
