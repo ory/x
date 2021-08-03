@@ -176,3 +176,15 @@ func TestTextLogger(t *testing.T) {
 		})
 	}
 }
+
+func TestLogger(t *testing.T) {
+	l := New("logrus test", "test")
+
+	t.Run("case=does not panic on nil error", func(t *testing.T) {
+		defer func() {
+			assert.Nil(t, recover())
+		}()
+
+		l.WithError(nil)
+	})
+}
