@@ -177,6 +177,7 @@ func (c *nullConfigurator) String(_ string) string {
 func newOptions(opts []Option) *options {
 	o := new(options)
 	o.c = new(nullConfigurator)
+	o.format = "text"
 	for _, f := range opts {
 		f(o)
 	}
