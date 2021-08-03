@@ -56,12 +56,12 @@ func newLogger(parent *logrus.Logger, o *options) *logrus.Logger {
 		l.ExitFunc = o.exitFunc
 	}
 
-	setLevel(l, o)
-	setFormatter(l, o)
-
 	for _, hook := range o.hooks {
 		l.AddHook(hook)
 	}
+
+	setLevel(l, o)
+	setFormatter(l, o)
 
 	l.ReportCaller = o.reportCaller || l.IsLevelEnabled(logrus.TraceLevel)
 	return l
@@ -85,9 +85,9 @@ func setFormatter(l *logrus.Logger, o *options) {
 	if o.formatter != nil {
 		l.Formatter = o.formatter
 	} else {
-		format := stringsx.SwitchExact(stringsx.Coalesce(o.format, o.c.String("log.format"), os.Getenv("LOG_FORMAT")))
 		var unknownFormat bool // we first have to set the formatter before we can complain about the unknown format
 
+		format := stringsx.SwitchExact(stringsx.Coalesce(o.format, o.c.String("log.format"), os.Getenv("LOG_FORMAT")))
 		switch {
 		case format.AddCase("json"):
 			l.Formatter = &logrus.JSONFormatter{PrettyPrint: false}
@@ -98,7 +98,7 @@ func setFormatter(l *logrus.Logger, o *options) {
 		default:
 			unknownFormat = true
 			fallthrough
-		case format.AddCase("text"):
+		case format.AddCase("text"), format.AddCase(""):
 			l.Formatter = &logrus.TextFormatter{
 				DisableQuote:     true,
 				DisableTimestamp: false,
@@ -177,7 +177,6 @@ func (c *nullConfigurator) String(_ string) string {
 func newOptions(opts []Option) *options {
 	o := new(options)
 	o.c = new(nullConfigurator)
-	o.format = "text"
 	for _, f := range opts {
 		f(o)
 	}
