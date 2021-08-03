@@ -3,6 +3,8 @@ package logrusx
 import (
 	"testing"
 
+	"github.com/sirupsen/logrus/hooks/test"
+
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/json"
 	"github.com/knadh/koanf/providers/rawbytes"
@@ -15,28 +17,48 @@ import (
 )
 
 func TestConfigSchema(t *testing.T) {
-	c := jsonschema.NewCompiler()
-	require.NoError(t, AddConfigSchema(c))
-	schema, err := c.Compile(ConfigSchemaID)
-	require.NoError(t, err)
+	config := func(t *testing.T, vals map[string]interface{}) []byte {
+		rawConfig, err := sjson.Set("{}", "log", vals)
+		require.NoError(t, err)
 
-	logConfig := map[string]interface{}{
-		"level":                 "trace",
-		"format":                "json_pretty",
-		"leak_sensitive_values": true,
+		return []byte(rawConfig)
 	}
 
-	assert.NoError(t, schema.ValidateInterface(logConfig))
+	t.Run("case=basic validation and retrieval", func(t *testing.T) {
+		c := jsonschema.NewCompiler()
+		require.NoError(t, AddConfigSchema(c))
+		schema, err := c.Compile(ConfigSchemaID)
+		require.NoError(t, err)
 
-	rawConfig, err := sjson.Set("{}", "log", logConfig)
-	require.NoError(t, err)
+		logConfig := map[string]interface{}{
+			"level":                 "trace",
+			"format":                "json_pretty",
+			"leak_sensitive_values": true,
+		}
+		assert.NoError(t, schema.ValidateInterface(logConfig))
 
-	k := koanf.New(".")
-	require.NoError(t, k.Load(rawbytes.Provider([]byte(rawConfig)), json.Parser()))
+		k := koanf.New(".")
+		require.NoError(t, k.Load(rawbytes.Provider(config(t, logConfig)), json.Parser()))
 
-	l := New("foo", "bar", WithConfigurator(k))
+		l := New("foo", "bar", WithConfigurator(k))
 
-	assert.True(t, l.leakSensitive)
-	assert.Equal(t, logrus.TraceLevel, l.Logger.Level)
-	assert.IsType(t, &logrus.JSONFormatter{}, l.Logger.Formatter)
+		assert.True(t, l.leakSensitive)
+		assert.Equal(t, logrus.TraceLevel, l.Logger.Level)
+		assert.IsType(t, &logrus.JSONFormatter{}, l.Logger.Formatter)
+	})
+
+	t.Run("case=warns on unknown format", func(t *testing.T) {
+		h := &test.Hook{}
+		New("foo", "bar", WithHook(h), ForceFormat("unknown"))
+
+		require.Len(t, h.Entries, 1)
+		assert.Contains(t, h.LastEntry().Message, "got unknown \"log.format\", falling back to \"text\"")
+	})
+
+	t.Run("case=does not warn on text format", func(t *testing.T) {
+		h := &test.Hook{}
+		New("foo", "bar", WithHook(h), ForceFormat("text"))
+
+		assert.Len(t, h.Entries, 0)
+	})
 }
