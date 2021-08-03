@@ -23,6 +23,7 @@ type Metrics struct {
 // Method for creation new custom Prometheus  metrics
 func NewMetrics(app, version, hash, date string) *Metrics {
 	labels := map[string]string{
+		"app":       app,
 		"version":   version,
 		"hash":      hash,
 		"buildTime": date,
@@ -30,34 +31,34 @@ func NewMetrics(app, version, hash, date string) *Metrics {
 	pm := &Metrics{
 		responseTime: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
-				Name:        app + "_response_time_seconds",
+				Name:        "response_time_seconds",
 				Help:        "Description",
 				ConstLabels: labels,
 			},
 			[]string{"endpoint"},
 		),
 		totalRequests: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Name:        app + "_requests_total",
+			Name:        "requests_total",
 			Help:        "number of requests",
 			ConstLabels: labels,
 		}, []string{"code", "method"}),
 		duration: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-			Name:        app + "_duration_seconds",
+			Name:        "requests_duration_seconds",
 			Help:        "duration of a requests in seconds",
 			ConstLabels: labels,
 		}, []string{"code", "method"}),
 		responseSize: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-			Name:        app + "_response_size_bytes",
+			Name:        "response_size_bytes",
 			Help:        "size of the responses in bytes",
 			ConstLabels: labels,
 		}, []string{"code", "method"}),
 		requestSize: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-			Name:        app + "_request_size_bytes",
+			Name:        "requests_size_bytes",
 			Help:        "size of the requests in bytes",
 			ConstLabels: labels,
 		}, []string{"code", "method"}),
 		handlerStatuses: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Name:        app + "_statuses_total",
+			Name:        "requests_statuses_total",
 			Help:        "count number of responses per status",
 			ConstLabels: labels,
 		}, []string{"method", "status_bucket"}),
