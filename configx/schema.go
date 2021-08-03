@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/ory/x/logrusx"
 	"github.com/ory/x/tracing"
 
 	"github.com/google/uuid"
@@ -27,7 +28,12 @@ func newCompiler(schema []byte) (string, *jsonschema.Compiler, error) {
 	// DO NOT REMOVE THIS
 	compiler.ExtractAnnotations = true
 
-	tracing.AddConfigSchema(compiler)
+	if err := tracing.AddConfigSchema(compiler); err != nil {
+		return "", nil, err
+	}
+	if err := logrusx.AddConfigSchema(compiler); err != nil {
+		return "", nil, err
+	}
 
 	return id, compiler, nil
 }
