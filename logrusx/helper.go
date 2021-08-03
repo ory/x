@@ -131,6 +131,10 @@ func (l *Logger) WithSensitiveField(key string, value interface{}) *Logger {
 }
 
 func (l *Logger) WithError(err error) *Logger {
+	if err == nil {
+		return l
+	}
+
 	ctx := map[string]interface{}{"message": err.Error()}
 	if l.Entry.Logger.IsLevelEnabled(logrus.TraceLevel) {
 		if e, ok := err.(errorsx.StackTracer); ok {
