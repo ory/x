@@ -1,5 +1,7 @@
 module github.com/ory/x
 
+replace github.com/oleiade/reflections => github.com/oleiade/reflections v1.0.1
+
 require (
 	github.com/DataDog/datadog-go v4.0.0+incompatible // indirect
 	github.com/bmatcuk/doublestar/v2 v2.0.3
@@ -29,7 +31,6 @@ require (
 	github.com/openzipkin/zipkin-go v0.2.2
 	github.com/ory/analytics-go/v4 v4.0.0
 	github.com/ory/dockertest/v3 v3.5.4
-	github.com/ory/fosite v0.29.0
 	github.com/ory/go-acc v0.0.0-20181118080137-ddc355013f90
 	github.com/ory/herodot v0.8.3
 	github.com/ory/jsonschema/v3 v3.0.1
