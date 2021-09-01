@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"path"
 	"testing"
+	"time"
 
 	"github.com/inhies/go-bytesize"
 
@@ -87,6 +88,14 @@ func TestProviderMethods(t *testing.T) {
 			require.NoError(t, p.Set("invalid.request_uri", "foo"))
 			assert.Equal(t, ory, p.RequestURIF("invalid.request_uri", ory))
 		})
+	})
+
+	t.Run("allow integer as duration", func(t *testing.T) {
+		assert.NoError(t, p.Set("duration.integer1", -1))
+		assert.NoError(t, p.Set("duration.integer2", "-1"))
+
+		assert.Equal(t, -1*time.Nanosecond, p.DurationF("duration.integer1", time.Second))
+		assert.Equal(t, -1*time.Nanosecond, p.DurationF("duration.integer2", time.Second))
 	})
 
 	t.Run("use complex set operations", func(t *testing.T) {

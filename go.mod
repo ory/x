@@ -35,7 +35,7 @@ require (
 	github.com/jandelgado/gcov2lcov v1.0.4
 	github.com/jmoiron/sqlx v1.3.1
 	github.com/julienschmidt/httprouter v1.3.0
-	github.com/knadh/koanf v1.0.0
+	github.com/knadh/koanf v1.2.2
 	github.com/lib/pq v1.10.0
 	github.com/markbates/pkger v0.17.1
 	github.com/opentracing/opentracing-go v1.2.0
