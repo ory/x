@@ -394,6 +394,11 @@ func (p *Provider) DurationF(key string, fallback time.Duration) (val time.Durat
 		return fallback
 	}
 
+	// Workaround for negative integers. Remove it after https://github.com/knadh/koanf/pull/104 was merged.
+	if i := p.Int64(key); i != 0 {
+		return time.Duration(i)
+	}
+
 	return p.Duration(key)
 }
 
