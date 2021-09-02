@@ -20,45 +20,53 @@ type Metrics struct {
 	handlerStatuses *prometheus.CounterVec
 }
 
-// Method for creation new custom Prometheus  metrics
-func NewMetrics(app, version, hash, date string) *Metrics {
+const HTTPMetrics = "http"
+const GRPCMetrics = "grpc"
+
+// NewMetrics creates new custom Prometheus metrics
+func NewMetrics(app, metricsPrefix, version, hash, date string) *Metrics {
 	labels := map[string]string{
 		"app":       app,
 		"version":   version,
 		"hash":      hash,
 		"buildTime": date,
 	}
+
+	if metricsPrefix != "" {
+		metricsPrefix += "_"
+	}
+
 	pm := &Metrics{
 		responseTime: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
-				Name:        "response_time_seconds",
+				Name:        metricsPrefix + "response_time_seconds",
 				Help:        "Description",
 				ConstLabels: labels,
 			},
 			[]string{"endpoint"},
 		),
 		totalRequests: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Name:        "requests_total",
+			Name:        metricsPrefix + "requests_total",
 			Help:        "number of requests",
 			ConstLabels: labels,
 		}, []string{"code", "method"}),
 		duration: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-			Name:        "requests_duration_seconds",
+			Name:        metricsPrefix + "requests_duration_seconds",
 			Help:        "duration of a requests in seconds",
 			ConstLabels: labels,
 		}, []string{"code", "method"}),
 		responseSize: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-			Name:        "response_size_bytes",
+			Name:        metricsPrefix + "response_size_bytes",
 			Help:        "size of the responses in bytes",
 			ConstLabels: labels,
 		}, []string{"code", "method"}),
 		requestSize: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-			Name:        "requests_size_bytes",
+			Name:        metricsPrefix + "requests_size_bytes",
 			Help:        "size of the requests in bytes",
 			ConstLabels: labels,
 		}, []string{"code", "method"}),
 		handlerStatuses: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Name:        "requests_statuses_total",
+			Name:        metricsPrefix + "requests_statuses_total",
 			Help:        "count number of responses per status",
 			ConstLabels: labels,
 		}, []string{"method", "status_bucket"}),

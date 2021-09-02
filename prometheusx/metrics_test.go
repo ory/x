@@ -21,7 +21,7 @@ func TestMetrics(t *testing.T) {
 
 	n := negroni.New()
 	handler := func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-		prometheus.NewMetrics(testApp, "", "", "").Instrument(rw, next, r.RequestURI)(rw, r)
+		prometheus.NewMetrics(testApp, prometheus.HTTPMetrics, "", "", "").Instrument(rw, next, r.RequestURI)(rw, r)
 	}
 	n.UseFunc(handler)
 
@@ -48,29 +48,29 @@ func TestMetrics(t *testing.T) {
 	textParser := expfmt.TextParser{}
 	text, err := textParser.TextToMetricFamilies(promresp.Body)
 	require.NoError(t, err)
-	require.EqualValues(t, "response_time_seconds", *text["response_time_seconds"].Name)
-	require.EqualValues(t, testPath, getLabelValue("endpoint", text["response_time_seconds"].Metric))
-	require.EqualValues(t, testApp, getLabelValue("app", text["response_time_seconds"].Metric))
+	require.EqualValues(t, "http_response_time_seconds", *text["http_response_time_seconds"].Name)
+	require.EqualValues(t, testPath, getLabelValue("endpoint", text["http_response_time_seconds"].Metric))
+	require.EqualValues(t, testApp, getLabelValue("app", text["http_response_time_seconds"].Metric))
 
-	require.EqualValues(t, "requests_total", *text["requests_total"].Name)
-	require.EqualValues(t, "400", getLabelValue("code", text["requests_total"].Metric))
-	require.EqualValues(t, testApp, getLabelValue("app", text["requests_total"].Metric))
+	require.EqualValues(t, "http_requests_total", *text["http_requests_total"].Name)
+	require.EqualValues(t, "400", getLabelValue("code", text["http_requests_total"].Metric))
+	require.EqualValues(t, testApp, getLabelValue("app", text["http_requests_total"].Metric))
 
-	require.EqualValues(t, "requests_duration_seconds", *text["requests_duration_seconds"].Name)
-	require.EqualValues(t, "400", getLabelValue("code", text["requests_duration_seconds"].Metric))
-	require.EqualValues(t, testApp, getLabelValue("app", text["requests_duration_seconds"].Metric))
+	require.EqualValues(t, "http_requests_duration_seconds", *text["http_requests_duration_seconds"].Name)
+	require.EqualValues(t, "400", getLabelValue("code", text["http_requests_duration_seconds"].Metric))
+	require.EqualValues(t, testApp, getLabelValue("app", text["http_requests_duration_seconds"].Metric))
 
-	require.EqualValues(t, "response_size_bytes", *text["response_size_bytes"].Name)
-	require.EqualValues(t, "400", getLabelValue("code", text["response_size_bytes"].Metric))
-	require.EqualValues(t, testApp, getLabelValue("app", text["response_size_bytes"].Metric))
+	require.EqualValues(t, "http_response_size_bytes", *text["http_response_size_bytes"].Name)
+	require.EqualValues(t, "400", getLabelValue("code", text["http_response_size_bytes"].Metric))
+	require.EqualValues(t, testApp, getLabelValue("app", text["http_response_size_bytes"].Metric))
 
-	require.EqualValues(t, "requests_size_bytes", *text["requests_size_bytes"].Name)
-	require.EqualValues(t, "400", getLabelValue("code", text["requests_size_bytes"].Metric))
-	require.EqualValues(t, testApp, getLabelValue("app", text["requests_size_bytes"].Metric))
+	require.EqualValues(t, "http_requests_size_bytes", *text["http_requests_size_bytes"].Name)
+	require.EqualValues(t, "400", getLabelValue("code", text["http_requests_size_bytes"].Metric))
+	require.EqualValues(t, testApp, getLabelValue("app", text["http_requests_size_bytes"].Metric))
 
-	require.EqualValues(t, "requests_statuses_total", *text["requests_statuses_total"].Name)
-	require.EqualValues(t, "4xx", getLabelValue("status_bucket", text["requests_statuses_total"].Metric))
-	require.EqualValues(t, testApp, getLabelValue("app", text["requests_statuses_total"].Metric))
+	require.EqualValues(t, "http_requests_statuses_total", *text["http_requests_statuses_total"].Name)
+	require.EqualValues(t, "4xx", getLabelValue("status_bucket", text["http_requests_statuses_total"].Metric))
+	require.EqualValues(t, testApp, getLabelValue("app", text["http_requests_statuses_total"].Metric))
 }
 
 func getLabelValue(name string, metric []*ioprometheusclient.Metric) string {
