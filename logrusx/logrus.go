@@ -1,6 +1,9 @@
 package logrusx
 
 import (
+	"bytes"
+	_ "embed"
+	"io"
 	"os"
 
 	"github.com/sirupsen/logrus"
@@ -30,6 +33,19 @@ type (
 	}
 )
 
+//go:embed config.schema.json
+var ConfigSchema string
+
+const ConfigSchemaID = "ory://logging-config"
+
+// AddConfigSchema adds the logging schema to the compiler.
+// The interface is specified instead of `jsonschema.Compiler` to allow the use of any jsonschema library fork or version.
+func AddConfigSchema(c interface {
+	AddResource(url string, r io.Reader) error
+}) error {
+	return c.AddResource(ConfigSchemaID, bytes.NewBufferString(ConfigSchema))
+}
+
 func newLogger(parent *logrus.Logger, o *options) *logrus.Logger {
 	l := parent
 	if l == nil {
@@ -40,12 +56,12 @@ func newLogger(parent *logrus.Logger, o *options) *logrus.Logger {
 		l.ExitFunc = o.exitFunc
 	}
 
-	setLevel(l, o)
-	setFormatter(l, o)
-
 	for _, hook := range o.hooks {
 		l.AddHook(hook)
 	}
+
+	setLevel(l, o)
+	setFormatter(l, o)
 
 	l.ReportCaller = o.reportCaller || l.IsLevelEnabled(logrus.TraceLevel)
 	return l
@@ -69,19 +85,29 @@ func setFormatter(l *logrus.Logger, o *options) {
 	if o.formatter != nil {
 		l.Formatter = o.formatter
 	} else {
-		switch stringsx.Coalesce(o.format, o.c.String("log.format"), os.Getenv("LOG_FORMAT")) {
-		case "json":
+		var unknownFormat bool // we first have to set the formatter before we can complain about the unknown format
+
+		format := stringsx.SwitchExact(stringsx.Coalesce(o.format, o.c.String("log.format"), os.Getenv("LOG_FORMAT")))
+		switch {
+		case format.AddCase("json"):
 			l.Formatter = &logrus.JSONFormatter{PrettyPrint: false}
-		case "json_pretty":
+		case format.AddCase("json_pretty"):
 			l.Formatter = &logrus.JSONFormatter{PrettyPrint: true}
-		case "gelf":
+		case format.AddCase("gelf"):
 			l.Formatter = new(gelf.GelfFormatter)
 		default:
+			unknownFormat = true
+			fallthrough
+		case format.AddCase("text"), format.AddCase(""):
 			l.Formatter = &logrus.TextFormatter{
 				DisableQuote:     true,
 				DisableTimestamp: false,
 				FullTimestamp:    true,
 			}
+		}
+
+		if unknownFormat {
+			l.WithError(format.ToUnknownCaseErr()).Warn("got unknown \"log.format\", falling back to \"text\"")
 		}
 	}
 }
