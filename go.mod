@@ -51,6 +51,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/profile v1.2.1
 	github.com/prometheus/client_golang v1.9.0
+	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.15.0
 	github.com/rs/cors v1.6.0
 	github.com/seatgeek/logrus-gelf-formatter v0.0.0-20210414080842-5b05eb8ff761
