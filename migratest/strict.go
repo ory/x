@@ -1,3 +1,4 @@
+//go:build !refresh
 // +build !refresh
 
 package migratest
