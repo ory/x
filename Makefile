@@ -21,7 +21,7 @@ $(call make-lint-dependency)
 
 .PHONY: format
 format:
-		goreturns -w -i -local github.com/ory $$(listx . | grep -v "go_mod_indirect_pins.go")
+		goimports -w -local github.com/ory .
 
 .bin/golangci-lint: Makefile
 		bash <(curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh) -d -b .bin v1.28.3
