@@ -284,23 +284,29 @@ func (p *Provider) runOnChanges(e watcherx.Event, err error) {
 
 func (p *Provider) reload(e watcherx.Event) {
 	p.l.Lock()
-	defer p.l.Unlock()
+
+	var err error
+	defer func() {
+		// we first want to unlock and then runOnChanges, so that the callbacks can actually use the Provider
+		p.l.Unlock()
+		p.runOnChanges(e, err)
+	}()
 
 	nk, err := p.newKoanf()
 	if err != nil {
-		p.runOnChanges(e, err)
-		return
+		return // unlocks & runs changes in defer
 	}
 
 	for _, key := range p.immutables {
 		if !reflect.DeepEqual(p.Koanf.Get(key), nk.Get(key)) {
-			p.runOnChanges(e, NewImmutableError(key, fmt.Sprintf("%v", p.Koanf.Get(key)), fmt.Sprintf("%v", nk.Get(key))))
-			return
+			err = NewImmutableError(key, fmt.Sprintf("%v", p.Koanf.Get(key)), fmt.Sprintf("%v", nk.Get(key)))
+			return // unlocks & runs changes in defer
 		}
 	}
 
 	p.replaceKoanf(nk)
-	p.runOnChanges(e, nil)
+
+	// unlocks & runs changes in defer
 }
 
 func (p *Provider) watchForFileChanges(c watcherx.EventChannel) {
