@@ -255,18 +255,18 @@ func TestReload(t *testing.T) {
 	})
 
 	t.Run("case=callback can use the provider to get the new value", func(t *testing.T) {
-		f := tmpConfigFile(t, "dsn", "foo")
+		f := tmpConfigFile(t, "old", "bar")
 		c := make(chan struct{})
 		vc := make(chan string)
 
 		var p *Provider
 		p, _ = setup(t, f, c, AttachWatcher(func(watcherx.Event, error) {
-			vc <- p.String("foo")
+			vc <- p.String("dsn")
 		}))
 
 		// change foo to bar
-		updateConfigFile(t, c, f, "dsn", "bar", "")
+		updateConfigFile(t, c, f, "new", "bar", "bar")
 
-		assert.Equal(t, "bar", <-vc)
+		assert.Equal(t, "new", <-vc)
 	})
 }
