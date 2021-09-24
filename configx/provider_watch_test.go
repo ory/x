@@ -253,4 +253,21 @@ func TestReload(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, atStartNum < 20, "should not be unreasonably high: %s\n\t%s", atStartNum, lsofAtStart)
 	})
+
+	t.Run("case=callback can use the provider to get the new value", func(t *testing.T) {
+		dsn := "old"
+
+		f := tmpConfigFile(t, dsn, "bar")
+		c := make(chan struct{})
+
+		var p *Provider
+		p, _ = setup(t, f, c, AttachWatcher(func(watcherx.Event, error) {
+			dsn = p.String("dsn")
+		}))
+
+		// change dsn
+		updateConfigFile(t, c, f, "new", "bar", "bar")
+
+		assert.Equal(t, "new", dsn)
+	})
 }
