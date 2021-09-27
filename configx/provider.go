@@ -129,6 +129,10 @@ func New(schema []byte, modifiers ...OptionModifier) (*Provider, error) {
 	return p, nil
 }
 
+func (p *Provider) SkipValidation() bool {
+	return p.skipValidation
+}
+
 func (p *Provider) createProviders(ctx context.Context) (providers []koanf.Provider, err error) {
 	defaultsProvider, err := NewKoanfSchemaDefaults(p.schema, p.validator)
 	if err != nil {
