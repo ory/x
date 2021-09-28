@@ -74,6 +74,12 @@ type DetailsCarrier interface {
 	Details() map[string]interface{}
 }
 
+// IDCarrier can be implemented by an error to support error contexts.
+type IDCarrier interface {
+	// ID returns application error ID on the error, if applicable.
+	ID() string
+}
+
 type StackTracer interface {
 	StackTrace() errors.StackTrace
 }
