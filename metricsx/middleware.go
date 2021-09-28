@@ -25,9 +25,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"github.com/ory/x/configx"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/status"
 	"net"
 	"net/http"
 	"net/url"
@@ -35,6 +32,11 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
+
+	"github.com/ory/x/configx"
 
 	"github.com/spf13/cobra"
 
