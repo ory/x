@@ -21,9 +21,13 @@
 package metricsx
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"github.com/ory/x/configx"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
 	"net"
 	"net/http"
 	"net/url"
@@ -31,8 +35,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/ory/x/configx"
 
 	"github.com/spf13/cobra"
 
@@ -254,7 +256,7 @@ func (sw *Service) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.
 		return
 	}
 
-	latency := time.Now().UTC().Sub(start.UTC()) / time.Millisecond
+	latency := time.Since(start) / time.Millisecond
 
 	scheme := "https:"
 	if r.TLS == nil {
@@ -266,7 +268,7 @@ func (sw *Service) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.
 
 	// Collecting request info
 	res := rw.(negroni.ResponseWriter)
-	status := res.Status()
+	stat := res.Status()
 	size := res.Size()
 
 	if err := sw.c.Enqueue(analytics.Page{
@@ -277,7 +279,7 @@ func (sw *Service) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.
 			SetURL(scheme+"//"+sw.o.ClusterID+path+"?"+query).
 			SetPath(path).
 			SetName(path).
-			Set("status", status).
+			Set("status", stat).
 			Set("size", size).
 			Set("latency", latency).
 			Set("method", r.Method),
@@ -286,6 +288,45 @@ func (sw *Service) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.
 		sw.l.WithError(err).Debug("Could not commit anonymized telemetry data")
 		// do nothing...
 	}
+}
+
+func (sw *Service) UnaryInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	var start time.Time
+	if !sw.optOut {
+		start = time.Now()
+	}
+
+	resp, err := handler(ctx, req)
+
+	if sw.optOut {
+		return resp, err
+	}
+
+	latency := time.Since(start) / time.Millisecond
+
+	if err := sw.c.Enqueue(analytics.Page{
+		UserId: sw.o.ClusterID,
+		Name:   info.FullMethod,
+		Properties: analytics.
+			NewProperties().
+			SetURL("grpc://"+sw.o.ClusterID+info.FullMethod).
+			SetPath(info.FullMethod).
+			SetName(info.FullMethod).
+			Set("status", status.Code(err)).
+			Set("latency", latency),
+		Context: sw.context,
+	}); err != nil {
+		sw.l.WithError(err).Debug("Could not commit anonymized telemetry data")
+		// do nothing...
+	}
+
+	return resp, err
+}
+
+func (sw *Service) StreamInterceptor(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+	// this needs a bit of thought, but we don't have streaming RPCs currently anyway
+	sw.l.Info("The telemetry stream interceptor is not yet implemented!")
+	return handler(srv, stream)
 }
 
 func (sw *Service) Close() error {
@@ -298,9 +339,9 @@ func (sw *Service) anonymizePath(path string, salt string) string {
 
 	for _, p := range paths {
 		p = strings.ToLower(p)
-		if len(path) == len(p) && path[:len(p)] == strings.ToLower(p) {
+		if path == p {
 			return p
-		} else if len(path) > len(p) && path[:len(p)+1] == strings.ToLower(p)+"/" {
+		} else if strings.HasPrefix(path, p) {
 			return path[:len(p)] + "/" + Hash(path[len(p):]+"|"+salt)
 		}
 	}
