@@ -12,7 +12,7 @@ import (
 
 // handleSqlite handles the error iff (if and only if) it is an sqlite error
 func handleSqlite(err error) error {
-	if e, ok := err.(sqlite3.Error); ok {
+	if e := new(sqlite3.Error); errors.As(err, e) {
 		switch e.ExtendedCode {
 		case sqlite3.ErrConstraintUnique:
 			return errors.Wrap(ErrUniqueViolation, err.Error())
