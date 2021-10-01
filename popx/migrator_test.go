@@ -58,6 +58,8 @@ func TestMigratorUpgrading(t *testing.T) {
 
 	for name, c := range connections {
 		t.Run(fmt.Sprintf("database=%s", name), func(t *testing.T) {
+			t.SkipNow()
+
 			legacy, err := pkgerx.NewMigrationBox("/popx/stub/migrations/legacy", c, l)
 			require.NoError(t, err)
 			require.NoError(t, legacy.Up())
