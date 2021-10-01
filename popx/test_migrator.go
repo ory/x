@@ -3,9 +3,8 @@ package popx
 import (
 	"context"
 	"database/sql"
-	"io/ioutil"
-	"os"
-	"path/filepath"
+	"io"
+	"io/fs"
 	"strings"
 	"testing"
 	"time"
@@ -26,15 +25,13 @@ type TestMigrator struct {
 // After running each migration it applies it's corresponding testData sql files.
 // They are identified by having the same version (= number in the front of the filename).
 // The filenames are expected to be of the format ([0-9]+).*(_testdata(\.[dbtype])?.sql
-func NewTestMigrator(t *testing.T, c *pop.Connection, migrationPath, testDataPath string, l *logrusx.Logger) *TestMigrator {
+func NewTestMigrator(t *testing.T, c *pop.Connection, migrations, testData fs.FS, l *logrusx.Logger) *TestMigrator {
 	tm := TestMigrator{
 		Migrator: NewMigrator(c, l, nil, time.Minute),
 	}
-	tm.SchemaPath = migrationPath
-	testDataPath = strings.TrimSuffix(testDataPath, "/")
 
 	runner := func(mf Migration, c *pop.Connection, tx *pop.Tx) error {
-		b, err := ioutil.ReadFile(mf.Path)
+		b, err := fs.ReadFile(migrations, mf.Path)
 		require.NoError(t, err)
 
 		content, err := ParameterizedMigrationContent(nil)(mf, c, b, true)
@@ -93,17 +90,19 @@ func NewTestMigrator(t *testing.T, c *pop.Connection, migrationPath, testDataPat
 		t.Logf("Adding migration test data %s (%s)", mf.Version, appliedVersion)
 
 		// exec testdata
-		var fileName string
-		if fi, err := os.Stat(filepath.Join(testDataPath, appliedVersion+"_testdata."+c.Dialect.Name()+".sql")); err == nil && !fi.IsDir() {
-			// found specific test data
-			fileName = fi.Name()
-		} else if fi, err := os.Stat(filepath.Join(testDataPath, appliedVersion+"_testdata.sql")); err == nil && !fi.IsDir() {
-			// found generic test data
-			fileName = fi.Name()
-		} else {
-			// found no test data
-			t.Logf("Found no test data for migration %s %s", mf.Version, mf.DBType)
-			return nil
+		f, err := testData.Open(appliedVersion + "_testdata." + c.Dialect.Name() + ".sql")
+		if errors.Is(err, fs.ErrNotExist) {
+			// could not find specific test data; try generic
+			f, err = testData.Open(appliedVersion + "_testdata.sql")
+			if errors.Is(err, fs.ErrNotExist) {
+				// found no test data
+				t.Logf("Found no test data for migration %s %s", mf.Version, mf.DBType)
+				return nil
+			} else if err != nil {
+				return errors.WithStack(err)
+			}
+		} else if err != nil {
+			return errors.WithStack(err)
 		}
 
 		// Workaround for https://github.com/cockroachdb/cockroach/issues/42643#issuecomment-611475836
@@ -123,21 +122,25 @@ func NewTestMigrator(t *testing.T, c *pop.Connection, migrationPath, testDataPat
 			*tx = *newTx
 		}
 
-		data, err := ioutil.ReadFile(filepath.Join(testDataPath, fileName))
+		data, err := io.ReadAll(f)
 		if err != nil {
 			return errors.WithStack(err)
 		}
 
+		fi, err := f.Stat()
+		if err != nil {
+			return errors.WithStack(err)
+		}
 		if len(strings.TrimSpace(string(data))) == 0 {
-			t.Logf("data is empty for: %s", fileName)
+			t.Logf("data is empty for: %s", fi.Name())
 			return nil
 		}
 
 		// FIXME https://github.com/gobuffalo/pop/issues/567
 		for _, statement := range strings.Split(string(data), ";\n") {
-			t.Logf("Executing %s query from %s: %s", c.Dialect.Name(), fileName, statement)
+			t.Logf("Executing %s query from %s: %s", c.Dialect.Name(), fi.Name(), statement)
 			if strings.TrimSpace(statement) == "" {
-				t.Logf("Skipping %s query from %s because empty: \"%s\"", c.Dialect.Name(), fileName, statement)
+				t.Logf("Skipping %s query from %s because empty: \"%s\"", c.Dialect.Name(), fi.Name(), statement)
 				continue
 			}
 			if _, err := tx.Exec(statement); err != nil {
@@ -149,17 +152,7 @@ func NewTestMigrator(t *testing.T, c *pop.Connection, migrationPath, testDataPat
 		return nil
 	}
 
-	if fi, err := os.Stat(migrationPath); err != nil || !fi.IsDir() {
-		t.Fatalf("could not find directory %s", migrationPath)
-		return nil
-	}
-
-	if fi, err := os.Stat(testDataPath); err != nil || !fi.IsDir() {
-		t.Fatalf("could not find directory %s", testDataPath)
-		return nil
-	}
-
-	require.NoError(t, filepath.Walk(migrationPath, func(p string, info os.FileInfo, err error) error {
+	require.NoError(t, fs.WalkDir(migrations, ".", func(p string, info fs.DirEntry, err error) error {
 		if !info.IsDir() {
 			match, err := pop.ParseMigrationFilename(info.Name())
 			if err != nil {

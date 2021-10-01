@@ -489,9 +489,6 @@ func (m *Migrator) Status(ctx context.Context) (MigrationStatuses, error) {
 // DumpMigrationSchema will generate a file of the current database schema
 // based on the value of Migrator.SchemaPath
 func (m *Migrator) DumpMigrationSchema(ctx context.Context) error {
-	if m.SchemaPath == "" {
-		return nil
-	}
 	c := m.Connection.WithContext(ctx)
 	schema := filepath.Join(m.SchemaPath, "schema.sql")
 	f, err := os.Create(schema)
