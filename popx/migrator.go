@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -59,7 +58,6 @@ func NewMigrator(c *pop.Connection, l *logrusx.Logger, tracer *tracing.Tracer, p
 // type into your migrator.
 type Migrator struct {
 	Connection          *pop.Connection
-	SchemaPath          string
 	Migrations          map[string]Migrations
 	l                   *logrusx.Logger
 	PerMigrationTimeout time.Duration
@@ -487,13 +485,9 @@ func (m *Migrator) Status(ctx context.Context) (MigrationStatuses, error) {
 }
 
 // DumpMigrationSchema will generate a file of the current database schema
-// based on the value of Migrator.SchemaPath
 func (m *Migrator) DumpMigrationSchema(ctx context.Context) error {
-	if m.SchemaPath == "" {
-		return nil
-	}
 	c := m.Connection.WithContext(ctx)
-	schema := filepath.Join(m.SchemaPath, "schema.sql")
+	schema := "schema.sql"
 	f, err := os.Create(schema)
 	if err != nil {
 		return err
