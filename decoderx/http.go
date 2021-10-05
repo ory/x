@@ -409,6 +409,10 @@ func (t *HTTP) decodeURLValues(values url.Values, paths []jsonschemax.Path, o *h
 	for key := range values {
 		for _, path := range paths {
 			if key == path.Name {
+				if len(values[key]) == 0 && !path.Required {
+					continue
+				}
+
 				var err error
 				switch path.Type.(type) {
 				case []string:
@@ -455,6 +459,13 @@ func (t *HTTP) decodeURLValues(values url.Values, paths []jsonschemax.Path, o *h
 					raw, err = sjson.SetBytes(raw, path.Name, values[key])
 				case bool:
 					v := values[key][len(values[key])-1]
+					if len(v) == 0 {
+						if !path.Required {
+							continue
+						}
+						v = "false"
+					}
+
 					if f, err := strconv.ParseBool(v); err != nil {
 						switch o.handleParseErrors {
 						case ParseErrorIgnoreConversionErrors:
@@ -472,6 +483,13 @@ func (t *HTTP) decodeURLValues(values url.Values, paths []jsonschemax.Path, o *h
 					}
 				case float64:
 					v := values.Get(key)
+					if len(v) == 0 {
+						if !path.Required {
+							continue
+						}
+						v = "0.0"
+					}
+
 					if f, err := strconv.ParseFloat(v, 64); err != nil {
 						switch o.handleParseErrors {
 						case ParseErrorIgnoreConversionErrors:
@@ -488,9 +506,19 @@ func (t *HTTP) decodeURLValues(values url.Values, paths []jsonschemax.Path, o *h
 						raw, err = sjson.SetBytes(raw, path.Name, f)
 					}
 				case string:
-					raw, err = sjson.SetBytes(raw, path.Name, values.Get(key))
+					v := values.Get(key)
+					if len(v) == 0 && !path.Required {
+						continue
+					}
+
+					raw, err = sjson.SetBytes(raw, path.Name, v)
 				case map[string]interface{}:
-					raw, err = sjson.SetBytes(raw, path.Name, values.Get(key))
+					v := values.Get(key)
+					if len(v) == 0 && !path.Required {
+						continue
+					}
+
+					raw, err = sjson.SetBytes(raw, path.Name, v)
 				case []map[string]interface{}:
 					raw, err = sjson.SetBytes(raw, path.Name, values[key])
 				}
