@@ -11,6 +11,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/ory/x/assertx"
+
 	"github.com/tidwall/gjson"
 
 	"github.com/pkg/errors"
@@ -189,6 +191,40 @@ func TestHTTPFormDecoder(t *testing.T) {
 	"newsletter": true,
 	"consent": true,
 	"ratio": 0.9
+}`,
+		},
+		{
+			d: "should pass form request with payload in query and type assert data",
+			request: newRequest(t, "POST", "/?age=29", bytes.NewBufferString(url.Values{
+				"name.first":  {""},
+				"name.last":   {""},
+				"name2.first": {""},
+				"name2.last":  {""},
+				"ratio":       {""},
+				"ratio2":      {""},
+				"age":         {""},
+				"age2":        {""},
+				"consent":     {""},
+				"consent2":    {""},
+				// newsletter represents a special case for checkbox input with true/false and raw HTML.
+				"newsletter":  {""},
+				"newsletter2": {""},
+			}.Encode()), httpContentTypeURLEncodedForm),
+			options: []HTTPDecoderOption{
+				HTTPDecoderUseQueryAndBody(),
+				HTTPJSONSchemaCompiler("stub/required-defaults.json", nil),
+			},
+			expected: `{
+  "newsletter2": false,
+  "consent2": false,
+  "ratio2": 0,
+  "age2": 0,
+  "name2": {
+	"first": ""
+  },
+  "name": {
+	"first": ""
+  }
 }`,
 		},
 		{
@@ -374,7 +410,7 @@ func TestHTTPFormDecoder(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			assert.JSONEq(t, tc.expected, string(destination))
+			assertx.EqualAsJSON(t, json.RawMessage(tc.expected), destination)
 		})
 	}
 

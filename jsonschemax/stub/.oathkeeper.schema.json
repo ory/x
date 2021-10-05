@@ -226,7 +226,9 @@
       "type": "object",
       "title": "JWT Authenticator Configuration",
       "description": "This section is optional when the authenticator is disabled.",
-      "required": ["jwks_urls"],
+      "required": [
+        "jwks_urls"
+      ],
       "properties": {
         "required_scope": {
           "type": "array",
@@ -357,11 +359,14 @@
           "description": "Enable pre-authorization in cases where the OAuth 2.0 Token Introspection endpoint is protected by OAuth 2.0 Bearer Tokens that can be retrieved using the OAuth 2.0 Client Credentials grant.",
           "type": "object",
           "additionalProperties": false,
+          "required": [
+            "client_id",
+            "client_secret",
+            "token_url"
+          ],
           "properties": {
             "enabled": {
-              "title": "Enabled",
-              "type": "boolean",
-              "default": false
+              "const": true
             },
             "client_id": {
               "type": "string",
@@ -392,57 +397,7 @@
                 ]
               ]
             }
-          },
-          "oneOf": [
-            {
-              "properties": {
-                "enabled": {
-                  "const": false
-                }
-              }
-            },
-            {
-              "required": [
-                "client_id",
-                "client_secret",
-                "token_url"
-              ],
-              "properties": {
-                "enabled": {
-                  "const": true
-                },
-                "client_id": {
-                  "type": "string",
-                  "title": "OAuth 2.0 Client ID",
-                  "description": "The OAuth 2.0 Client ID to be used for the OAuth 2.0 Client Credentials Grant.\n\n>If pre-authorization is enabled, this value is required."
-                },
-                "client_secret": {
-                  "type": "string",
-                  "title": "OAuth 2.0 Client Secret",
-                  "description": "The OAuth 2.0 Client Secret to be used for the OAuth 2.0 Client Credentials Grant.\n\n>If pre-authorization is enabled, this value is required."
-                },
-                "token_url": {
-                  "type": "string",
-                  "format": "uri",
-                  "title": "OAuth 2.0 Token URL",
-                  "description": "The OAuth 2.0 Token Endpoint where the OAuth 2.0 Client Credentials Grant will be performed.\n\n>If pre-authorization is enabled, this value is required."
-                },
-                "scope": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  },
-                  "title": "OAuth 2.0 Scope",
-                  "description": "The OAuth 2.0 Scope to be requested during the OAuth 2.0 Client Credentials Grant.",
-                  "examples": [
-                    [
-                      "[\"foo\", \"bar\"]"
-                    ]
-                  ]
-                }
-              }
-            }
-          ]
+          }
         },
         "required_scope": {
           "title": "Required Scope",
@@ -505,7 +460,7 @@
       ],
       "additionalProperties": false
     },
-    "configAuthorizersKetoEngineAcpOry":  {
+    "configAuthorizersKetoEngineAcpOry": {
       "type": "object",
       "title": "ORY Keto Access Control Policy Authorizer Configuration",
       "description": "This section is optional when the authorizer is disabled.",
@@ -541,7 +496,7 @@
       ],
       "additionalProperties": false
     },
-    "configMutatorsCookie":  {
+    "configMutatorsCookie": {
       "type": "object",
       "title": "Cookie Mutator Configuration",
       "description": "This section is optional when the mutator is disabled.",
@@ -558,7 +513,7 @@
       },
       "additionalProperties": false
     },
-    "configMutatorsHeader":   {
+    "configMutatorsHeader": {
       "type": "object",
       "title": "Header Mutator Configuration",
       "description": "This section is optional when the mutator is disabled.",
@@ -575,7 +530,7 @@
       },
       "additionalProperties": false
     },
-    "configMutatorsHydrator":  {
+    "configMutatorsHydrator": {
       "type": "object",
       "title": "Hydrator Mutator Configuration",
       "description": "This section is optional when the mutator is disabled.",
@@ -637,7 +592,7 @@
       ],
       "additionalProperties": false
     },
-    "configMutatorsIdToken":  {
+    "configMutatorsIdToken": {
       "type": "object",
       "title": "ID Token Mutator Configuration",
       "description": "This section is optional when the mutator is disabled.",
