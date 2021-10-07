@@ -51,14 +51,33 @@ type (
 		l          *logrusx.Logger
 		hostMapper func(host string) *HostConfig
 		onError    func(*http.Request, error)
+		writer     *herodot.JSONWriter
 	}
-
 	HostConfig struct {
 		CookieHost   string
 		UpstreamHost string
 		OriginalHost string
 	}
+	Options func(*options)
 )
+
+func WithLogger(l *logrusx.Logger) Options {
+	return func(o *options) {
+		o.l = l
+	}
+}
+
+func WithHostMapper(hm func(host string) *HostConfig) Options {
+	return func(o *options) {
+		o.hostMapper = hm
+	}
+}
+
+func WithOnError(onErr func(*http.Request, error)) Options {
+	return func(o *options) {
+		o.onError = onErr
+	}
+}
 
 func director(o *options) func(*http.Request) {
 	return func(r *http.Request) {
@@ -66,14 +85,10 @@ func director(o *options) func(*http.Request) {
 		enc := url.Values{ // TODO maybe replace with JSON
 			"cookie_host": []string{},
 		}.Encode()
-		if err != nil {
-			o.onError(r, err)
-			return
-		}
 
 		r.Header.Set(originalHostHeader, r.URL.Host)
 
-		r.URL.Host =
+		r.URL.Host = c.UpstreamHost
 	}
 }
 
@@ -86,14 +101,19 @@ func modifyResponse(o *options) func(*http.Response) error {
 	}
 }
 
-func New() error {
+func New(opts ...Options) error {
 	o := &options{}
+
+	for _, op := range opts {
+		op(o)
+	}
 
 	handler := &httputil.ReverseProxy{
 		Director:       director(o),
 		ModifyResponse: modifyResponse(o),
 	}
-	writer := herodot.NewJSONWriter(l)
+
+	o.writer = herodot.NewJSONWriter(o.l)
 
 	mw := negroni.New()
 	// mw.Use(reqlog.NewMiddlewareFromLogger(l, "ory"))
@@ -114,7 +134,7 @@ func New() error {
 		n(w, r)
 	})
 
-	mw.UseFunc(checkOry(conf, writer, l, key, signer, endpoint)) // This must be the last method before the handler
+	mw.UseFunc(checkOry(conf, o.writer, l, key, signer, endpoint)) // This must be the last method before the handler
 	mw.UseHandler(handler)
 
 	cleanup := func() error {
