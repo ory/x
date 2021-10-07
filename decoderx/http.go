@@ -409,10 +409,6 @@ func (t *HTTP) decodeURLValues(values url.Values, paths []jsonschemax.Path, o *h
 	for key := range values {
 		for _, path := range paths {
 			if key == path.Name {
-				if len(values[key]) == 0 && !path.Required {
-					continue
-				}
-
 				var err error
 				switch path.Type.(type) {
 				case []string:
@@ -507,7 +503,7 @@ func (t *HTTP) decodeURLValues(values url.Values, paths []jsonschemax.Path, o *h
 					}
 				case string:
 					v := values.Get(key)
-					if len(v) == 0 && !path.Required {
+					if len(v) == 0 {
 						continue
 					}
 

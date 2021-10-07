@@ -194,7 +194,7 @@ func TestHTTPFormDecoder(t *testing.T) {
 }`,
 		},
 		{
-			d: "should pass form request with payload in query and type assert data",
+			d: "should fail form request if empty values are sent because of required fields",
 			request: newRequest(t, "POST", "/?age=29", bytes.NewBufferString(url.Values{
 				"name.first":  {""},
 				"name.last":   {""},
@@ -214,18 +214,7 @@ func TestHTTPFormDecoder(t *testing.T) {
 				HTTPDecoderUseQueryAndBody(),
 				HTTPJSONSchemaCompiler("stub/required-defaults.json", nil),
 			},
-			expected: `{
-  "newsletter2": false,
-  "consent2": false,
-  "ratio2": 0,
-  "age2": 0,
-  "name2": {
-	"first": ""
-  },
-  "name": {
-	"first": ""
-  }
-}`,
+			expectedError: `I[#/name2] S[#/properties/name2/required] missing properties: "first"`,
 		},
 		{
 			d:             "should fail json request formatted as form if payload is invalid",
