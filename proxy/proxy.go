@@ -88,13 +88,53 @@ func (req *Request) BodyRewrite(o *options) error {
 	if req.ContentLength == 0 {
 		return nil
 	}
+
+	c := o.hostMapper(req.URL.Host)
+
+	body, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			return err
+		}
+		return nil
+	}
+
+	// Modify the Logout URL
+	if lo := gjson.GetBytes(body, "logout_url"); lo.Exists() {
+		p, err := url.ParseRequestURI(lo.String())
+		if err != nil {
+			return err
+		}
+		p.Host = c.UpstreamHost
+		body, err = sjson.SetBytes(body, "logout_url", p.String())
+		if err != nil {
+			return err
+		}
+	}
+
+	// Modify flow URLs
+	if lo := gjson.GetBytes(body, "ui.action"); lo.Exists() {
+		p, err := url.ParseRequestURI(lo.String())
+		if err != nil {
+			return err
+		}
+		p.Host = c.UpstreamHost
+		body, err = sjson.SetBytes(body, "ui.action", p.String())
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
 func (res *Response) HeaderRewrite(o *options) error {
 	host := res.Header.Get(originalHostHeader)
 	res.Header.Del(originalHostHeader)
-	redir, _ := res.ToHttpResponse().Location()
+	redir, err := res.ToHttpResponse().Location()
+	if err != nil {
+		return err
+	}
 	if redir != nil {
 		redir.Host = host
 		res.Header.Set("Location", redir.String())
@@ -107,6 +147,13 @@ func (res *Response) BodyRewrite(o *options) error {
 	if res.ContentLength == 0 {
 		return nil
 	}
+
+	redir, err := res.ToHttpResponse().Location()
+	if err != nil {
+		return err
+	}
+
+	c := o.hostMapper(redir.Host)
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
@@ -130,12 +177,7 @@ func (res *Response) BodyRewrite(o *options) error {
 		}
 
 		body = decoded.Bytes()
-	}
 
-	res.Body = ioutil.NopCloser(bytes.NewReader(body))
-
-	switch res.Header.Get("Content-Encoding") {
-	case "gzip":
 		var buf bytes.Buffer
 		writer := gzip.NewWriter(&buf)
 		if _, err := writer.Write(body); err != nil {
@@ -146,11 +188,37 @@ func (res *Response) BodyRewrite(o *options) error {
 		}
 
 		res.Body = ioutil.NopCloser(bytes.NewReader(buf.Bytes()))
-		return nil
 	default:
 		res.Body = ioutil.NopCloser(bytes.NewReader(body))
-		return nil
 	}
+
+	// Modify the Logout URL
+	if lo := gjson.GetBytes(body, "logout_url"); lo.Exists() {
+		p, err := url.ParseRequestURI(lo.String())
+		if err != nil {
+			return err
+		}
+		p.Host = c.OriginalHost
+		body, err = sjson.SetBytes(body, "logout_url", p.String())
+		if err != nil {
+			return err
+		}
+	}
+
+	// Modify flow URLs
+	if lo := gjson.GetBytes(body, "ui.action"); lo.Exists() {
+		p, err := url.ParseRequestURI(lo.String())
+		if err != nil {
+			return err
+		}
+		p.Host = c.OriginalHost
+		body, err = sjson.SetBytes(body, "ui.action", p.String())
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (res *Response) ToHttpResponse() *http.Response {
@@ -178,6 +246,10 @@ func modifyResponse(o *options) func(*http.Response) error {
 	return func(r *http.Response) error {
 		res := Response(*r)
 		err := res.HeaderRewrite(o)
+		if err != nil {
+			o.onError(r, err)
+		}
+		err = res.BodyRewrite(o)
 		if err != nil {
 			o.onError(r, err)
 		}
@@ -230,34 +302,6 @@ func checkOry(conf *config, writer herodot.Writer, l *logrusx.Logger, keys *jose
 			return err
 		} else if body == nil {
 			return nil
-		}
-
-		// Modify the Logout URL
-		if lo := gjson.GetBytes(body, "logout_url"); lo.Exists() {
-			p, err := url.ParseRequestURI(lo.String())
-			if err != nil {
-				return err
-			}
-			p.Host = conf.hostPort
-			p.Path = "/.ory" + strings.TrimPrefix(p.Path, "/.ory")
-			body, err = sjson.SetBytes(body, "logout_url", p.String())
-			if err != nil {
-				return err
-			}
-		}
-
-		// Modify flow URLs
-		if lo := gjson.GetBytes(body, "ui.action"); lo.Exists() {
-			p, err := url.ParseRequestURI(lo.String())
-			if err != nil {
-				return err
-			}
-			p.Host = conf.hostPort
-			p.Path = "/.ory" + strings.TrimPrefix(p.Path, "/.ory")
-			body, err = sjson.SetBytes(body, "ui.action", p.String())
-			if err != nil {
-				return err
-			}
 		}
 
 		return writeBody(res, body)
