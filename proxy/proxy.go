@@ -7,32 +7,44 @@ import (
 	"github.com/ory/herodot"
 	"github.com/ory/x/logrusx"
 	"github.com/urfave/negroni"
+	"net"
 	"net/http"
 	"net/http/httputil"
 )
 
 type (
-	RespMiddleware func(resp *http.Response, body []byte) ([]byte, error)
-	ReqMiddleware func(req *http.Request, body []byte) ([]byte, error)
-	options struct {
-		l               *logrusx.Logger
-		hostMapper      func(string) *HostConfig
-		onError         func(*http.Response, error) error
-		respMiddlewares []RespMiddleware
-		reqMiddlewares  []ReqMiddleware
-		writer          *herodot.JSONWriter
-		serverHost      string
-		serverPort      int
-		middleware      *negroni.Handler
-		server          *http.Server
+	RespMiddleware    func(resp *http.Response, body []byte) ([]byte, error)
+	ReqMiddleware     func(req *http.Request, body []byte) ([]byte, error)
+	NegroniMiddleware func(w http.ResponseWriter, r *http.Request, n http.HandlerFunc)
+	options           struct {
+		l                 *logrusx.Logger
+		hostMapper        func(string) *HostConfig
+		mutateReqPath     func(string) string
+		mutateResPath     func(string) string
+		onError           func(*http.Response, error) error
+		respMiddlewares   []RespMiddleware
+		reqMiddlewares    []ReqMiddleware
+		negroniMiddleware []NegroniMiddleware
+		writer            *herodot.JSONWriter
+		serverHost        string
+		serverPort        int
+		negroni           *negroni.Negroni
+		server            *http.Server
 	}
 	Proxy struct {
 		*options
 	}
 	HostConfig struct {
-		CookieHost   string
-		UpstreamHost string
+		// CookieHost the host under which the cookie should be set
+		// e.g. example.com
+		CookieHost string
+		// OriginalHost the original hostname the request is coming from
+		// e.g. auth.example.com
 		OriginalHost string
+		// UpstreamHost the target upstream host the proxy will pass the connection to
+		UpstreamHost string
+		// ShadowHost the host the proxy is imitating
+		ShadowHost string
 	}
 	Options func(*options)
 )
@@ -88,6 +100,18 @@ func WithHostMapper(hm func(host string) *HostConfig) Options {
 	}
 }
 
+func WithMutateReqPath(mp func(path string) string) Options {
+	return func(o *options) {
+		o.mutateReqPath = mp
+	}
+}
+
+func WithMutateResPath(mp func(path string) string) Options {
+	return func(o *options) {
+		o.mutateResPath = mp
+	}
+}
+
 func WithOnError(onErr func(*http.Response, error) error) Options {
 	return func(o *options) {
 		o.onError = onErr
@@ -106,28 +130,46 @@ func WithRespMiddleware(middlewares ...RespMiddleware) Options {
 	}
 }
 
+func WithNegroniMiddleware(nm ...NegroniMiddleware) Options {
+	return func(o *options) {
+		o.negroniMiddleware = append(o.negroniMiddleware, nm...)
+	}
+}
+
+func WithNegroni(n *negroni.Negroni) Options {
+	return func(o *options) {
+		o.negroni = n
+	}
+}
+
 // New creates a new Proxy
 // A Proxy sets up a middleware with custom request and response modification handlers
 func New(opts ...Options) *Proxy {
-	o := &options{}
-
-	handler := &httputil.ReverseProxy{
-		Director:       director(o),
-		ModifyResponse: modifyResponse(o),
+	o := &options{
+		serverHost: "127.0.0.1",
+		negroni:    negroni.New(),
 	}
 
 	for _, op := range opts {
 		op(o)
 	}
 
+	handler := &httputil.ReverseProxy{
+		Director:       director(o),
+		ModifyResponse: modifyResponse(o),
+	}
+
 	o.writer = herodot.NewJSONWriter(o.l)
 
-	mw := negroni.New()
-	mw.UseHandler(handler)
+	for _, nm := range o.negroniMiddleware {
+		o.negroni.UseFunc(nm)
+	}
+
+	o.negroni.UseHandler(handler)
 
 	o.server = graceful.WithDefaults(&http.Server{
 		Addr:    fmt.Sprintf("%s:%d", o.serverHost, o.serverPort),
-		Handler: mw,
+		Handler: o.negroni,
 	})
 
 	return &Proxy{
@@ -141,7 +183,17 @@ func (p *Proxy) GetServer() *http.Server {
 
 func (p *Proxy) StartServer() {
 	if err := graceful.Graceful(func() error {
-		return p.server.ListenAndServe()
+		addr := p.server.Addr
+		if addr == "" {
+			addr = ":http"
+		}
+		l, err := net.Listen("tcp", addr)
+		if err != nil {
+			return err
+		}
+		p.serverPort = l.Addr().(*net.TCPAddr).Port
+		p.server.Addr = fmt.Sprintf("%s:%d", p.serverHost, p.serverPort)
+		return p.server.Serve(l)
 	}, func(ctx context.Context) error {
 		if err := p.server.Shutdown(ctx); err != nil {
 			return err

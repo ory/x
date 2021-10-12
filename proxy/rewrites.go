@@ -10,14 +10,54 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 const originalHostHeader = "Ory-Internal-Original-Host"
 
+func urlHostName(hostUrl string) (string, error) {
+	u, err := url.Parse(hostUrl)
+	if err != nil {
+		return "", err
+	}
+	return u.Hostname(), nil
+}
+
 func HeaderRequestRewrite(req *http.Request, opt *options) error {
-	c := opt.hostMapper(req.URL.Host)
-	req.Header.Set(originalHostHeader, req.URL.Host)
-	req.URL.Host = c.UpstreamHost
+	c := opt.hostMapper(req.Host)
+	req.Header.Set(originalHostHeader, req.Host)
+
+	shadow, err := url.Parse(c.ShadowHost)
+	if err != nil {
+		return err
+	}
+
+	req.Host = shadow.Host
+
+	upstream, err := url.Parse(c.UpstreamHost)
+	if err != nil {
+		return err
+	}
+
+	req.URL.Scheme = upstream.Scheme
+	req.URL.Host = upstream.Host
+
+	if opt.mutateReqPath != nil {
+		req.URL.Path = opt.mutateReqPath(req.URL.Path)
+	}
+
+	targetQuery := upstream.RawQuery
+
+	if targetQuery == "" || req.URL.RawQuery == "" {
+		req.URL.RawQuery = targetQuery + req.URL.RawQuery
+	} else {
+		req.URL.RawQuery = targetQuery + "&" + req.URL.RawQuery
+	}
+
+	if _, ok := req.Header["User-Agent"]; !ok {
+		// explicitly disable User-Agent so it's not set to default value
+		req.Header.Set("User-Agent", "")
+	}
 
 	// TODO maybe replace with JSON
 	/*enc := url.Values{
@@ -72,15 +112,29 @@ func BodyRequestRewrite(req *http.Request, opt *options) error {
 }
 
 func HeaderResponseRewrite(resp *http.Response, opt *options) error {
-	host := resp.Header.Get(originalHostHeader)
+	upstreamHost := resp.Request.Host
+	originalHost := resp.Header.Get(originalHostHeader)
 	resp.Header.Del(originalHostHeader)
-	redir, err := resp.Location()
-	if err != nil {
-		return err
-	}
+
+	// ignore the location error when not present
+	redir, _ := resp.Location()
 	if redir != nil {
-		redir.Host = host
+		redir.Host = originalHost
+		if opt.mutateResPath != nil {
+			redir.Path = opt.mutateResPath(redir.Path)
+		}
 		resp.Header.Set("Location", redir.String())
+	}
+
+	cookies := resp.Cookies()
+	resp.Header.Del("Set-Cookie")
+	for _, c := range cookies {
+		// only alter cookies that were set by the upstream host
+		if !strings.EqualFold(c.Domain, upstreamHost) {
+			continue
+		}
+		c.Domain = originalHost
+		resp.Header.Add("Set-Cookie", c.String())
 	}
 
 	return nil
