@@ -3,7 +3,9 @@ package proxy
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"errors"
+	"fmt"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 	"io"
@@ -13,30 +15,25 @@ import (
 	"strings"
 )
 
-const originalHostHeader = "Ory-Internal-Original-Host"
+const originalHostKey = "Ory-Internal-Host-Key"
 
-func urlHostName(hostUrl string) (string, error) {
-	u, err := url.Parse(hostUrl)
+func HeaderRequestRewrite(req *http.Request, opt *options) (*http.Request, error) {
+	c, err := opt.hostMapper(req.Host)
 	if err != nil {
-		return "", err
+		return req, err
 	}
-	return u.Hostname(), nil
-}
 
-func HeaderRequestRewrite(req *http.Request, opt *options) error {
-	c := opt.hostMapper(req.Host)
-	req.Header.Set(originalHostHeader, req.Host)
+	ctx := context.WithValue(req.Context(), originalHostKey, req.Host)
+	req = req.WithContext(ctx)
 
 	shadow, err := url.Parse(c.ShadowHost)
 	if err != nil {
-		return err
+		return req, err
 	}
-
-	req.Host = shadow.Host
 
 	upstream, err := url.Parse(c.UpstreamHost)
 	if err != nil {
-		return err
+		return req, err
 	}
 
 	req.URL.Scheme = upstream.Scheme
@@ -59,67 +56,75 @@ func HeaderRequestRewrite(req *http.Request, opt *options) error {
 		req.Header.Set("User-Agent", "")
 	}
 
-	// TODO maybe replace with JSON
-	/*enc := url.Values{
-		"cookie_host": []string{},
-	}.Encode()*/
-
-	return nil
-}
-
-func BodyRequestRewrite(req *http.Request, opt *options) error {
-	if req.ContentLength == 0 {
-		return nil
+	cookies := req.Cookies()
+	req.Header.Del("Set-Cookie")
+	for _, co := range cookies {
+		// only alter cookies that were specifically configured to be set
+		if !strings.EqualFold(c.CookieHost, co.Domain) {
+			continue
+		}
+		co.Domain = shadow.Host
+		req.Header.Add("Set-Cookie", co.String())
 	}
 
-	c := opt.hostMapper(req.URL.Host)
+	return req, nil
+}
+
+func BodyRequestRewrite(req *http.Request, opt *options) (*http.Request, []byte, error) {
+	if req.ContentLength == 0 {
+		return req, nil, nil
+	}
+
+	c, err := opt.hostMapper(req.URL.Host)
+
+	if err != nil {
+		return req, nil, err
+	}
 
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		if errors.Is(err, io.EOF) {
-			return err
+			return req, nil, err
 		}
-		return nil
+		return req, nil, err
 	}
 
-	// Modify the Logout URL
-	if lo := gjson.GetBytes(body, "logout_url"); lo.Exists() {
-		p, err := url.ParseRequestURI(lo.String())
-		if err != nil {
-			return err
-		}
-		p.Host = c.UpstreamHost
-		body, err = sjson.SetBytes(body, "logout_url", p.String())
-		if err != nil {
-			return err
-		}
+	originalHost, err := url.Parse(c.OriginalHost)
+	if err != nil {
+		return req, nil, err
 	}
 
-	// Modify flow URLs
-	if lo := gjson.GetBytes(body, "ui.action"); lo.Exists() {
-		p, err := url.ParseRequestURI(lo.String())
-		if err != nil {
-			return err
-		}
-		p.Host = c.UpstreamHost
-		body, err = sjson.SetBytes(body, "ui.action", p.String())
-		if err != nil {
-			return err
-		}
+	shadowHost, err := url.Parse(c.ShadowHost)
+	if err != nil {
+		return req, nil, err
 	}
 
-	return nil
+	body, err = rewriteJson(body, originalHost.Host, shadowHost.Host)
+	return req, body, err
 }
 
 func HeaderResponseRewrite(resp *http.Response, opt *options) error {
-	upstreamHost := resp.Request.Host
-	originalHost := resp.Header.Get(originalHostHeader)
-	resp.Header.Del(originalHostHeader)
+	var originalHost string
+
+	if oh := resp.Request.Context().Value(originalHostKey); oh != nil {
+		originalHost = oh.(string)
+	}
+
+	c, err := opt.hostMapper(originalHost)
+
+	if err != nil {
+		return err
+	}
+
+	shadow, err := url.Parse(c.ShadowHost)
+	if err != nil {
+		return err
+	}
 
 	// ignore the location error when not present
 	redir, _ := resp.Location()
 	if redir != nil {
-		redir.Host = originalHost
+		redir.Host = opt.server.Addr
 		if opt.mutateResPath != nil {
 			redir.Path = opt.mutateResPath(redir.Path)
 		}
@@ -128,13 +133,13 @@ func HeaderResponseRewrite(resp *http.Response, opt *options) error {
 
 	cookies := resp.Cookies()
 	resp.Header.Del("Set-Cookie")
-	for _, c := range cookies {
-		// only alter cookies that were set by the upstream host
-		if !strings.EqualFold(c.Domain, upstreamHost) {
+	for _, co := range cookies {
+		// only alter cookies that were set by the upstream host for our shadow host (the proxy's domain)
+		if !strings.EqualFold(co.Domain, shadow.Host) {
 			continue
 		}
-		c.Domain = originalHost
-		resp.Header.Add("Set-Cookie", c.String())
+		co.Domain = c.CookieHost
+		resp.Header.Add("Set-Cookie", co.String())
 	}
 
 	return nil
@@ -145,12 +150,16 @@ func BodyResponseRewrite(resp *http.Response, opt *options) ([]byte, error) {
 		return nil, nil
 	}
 
-	redir, err := resp.Location()
+	var originalHost string
+
+	if oh := resp.Request.Context().Value(originalHostKey); oh != nil {
+		originalHost = oh.(string)
+	}
+
+	c, err := opt.hostMapper(originalHost)
 	if err != nil {
 		return nil, err
 	}
-
-	c := opt.hostMapper(redir.Host)
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -189,29 +198,33 @@ func BodyResponseRewrite(resp *http.Response, opt *options) ([]byte, error) {
 		resp.Body = ioutil.NopCloser(bytes.NewReader(body))
 	}
 
-	// Modify the Logout URL
-	if lo := gjson.GetBytes(body, "logout_url"); lo.Exists() {
-		p, err := url.ParseRequestURI(lo.String())
-		if err != nil {
-			return nil, err
-		}
-		p.Host = c.OriginalHost
-		body, err = sjson.SetBytes(body, "logout_url", p.String())
-		if err != nil {
-			return nil, err
-		}
+	originalHostP, err := url.Parse(c.OriginalHost)
+	if err != nil {
+		return nil, err
 	}
 
-	// Modify flow URLs
-	if lo := gjson.GetBytes(body, "ui.action"); lo.Exists() {
-		p, err := url.ParseRequestURI(lo.String())
-		if err != nil {
-			return nil, err
+	shadowHost, err := url.Parse(c.ShadowHost)
+	if err != nil {
+		return nil, err
+	}
+
+	return rewriteJson(body, shadowHost.Host, originalHostP.Host)
+}
+
+func rewriteJson(body []byte, searchHost, targetHost string) ([]byte, error) {
+	gjson.AddModifier("domain", func(json, arg string) string {
+		// if the json contains the argument host
+		// replace it with the targethost
+		if strings.Contains(json, arg) {
+			return strings.Replace(json, arg, targetHost, -1)
 		}
-		p.Host = c.OriginalHost
-		body, err = sjson.SetBytes(body, "ui.action", p.String())
+		return json
+	})
+
+	if s := gjson.GetBytes(body, fmt.Sprintf("*.@domain:%s", searchHost)); s.Exists() {
+		body, err := sjson.SetBytes(body, fmt.Sprintf("*.@domain:%s", searchHost), s.String())
 		if err != nil {
-			return nil, err
+			return body, err
 		}
 	}
 

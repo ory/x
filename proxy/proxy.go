@@ -18,7 +18,7 @@ type (
 	NegroniMiddleware func(w http.ResponseWriter, r *http.Request, n http.HandlerFunc)
 	options           struct {
 		l                 *logrusx.Logger
-		hostMapper        func(string) *HostConfig
+		hostMapper        func(string) (*HostConfig, error)
 		mutateReqPath     func(string) string
 		mutateResPath     func(string) string
 		onError           func(*http.Response, error) error
@@ -52,15 +52,22 @@ type (
 // director is a custom internal function for altering a http.Request
 func director(o *options) func(*http.Request) {
 	return func(r *http.Request) {
-		err := HeaderRequestRewrite(r, o)
+		r, err := HeaderRequestRewrite(r, o)
 		if err != nil {
 			o.onError(r.Response, err)
 			return
 		}
-		err = BodyRequestRewrite(r, o)
+		r, body, err := BodyRequestRewrite(r, o)
 		if err != nil {
 			o.onError(r.Response, err)
 			return
+		}
+
+		for _, m := range o.reqMiddlewares {
+			if body, err = m(r, body); err != nil {
+				o.onError(r.Response, err)
+				return
+			}
 		}
 	}
 }
@@ -94,7 +101,7 @@ func WithLogger(l *logrusx.Logger) Options {
 	}
 }
 
-func WithHostMapper(hm func(host string) *HostConfig) Options {
+func WithHostMapper(hm func(host string) (*HostConfig, error)) Options {
 	return func(o *options) {
 		o.hostMapper = hm
 	}

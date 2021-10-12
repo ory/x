@@ -3,8 +3,10 @@ package proxy
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/julienschmidt/httprouter"
 	"github.com/ory/herodot"
+	"github.com/ory/x/httpx"
 	"github.com/ory/x/logrusx"
 	"github.com/stretchr/testify/assert"
 	"net"
@@ -13,6 +15,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 )
 
 type (
@@ -49,7 +52,7 @@ func createUpstreamService(hw herodot.Writer, routerEndpoints []proxyTestCases) 
 		}
 	}
 
-	// register an health endpoint so that we can check if the service is alive or not
+	// register a health endpoint so that we can check if the service is alive or not
 	router.Handle("GET", "/health", func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 		writer.WriteHeader(http.StatusOK)
 	})
@@ -60,6 +63,7 @@ func createUpstreamService(hw herodot.Writer, routerEndpoints []proxyTestCases) 
 
 	// create a fake upstream upstreamServer
 	upstreamServer := httptest.NewServer(router)
+	time.Sleep(time.Second)
 	return upstreamServer
 }
 
@@ -101,16 +105,24 @@ func TestRewriteDomain(t *testing.T) {
 		},
 	}
 
-	h := herodot.NewJSONWriter(logrusx.New("", ""))
-
 	var testCases []proxyTestCases
 
+	retryableClient := httpx.NewResilientClient(httpx.ResilientClientWithMaxRetry(10), httpx.ResilientClientWithConnectionTimeout(time.Second))
+
 	for k, or := range originalRequestDB {
+		h := herodot.NewJSONWriter(logrusx.New("", ""))
+
 		var originTests []proxyTestCases
 		originTests = append(originTests, duplicateTestCaseToAllMethods(or.host, "/random/path", http.StatusOK)...)
 		originTests = append(originTests, duplicateTestCaseToAllMethods(or.host, "/an/error", http.StatusInternalServerError)...)
 
 		or.upstream = createUpstreamService(h, originTests)
+
+		req, err := retryablehttp.NewRequest("GET", or.upstream.URL + "/health", nil)
+		assert.NoError(t, err)
+		_, err = retryableClient.Do(req)
+		assert.NoError(t, err)
+
 		t.Logf("Running Upstream Server for (%s) on Address (%s)", or.host, or.upstream.URL)
 
 		originalRequestDB[k] = or
@@ -120,13 +132,13 @@ func TestRewriteDomain(t *testing.T) {
 
 	opt := []Options{
 		WithLogger(logrusx.New("", "")),
-		WithHostMapper(func(host string) *HostConfig {
+		WithHostMapper(func(host string) (*HostConfig, error) {
 			return &HostConfig{
 				CookieHost:   originalRequestDB[host].cookieHost,
 				UpstreamHost: originalRequestDB[host].upstream.URL,
 				OriginalHost: originalRequestDB[host].host,
 				ShadowHost:   originalRequestDB[host].shadowHost,
-			}
+			}, nil
 		})}
 
 	// create our proxy service which will forward requests to the upstream server
@@ -140,7 +152,9 @@ func TestRewriteDomain(t *testing.T) {
 		}
 		l, err := net.Listen("tcp", addr)
 		assert.NoError(t, err)
-		proxy.GetServer().Addr = fmt.Sprintf("127.0.0.1:%d", l.Addr().(*net.TCPAddr).Port)
+		proxy.serverPort = l.Addr().(*net.TCPAddr).Port
+		proxy.GetServer().Addr = fmt.Sprintf("127.0.0.1:%d", proxy.serverPort)
+		time.Sleep(time.Second)
 		c <- true
 		proxy.GetServer().Serve(l)
 	}()
@@ -151,12 +165,14 @@ func TestRewriteDomain(t *testing.T) {
 
 	client := http.DefaultClient
 	for _, tc := range testCases {
+		// TODO: need to add body requests
 		req, err := http.NewRequest(tc.method, "http://"+proxy.GetServer().Addr+tc.path, nil)
 		assert.NoError(t, err)
 		u, err := url.Parse(tc.host)
 		assert.NoError(t, err)
 		req.Host = u.Hostname()
 		resp, err := client.Do(req)
+		assert.NoError(t, err)
 		assert.EqualValues(t, tc.status, resp.StatusCode, "expected status code %d however received %d", tc.status, resp.StatusCode)
 	}
 
