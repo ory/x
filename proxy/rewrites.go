@@ -16,13 +16,8 @@ import (
 
 const originalHostKey = "Ory-Internal-Host-Key"
 
-func HeaderRequestRewrite(req *http.Request, opt *options) error {
-	c, err := opt.hostMapper(req.Host)
-	if err != nil {
-		return err
-	}
-
-	shadow, err := url.Parse(c.ShadowHost)
+func HeaderRequestRewrite(req *http.Request, c *HostConfig, opt *options) error {
+	shadow, err := url.Parse(c.ShadowURL)
 	if err != nil {
 		return err
 	}
@@ -34,10 +29,7 @@ func HeaderRequestRewrite(req *http.Request, opt *options) error {
 
 	req.URL.Scheme = upstream.Scheme
 	req.URL.Host = upstream.Host
-
-	if opt.mutateReqPath != nil {
-		req.URL.Path = opt.mutateReqPath(req.URL.Path)
-	}
+	req.URL.Path = opt.mutateReqPath(req.URL.Path)
 
 	targetQuery := upstream.RawQuery
 
@@ -60,21 +52,16 @@ func HeaderRequestRewrite(req *http.Request, opt *options) error {
 			continue
 		}
 		co.Domain = shadow.Host
+		co.Path = opt.mutateReqPath(co.Path)
 		req.Header.Add("Set-Cookie", co.String())
 	}
 
 	return nil
 }
 
-func BodyRequestRewrite(req *http.Request, opt *options) ([]byte, error) {
+func BodyRequestRewrite(req *http.Request, c *HostConfig, opt *options) ([]byte, error) {
 	if req.ContentLength == 0 {
 		return nil, nil
-	}
-
-	c, err := opt.hostMapper(req.URL.Host)
-
-	if err != nil {
-		return nil, err
 	}
 
 	body, err := ioutil.ReadAll(req.Body)
@@ -90,71 +77,50 @@ func BodyRequestRewrite(req *http.Request, opt *options) ([]byte, error) {
 		return nil, err
 	}
 
-	shadowHost, err := url.Parse(c.ShadowHost)
+	shadowHost, err := url.Parse(c.ShadowURL)
 	if err != nil {
 		return nil, err
 	}
 
-	body, err = rewriteJson(body, originalHost.Host, shadowHost.Host)
+	body, err = rewriteJson(opt, body, originalHost.Host, shadowHost.Host)
 	return body, err
 }
 
-func HeaderResponseRewrite(resp *http.Response, opt *options) error {
-	var originalHost string
-
-	if oh := resp.Request.Context().Value(originalHostKey); oh != nil {
-		originalHost = oh.(string)
-	}
-
-	c, err := opt.hostMapper(originalHost)
-
-	if err != nil {
-		return err
-	}
-
-	shadow, err := url.Parse(c.ShadowHost)
+func HeaderResponseRewrite(resp *http.Response, c *HostConfig, opt *options) error {
+	original, err := url.Parse(c.OriginalHost)
 	if err != nil {
 		return err
 	}
 
 	// ignore the location error when not present
-	redir, _ := resp.Location()
-	if redir != nil {
-		redir.Host = opt.server.Addr
-		if opt.mutateResPath != nil {
-			redir.Path = opt.mutateResPath(redir.Path)
-		}
+	redir, err := resp.Location()
+	if err == nil {
+		redir.Scheme = original.Scheme
+		redir.Host = original.Host
+		redir.Path = opt.mutateResPath(redir.Path)
 		resp.Header.Set("Location", redir.String())
+	} else if !errors.Is(err, http.ErrNoLocation) {
+		return err
 	}
 
 	cookies := resp.Cookies()
 	resp.Header.Del("Set-Cookie")
 	for _, co := range cookies {
-		// only alter cookies that were set by the upstream host for our shadow host (the proxy's domain)
-		if !strings.EqualFold(co.Domain, shadow.Host) {
+		// only alter cookies that were set by the upstream host for our original host (the proxy's domain)
+		if !strings.EqualFold(co.Domain, original.Host) {
 			continue
 		}
 		co.Domain = c.CookieHost
 		resp.Header.Add("Set-Cookie", co.String())
+		co.Path = opt.mutateResPath(co.Path)
 	}
 
 	return nil
 }
 
-func BodyResponseRewrite(resp *http.Response, opt *options) ([]byte, error) {
+func BodyResponseRewrite(resp *http.Response, c *HostConfig, opt *options) ([]byte, error) {
 	if resp.ContentLength == 0 {
 		return nil, nil
-	}
-
-	var originalHost string
-
-	if oh := resp.Request.Context().Value(originalHostKey); oh != nil {
-		originalHost = oh.(string)
-	}
-
-	c, err := opt.hostMapper(originalHost)
-	if err != nil {
-		return nil, err
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
@@ -199,15 +165,15 @@ func BodyResponseRewrite(resp *http.Response, opt *options) ([]byte, error) {
 		return nil, err
 	}
 
-	shadowHost, err := url.Parse(c.ShadowHost)
+	shadowHost, err := url.Parse(c.ShadowURL)
 	if err != nil {
 		return nil, err
 	}
 
-	return rewriteJson(body, shadowHost.Host, originalHostP.Host)
+	return rewriteJson(opt, body, shadowHost.Host, originalHostP.Host)
 }
 
-func rewriteJson(body []byte, searchHost, targetHost string) ([]byte, error) {
+func rewriteJson(opt *options, body []byte, searchHost, targetHost string) ([]byte, error) {
 	gjson.AddModifier("domain", func(json, arg string) string {
 		// if the json contains the argument host
 		// replace it with the targethost

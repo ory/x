@@ -1,20 +1,16 @@
 package proxy
 
 import (
-	"context"
-	"fmt"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/julienschmidt/httprouter"
 	"github.com/ory/herodot"
 	"github.com/ory/x/httpx"
 	"github.com/ory/x/logrusx"
 	"github.com/stretchr/testify/assert"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 )
@@ -64,7 +60,6 @@ func createUpstreamService(hw herodot.Writer, routerEndpoints []proxyTestCases) 
 
 	// create a fake upstream upstreamServer
 	upstreamServer := httptest.NewServer(router)
-	time.Sleep(time.Second)
 	return upstreamServer
 }
 
@@ -132,49 +127,26 @@ func TestRewriteDomain(t *testing.T) {
 	}
 
 	opt := []Options{
-		WithLogger(logrusx.New("", "")),
 		WithHostMapper(func(host string) (*HostConfig, error) {
 			return &HostConfig{
 				CookieHost:   originalRequestDB[host].cookieHost,
 				UpstreamHost: originalRequestDB[host].upstream.URL,
 				OriginalHost: originalRequestDB[host].host,
-				ShadowHost:   originalRequestDB[host].shadowHost,
+				ShadowURL:    originalRequestDB[host].shadowHost,
 			}, nil
-		}),
-		WithNegroniMiddleware(func(w http.ResponseWriter, r *http.Request, n http.HandlerFunc) {
-			// Disable HSTS because it is very annoying to use in localhost.
-			w.Header().Set("Strict-Transport-Security", "max-age=0;")
-			n(w, r)
 		})}
 
 	// create our proxy service which will forward requests to the upstream server
 	proxy := New(opt...)
 
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		addr := proxy.GetServer().Addr
-		if addr == "" {
-			addr = ":http"
-		}
-		l, err := net.Listen("tcp", addr)
-		assert.NoError(t, err)
-		proxy.serverPort = l.Addr().(*net.TCPAddr).Port
-		proxy.GetServer().Addr = fmt.Sprintf("127.0.0.1:%d", proxy.serverPort)
-		time.Sleep(time.Second)
-		wg.Done()
-		proxy.GetServer().Serve(l)
-	}()
+	server := httptest.NewServer(proxy)
+	client := server.Client()
 
-	wg.Wait()
-
-	t.Logf("Running Proxy Server on Address: %s", proxy.GetServer().Addr)
-
-	client := http.DefaultClient
+	t.Logf("Running Proxy Server on Address: %s", server.URL)
 
 	for _, tc := range testCases {
 		// TODO: need to add body requests
-		req, err := http.NewRequest(tc.method, "http://"+proxy.GetServer().Addr+tc.path, nil)
+		req, err := http.NewRequest(tc.method, server.URL+tc.path, nil)
 		assert.NoError(t, err)
 		u, err := url.Parse(tc.host)
 		assert.NoError(t, err)
@@ -185,7 +157,7 @@ func TestRewriteDomain(t *testing.T) {
 	}
 
 	t.Cleanup(func() {
-		proxy.GetServer().Shutdown(context.Background())
+		server.Close()
 		for _, or := range originalRequestDB {
 			or.upstream.Close()
 		}
