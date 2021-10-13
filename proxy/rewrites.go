@@ -3,7 +3,6 @@ package proxy
 import (
 	"bytes"
 	"compress/gzip"
-	"context"
 	"errors"
 	"fmt"
 	"github.com/tidwall/gjson"
@@ -17,23 +16,20 @@ import (
 
 const originalHostKey = "Ory-Internal-Host-Key"
 
-func HeaderRequestRewrite(req *http.Request, opt *options) (*http.Request, error) {
+func HeaderRequestRewrite(req *http.Request, opt *options) error {
 	c, err := opt.hostMapper(req.Host)
 	if err != nil {
-		return req, err
+		return err
 	}
-
-	ctx := context.WithValue(req.Context(), originalHostKey, req.Host)
-	req = req.WithContext(ctx)
 
 	shadow, err := url.Parse(c.ShadowHost)
 	if err != nil {
-		return req, err
+		return err
 	}
 
 	upstream, err := url.Parse(c.UpstreamHost)
 	if err != nil {
-		return req, err
+		return err
 	}
 
 	req.URL.Scheme = upstream.Scheme
@@ -67,40 +63,40 @@ func HeaderRequestRewrite(req *http.Request, opt *options) (*http.Request, error
 		req.Header.Add("Set-Cookie", co.String())
 	}
 
-	return req, nil
+	return nil
 }
 
-func BodyRequestRewrite(req *http.Request, opt *options) (*http.Request, []byte, error) {
+func BodyRequestRewrite(req *http.Request, opt *options) ([]byte, error) {
 	if req.ContentLength == 0 {
-		return req, nil, nil
+		return nil, nil
 	}
 
 	c, err := opt.hostMapper(req.URL.Host)
 
 	if err != nil {
-		return req, nil, err
+		return nil, err
 	}
 
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		if errors.Is(err, io.EOF) {
-			return req, nil, err
+			return nil, err
 		}
-		return req, nil, err
+		return nil, err
 	}
 
 	originalHost, err := url.Parse(c.OriginalHost)
 	if err != nil {
-		return req, nil, err
+		return nil, err
 	}
 
 	shadowHost, err := url.Parse(c.ShadowHost)
 	if err != nil {
-		return req, nil, err
+		return nil, err
 	}
 
 	body, err = rewriteJson(body, originalHost.Host, shadowHost.Host)
-	return req, body, err
+	return body, err
 }
 
 func HeaderResponseRewrite(resp *http.Response, opt *options) error {

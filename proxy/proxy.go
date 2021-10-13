@@ -52,12 +52,16 @@ type (
 // director is a custom internal function for altering a http.Request
 func director(o *options) func(*http.Request) {
 	return func(r *http.Request) {
-		r, err := HeaderRequestRewrite(r, o)
+		// TODO: setting the context here removes the reverseproxy outreq.URL values...
+		r = r.WithContext(context.WithValue(r.Context(), originalHostKey, r.Host))
+
+		err := HeaderRequestRewrite(r, o)
 		if err != nil {
 			o.onError(r.Response, err)
 			return
 		}
-		r, body, err := BodyRequestRewrite(r, o)
+
+		body, err := BodyRequestRewrite(r, o)
 		if err != nil {
 			o.onError(r.Response, err)
 			return

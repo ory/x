@@ -14,6 +14,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -118,7 +119,7 @@ func TestRewriteDomain(t *testing.T) {
 
 		or.upstream = createUpstreamService(h, originTests)
 
-		req, err := retryablehttp.NewRequest("GET", or.upstream.URL + "/health", nil)
+		req, err := retryablehttp.NewRequest("GET", or.upstream.URL+"/health", nil)
 		assert.NoError(t, err)
 		_, err = retryableClient.Do(req)
 		assert.NoError(t, err)
@@ -139,12 +140,18 @@ func TestRewriteDomain(t *testing.T) {
 				OriginalHost: originalRequestDB[host].host,
 				ShadowHost:   originalRequestDB[host].shadowHost,
 			}, nil
+		}),
+		WithNegroniMiddleware(func(w http.ResponseWriter, r *http.Request, n http.HandlerFunc) {
+			// Disable HSTS because it is very annoying to use in localhost.
+			w.Header().Set("Strict-Transport-Security", "max-age=0;")
+			n(w, r)
 		})}
 
 	// create our proxy service which will forward requests to the upstream server
 	proxy := New(opt...)
 
-	c := make(chan bool)
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
 	go func() {
 		addr := proxy.GetServer().Addr
 		if addr == "" {
@@ -155,15 +162,16 @@ func TestRewriteDomain(t *testing.T) {
 		proxy.serverPort = l.Addr().(*net.TCPAddr).Port
 		proxy.GetServer().Addr = fmt.Sprintf("127.0.0.1:%d", proxy.serverPort)
 		time.Sleep(time.Second)
-		c <- true
+		wg.Done()
 		proxy.GetServer().Serve(l)
 	}()
 
-	<-c
+	wg.Wait()
 
 	t.Logf("Running Proxy Server on Address: %s", proxy.GetServer().Addr)
 
 	client := http.DefaultClient
+
 	for _, tc := range testCases {
 		// TODO: need to add body requests
 		req, err := http.NewRequest(tc.method, "http://"+proxy.GetServer().Addr+tc.path, nil)
