@@ -99,7 +99,7 @@ func TestRewriteDomain(t *testing.T) {
 			cookieHost: "so.secure.app.com",
 			shadowHost: "https://ory.sh",
 		},
-		"example.net": {
+		"www.example.net": {
 			host:       "https://www.example.net",
 			cookieHost: "example.net",
 			shadowHost: "https://ory.sh",
@@ -191,3 +191,24 @@ func TestRewriteDomain(t *testing.T) {
 		}
 	})
 }
+
+/*func TestBodyRewrite(t *testing.T) {
+	var testFiles []struct {
+		name string
+		path string
+		data []byte
+	}
+
+	filepath.WalkDir("./stub", func(path string, d fs.DirEntry, err error) error {
+		testFiles = append(testFiles, struct {
+			name string
+			path string
+		}{
+			d.Name(),
+			path,
+
+		})
+	}
+	return nil)
+	rewriteJson()
+}*/

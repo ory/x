@@ -53,7 +53,7 @@ type (
 func director(o *options) func(*http.Request) {
 	return func(r *http.Request) {
 		// TODO: setting the context here removes the reverseproxy outreq.URL values...
-		r = r.WithContext(context.WithValue(r.Context(), originalHostKey, r.Host))
+		*r = *r.WithContext(context.WithValue(r.Context(), originalHostKey, r.Host))
 
 		err := HeaderRequestRewrite(r, o)
 		if err != nil {
