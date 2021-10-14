@@ -7,6 +7,7 @@ import (
 	"github.com/ory/x/httpx"
 	"github.com/ory/x/logrusx"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -24,9 +25,8 @@ type (
 	}
 	originRequest struct {
 		host       string           // the original domain (example.com) requesting to the proxy
-		cookieHost string           // the original domain (example.com) cookie domain (can be a sub.sub... domain)
+		cookieHost string           // the original domain (example.com) cookie domain (we assume it is a higher level domain)
 		upstream   *httptest.Server // where the request should end up - (auth1234.another.com)
-		shadowHost string           // the proxy host
 	}
 )
 
@@ -85,19 +85,16 @@ func TestRewriteDomain(t *testing.T) {
 	// map it to the correct upstream
 	originalRequestDB := map[string]originRequest{
 		"auth.example.com": {
-			host:       "https://auth.example.com",
+			host:       "auth.example.com",
 			cookieHost: "example.com",
-			shadowHost: "https://ory.sh",
 		},
 		"secure.app.com": {
-			host:       "https://secure.app.com",
+			host:       "secure.app.com",
 			cookieHost: "so.secure.app.com",
-			shadowHost: "https://ory.sh",
 		},
 		"www.example.net": {
-			host:       "https://www.example.net",
+			host:       "www.example.net",
 			cookieHost: "example.net",
-			shadowHost: "https://ory.sh",
 		},
 	}
 
@@ -115,9 +112,9 @@ func TestRewriteDomain(t *testing.T) {
 		or.upstream = createUpstreamService(h, originTests)
 
 		req, err := retryablehttp.NewRequest("GET", or.upstream.URL+"/health", nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		_, err = retryableClient.Do(req)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		t.Logf("Running Upstream Server for (%s) on Address (%s)", or.host, or.upstream.URL)
 
@@ -128,11 +125,14 @@ func TestRewriteDomain(t *testing.T) {
 
 	opt := []Options{
 		WithHostMapper(func(host string) (*HostConfig, error) {
+			or, ok := originalRequestDB[host]
+			if !ok {
+				return nil, herodot.ErrNotFound
+			}
 			return &HostConfig{
-				CookieHost:   originalRequestDB[host].cookieHost,
-				UpstreamHost: originalRequestDB[host].upstream.URL,
-				OriginalHost: originalRequestDB[host].host,
-				ShadowURL:    originalRequestDB[host].shadowHost,
+				CookieHost:   or.cookieHost,
+				UpstreamHost: or.upstream.URL,
+				OriginalHost: or.host,
 			}, nil
 		})}
 
@@ -147,12 +147,12 @@ func TestRewriteDomain(t *testing.T) {
 	for _, tc := range testCases {
 		// TODO: need to add body requests
 		req, err := http.NewRequest(tc.method, server.URL+tc.path, nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		u, err := url.Parse(tc.host)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		req.Host = u.Hostname()
 		resp, err := client.Do(req)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.EqualValues(t, tc.status, resp.StatusCode, "expected status code %d however received %d", tc.status, resp.StatusCode)
 	}
 
@@ -182,5 +182,5 @@ func TestRewriteDomain(t *testing.T) {
 		})
 	}
 	return nil)
-	rewriteJson()
+	replaceBody()
 }*/

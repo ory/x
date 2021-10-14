@@ -2,22 +2,22 @@ package proxy
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"net/http/httputil"
 )
 
 type (
-	RespMiddleware    func(resp *http.Response, body []byte) ([]byte, error)
-	ReqMiddleware     func(req *http.Request, body []byte) ([]byte, error)
-	NegroniMiddleware func(w http.ResponseWriter, r *http.Request, n http.HandlerFunc)
-	options           struct {
-		hostMapper        func(string) (*HostConfig, error)
-		mutateReqPath     func(string) string
-		mutateResPath     func(string) string
-		onError           func(*http.Response, error) error // todo req & resp separate
-		respMiddlewares   []RespMiddleware
-		reqMiddlewares    []ReqMiddleware
-		handler           *httputil.ReverseProxy
+	RespMiddleware func(resp *http.Response, body []byte) ([]byte, error)
+	ReqMiddleware  func(req *http.Request, body []byte) ([]byte, error)
+	options        struct {
+		hostMapper      func(string) (*HostConfig, error)
+		mutateReqPath   func(string) string
+		mutateResPath   func(string) string
+		onResError      func(*http.Response, error) error
+		onReqError      func(*http.Request, error)
+		respMiddlewares []RespMiddleware
+		reqMiddlewares  []ReqMiddleware
 	}
 	HostConfig struct {
 		// CookieHost the host under which the cookie should be set
@@ -27,42 +27,51 @@ type (
 		// e.g. auth.example.com
 		OriginalHost string
 		// UpstreamHost the target upstream host the proxy will pass the connection to
+		// e.g. fluffy-bear-afiu23iaysd.oryapis.com
 		UpstreamHost string
-		// ShadowURL the host the proxy is imitating
-		ShadowURL string
 	}
-	Options func(*options)
+	Options    func(*options)
+	contextKey string
 )
+
+const hostConfigKey contextKey = "host config"
 
 // director is a custom internal function for altering a http.Request
 func director(o *options) func(*http.Request) {
 	return func(r *http.Request) {
 		c, err := o.hostMapper(r.Host)
 		if err != nil {
-			o.onError(r.Response, err)
+			o.onReqError(r, err)
 			return
 		}
 
-		*r = *r.WithContext(context.WithValue(r.Context(), originalHostKey, c))
+		*r = *r.WithContext(context.WithValue(r.Context(), hostConfigKey, c))
 
-		err = HeaderRequestRewrite(r, c, o)
+		err = HeaderRequestRewrite(r, c)
 		if err != nil {
-			o.onError(r.Response, err)
+			o.onReqError(r, err)
 			return
 		}
 
-		body, err := BodyRequestRewrite(r, c, o)
+		body, cb, err := BodyRequestRewrite(r, c, o)
 		if err != nil {
-			o.onError(r.Response, err)
+			o.onReqError(r, err)
 			return
 		}
 
 		for _, m := range o.reqMiddlewares {
 			if body, err = m(r, body); err != nil {
-				o.onError(r.Response, err)
+				o.onReqError(r, err)
 				return
 			}
 		}
+
+		if _, err := cb.Write(body); err != nil {
+			o.onReqError(r, err)
+			return
+		}
+
+		r.Body = io.NopCloser(cb)
 	}
 }
 
@@ -70,7 +79,7 @@ func director(o *options) func(*http.Request) {
 func modifyResponse(o *options) func(*http.Response) error {
 	return func(r *http.Response) error {
 		var c *HostConfig
-		if oh := r.Request.Context().Value(originalHostKey); oh != nil {
+		if oh := r.Request.Context().Value(hostConfigKey); oh != nil {
 			c = oh.(*HostConfig)
 		} else {
 			panic("could not get value from context")
@@ -78,20 +87,25 @@ func modifyResponse(o *options) func(*http.Response) error {
 
 		err := HeaderResponseRewrite(r, c, o)
 		if err != nil {
-			return o.onError(r, err)
+			return o.onResError(r, err)
 		}
 
-		body, err := BodyResponseRewrite(r, c, o)
+		body, cb, err := BodyResponseRewrite(r, c, o)
 		if err != nil {
-			return o.onError(r, err)
+			return o.onResError(r, err)
 		}
 
 		for _, m := range o.respMiddlewares {
 			if body, err = m(r, body); err != nil {
-				return o.onError(r, err)
+				return o.onResError(r, err)
 			}
 		}
 
+		if _, err := cb.Write(body); err != nil {
+			return o.onResError(r, err)
+		}
+
+		r.Body = io.NopCloser(cb)
 		return nil
 	}
 }
@@ -116,7 +130,7 @@ func WithMutateResPath(mp func(path string) string) Options {
 
 func WithOnError(onErr func(*http.Response, error) error) Options {
 	return func(o *options) {
-		o.onError = onErr
+		o.onResError = onErr
 	}
 }
 
@@ -136,12 +150,10 @@ func WithRespMiddleware(middlewares ...RespMiddleware) Options {
 // A Proxy sets up a middleware with custom request and response modification handlers
 func New(opts ...Options) http.Handler {
 	o := &options{
-		mutateResPath: func(s string) string {
-			return s
-		},
-		mutateReqPath: func(s string) string {
-			return s
-		},
+		mutateResPath: pathNop,
+		mutateReqPath: pathNop,
+		onReqError:    func(*http.Request, error) {},
+		onResError:    func(_ *http.Response, err error) error { return err },
 	}
 
 	for _, op := range opts {
@@ -152,4 +164,8 @@ func New(opts ...Options) http.Handler {
 		Director:       director(o),
 		ModifyResponse: modifyResponse(o),
 	}
+}
+
+func pathNop(s string) string {
+	return s
 }
