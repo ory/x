@@ -12,29 +12,39 @@ type (
 	ReqMiddleware  func(req *http.Request, body []byte) ([]byte, error)
 	options        struct {
 		hostMapper      func(string) (*HostConfig, error)
-		mutateReqPath   func(string) string
-		mutateResPath   func(string) string
 		onResError      func(*http.Response, error) error
 		onReqError      func(*http.Request, error)
 		respMiddlewares []RespMiddleware
 		reqMiddlewares  []ReqMiddleware
+		transport       http.RoundTripper
 	}
 	HostConfig struct {
-		// CookieHost the host under which the cookie should be set
+		// CookieDomain the host under which the cookie should be set
 		// e.g. example.com
-		CookieHost string
-		// OriginalHost the original hostname the request is coming from
-		// e.g. auth.example.com
-		OriginalHost string
+		CookieDomain string
 		// UpstreamHost the target upstream host the proxy will pass the connection to
 		// e.g. fluffy-bear-afiu23iaysd.oryapis.com
 		UpstreamHost string
+		// PathPrefix is a prefix that is prepended on the original host,
+		// but removed on the upstream.
+		PathPrefix string
+		// UpstreamProtocol is the protocol used by the upstream.
+		UpstreamProtocol string
+		// originalHost the original hostname the request is coming from
+		// e.g. auth.example.com
+		// This value will be maintained internally by the proxy.
+		originalHost string
+		// originalScheme is the original scheme of the request
+		// This value will be maintained internally by the proxy.
+		originalScheme string
 	}
 	Options    func(*options)
 	contextKey string
 )
 
-const hostConfigKey contextKey = "host config"
+const (
+	hostConfigKey contextKey = "host config"
+)
 
 // director is a custom internal function for altering a http.Request
 func director(o *options) func(*http.Request) {
@@ -45,15 +55,16 @@ func director(o *options) func(*http.Request) {
 			return
 		}
 
+		c.originalScheme = "https"
+		if r.TLS == nil {
+			c.originalScheme = "http"
+		}
+		c.originalHost = r.Host
 		*r = *r.WithContext(context.WithValue(r.Context(), hostConfigKey, c))
 
-		err = HeaderRequestRewrite(r, c)
-		if err != nil {
-			o.onReqError(r, err)
-			return
-		}
+		HeaderRequestRewrite(r, c)
 
-		body, cb, err := BodyRequestRewrite(r, c, o)
+		body, cb, err := BodyRequestRewrite(r, c)
 		if err != nil {
 			o.onReqError(r, err)
 			return
@@ -66,11 +77,13 @@ func director(o *options) func(*http.Request) {
 			}
 		}
 
-		if _, err := cb.Write(body); err != nil {
+		n, err := cb.Write(body)
+		if err != nil {
 			o.onReqError(r, err)
 			return
 		}
 
+		r.ContentLength = int64(n)
 		r.Body = io.NopCloser(cb)
 	}
 }
@@ -85,12 +98,12 @@ func modifyResponse(o *options) func(*http.Response) error {
 			panic("could not get value from context")
 		}
 
-		err := HeaderResponseRewrite(r, c, o)
+		err := HeaderResponseRewrite(r, c)
 		if err != nil {
 			return o.onResError(r, err)
 		}
 
-		body, cb, err := BodyResponseRewrite(r, c, o)
+		body, cb, err := BodyResponseRewrite(r, c)
 		if err != nil {
 			return o.onResError(r, err)
 		}
@@ -101,10 +114,12 @@ func modifyResponse(o *options) func(*http.Response) error {
 			}
 		}
 
-		if _, err := cb.Write(body); err != nil {
+		n, err := cb.Write(body)
+		if err != nil {
 			return o.onResError(r, err)
 		}
 
+		r.ContentLength = int64(n)
 		r.Body = io.NopCloser(cb)
 		return nil
 	}
@@ -113,18 +128,6 @@ func modifyResponse(o *options) func(*http.Response) error {
 func WithHostMapper(hm func(host string) (*HostConfig, error)) Options {
 	return func(o *options) {
 		o.hostMapper = hm
-	}
-}
-
-func WithMutateReqPath(mp func(path string) string) Options {
-	return func(o *options) {
-		o.mutateReqPath = mp
-	}
-}
-
-func WithMutateResPath(mp func(path string) string) Options {
-	return func(o *options) {
-		o.mutateResPath = mp
 	}
 }
 
@@ -146,14 +149,19 @@ func WithRespMiddleware(middlewares ...RespMiddleware) Options {
 	}
 }
 
+func WithTransport(t http.RoundTripper) Options {
+	return func(o *options) {
+		o.transport = t
+	}
+}
+
 // New creates a new Proxy
 // A Proxy sets up a middleware with custom request and response modification handlers
 func New(opts ...Options) http.Handler {
 	o := &options{
-		mutateResPath: pathNop,
-		mutateReqPath: pathNop,
-		onReqError:    func(*http.Request, error) {},
-		onResError:    func(_ *http.Response, err error) error { return err },
+		onReqError: func(*http.Request, error) {},
+		onResError: func(_ *http.Response, err error) error { return err },
+		transport:  http.DefaultTransport,
 	}
 
 	for _, op := range opts {
@@ -163,9 +171,6 @@ func New(opts ...Options) http.Handler {
 	return &httputil.ReverseProxy{
 		Director:       director(o),
 		ModifyResponse: modifyResponse(o),
+		Transport:      o.transport,
 	}
-}
-
-func pathNop(s string) string {
-	return s
 }
