@@ -101,9 +101,9 @@ func TestFullIntegration(t *testing.T) {
 	respMiddleware := make(chan RespMiddleware)
 
 	proxy := httptest.NewTLSServer(New(
-		WithHostMapper(func(host string) (*HostConfig, error) {
+		func(host string) (*HostConfig, error) {
 			return (<-hostMapper)(host)
-		}),
+		},
 		WithTransport(upstreamServer.Client().Transport),
 		WithReqMiddleware(func(req *http.Request, body []byte) ([]byte, error) {
 			f := <-reqMiddleware
@@ -119,7 +119,6 @@ func TestFullIntegration(t *testing.T) {
 			}
 			return f(resp, body)
 		})))
-
 	cl := proxy.Client()
 	cl.Transport = &testingRoundTripper{t, cl.Transport}
 	cl.CheckRedirect = func(*http.Request, []*http.Request) error {

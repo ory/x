@@ -125,12 +125,6 @@ func modifyResponse(o *options) func(*http.Response) error {
 	}
 }
 
-func WithHostMapper(hm func(host string) (*HostConfig, error)) Options {
-	return func(o *options) {
-		o.hostMapper = hm
-	}
-}
-
 func WithOnError(onErr func(*http.Response, error) error) Options {
 	return func(o *options) {
 		o.onResError = onErr
@@ -157,8 +151,9 @@ func WithTransport(t http.RoundTripper) Options {
 
 // New creates a new Proxy
 // A Proxy sets up a middleware with custom request and response modification handlers
-func New(opts ...Options) http.Handler {
+func New(hostMapper func(host string) (*HostConfig, error), opts ...Options) http.Handler {
 	o := &options{
+		hostMapper: hostMapper,
 		onReqError: func(*http.Request, error) {},
 		onResError: func(_ *http.Response, err error) error { return err },
 		transport:  http.DefaultTransport,
