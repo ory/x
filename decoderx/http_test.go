@@ -148,6 +148,29 @@ func TestHTTPFormDecoder(t *testing.T) {
 }`,
 		},
 		{
+			d: "should mark the correct fields when nested objects are required",
+			request: newRequest(t, "POST", "/", bytes.NewBufferString(url.Values{
+				// newsletter represents a special case for checkbox input with true/false and raw HTML.
+				"foo": {"bar"},
+			}.Encode()), httpContentTypeURLEncodedForm),
+			options: []HTTPDecoderOption{
+				HTTPJSONSchemaCompiler("stub/consent.json", nil),
+				HTTPKeepRequestBody(true),
+				HTTPDecoderSetValidatePayloads(false),
+				HTTPDecoderUseQueryAndBody(),
+				HTTPDecoderAllowedMethods("POST", "GET"),
+				HTTPDecoderJSONFollowsFormFormat(),
+			},
+			expected: `{
+  "traits": {
+	"consent": {
+	  "inner": {}
+    },
+	"notrequired": {}
+  }
+}`,
+		},
+		{
 			d: "should pass form request with payload in query and type assert data",
 			request: newRequest(t, "POST", "/?age=29", bytes.NewBufferString(url.Values{
 				"name.first": {"Aeneas"},
