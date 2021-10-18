@@ -3,13 +3,15 @@ package proxy
 import (
 	"bytes"
 	"fmt"
-	"github.com/ory/x/urlx"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/ory/x/urlx"
 )
 
 // This test is a full integration test for the proxy.

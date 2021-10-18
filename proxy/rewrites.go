@@ -3,11 +3,12 @@ package proxy
 import (
 	"bytes"
 	"compress/gzip"
-	"github.com/pkg/errors"
 	"io"
 	"net/http"
 	"path"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 type compressableBody struct {
@@ -37,7 +38,7 @@ func (b *compressableBody) Read(p []byte) (n int, err error) {
 	return b.buf.Read(p)
 }
 
-func HeaderRequestRewrite(req *http.Request, c *HostConfig) {
+func headerRequestRewrite(req *http.Request, c *HostConfig) {
 	req.URL.Scheme = c.UpstreamProtocol
 	req.URL.Host = c.UpstreamHost
 	req.URL.Path = strings.TrimPrefix(req.URL.Path, c.PathPrefix)
@@ -48,7 +49,7 @@ func HeaderRequestRewrite(req *http.Request, c *HostConfig) {
 	}
 }
 
-func BodyRequestRewrite(req *http.Request, c *HostConfig) ([]byte, *compressableBody, error) {
+func bodyRequestRewrite(req *http.Request, c *HostConfig) ([]byte, *compressableBody, error) {
 	if req.ContentLength == 0 {
 		return nil, nil, nil
 	}
@@ -61,7 +62,7 @@ func BodyRequestRewrite(req *http.Request, c *HostConfig) ([]byte, *compressable
 	return bytes.ReplaceAll(body, []byte(c.originalHost+c.PathPrefix), []byte(c.UpstreamHost)), cb, nil
 }
 
-func HeaderResponseRewrite(resp *http.Response, c *HostConfig) error {
+func headerResponseRewrite(resp *http.Response, c *HostConfig) error {
 	redir, err := resp.Location()
 	if err != nil {
 		if !errors.Is(err, http.ErrNoLocation) {
@@ -88,7 +89,7 @@ func HeaderResponseRewrite(resp *http.Response, c *HostConfig) error {
 	return nil
 }
 
-func BodyResponseRewrite(resp *http.Response, c *HostConfig) ([]byte, *compressableBody, error) {
+func bodyResponseRewrite(resp *http.Response, c *HostConfig) ([]byte, *compressableBody, error) {
 	if resp.ContentLength == 0 {
 		return nil, nil, nil
 	}

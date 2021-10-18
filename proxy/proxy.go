@@ -62,9 +62,9 @@ func director(o *options) func(*http.Request) {
 		c.originalHost = r.Host
 		*r = *r.WithContext(context.WithValue(r.Context(), hostConfigKey, c))
 
-		HeaderRequestRewrite(r, c)
+		headerRequestRewrite(r, c)
 
-		body, cb, err := BodyRequestRewrite(r, c)
+		body, cb, err := bodyRequestRewrite(r, c)
 		if err != nil {
 			o.onReqError(r, err)
 			return
@@ -98,12 +98,12 @@ func modifyResponse(o *options) func(*http.Response) error {
 			panic("could not get value from context")
 		}
 
-		err := HeaderResponseRewrite(r, c)
+		err := headerResponseRewrite(r, c)
 		if err != nil {
 			return o.onResError(r, err)
 		}
 
-		body, cb, err := BodyResponseRewrite(r, c)
+		body, cb, err := bodyResponseRewrite(r, c)
 		if err != nil {
 			return o.onResError(r, err)
 		}

@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // This test is a unit test for all the rewrite functions,
@@ -16,8 +17,8 @@ import (
 // and reverse proxy, but just test all helper functions.
 
 // Things on the TODO:
-// - HeaderResponseRewrite
-// - BodyResponseRewrite
+// - headerResponseRewrite
+// - bodyResponseRewrite
 
 type nopWriteCloser struct {
 	io.Writer
@@ -39,7 +40,7 @@ func TestRewrites(t *testing.T) {
 			PathPrefix:       "/foo",
 		}
 
-		HeaderRequestRewrite(req, c)
+		headerRequestRewrite(req, c)
 		assert.Equal(t, c.UpstreamProtocol, req.URL.Scheme)
 		assert.Equal(t, c.UpstreamHost, req.URL.Host)
 		assert.Equal(t, "/bar", req.URL.Path)
@@ -50,7 +51,7 @@ func TestRewrites(t *testing.T) {
 			req, err := http.NewRequest(http.MethodGet, "https://example.com", nil)
 			require.NoError(t, err)
 
-			newBody, writer, err := BodyRequestRewrite(req, &HostConfig{})
+			newBody, writer, err := bodyRequestRewrite(req, &HostConfig{})
 			require.NoError(t, err)
 			assert.Nil(t, newBody)
 			assert.Nil(t, writer)
@@ -67,7 +68,7 @@ func TestRewrites(t *testing.T) {
 			req, err := http.NewRequest(http.MethodPost, url, bytes.NewBufferString(fmt.Sprintf("some text containing the requested URL %s/foo plus a path", url)))
 			require.NoError(t, err)
 
-			newBody, _, err := BodyRequestRewrite(req, c)
+			newBody, _, err := bodyRequestRewrite(req, c)
 			assert.Equal(t, fmt.Sprintf("some text containing the requested URL %s://%s/foo plus a path", c.UpstreamProtocol, c.UpstreamHost), string(newBody))
 		})
 
@@ -83,7 +84,7 @@ func TestRewrites(t *testing.T) {
 			req, err := http.NewRequest(http.MethodPost, url, bytes.NewBufferString(fmt.Sprintf("some text containing the requested URL %s/.ory/foo but with a prefix", url)))
 			require.NoError(t, err)
 
-			newBody, _, err := BodyRequestRewrite(req, c)
+			newBody, _, err := bodyRequestRewrite(req, c)
 			assert.Equal(t, fmt.Sprintf("some text containing the requested URL %s://%s/foo but with a prefix", c.UpstreamProtocol, c.UpstreamHost), string(newBody))
 		})
 	})
