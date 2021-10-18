@@ -64,7 +64,7 @@ func NewMigrationBox(dir fs.FS, m *Migrator, opts ...func(*MigrationBox) *Migrat
 				return errors.Wrapf(err, "error processing %s", mf.Path)
 			}
 			if content == "" {
-				m.l.WithField("migration", mf.Path).Warn("Ignoring migration because content is empty.")
+				m.l.WithField("migration", mf.Path).Debug("Ignoring migration because content is empty. This is ok!")
 				return nil
 			}
 			if _, err = tx.Exec(content); err != nil {
