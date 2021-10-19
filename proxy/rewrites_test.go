@@ -113,8 +113,7 @@ func TestRewrites(t *testing.T) {
 			}
 
 			jbody, err := json.Marshal(&body)
-
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			req, err := http.NewRequest(http.MethodPost, "http://"+c.originalHost, bytes.NewBuffer(jbody))
 			require.NoError(t, err)
@@ -122,7 +121,7 @@ func TestRewrites(t *testing.T) {
 			newBody, _, err := bodyRequestRewrite(req, c)
 
 			bb := &bodyJson{}
-			assert.NoError(t, json.Unmarshal(newBody, &bb))
+			require.NoError(t, json.Unmarshal(newBody, &bb))
 			assert.Equal(t, "http://"+c.UpstreamHost, bb.Url)
 			assert.Equal(t, "http://"+c.UpstreamHost+"/path", bb.Details.InnerUrl)
 		})
@@ -130,7 +129,7 @@ func TestRewrites(t *testing.T) {
 
 	t.Run("suit=HeaderResponse", func(t *testing.T) {
 
-		t.Run("case=with location header", func(t *testing.T) {
+		t.Run("case=replace location and cookie", func(t *testing.T) {
 			upstreamHost := "some-project-1234.oryapis.com"
 
 			c := &HostConfig{
@@ -168,10 +167,10 @@ func TestRewrites(t *testing.T) {
 			}
 
 			err := headerResponseRewrite(resp, c)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			loc, err := resp.Location()
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			assert.Equal(t, c.originalHost, loc.Host)
 			assert.Equal(t, c.originalScheme, loc.Scheme)
@@ -182,7 +181,7 @@ func TestRewrites(t *testing.T) {
 			}
 		})
 
-		t.Run("case=without location header", func(t *testing.T) {
+		t.Run("case=replace cookie", func(t *testing.T) {
 			upstreamHost := "some-project-1234.oryapis.com"
 
 			c := &HostConfig{
@@ -213,17 +212,17 @@ func TestRewrites(t *testing.T) {
 			}
 
 			err := headerResponseRewrite(resp, c)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			_, err = resp.Location()
-			assert.Error(t, err)
+			require.Error(t, err)
 
 			for _, co := range resp.Cookies() {
 				assert.Equal(t, c.CookieDomain, co.Domain)
 			}
 		})
 
-		t.Run("case=without cookie", func(t *testing.T) {
+		t.Run("case=no replaced header fields", func(t *testing.T) {
 			upstreamHost := "some-project-1234.oryapis.com"
 
 			c := &HostConfig{
@@ -245,7 +244,7 @@ func TestRewrites(t *testing.T) {
 			}
 
 			err := headerResponseRewrite(resp, c)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			assert.Len(t, resp.Cookies(), 0)
 		})
@@ -267,7 +266,7 @@ func TestRewrites(t *testing.T) {
 			assert.NoError(t, err)
 		})
 
-		t.Run("case=json body", func(t *testing.T) {
+		t.Run("case=json body with path prefix", func(t *testing.T) {
 			upstreamHost := "some-project-1234.oryapis.com"
 
 			c := &HostConfig{
@@ -302,7 +301,7 @@ func TestRewrites(t *testing.T) {
 			}
 
 			body, err := json.Marshal(&br)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			resp := &http.Response{
 				Status:        "OK",
@@ -320,7 +319,7 @@ func TestRewrites(t *testing.T) {
 			assert.Equal(t, "https://auth.example.com/foo/bar", br.InnerRespArr[0].InnerKey)
 		})
 
-		t.Run("case=string body", func(t *testing.T) {
+		t.Run("case=string body and no path prefix", func(t *testing.T) {
 			upstreamHost := "some-project-1234.oryapis.com"
 
 			c := &HostConfig{
