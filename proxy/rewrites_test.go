@@ -3,6 +3,7 @@ package proxy
 import (
 	"bytes"
 	"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -64,8 +65,8 @@ func TestRewrites(t *testing.T) {
 				UpstreamHost:     "upstream.ory.sh",
 			}
 
-			url := "https://example.com"
-			req, err := http.NewRequest(http.MethodPost, url, bytes.NewBufferString(fmt.Sprintf("some text containing the requested URL %s/foo plus a path", url)))
+			u := "https://example.com"
+			req, err := http.NewRequest(http.MethodPost, u, bytes.NewBufferString(fmt.Sprintf("some text containing the requested URL %s/foo plus a path", u)))
 			require.NoError(t, err)
 
 			newBody, _, err := bodyRequestRewrite(req, c)
@@ -80,8 +81,8 @@ func TestRewrites(t *testing.T) {
 				PathPrefix:       "/.ory",
 			}
 
-			url := "https://example.com"
-			req, err := http.NewRequest(http.MethodPost, url, bytes.NewBufferString(fmt.Sprintf("some text containing the requested URL %s/.ory/foo but with a prefix", url)))
+			u := "https://example.com"
+			req, err := http.NewRequest(http.MethodPost, u, bytes.NewBufferString(fmt.Sprintf("some text containing the requested URL %s/.ory/foo but with a prefix", u)))
 			require.NoError(t, err)
 
 			newBody, _, err := bodyRequestRewrite(req, c)
@@ -139,6 +140,76 @@ func TestRewrites(t *testing.T) {
 		for _, co := range resp.Cookies() {
 			assert.Equal(t, c.CookieDomain, co.Domain)
 		}
+
+	})
+
+	t.Run("suit=BodyResponse", func(t *testing.T) {
+
+		t.Run("case=empty body", func(t *testing.T) {
+			resp := &http.Response{
+				Status:        "OK",
+				StatusCode:    200,
+				Proto:         "http",
+				Body:          nil,
+				ContentLength: 0,
+			}
+
+			_, _, err := bodyResponseRewrite(resp, &HostConfig{})
+			assert.NoError(t, err)
+		})
+
+		t.Run("case=json body", func(t *testing.T) {
+			upstreamHost := "some-project-1234.oryapis.com"
+
+			c := &HostConfig{
+				CookieDomain:     "example.com",
+				UpstreamHost:     upstreamHost,
+				PathPrefix:       "/foo",
+				UpstreamProtocol: "http",
+				originalHost:     "auth.example.com",
+				originalScheme:   "https",
+			}
+
+			type bodyRespInner struct {
+				InnerKey string `json:"inner_key"`
+			}
+
+			type bodyResp struct {
+				SomeKey      string          `json:"some_key"`
+				InnerRespArr []bodyRespInner `json:"inner_resp_arr"`
+				InnerResp    bodyRespInner   `json:"inner_resp"`
+			}
+
+			br := bodyResp{
+				SomeKey: upstreamHost + "/path",
+				InnerRespArr: []bodyRespInner{
+					{
+						InnerKey: upstreamHost + "/bar",
+					},
+				},
+				InnerResp: bodyRespInner{
+					InnerKey: upstreamHost,
+				},
+			}
+
+			body, err := json.Marshal(&br)
+			assert.NoError(t, err)
+
+			resp := &http.Response{
+				Status:        "OK",
+				StatusCode:    200,
+				Proto:         "http",
+				Body:          io.NopCloser(bytes.NewReader(body)),
+				ContentLength: int64(len(body)),
+			}
+
+			b, _, err := bodyResponseRewrite(resp, c)
+			assert.NoError(t, err)
+			assert.NoError(t, json.Unmarshal(b, &br))
+			assert.Equal(t, "auth.example.com/foo", br.InnerResp.InnerKey)
+			assert.Equal(t, "auth.example.com/foo/path", br.SomeKey)
+			assert.Equal(t, "auth.example.com/foo/bar", br.InnerRespArr[0].InnerKey)
+		})
 
 	})
 }
