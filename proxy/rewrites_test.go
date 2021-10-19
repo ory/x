@@ -134,7 +134,7 @@ func TestRewrites(t *testing.T) {
 
 	t.Run("suit=HeaderResponse", func(t *testing.T) {
 
-		t.Run("case=with location header", func(t *testing.T) {
+		t.Run("case=replace location and cookie", func(t *testing.T) {
 			upstreamHost := "some-project-1234.oryapis.com"
 
 			c := &HostConfig{
@@ -186,7 +186,7 @@ func TestRewrites(t *testing.T) {
 			}
 		})
 
-		t.Run("case=without location header", func(t *testing.T) {
+		t.Run("case=replace cookie", func(t *testing.T) {
 			upstreamHost := "some-project-1234.oryapis.com"
 
 			c := &HostConfig{
@@ -227,7 +227,7 @@ func TestRewrites(t *testing.T) {
 			}
 		})
 
-		t.Run("case=without cookie", func(t *testing.T) {
+		t.Run("case=no replaced header fields", func(t *testing.T) {
 			upstreamHost := "some-project-1234.oryapis.com"
 
 			c := &HostConfig{
@@ -271,7 +271,7 @@ func TestRewrites(t *testing.T) {
 			assert.NoError(t, err)
 		})
 
-		t.Run("case=json body", func(t *testing.T) {
+		t.Run("case=json body with path prefix", func(t *testing.T) {
 			upstreamHost := "some-project-1234.oryapis.com"
 
 			c := &HostConfig{
@@ -324,7 +324,7 @@ func TestRewrites(t *testing.T) {
 			assert.Equal(t, "https://auth.example.com/foo/bar", br.InnerRespArr[0].InnerKey)
 		})
 
-		t.Run("case=string body", func(t *testing.T) {
+		t.Run("case=string body and no path prefix", func(t *testing.T) {
 			upstreamHost := "some-project-1234.oryapis.com"
 
 			c := &HostConfig{
