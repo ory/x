@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
-	"io"
-	"net/http"
-	"testing"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"io"
+	"net/http"
+	"net/url"
+	"testing"
 )
 
 // This test is a unit test for all the rewrite functions,
@@ -87,6 +87,59 @@ func TestRewrites(t *testing.T) {
 			newBody, _, err := bodyRequestRewrite(req, c)
 			assert.Equal(t, fmt.Sprintf("some text containing the requested URL %s://%s/foo but with a prefix", c.UpstreamProtocol, c.UpstreamHost), string(newBody))
 		})
+	})
+
+	t.Run("suit=HeaderResponse", func(t *testing.T) {
+		upstreamHost := "some-project-1234.oryapis.com"
+
+		c := &HostConfig{
+			CookieDomain:     "example.com",
+			UpstreamHost:     upstreamHost,
+			PathPrefix:       "/foo",
+			UpstreamProtocol: "https",
+			originalHost:     "example.com",
+			originalScheme:   "http",
+		}
+
+		header := http.Header{}
+		cookie := http.Cookie{
+			Name:   "cookie.example",
+			Value:  "1234",
+			Domain: upstreamHost,
+		}
+
+		location := url.URL{
+			Scheme: "https",
+			Host:   upstreamHost,
+			Path:   "/bar",
+		}
+
+		header.Set("Set-Cookie", cookie.String())
+		header.Set("Location", location.String())
+
+		resp := &http.Response{
+			Status:        "ok",
+			StatusCode:    200,
+			Proto:         "https",
+			Header:        header,
+			Body:          nil,
+			ContentLength: 0,
+		}
+
+		err := headerResponseRewrite(resp, c)
+		assert.NoError(t, err)
+
+		loc, err := resp.Location()
+		assert.NoError(t, err)
+
+		assert.Equal(t, c.originalHost, loc.Host)
+		assert.Equal(t, c.originalScheme, loc.Scheme)
+		assert.Equal(t, "/foo/bar", loc.Path)
+
+		for _, co := range resp.Cookies() {
+			assert.Equal(t, c.CookieDomain, co.Domain)
+		}
+
 	})
 }
 
