@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 )
 
@@ -88,58 +89,170 @@ func TestRewrites(t *testing.T) {
 			newBody, _, err := bodyRequestRewrite(req, c)
 			assert.Equal(t, fmt.Sprintf("some text containing the requested URL %s://%s/foo but with a prefix", c.UpstreamProtocol, c.UpstreamHost), string(newBody))
 		})
+
+		t.Run("case=json replacement", func(t *testing.T) {
+			c := &HostConfig{
+				CookieDomain:     "example.com",
+				UpstreamHost:     "upstream.ory.sh",
+				PathPrefix:       "/.ory",
+				UpstreamProtocol: "https",
+				originalHost:     "auth.example.com",
+				originalScheme:   "http",
+			}
+
+			type bodyDetailsJson struct {
+				InnerUrl string `json:"inner_url"`
+			}
+
+			type bodyJson struct {
+				Url     string          `json:"url"`
+				Details bodyDetailsJson `json:"details"`
+			}
+
+			body := bodyJson{
+				Url: "http://" + c.originalHost + c.PathPrefix,
+				Details: bodyDetailsJson{
+					InnerUrl: "http://" + c.originalHost + c.PathPrefix + "/path",
+				},
+			}
+
+			jbody, err := json.Marshal(&body)
+
+			assert.NoError(t, err)
+
+			req, err := http.NewRequest(http.MethodPost, "http://"+c.originalHost, bytes.NewBuffer(jbody))
+			require.NoError(t, err)
+
+			newBody, _, err := bodyRequestRewrite(req, c)
+
+			bb := &bodyJson{}
+			assert.NoError(t, json.Unmarshal(newBody, &bb))
+			assert.Equal(t, "http://"+c.UpstreamHost, bb.Url)
+			assert.Equal(t, "http://"+c.UpstreamHost+"/path", bb.Details.InnerUrl)
+		})
 	})
 
 	t.Run("suit=HeaderResponse", func(t *testing.T) {
-		upstreamHost := "some-project-1234.oryapis.com"
 
-		c := &HostConfig{
-			CookieDomain:     "example.com",
-			UpstreamHost:     upstreamHost,
-			PathPrefix:       "/foo",
-			UpstreamProtocol: "https",
-			originalHost:     "example.com",
-			originalScheme:   "http",
-		}
+		t.Run("case=with location header", func(t *testing.T) {
+			upstreamHost := "some-project-1234.oryapis.com"
 
-		header := http.Header{}
-		cookie := http.Cookie{
-			Name:   "cookie.example",
-			Value:  "1234",
-			Domain: upstreamHost,
-		}
+			c := &HostConfig{
+				CookieDomain:     "example.com",
+				UpstreamHost:     upstreamHost,
+				PathPrefix:       "/foo",
+				UpstreamProtocol: "https",
+				originalHost:     "example.com",
+				originalScheme:   "http",
+			}
 
-		location := url.URL{
-			Scheme: "https",
-			Host:   upstreamHost,
-			Path:   "/bar",
-		}
+			header := http.Header{}
+			cookie := http.Cookie{
+				Name:   "cookie.example",
+				Value:  "1234",
+				Domain: upstreamHost,
+			}
 
-		header.Set("Set-Cookie", cookie.String())
-		header.Set("Location", location.String())
+			location := url.URL{
+				Scheme: "https",
+				Host:   upstreamHost,
+				Path:   "/bar",
+			}
 
-		resp := &http.Response{
-			Status:        "ok",
-			StatusCode:    200,
-			Proto:         "https",
-			Header:        header,
-			Body:          nil,
-			ContentLength: 0,
-		}
+			header.Set("Set-Cookie", cookie.String())
+			header.Set("Location", location.String())
 
-		err := headerResponseRewrite(resp, c)
-		assert.NoError(t, err)
+			resp := &http.Response{
+				Status:        "ok",
+				StatusCode:    200,
+				Proto:         "https",
+				Header:        header,
+				Body:          nil,
+				ContentLength: 0,
+			}
 
-		loc, err := resp.Location()
-		assert.NoError(t, err)
+			err := headerResponseRewrite(resp, c)
+			assert.NoError(t, err)
 
-		assert.Equal(t, c.originalHost, loc.Host)
-		assert.Equal(t, c.originalScheme, loc.Scheme)
-		assert.Equal(t, "/foo/bar", loc.Path)
+			loc, err := resp.Location()
+			assert.NoError(t, err)
 
-		for _, co := range resp.Cookies() {
-			assert.Equal(t, c.CookieDomain, co.Domain)
-		}
+			assert.Equal(t, c.originalHost, loc.Host)
+			assert.Equal(t, c.originalScheme, loc.Scheme)
+			assert.Equal(t, "/foo/bar", loc.Path)
+
+			for _, co := range resp.Cookies() {
+				assert.Equal(t, c.CookieDomain, co.Domain)
+			}
+		})
+
+		t.Run("case=without location header", func(t *testing.T) {
+			upstreamHost := "some-project-1234.oryapis.com"
+
+			c := &HostConfig{
+				CookieDomain:     "example.com",
+				UpstreamHost:     upstreamHost,
+				PathPrefix:       "/foo",
+				UpstreamProtocol: "https",
+				originalHost:     "example.com",
+				originalScheme:   "http",
+			}
+
+			header := http.Header{}
+			cookie := http.Cookie{
+				Name:   "cookie.example",
+				Value:  "1234",
+				Domain: upstreamHost,
+			}
+
+			header.Set("Set-Cookie", cookie.String())
+
+			resp := &http.Response{
+				Status:        "ok",
+				StatusCode:    200,
+				Proto:         "https",
+				Header:        header,
+				Body:          nil,
+				ContentLength: 0,
+			}
+
+			err := headerResponseRewrite(resp, c)
+			assert.NoError(t, err)
+
+			_, err = resp.Location()
+			assert.Error(t, err)
+
+			for _, co := range resp.Cookies() {
+				assert.Equal(t, c.CookieDomain, co.Domain)
+			}
+		})
+
+		t.Run("case=without cookie", func(t *testing.T) {
+			upstreamHost := "some-project-1234.oryapis.com"
+
+			c := &HostConfig{
+				CookieDomain:     "example.com",
+				UpstreamHost:     upstreamHost,
+				PathPrefix:       "/foo",
+				UpstreamProtocol: "https",
+				originalHost:     "example.com",
+				originalScheme:   "http",
+			}
+
+			header := http.Header{}
+
+			resp := &http.Response{
+				Status:     "ok",
+				StatusCode: 200,
+				Proto:      "https",
+				Header:     header,
+			}
+
+			err := headerResponseRewrite(resp, c)
+			assert.NoError(t, err)
+
+			assert.Len(t, resp.Cookies(), 0)
+		})
 
 	})
 
@@ -181,14 +294,14 @@ func TestRewrites(t *testing.T) {
 			}
 
 			br := bodyResp{
-				SomeKey: upstreamHost + "/path",
+				SomeKey: "https://" + upstreamHost + "/path",
 				InnerRespArr: []bodyRespInner{
 					{
-						InnerKey: upstreamHost + "/bar",
+						InnerKey: "https://" + upstreamHost + "/bar",
 					},
 				},
 				InnerResp: bodyRespInner{
-					InnerKey: upstreamHost,
+					InnerKey: "https://" + upstreamHost,
 				},
 			}
 
@@ -206,9 +319,36 @@ func TestRewrites(t *testing.T) {
 			b, _, err := bodyResponseRewrite(resp, c)
 			assert.NoError(t, err)
 			assert.NoError(t, json.Unmarshal(b, &br))
-			assert.Equal(t, "auth.example.com/foo", br.InnerResp.InnerKey)
-			assert.Equal(t, "auth.example.com/foo/path", br.SomeKey)
-			assert.Equal(t, "auth.example.com/foo/bar", br.InnerRespArr[0].InnerKey)
+			assert.Equal(t, "https://auth.example.com/foo", br.InnerResp.InnerKey)
+			assert.Equal(t, "https://auth.example.com/foo/path", br.SomeKey)
+			assert.Equal(t, "https://auth.example.com/foo/bar", br.InnerRespArr[0].InnerKey)
+		})
+
+		t.Run("case=string body", func(t *testing.T) {
+			upstreamHost := "some-project-1234.oryapis.com"
+
+			c := &HostConfig{
+				CookieDomain:     "example.com",
+				UpstreamHost:     upstreamHost,
+				PathPrefix:       "/foo",
+				UpstreamProtocol: "http",
+				originalHost:     "auth.example.com",
+				originalScheme:   "https",
+			}
+
+			bs := fmt.Sprintf("this is a string body https://%s", upstreamHost)
+
+			resp := &http.Response{
+				Status:        "OK",
+				StatusCode:    200,
+				Proto:         "http",
+				Body:          io.NopCloser(strings.NewReader(bs)),
+				ContentLength: int64(len(bs)),
+			}
+
+			b, _, err := bodyResponseRewrite(resp, c)
+			assert.NoError(t, err)
+			assert.Equal(t, fmt.Sprintf("this is a string body https://%s", c.originalHost+c.PathPrefix), string(b))
 		})
 
 	})
