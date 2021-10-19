@@ -3,16 +3,17 @@ package proxy
 import (
 	"bytes"
 	"compress/gzip"
-	"encoding/json"
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"github.com/tidwall/gjson"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 )
 
 // This test is a unit test for all the rewrite functions,
@@ -97,34 +98,18 @@ func TestRewrites(t *testing.T) {
 				originalScheme:   "http",
 			}
 
-			type bodyDetailsJson struct {
-				InnerUrl string `json:"inner_url"`
-			}
-
-			type bodyJson struct {
-				Url     string          `json:"url"`
-				Details bodyDetailsJson `json:"details"`
-			}
-
-			body := bodyJson{
-				Url: "http://" + c.originalHost + c.PathPrefix,
-				Details: bodyDetailsJson{
-					InnerUrl: "http://" + c.originalHost + c.PathPrefix + "/path",
-				},
-			}
-
-			jbody, err := json.Marshal(&body)
+			body, err := sjson.SetBytes([]byte("{}"), "url", "http://"+c.originalHost+c.PathPrefix)
+			require.NoError(t, err)
+			body, err = sjson.SetBytes(body, "details.inner_url", "http://"+c.originalHost+c.PathPrefix+"/path")
 			require.NoError(t, err)
 
-			req, err := http.NewRequest(http.MethodPost, "http://"+c.originalHost, bytes.NewBuffer(jbody))
+			req, err := http.NewRequest(http.MethodPost, "http://"+c.originalHost, bytes.NewReader(body))
 			require.NoError(t, err)
 
 			newBody, _, err := bodyRequestRewrite(req, c)
 
-			bb := &bodyJson{}
-			require.NoError(t, json.Unmarshal(newBody, &bb))
-			assert.Equal(t, "http://"+c.UpstreamHost, bb.Url)
-			assert.Equal(t, "http://"+c.UpstreamHost+"/path", bb.Details.InnerUrl)
+			assert.Equal(t, "http://"+c.UpstreamHost, gjson.GetBytes(newBody, "url").Str)
+			assert.Equal(t, "http://"+c.UpstreamHost+"/path", gjson.GetBytes(newBody, "details.inner_url").Str)
 		})
 	})
 
@@ -279,45 +264,27 @@ func TestRewrites(t *testing.T) {
 				originalScheme:   "https",
 			}
 
-			type bodyRespInner struct {
-				InnerKey string `json:"inner_key"`
-			}
-
-			type bodyResp struct {
-				SomeKey      string          `json:"some_key"`
-				InnerRespArr []bodyRespInner `json:"inner_resp_arr"`
-				InnerResp    bodyRespInner   `json:"inner_resp"`
-			}
-
-			br := bodyResp{
-				SomeKey: "https://" + upstreamHost + "/path",
-				InnerRespArr: []bodyRespInner{
-					{
-						InnerKey: "https://" + upstreamHost + "/bar",
-					},
-				},
-				InnerResp: bodyRespInner{
-					InnerKey: "https://" + upstreamHost,
-				},
-			}
-
-			body, err := json.Marshal(&br)
+			body, err := sjson.SetBytes([]byte("{}"), "some_key", "https://"+upstreamHost+"/path")
+			require.NoError(t, err)
+			body, err = sjson.SetBytes(body, "inner_resp_arr.0.inner_key", "https://"+upstreamHost+"/bar")
+			require.NoError(t, err)
+			body, err = sjson.SetBytes(body, "inner_resp.inner_key", "https://"+upstreamHost)
 			require.NoError(t, err)
 
 			resp := &http.Response{
-				Status:        "OK",
-				StatusCode:    200,
+				Status:        http.StatusText(http.StatusOK),
+				StatusCode:    http.StatusOK,
 				Proto:         "http",
 				Body:          io.NopCloser(bytes.NewReader(body)),
 				ContentLength: int64(len(body)),
 			}
 
 			b, _, err := bodyResponseRewrite(resp, c)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
-			assert.Equal(t, "https://auth.example.com/foo", gjson.GetBytes(b, "inner_resp.inner_key").Str)
-			assert.Equal(t, "https://auth.example.com/foo/path", gjson.GetBytes(b, "some_key").Str)
-			assert.Equal(t, "https://auth.example.com/foo/bar", gjson.GetBytes(b, "inner_resp_arr.0.inner_key").Str)
+			assert.Equal(t, "https://auth.example.com/foo", gjson.GetBytes(b, "inner_resp.inner_key").Str, "%s", b)
+			assert.Equal(t, "https://auth.example.com/foo/path", gjson.GetBytes(b, "some_key").Str, "%s", b)
+			assert.Equal(t, "https://auth.example.com/foo/bar", gjson.GetBytes(b, "inner_resp_arr.0.inner_key").Str, "%s", b)
 		})
 
 		t.Run("case=string body and no path prefix", func(t *testing.T) {
@@ -343,7 +310,7 @@ func TestRewrites(t *testing.T) {
 			}
 
 			b, _, err := bodyResponseRewrite(resp, c)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, fmt.Sprintf("this is a string body https://%s", c.originalHost+c.PathPrefix), string(b))
 		})
 

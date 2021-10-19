@@ -20,9 +20,6 @@ import (
 // unit test, but should use all features like path prefix, ...
 
 // Things on the TODO:
-// - Test Middleware
-//   - Request
-//   - Response
 // - Test onError function
 
 const statusTestFailure = 555
@@ -246,9 +243,9 @@ func TestFullIntegration(t *testing.T) {
 				return req
 			},
 			assertResponse: func(t *testing.T, r *http.Response) {
-				var body []byte
-				_, err := r.Body.Read(body)
+				body, err := io.ReadAll(r.Body)
 				require.NoError(t, err)
+				assert.Equal(t, "OK", string(body))
 				assert.Equal(t, "1234", r.Header.Get("Some-Header"))
 			},
 			reqMiddleware: func(req *http.Request, body []byte) ([]byte, error) {
