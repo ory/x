@@ -10,7 +10,7 @@ replace github.com/gobuffalo/packr => github.com/gobuffalo/packr v1.30.1
 
 require (
 	github.com/bmatcuk/doublestar/v2 v2.0.3
-	github.com/bradleyjkemp/cupaloy/v2 v2.6.0 // indirect
+	github.com/bradleyjkemp/cupaloy/v2 v2.6.0
 	github.com/cockroachdb/cockroach-go/v2 v2.1.1
 	github.com/dgraph-io/ristretto v0.1.0
 	github.com/docker/docker v17.12.0-ce-rc1.0.20201201034508-7d75c1d40d88+incompatible
