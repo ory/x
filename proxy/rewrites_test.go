@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tidwall/gjson"
 	"io"
 	"net/http"
 	"net/url"
@@ -313,10 +314,10 @@ func TestRewrites(t *testing.T) {
 
 			b, _, err := bodyResponseRewrite(resp, c)
 			assert.NoError(t, err)
-			assert.NoError(t, json.Unmarshal(b, &br))
-			assert.Equal(t, "https://auth.example.com/foo", br.InnerResp.InnerKey)
-			assert.Equal(t, "https://auth.example.com/foo/path", br.SomeKey)
-			assert.Equal(t, "https://auth.example.com/foo/bar", br.InnerRespArr[0].InnerKey)
+
+			assert.Equal(t, "https://auth.example.com/foo", gjson.GetBytes(b, "inner_resp.inner_key").Str)
+			assert.Equal(t, "https://auth.example.com/foo/path", gjson.GetBytes(b, "some_key").Str)
+			assert.Equal(t, "https://auth.example.com/foo/bar", gjson.GetBytes(b, "inner_resp_arr.0.inner_key").Str)
 		})
 
 		t.Run("case=string body and no path prefix", func(t *testing.T) {
