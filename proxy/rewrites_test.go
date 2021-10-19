@@ -3,22 +3,21 @@ package proxy
 import (
 	"bytes"
 	"compress/gzip"
+	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"testing"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tidwall/gjson"
+	"io"
+	"net/http"
+	"net/url"
+	"strings"
+	"testing"
 )
 
 // This test is a unit test for all the rewrite functions,
 // including **all** edge cases. It should not go through the network
 // and reverse proxy, but just test all helper functions.
-
-// Things on the TODO:
-// - headerResponseRewrite
-// - bodyResponseRewrite
 
 type nopWriteCloser struct {
 	io.Writer
@@ -64,8 +63,8 @@ func TestRewrites(t *testing.T) {
 				UpstreamHost:     "upstream.ory.sh",
 			}
 
-			url := "https://example.com"
-			req, err := http.NewRequest(http.MethodPost, url, bytes.NewBufferString(fmt.Sprintf("some text containing the requested URL %s/foo plus a path", url)))
+			u := "https://example.com"
+			req, err := http.NewRequest(http.MethodPost, u, bytes.NewBufferString(fmt.Sprintf("some text containing the requested URL %s/foo plus a path", u)))
 			require.NoError(t, err)
 
 			newBody, _, err := bodyRequestRewrite(req, c)
@@ -80,13 +79,274 @@ func TestRewrites(t *testing.T) {
 				PathPrefix:       "/.ory",
 			}
 
-			url := "https://example.com"
-			req, err := http.NewRequest(http.MethodPost, url, bytes.NewBufferString(fmt.Sprintf("some text containing the requested URL %s/.ory/foo but with a prefix", url)))
+			u := "https://example.com"
+			req, err := http.NewRequest(http.MethodPost, u, bytes.NewBufferString(fmt.Sprintf("some text containing the requested URL %s/.ory/foo but with a prefix", u)))
 			require.NoError(t, err)
 
 			newBody, _, err := bodyRequestRewrite(req, c)
 			assert.Equal(t, fmt.Sprintf("some text containing the requested URL %s://%s/foo but with a prefix", c.UpstreamProtocol, c.UpstreamHost), string(newBody))
 		})
+
+		t.Run("case=json replacement", func(t *testing.T) {
+			c := &HostConfig{
+				CookieDomain:     "example.com",
+				UpstreamHost:     "upstream.ory.sh",
+				PathPrefix:       "/.ory",
+				UpstreamProtocol: "https",
+				originalHost:     "auth.example.com",
+				originalScheme:   "http",
+			}
+
+			type bodyDetailsJson struct {
+				InnerUrl string `json:"inner_url"`
+			}
+
+			type bodyJson struct {
+				Url     string          `json:"url"`
+				Details bodyDetailsJson `json:"details"`
+			}
+
+			body := bodyJson{
+				Url: "http://" + c.originalHost + c.PathPrefix,
+				Details: bodyDetailsJson{
+					InnerUrl: "http://" + c.originalHost + c.PathPrefix + "/path",
+				},
+			}
+
+			jbody, err := json.Marshal(&body)
+			require.NoError(t, err)
+
+			req, err := http.NewRequest(http.MethodPost, "http://"+c.originalHost, bytes.NewBuffer(jbody))
+			require.NoError(t, err)
+
+			newBody, _, err := bodyRequestRewrite(req, c)
+
+			bb := &bodyJson{}
+			require.NoError(t, json.Unmarshal(newBody, &bb))
+			assert.Equal(t, "http://"+c.UpstreamHost, bb.Url)
+			assert.Equal(t, "http://"+c.UpstreamHost+"/path", bb.Details.InnerUrl)
+		})
+	})
+
+	t.Run("suit=HeaderResponse", func(t *testing.T) {
+
+		t.Run("case=replace location and cookie", func(t *testing.T) {
+			upstreamHost := "some-project-1234.oryapis.com"
+
+			c := &HostConfig{
+				CookieDomain:     "example.com",
+				UpstreamHost:     upstreamHost,
+				PathPrefix:       "/foo",
+				UpstreamProtocol: "https",
+				originalHost:     "example.com",
+				originalScheme:   "http",
+			}
+
+			header := http.Header{}
+			cookie := http.Cookie{
+				Name:   "cookie.example",
+				Value:  "1234",
+				Domain: upstreamHost,
+			}
+
+			location := url.URL{
+				Scheme: "https",
+				Host:   upstreamHost,
+				Path:   "/bar",
+			}
+
+			header.Set("Set-Cookie", cookie.String())
+			header.Set("Location", location.String())
+
+			resp := &http.Response{
+				Status:        "ok",
+				StatusCode:    200,
+				Proto:         "https",
+				Header:        header,
+				Body:          nil,
+				ContentLength: 0,
+			}
+
+			err := headerResponseRewrite(resp, c)
+			require.NoError(t, err)
+
+			loc, err := resp.Location()
+			require.NoError(t, err)
+
+			assert.Equal(t, c.originalHost, loc.Host)
+			assert.Equal(t, c.originalScheme, loc.Scheme)
+			assert.Equal(t, "/foo/bar", loc.Path)
+
+			for _, co := range resp.Cookies() {
+				assert.Equal(t, c.CookieDomain, co.Domain)
+			}
+		})
+
+		t.Run("case=replace cookie", func(t *testing.T) {
+			upstreamHost := "some-project-1234.oryapis.com"
+
+			c := &HostConfig{
+				CookieDomain:     "example.com",
+				UpstreamHost:     upstreamHost,
+				PathPrefix:       "/foo",
+				UpstreamProtocol: "https",
+				originalHost:     "example.com",
+				originalScheme:   "http",
+			}
+
+			header := http.Header{}
+			cookie := http.Cookie{
+				Name:   "cookie.example",
+				Value:  "1234",
+				Domain: upstreamHost,
+			}
+
+			header.Set("Set-Cookie", cookie.String())
+
+			resp := &http.Response{
+				Status:        "ok",
+				StatusCode:    200,
+				Proto:         "https",
+				Header:        header,
+				Body:          nil,
+				ContentLength: 0,
+			}
+
+			err := headerResponseRewrite(resp, c)
+			require.NoError(t, err)
+
+			_, err = resp.Location()
+			require.Error(t, err)
+
+			for _, co := range resp.Cookies() {
+				assert.Equal(t, c.CookieDomain, co.Domain)
+			}
+		})
+
+		t.Run("case=no replaced header fields", func(t *testing.T) {
+			upstreamHost := "some-project-1234.oryapis.com"
+
+			c := &HostConfig{
+				CookieDomain:     "example.com",
+				UpstreamHost:     upstreamHost,
+				PathPrefix:       "/foo",
+				UpstreamProtocol: "https",
+				originalHost:     "example.com",
+				originalScheme:   "http",
+			}
+
+			header := http.Header{}
+
+			resp := &http.Response{
+				Status:     "ok",
+				StatusCode: 200,
+				Proto:      "https",
+				Header:     header,
+			}
+
+			err := headerResponseRewrite(resp, c)
+			require.NoError(t, err)
+
+			assert.Len(t, resp.Cookies(), 0)
+		})
+
+	})
+
+	t.Run("suit=BodyResponse", func(t *testing.T) {
+
+		t.Run("case=empty body", func(t *testing.T) {
+			resp := &http.Response{
+				Status:        "OK",
+				StatusCode:    200,
+				Proto:         "http",
+				Body:          nil,
+				ContentLength: 0,
+			}
+
+			_, _, err := bodyResponseRewrite(resp, &HostConfig{})
+			assert.NoError(t, err)
+		})
+
+		t.Run("case=json body with path prefix", func(t *testing.T) {
+			upstreamHost := "some-project-1234.oryapis.com"
+
+			c := &HostConfig{
+				CookieDomain:     "example.com",
+				UpstreamHost:     upstreamHost,
+				PathPrefix:       "/foo",
+				UpstreamProtocol: "http",
+				originalHost:     "auth.example.com",
+				originalScheme:   "https",
+			}
+
+			type bodyRespInner struct {
+				InnerKey string `json:"inner_key"`
+			}
+
+			type bodyResp struct {
+				SomeKey      string          `json:"some_key"`
+				InnerRespArr []bodyRespInner `json:"inner_resp_arr"`
+				InnerResp    bodyRespInner   `json:"inner_resp"`
+			}
+
+			br := bodyResp{
+				SomeKey: "https://" + upstreamHost + "/path",
+				InnerRespArr: []bodyRespInner{
+					{
+						InnerKey: "https://" + upstreamHost + "/bar",
+					},
+				},
+				InnerResp: bodyRespInner{
+					InnerKey: "https://" + upstreamHost,
+				},
+			}
+
+			body, err := json.Marshal(&br)
+			require.NoError(t, err)
+
+			resp := &http.Response{
+				Status:        "OK",
+				StatusCode:    200,
+				Proto:         "http",
+				Body:          io.NopCloser(bytes.NewReader(body)),
+				ContentLength: int64(len(body)),
+			}
+
+			b, _, err := bodyResponseRewrite(resp, c)
+			assert.NoError(t, err)
+
+			assert.Equal(t, "https://auth.example.com/foo", gjson.GetBytes(b, "inner_resp.inner_key").Str)
+			assert.Equal(t, "https://auth.example.com/foo/path", gjson.GetBytes(b, "some_key").Str)
+			assert.Equal(t, "https://auth.example.com/foo/bar", gjson.GetBytes(b, "inner_resp_arr.0.inner_key").Str)
+		})
+
+		t.Run("case=string body and no path prefix", func(t *testing.T) {
+			upstreamHost := "some-project-1234.oryapis.com"
+
+			c := &HostConfig{
+				CookieDomain:     "example.com",
+				UpstreamHost:     upstreamHost,
+				PathPrefix:       "/foo",
+				UpstreamProtocol: "http",
+				originalHost:     "auth.example.com",
+				originalScheme:   "https",
+			}
+
+			bs := fmt.Sprintf("this is a string body https://%s", upstreamHost)
+
+			resp := &http.Response{
+				Status:        "OK",
+				StatusCode:    200,
+				Proto:         "http",
+				Body:          io.NopCloser(strings.NewReader(bs)),
+				ContentLength: int64(len(bs)),
+			}
+
+			b, _, err := bodyResponseRewrite(resp, c)
+			assert.NoError(t, err)
+			assert.Equal(t, fmt.Sprintf("this is a string body https://%s", c.originalHost+c.PathPrefix), string(b))
+		})
+
 	})
 }
 

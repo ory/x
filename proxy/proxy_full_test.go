@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -96,11 +97,29 @@ func TestFullIntegration(t *testing.T) {
 
 	// create the proxy
 	hostMapper := make(chan func(host string) (*HostConfig, error))
+	reqMiddleware := make(chan ReqMiddleware)
+	respMiddleware := make(chan RespMiddleware)
+
 	proxy := httptest.NewTLSServer(New(
 		WithHostMapper(func(host string) (*HostConfig, error) {
 			return (<-hostMapper)(host)
 		}),
-		WithTransport(upstreamServer.Client().Transport)))
+		WithTransport(upstreamServer.Client().Transport),
+		WithReqMiddleware(func(req *http.Request, body []byte) ([]byte, error) {
+			f := <-reqMiddleware
+			if f == nil {
+				return body, nil
+			}
+			return f(req, body)
+		}),
+		WithRespMiddleware(func(resp *http.Response, body []byte) ([]byte, error) {
+			f := <-respMiddleware
+			if f == nil {
+				return body, nil
+			}
+			return f(resp, body)
+		})))
+
 	cl := proxy.Client()
 	cl.Transport = &testingRoundTripper{t, cl.Transport}
 	cl.CheckRedirect = func(*http.Request, []*http.Request) error {
@@ -113,6 +132,8 @@ func TestFullIntegration(t *testing.T) {
 		handler        func(assert *assert.Assertions, w http.ResponseWriter, r *http.Request)
 		request        func(t *testing.T) *http.Request
 		assertResponse func(t *testing.T, r *http.Response)
+		reqMiddleware  ReqMiddleware
+		respMiddleware RespMiddleware
 	}{
 		{
 			desc: "body replacement",
@@ -205,6 +226,42 @@ func TestFullIntegration(t *testing.T) {
 				assert.Equal(t, "cookie.love", c.Domain)
 			},
 		},
+		{
+			desc: "custom middleware",
+			hostMapper: func(host string) (*HostConfig, error) {
+				return &HostConfig{}, nil
+			},
+			handler: func(assert *assert.Assertions, w http.ResponseWriter, r *http.Request) {
+				assert.Equal("noauth.example.com", r.Host)
+				b, err := ioutil.ReadAll(r.Body)
+				assert.NoError(err)
+				assert.Equal("this is a new body", string(b))
+
+				_, err = w.Write([]byte("OK"))
+				assert.NoError(err)
+			},
+			request: func(t *testing.T) *http.Request {
+				req, err := http.NewRequest(http.MethodPost, proxy.URL, bytes.NewReader([]byte("body")))
+				require.NoError(t, err)
+				req.Host = "auth.example.com"
+				return req
+			},
+			assertResponse: func(t *testing.T, r *http.Response) {
+				var body []byte
+				_, err := r.Body.Read(body)
+				require.NoError(t, err)
+				assert.Equal(t, "1234", r.Header.Get("Some-Header"))
+			},
+			reqMiddleware: func(req *http.Request, body []byte) ([]byte, error) {
+				req.Host = "noauth.example.com"
+				body = []byte("this is a new body")
+				return body, nil
+			},
+			respMiddleware: func(resp *http.Response, body []byte) ([]byte, error) {
+				resp.Header.Add("Some-Header", "1234")
+				return body, nil
+			},
+		},
 	} {
 		t.Run("case="+tc.desc, func(t *testing.T) {
 			go func() {
@@ -216,10 +273,14 @@ func TestFullIntegration(t *testing.T) {
 					}
 					return hc, err
 				}
+				reqMiddleware <- tc.reqMiddleware
+
 				upstreamHandler.handlers <- func(w http.ResponseWriter, r *http.Request) {
 					t := &remoteT{t: t, w: w, r: r}
 					tc.handler(assert.New(t), t, r)
 				}
+
+				respMiddleware <- tc.respMiddleware
 			}()
 			resp, err := cl.Do(tc.request(t))
 			require.NoError(t, err)
