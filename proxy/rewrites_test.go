@@ -18,10 +18,6 @@ import (
 // including **all** edge cases. It should not go through the network
 // and reverse proxy, but just test all helper functions.
 
-// Things on the TODO:
-// - headerResponseRewrite
-// - bodyResponseRewrite
-
 type nopWriteCloser struct {
 	io.Writer
 }
