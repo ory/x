@@ -43,10 +43,6 @@ type (
 )
 
 func (h *chanHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path == "/health/ready" {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
 	(<-h.handlers)(w, r)
 }
 

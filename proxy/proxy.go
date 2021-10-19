@@ -125,9 +125,10 @@ func modifyResponse(o *options) func(*http.Response) error {
 	}
 }
 
-func WithOnError(onErr func(*http.Response, error) error) Options {
+func WithOnError(onReqErr func(*http.Request, error), onResErr func(*http.Response, error) error) Options {
 	return func(o *options) {
-		o.onResError = onErr
+		o.onReqError = onReqErr
+		o.onResError = onResErr
 	}
 }
 
