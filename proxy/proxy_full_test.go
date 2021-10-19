@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -98,7 +99,7 @@ func TestFullIntegration(t *testing.T) {
 	respMiddleware := make(chan RespMiddleware)
 
 	proxy := httptest.NewTLSServer(New(
-		func(host string) (*HostConfig, error) {
+		func(_ context.Context, host string) (*HostConfig, error) {
 			return (<-hostMapper)(host)
 		},
 		WithTransport(upstreamServer.Client().Transport),
