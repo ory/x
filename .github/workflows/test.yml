@@ -13,6 +13,9 @@ jobs:
     name: Run Tests on Windows
     runs-on: windows-latest
     steps:
+      - run: |
+          git config --system core.autocrlf false
+          git config --system core.eol lf
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
         with:
