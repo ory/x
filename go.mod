@@ -8,9 +8,6 @@ replace github.com/oleiade/reflections => github.com/oleiade/reflections v1.0.1
 
 replace github.com/gobuffalo/packr => github.com/gobuffalo/packr v1.30.1
 
-// remove once https://github.com/bradleyjkemp/cupaloy/pull/73 is merged
-replace github.com/bradleyjkemp/cupaloy/v2 => github.com/zepatrik/cupaloy/v2 v2.6.1-0.20211019093922-8f89419be769
-
 require (
 	github.com/bmatcuk/doublestar/v2 v2.0.3
 	github.com/bradleyjkemp/cupaloy/v2 v2.6.0
