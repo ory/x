@@ -10,6 +10,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/ory/x/httpx"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -26,10 +28,6 @@ import (
 const statusTestFailure = 555
 
 type (
-	handler     func(w http.ResponseWriter, r *http.Request)
-	chanHandler struct {
-		handlers chan handler
-	}
 	remoteT struct {
 		w      http.ResponseWriter
 		r      *http.Request
@@ -41,10 +39,6 @@ type (
 		rt http.RoundTripper
 	}
 )
-
-func (h *chanHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	(<-h.handlers)(w, r)
-}
 
 func (t *remoteT) Errorf(format string, args ...interface{}) {
 	t.failed = true
@@ -83,10 +77,8 @@ func (rt *testingRoundTripper) RoundTrip(req *http.Request) (*http.Response, err
 }
 
 func TestFullIntegration(t *testing.T) {
-	upstreamHandler := &chanHandler{
-		handlers: make(chan handler),
-	}
-	upstreamServer := httptest.NewTLSServer(upstreamHandler)
+	upstream, upstreamHandler := httpx.NewChanHandler(0)
+	upstreamServer := httptest.NewTLSServer(upstream)
 	defer upstreamServer.Close()
 
 	// create the proxy
@@ -268,7 +260,7 @@ func TestFullIntegration(t *testing.T) {
 				}
 				reqMiddleware <- tc.reqMiddleware
 
-				upstreamHandler.handlers <- func(w http.ResponseWriter, r *http.Request) {
+				upstreamHandler <- func(w http.ResponseWriter, r *http.Request) {
 					t := &remoteT{t: t, w: w, r: r}
 					tc.handler(assert.New(t), t, r)
 				}
