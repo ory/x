@@ -29,15 +29,26 @@ func NewChangeFeedConnection(ctx context.Context, l *logrusx.Logger, dsn string)
 
 	_, _, _, _, cleanedDSN := sqlcon.ParseConnectionOptions(l, dsn)
 	cleanedDSN = strings.Replace(dsn, "cockroach://", "postgres://", 1)
+	l.WithField("component", "github.com/ory/x/watcherx.NewChangeFeedConnection").Info("Opening watcherx database connection.")
 	cx, err := sqlx.Open("pgx", cleanedDSN)
 	if err != nil {
 		return nil, err
 	}
 
+	l.WithField("component", "github.com/ory/x/watcherx.NewChangeFeedConnection").Info("Connection to watcherx database is open.")
+
 	cx.SetMaxIdleConns(1)
 	cx.SetMaxOpenConns(1)
 	cx.SetConnMaxLifetime(-1)
 	cx.SetConnMaxIdleTime(-1)
+
+	l.WithField("component", "github.com/ory/x/watcherx.NewChangeFeedConnection").Info("Trying to ping the watcherx database connection.")
+
+	if err := cx.PingContext(ctx); err != nil {
+		return nil, err
+	}
+
+	l.WithField("component", "github.com/ory/x/watcherx.NewChangeFeedConnection").Info("Enabling CHANGEFEED on watcherx database connection.")
 
 	// Ensure CHANGEFEED is enabled
 	_, err = cx.ExecContext(ctx, "SET CLUSTER SETTING kv.rangefeed.enabled = true")
@@ -45,9 +56,7 @@ func NewChangeFeedConnection(ctx context.Context, l *logrusx.Logger, dsn string)
 		return nil, errors.WithStack(err)
 	}
 
-	if err := cx.PingContext(ctx); err != nil {
-		return nil, err
-	}
+	l.WithField("component", "github.com/ory/x/watcherx.NewChangeFeedConnection").Info("Initialization of CHANGEFEED is done.")
 
 	return cx, nil
 }
