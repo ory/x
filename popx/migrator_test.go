@@ -1,4 +1,4 @@
-package popx
+package popx_test
 
 import (
 	"bytes"
@@ -17,6 +17,7 @@ import (
 
 	"github.com/ory/x/logrusx"
 	"github.com/ory/x/pkgerx"
+	. "github.com/ory/x/popx"
 	"github.com/ory/x/sqlcon/dockertest"
 )
 
