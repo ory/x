@@ -4,10 +4,11 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/ory/x/httpx"
+
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/urfave/negroni"
 )
 
 // Metrics prototypes
@@ -106,20 +107,17 @@ func (h Metrics) instrumentHandlerStatusBucket(next http.Handler) http.HandlerFu
 	return func(rw http.ResponseWriter, r *http.Request) {
 		next.ServeHTTP(rw, r)
 
-		res, ok := rw.(negroni.ResponseWriter)
-		if !ok {
-			return
-		}
+		status, _ := httpx.GetResponseMeta(rw)
 
 		statusBucket := "unknown"
 		switch {
-		case res.Status() >= 200 && res.Status() <= 299:
+		case status >= 200 && status <= 299:
 			statusBucket = "2xx"
-		case res.Status() >= 300 && res.Status() <= 399:
+		case status >= 300 && status <= 399:
 			statusBucket = "3xx"
-		case res.Status() >= 400 && res.Status() <= 499:
+		case status >= 400 && status <= 499:
 			statusBucket = "4xx"
-		case res.Status() >= 500 && res.Status() <= 599:
+		case status >= 500 && status <= 599:
 			statusBucket = "5xx"
 		}
 
@@ -131,10 +129,9 @@ func (h Metrics) instrumentHandlerStatusBucket(next http.Handler) http.HandlerFu
 // Instrument will instrument any http.HandlerFunc with custom metrics
 func (h Metrics) Instrument(rw http.ResponseWriter, next http.HandlerFunc, endpoint string) http.HandlerFunc {
 	labels := prometheus.Labels{}
-	res, ok := rw.(negroni.ResponseWriter)
-	if ok && res.Status() != 0 {
-		labels = prometheus.Labels{"code": strconv.Itoa(res.Status())}
-	}
+	status, _ := httpx.GetResponseMeta(rw)
+
+	labels = prometheus.Labels{"code": strconv.Itoa(status)}
 	wrapped := promhttp.InstrumentHandlerResponseSize(h.responseSize.MustCurryWith(labels), next)
 	wrapped = promhttp.InstrumentHandlerCounter(h.totalRequests.MustCurryWith(labels), wrapped)
 	wrapped = promhttp.InstrumentHandlerDuration(h.duration.MustCurryWith(labels), wrapped)
