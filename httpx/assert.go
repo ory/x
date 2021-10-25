@@ -2,26 +2,20 @@ package httpx
 
 import (
 	"net/http"
-
-	"github.com/urfave/negroni"
 )
 
 func GetResponseMeta(w http.ResponseWriter) (status, size int) {
 	switch t := w.(type) {
-	case interface {
-		Status() int
-		Written() int64
-	}:
-		return t.Status(), int(t.Written())
-	case negroni.ResponseWriter:
-		return t.Status(), t.Size()
+	case interface{ Status() int }:
+		status = t.Status()
 	}
 
-	if t, ok := w.(interface {
-		Status() int
-	}); ok {
-		return t.Status(), 0
+	switch t := w.(type) {
+	case interface{ Size() int }:
+		size = t.Size()
+	case interface{ Written() int64 }:
+		size = int(t.Written())
 	}
 
-	return 0, 0
+	return
 }
