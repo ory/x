@@ -129,9 +129,10 @@ func (h Metrics) instrumentHandlerStatusBucket(next http.Handler) http.HandlerFu
 // Instrument will instrument any http.HandlerFunc with custom metrics
 func (h Metrics) Instrument(rw http.ResponseWriter, next http.HandlerFunc, endpoint string) http.HandlerFunc {
 	labels := prometheus.Labels{}
-	status, _ := httpx.GetResponseMeta(rw)
+	if status, _ := httpx.GetResponseMeta(rw); status != 0 {
+		labels = prometheus.Labels{"code": strconv.Itoa(status)}
+	}
 
-	labels = prometheus.Labels{"code": strconv.Itoa(status)}
 	wrapped := promhttp.InstrumentHandlerResponseSize(h.responseSize.MustCurryWith(labels), next)
 	wrapped = promhttp.InstrumentHandlerCounter(h.totalRequests.MustCurryWith(labels), wrapped)
 	wrapped = promhttp.InstrumentHandlerDuration(h.duration.MustCurryWith(labels), wrapped)
