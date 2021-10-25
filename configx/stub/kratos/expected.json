@@ -88,8 +88,15 @@
               "id": "google",
               "provider": "google",
               "mapper_url": "file:///etc/config/kratos/oidc.google.jsonnet",
-              "client_id": "client@example.com",
-              "client_secret": "secret"
+              "client_id": "googleclient@example.com",
+              "client_secret": "googlesecret"
+            },
+            {
+              "id": "apple",
+              "provider": "generic",
+              "mapper_url": "file:///etc/config/kratos/oidc.apple.jsonnet",
+              "client_id": "appleclient@example.com",
+              "client_secret": "applesecret"
             }
           ]
         }
