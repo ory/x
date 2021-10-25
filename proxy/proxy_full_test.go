@@ -23,9 +23,6 @@ import (
 // It does not have to cover **all** edge cases included in the rewrite
 // unit test, but should use all features like path prefix, ...
 
-// Things on the TODO:
-// - Test onError function
-
 const statusTestFailure = 555
 
 type (

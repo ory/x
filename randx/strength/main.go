@@ -65,10 +65,7 @@ func draw(distribution map[string]int, title, filename string) {
 		group = append(group, float64(v))
 	}
 
-	p, err := plot.New()
-	if err != nil {
-		panic(err)
-	}
+	p := plot.New()
 	p.Title.Text = title
 	p.Y.Label.Text = "N"
 
