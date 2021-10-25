@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/pkg/errors"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -86,6 +87,12 @@ func TestFullIntegration(t *testing.T) {
 	reqMiddleware := make(chan ReqMiddleware)
 	respMiddleware := make(chan RespMiddleware)
 
+	type CustomErrorReq func(*http.Request, error)
+	type CustomErrorResp func(*http.Response, error) error
+
+	onErrorReq := make(chan CustomErrorReq)
+	onErrorResp := make(chan CustomErrorResp)
+
 	proxy := httptest.NewTLSServer(New(
 		func(_ context.Context, host string) (*HostConfig, error) {
 			return (<-hostMapper)(host)
@@ -104,7 +111,21 @@ func TestFullIntegration(t *testing.T) {
 				return body, nil
 			}
 			return f(resp, body)
+		}),
+		WithOnError(func(request *http.Request, err error) {
+			f := <-onErrorReq
+			if f == nil {
+				return
+			}
+			f(request, err)
+		}, func(response *http.Response, err error) error {
+			f := <-onErrorResp
+			if f == nil {
+				return nil
+			}
+			return f(response, err)
 		})))
+
 	cl := proxy.Client()
 	cl.Transport = &testingRoundTripper{t, cl.Transport}
 	cl.CheckRedirect = func(*http.Request, []*http.Request) error {
@@ -119,6 +140,8 @@ func TestFullIntegration(t *testing.T) {
 		assertResponse func(t *testing.T, r *http.Response)
 		reqMiddleware  ReqMiddleware
 		respMiddleware RespMiddleware
+		onErrReq       CustomErrorReq
+		onErrResp      CustomErrorResp
 	}{
 		{
 			desc: "body replacement",
@@ -247,6 +270,56 @@ func TestFullIntegration(t *testing.T) {
 				return body, nil
 			},
 		},
+		{
+			desc: "custom request errors",
+			hostMapper: func(host string) (*HostConfig, error) {
+				return &HostConfig{}, errors.New("some host mapper error occurred")
+			},
+			handler: func(assert *assert.Assertions, w http.ResponseWriter, r *http.Request) {
+				_, err := w.Write([]byte("OK"))
+				assert.NoError(err)
+			},
+			request: func(t *testing.T) *http.Request {
+				req, err := http.NewRequest(http.MethodPost, proxy.URL, bytes.NewReader([]byte("body")))
+				require.NoError(t, err)
+				req.Host = "auth.example.com"
+				return req
+			},
+			assertResponse: func(t *testing.T, r *http.Response) {
+				return
+			},
+			onErrReq: func(request *http.Request, err error) {
+				assert.Error(t, err)
+				assert.Equal(t, "some host mapper error occurred", err.Error())
+			},
+		},
+		{
+			desc: "custom response errors",
+			hostMapper: func(host string) (*HostConfig, error) {
+				return &HostConfig{}, nil
+			},
+			handler: func(assert *assert.Assertions, w http.ResponseWriter, r *http.Request) {
+				_, err := w.Write([]byte("OK"))
+				assert.NoError(err)
+			},
+			request: func(t *testing.T) *http.Request {
+				req, err := http.NewRequest(http.MethodPost, proxy.URL, bytes.NewReader([]byte("body")))
+				require.NoError(t, err)
+				req.Host = "auth.example.com"
+				return req
+			},
+			assertResponse: func(t *testing.T, r *http.Response) {
+				return
+			},
+			respMiddleware: func(resp *http.Response, body []byte) ([]byte, error) {
+				return nil, errors.New("some response middleware error")
+			},
+			onErrResp: func(response *http.Response, err error) error {
+				assert.Error(t, err)
+				assert.Equal(t, "some response middleware error", err.Error())
+				return err
+			},
+		},
 	} {
 		t.Run("case="+tc.desc, func(t *testing.T) {
 			go func() {
@@ -259,14 +332,21 @@ func TestFullIntegration(t *testing.T) {
 					return hc, err
 				}
 				reqMiddleware <- tc.reqMiddleware
-
 				upstreamHandler <- func(w http.ResponseWriter, r *http.Request) {
 					t := &remoteT{t: t, w: w, r: r}
 					tc.handler(assert.New(t), t, r)
 				}
-
 				respMiddleware <- tc.respMiddleware
 			}()
+
+			go func() {
+				onErrorReq <- tc.onErrReq
+			}()
+
+			go func() {
+				onErrorResp <- tc.onErrResp
+			}()
+
 			resp, err := cl.Do(tc.request(t))
 			require.NoError(t, err)
 			tc.assertResponse(t, resp)
