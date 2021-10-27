@@ -21,6 +21,7 @@ type (
 	HostConfig struct {
 		// CookieDomain the host under which the cookie should be set
 		// e.g. example.com
+		// If left empty, will ask the browser to use the browser address bar's host (default HTTP Cookie behavior)
 		CookieDomain string
 		// UpstreamHost the target upstream host the proxy will pass the connection to
 		// e.g. fluffy-bear-afiu23iaysd.oryapis.com
