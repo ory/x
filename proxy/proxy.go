@@ -64,10 +64,15 @@ func director(o *options) func(*http.Request) {
 
 		headerRequestRewrite(r, c)
 
-		body, cb, err := bodyRequestRewrite(r, c)
-		if err != nil {
-			o.onReqError(r, err)
-			return
+		var body []byte
+		var cb *compressableBody
+
+		if r.ContentLength != 0 {
+			body, cb, err = readBody(r.Header, r.Body)
+			if err != nil {
+				o.onReqError(r, err)
+				return
+			}
 		}
 
 		for _, m := range o.reqMiddlewares {

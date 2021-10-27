@@ -160,7 +160,7 @@ func TestFullIntegration(t *testing.T) {
 				assert.NoError(err)
 			},
 			request: func(t *testing.T) *http.Request {
-				req, err := http.NewRequest(http.MethodPost, proxy.URL+"/foo", bytes.NewBufferString("some random content containing the request URL and path prefix https://example.com/foo/bar but also other stuff"))
+				req, err := http.NewRequest(http.MethodPost, proxy.URL+"/foo", bytes.NewBufferString(fmt.Sprintf("some random content containing the request URL and path prefix %s/bar but also other stuff", upstreamServer.URL)))
 				require.NoError(t, err)
 				req.Host = "example.com"
 				return req
