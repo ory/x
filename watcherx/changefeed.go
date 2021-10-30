@@ -155,15 +155,18 @@ func WatchChangeFeed(ctx context.Context, cx *sqlx.DB, tableName string, c Event
 			}
 			return
 		}
+
+		if err := cx.Close(); err != nil {
+			c <- &ErrorEvent{
+				error: err,
+			}
+			return
+		}
 		// end close
 	}()
 
 	if rows.Err() != nil {
 		return nil, rows.Err()
-	}
-
-	if err := cx.Close(); err != nil {
-		return nil, err
 	}
 
 	return d, nil
