@@ -76,8 +76,6 @@ func TestChangeFeed(t *testing.T) {
 	}, itemCount)
 
 	go func() {
-		defer close(events)
-
 		for k := range rowsToCreate {
 			c := rowsToCreate[k]
 			c.id = uuid.New().String()
@@ -103,9 +101,18 @@ func TestChangeFeed(t *testing.T) {
 	}()
 
 	var received []Event
-	for row := range events {
-		t.Logf("%+v", row)
-		received = append(received, row)
+	done := false
+	for !done {
+		select {
+		case <-time.After(time.Second * 2):
+			done = true
+		case row, ok := <-events:
+			if !ok {
+				done = true
+			}
+			t.Logf("%+v", row)
+			received = append(received, row)
+		}
 	}
 
 	expectedEventCount := watcherCount * itemCount * 3 // 3 operations: insert, update, delete
