@@ -62,8 +62,12 @@ type Migrator struct {
 	l                   *logrusx.Logger
 	PerMigrationTimeout time.Duration
 	tracer              *tracing.Tracer
+
+	// DumpMigrations if true will dump the migrations to a file called schema.sql
+	DumpMigrations bool
 }
 
+// MigrationIsCompatible returns true if the migration is compatible with the current database.
 func (m *Migrator) MigrationIsCompatible(dialect string, mi Migration) bool {
 	if mi.DBType == "all" || mi.DBType == dialect {
 		return true
@@ -524,9 +528,12 @@ func (m *Migrator) startSpan(ctx context.Context, opName string) (opentracing.Sp
 func (m *Migrator) exec(ctx context.Context, fn func() error) error {
 	now := time.Now()
 	defer func() {
+		if !m.DumpMigrations {
+			return
+		}
 		err := m.DumpMigrationSchema(ctx)
 		if err != nil {
-			m.l.WithError(err).Warn("Migrator: unable to dump schema")
+			m.l.WithError(err).Error("Migrator: unable to dump schema")
 		}
 	}()
 	defer m.printTimer(now)
