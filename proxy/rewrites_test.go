@@ -33,15 +33,15 @@ func TestRewrites(t *testing.T) {
 		req, err := http.NewRequest(http.MethodGet, "https://example.com/foo/bar", nil)
 		require.NoError(t, err)
 		c := &HostConfig{
-			CookieDomain:     "example.com",
-			originalHost:     "example.com",
-			UpstreamHost:     "some-project-1234.oryapis.com",
-			UpstreamProtocol: "https",
-			PathPrefix:       "/foo",
+			CookieDomain:   "example.com",
+			originalHost:   "example.com",
+			UpstreamHost:   "some-project-1234.oryapis.com",
+			UpstreamScheme: "https",
+			PathPrefix:     "/foo",
 		}
 
 		headerRequestRewrite(req, c)
-		assert.Equal(t, c.UpstreamProtocol, req.URL.Scheme)
+		assert.Equal(t, c.UpstreamScheme, req.URL.Scheme)
 		assert.Equal(t, c.UpstreamHost, req.URL.Host)
 		assert.Equal(t, "/bar", req.URL.Path)
 	})
@@ -52,12 +52,12 @@ func TestRewrites(t *testing.T) {
 			upstreamHost := "some-project-1234.oryapis.com"
 
 			c := &HostConfig{
-				CookieDomain:     "example.com",
-				UpstreamHost:     upstreamHost,
-				PathPrefix:       "/foo",
-				UpstreamProtocol: "https",
-				originalHost:     "example.com",
-				originalScheme:   "http",
+				CookieDomain:   "example.com",
+				UpstreamHost:   upstreamHost,
+				PathPrefix:     "/foo",
+				UpstreamScheme: "https",
+				originalHost:   "example.com",
+				originalScheme: "http",
 			}
 
 			header := http.Header{}
@@ -104,12 +104,12 @@ func TestRewrites(t *testing.T) {
 			upstreamHost := "some-project-1234.oryapis.com"
 
 			c := &HostConfig{
-				CookieDomain:     "example.com",
-				UpstreamHost:     upstreamHost,
-				PathPrefix:       "/foo",
-				UpstreamProtocol: "https",
-				originalHost:     "example.com",
-				originalScheme:   "http",
+				CookieDomain:   "example.com",
+				UpstreamHost:   upstreamHost,
+				PathPrefix:     "/foo",
+				UpstreamScheme: "https",
+				originalHost:   "example.com",
+				originalScheme: "http",
 			}
 
 			header := http.Header{}
@@ -145,12 +145,12 @@ func TestRewrites(t *testing.T) {
 			upstreamHost := "some-project-1234.oryapis.com"
 
 			c := &HostConfig{
-				CookieDomain:     "example.com",
-				UpstreamHost:     upstreamHost,
-				PathPrefix:       "/foo",
-				UpstreamProtocol: "https",
-				originalHost:     "example.com",
-				originalScheme:   "http",
+				CookieDomain:   "example.com",
+				UpstreamHost:   upstreamHost,
+				PathPrefix:     "/foo",
+				UpstreamScheme: "https",
+				originalHost:   "example.com",
+				originalScheme: "http",
 			}
 
 			header := http.Header{}
@@ -189,12 +189,12 @@ func TestRewrites(t *testing.T) {
 			upstreamHost := "some-project-1234.oryapis.com"
 
 			c := &HostConfig{
-				CookieDomain:     "example.com",
-				UpstreamHost:     upstreamHost,
-				PathPrefix:       "/foo",
-				UpstreamProtocol: "http",
-				originalHost:     "auth.example.com",
-				originalScheme:   "https",
+				CookieDomain:   "example.com",
+				UpstreamHost:   upstreamHost,
+				PathPrefix:     "/foo",
+				UpstreamScheme: "http",
+				originalHost:   "auth.example.com",
+				originalScheme: "https",
 			}
 
 			body, err := sjson.SetBytes([]byte("{}"), "some_key", "https://"+upstreamHost+"/path")
@@ -224,12 +224,12 @@ func TestRewrites(t *testing.T) {
 			upstreamHost := "some-project-1234.oryapis.com"
 
 			c := &HostConfig{
-				CookieDomain:     "example.com",
-				UpstreamHost:     upstreamHost,
-				PathPrefix:       "/foo",
-				UpstreamProtocol: "http",
-				originalHost:     "auth.example.com",
-				originalScheme:   "https",
+				CookieDomain:   "example.com",
+				UpstreamHost:   upstreamHost,
+				PathPrefix:     "/foo",
+				UpstreamScheme: "http",
+				originalHost:   "auth.example.com",
+				originalScheme: "https",
 			}
 
 			bs := fmt.Sprintf("this is a string body https://%s", upstreamHost)

@@ -95,19 +95,19 @@ func TestFullIntegration(t *testing.T) {
 			return (<-hostMapper)(host)
 		},
 		WithTransport(upstreamServer.Client().Transport),
-		WithReqMiddleware(func(req *http.Request, body []byte) ([]byte, error) {
+		WithReqMiddleware(func(req *http.Request, config *HostConfig, body []byte) ([]byte, error) {
 			f := <-reqMiddleware
 			if f == nil {
 				return body, nil
 			}
-			return f(req, body)
+			return f(req, config, body)
 		}),
-		WithRespMiddleware(func(resp *http.Response, body []byte) ([]byte, error) {
+		WithRespMiddleware(func(resp *http.Response, config *HostConfig, body []byte) ([]byte, error) {
 			f := <-respMiddleware
 			if f == nil {
 				return body, nil
 			}
-			return f(resp, body)
+			return f(resp, config, body)
 		}),
 		WithOnError(func(request *http.Request, err error) {
 			f := <-onErrorReq
@@ -257,12 +257,12 @@ func TestFullIntegration(t *testing.T) {
 				assert.Equal(t, "OK", string(body))
 				assert.Equal(t, "1234", r.Header.Get("Some-Header"))
 			},
-			reqMiddleware: func(req *http.Request, body []byte) ([]byte, error) {
+			reqMiddleware: func(req *http.Request, config *HostConfig, body []byte) ([]byte, error) {
 				req.Host = "noauth.example.com"
 				body = []byte("this is a new body")
 				return body, nil
 			},
-			respMiddleware: func(resp *http.Response, body []byte) ([]byte, error) {
+			respMiddleware: func(resp *http.Response, config *HostConfig, body []byte) ([]byte, error) {
 				resp.Header.Add("Some-Header", "1234")
 				return body, nil
 			},
@@ -308,7 +308,7 @@ func TestFullIntegration(t *testing.T) {
 			assertResponse: func(t *testing.T, r *http.Response) {
 				return
 			},
-			respMiddleware: func(resp *http.Response, body []byte) ([]byte, error) {
+			respMiddleware: func(resp *http.Response, config *HostConfig, body []byte) ([]byte, error) {
 				return nil, errors.New("some response middleware error")
 			},
 			onErrResp: func(response *http.Response, err error) error {
@@ -324,7 +324,7 @@ func TestFullIntegration(t *testing.T) {
 					hc, err := tc.hostMapper(host)
 					if err == nil {
 						hc.UpstreamHost = urlx.ParseOrPanic(upstreamServer.URL).Host
-						hc.UpstreamProtocol = urlx.ParseOrPanic(upstreamServer.URL).Scheme
+						hc.UpstreamScheme = urlx.ParseOrPanic(upstreamServer.URL).Scheme
 					}
 					return hc, err
 				}
