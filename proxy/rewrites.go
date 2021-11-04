@@ -3,7 +3,6 @@ package proxy
 import (
 	"bytes"
 	"compress/gzip"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -64,20 +63,24 @@ func headerResponseRewrite(resp *http.Response, c *HostConfig) error {
 		resp.Header.Set("Location", redir.String())
 	}
 
+	ReplaceCookieDomain(resp, c.UpstreamHost, c.CookieDomain)
+
+	return nil
+}
+
+func ReplaceCookieDomain(resp *http.Response, original, replacement string) {
+	original, replacement = stripPort(original), stripPort(replacement) // cookies don't distinguish ports
+
 	cookies := resp.Cookies()
 	resp.Header.Del("Set-Cookie")
 
-	cDomain := stripPort(c.UpstreamHost) // cookies don't distinguish ports
 	for _, co := range cookies {
 		// only alter cookies that were set by the upstream host for our original host (the proxy's domain)
-		fmt.Printf("got cookie domain %s, checking against domain %s\n", co.Domain, cDomain)
-		if strings.EqualFold(co.Domain, cDomain) {
-			co.Domain = c.CookieDomain
+		if strings.EqualFold(co.Domain, original) {
+			co.Domain = replacement
 		}
 		resp.Header.Add("Set-Cookie", co.String())
 	}
-
-	return nil
 }
 
 func bodyResponseRewrite(resp *http.Response, c *HostConfig) ([]byte, *compressableBody, error) {
