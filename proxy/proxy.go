@@ -56,10 +56,14 @@ func director(o *options) func(*http.Request) {
 			return
 		}
 
-		c.originalScheme = "https"
-		if r.TLS == nil {
+		if forwardedProto := r.Header.Get("X-Forwarded-Proto"); forwardedProto != "" {
+			c.originalScheme = forwardedProto
+		} else if r.TLS == nil {
 			c.originalScheme = "http"
+		} else {
+			c.originalScheme = "https"
 		}
+
 		c.originalHost = r.Host
 		*r = *r.WithContext(context.WithValue(r.Context(), hostConfigKey, c))
 
