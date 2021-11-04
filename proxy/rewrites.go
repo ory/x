@@ -3,8 +3,10 @@ package proxy
 import (
 	"bytes"
 	"compress/gzip"
+	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 
@@ -64,9 +66,11 @@ func headerResponseRewrite(resp *http.Response, c *HostConfig) error {
 
 	cookies := resp.Cookies()
 	resp.Header.Del("Set-Cookie")
+
+	cDomain := stripPort(c.UpstreamHost) // cookies don't distinguish ports
 	for _, co := range cookies {
 		// only alter cookies that were set by the upstream host for our original host (the proxy's domain)
-		cDomain := stripPort(c.UpstreamHost) // cookies don't distinguish ports
+		fmt.Printf("got cookie domain %s, checking against domain %s\n", co.Domain, cDomain)
 		if strings.EqualFold(co.Domain, cDomain) {
 			co.Domain = c.CookieDomain
 		}
@@ -114,12 +118,7 @@ func readBody(h http.Header, body io.ReadCloser) ([]byte, *compressableBody, err
 	return b, cb, nil
 }
 
-// stripPort removes the optional port from the host. It does not validate the port or host.
-// Supports DNS and IPv4 (but not IPv6) hosts.
+// stripPort removes the optional port from the host.
 func stripPort(host string) string {
-	colon := strings.LastIndexByte(host, ':')
-	if colon != -1 {
-		host = host[:colon]
-	}
-	return host
+	return (&url.URL{Host: host}).Hostname()
 }
