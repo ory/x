@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/pkg/errors"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/http/httputil"
 	"testing"
+
+	"github.com/pkg/errors"
 
 	"github.com/ory/x/httpx"
 
@@ -349,4 +351,76 @@ func TestFullIntegration(t *testing.T) {
 			tc.assertResponse(t, resp)
 		})
 	}
+}
+
+func TestBetweenReverseProxies(t *testing.T) {
+	// the target thinks it is running under the targetHost, while actually it is behind all three proxies
+	targetHost := "foobar.ory.sh"
+	targetHandler, c := httpx.NewChanHandler(1)
+	target := httptest.NewServer(targetHandler)
+
+	revProxyHandler := httputil.NewSingleHostReverseProxy(urlx.ParseOrPanic(target.URL))
+	revProxy := httptest.NewServer(revProxyHandler)
+
+	thisProxy := httptest.NewServer(New(func(ctx context.Context, host string) (*HostConfig, error) {
+		return &HostConfig{
+			CookieDomain:   "sh",
+			UpstreamHost:   urlx.ParseOrPanic(revProxy.URL).Host,
+			UpstreamScheme: urlx.ParseOrPanic(revProxy.URL).Scheme,
+			TargetHost:     targetHost,
+		}, nil
+	}))
+
+	ingressHandler := httputil.NewSingleHostReverseProxy(urlx.ParseOrPanic(thisProxy.URL))
+	ingress := httptest.NewServer(ingressHandler)
+
+	// In this scenario we want to force the use of the X-Forwarded-Host header instead of the Host header.
+	singleHostDirector := ingressHandler.Director
+	ingressHandler.Director = func(req *http.Request) {
+		singleHostDirector(req)
+		req.Header.Set("X-Forwarded-Host", req.Host)
+		req.Host = urlx.ParseOrPanic(ingress.URL).Host
+	}
+
+	t.Run("case=replaces body properly", func(t *testing.T) {
+		const pattern = "Hello, I am available under http://%s!"
+		c <- func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintf(w, pattern, targetHost)
+		}
+
+		host := "example.com"
+		req, err := http.NewRequest(http.MethodGet, ingress.URL, nil)
+		require.NoError(t, err)
+		req.Host = host
+
+		resp, err := http.DefaultClient.Do(req)
+		require.NoError(t, err)
+		body, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		assert.Equal(t, fmt.Sprintf(pattern, host), string(body))
+	})
+
+	t.Run("case=replaces cookies properly", func(t *testing.T) {
+		c <- func(w http.ResponseWriter, r *http.Request) {
+			http.SetCookie(w, &http.Cookie{
+				Name:   "foo",
+				Value:  "setting this cookie for my own domain",
+				Domain: targetHost,
+			})
+		}
+
+		host := "example.com"
+		req, err := http.NewRequest(http.MethodGet, ingress.URL, nil)
+		require.NoError(t, err)
+		req.Host = host
+
+		resp, err := http.DefaultClient.Do(req)
+		require.NoError(t, err)
+
+		cookies := resp.Cookies()
+		require.Len(t, cookies, 1)
+		assert.Equal(t, "foo", cookies[0].Name)
+		assert.Equal(t, "setting this cookie for my own domain", cookies[0].Value)
+		assert.Equal(t, "sh", cookies[0].Domain)
+	})
 }

@@ -98,6 +98,7 @@ func director(o *options) func(*http.Request) {
 			return
 		}
 
+		r.Header.Del("Content-Length")
 		r.ContentLength = int64(n)
 		r.Body = io.NopCloser(cb)
 	}
@@ -134,6 +135,7 @@ func modifyResponse(o *options) func(*http.Response) error {
 			return o.onResError(r, err)
 		}
 
+		r.Header.Del("Content-Length")
 		r.ContentLength = int64(n)
 		r.Body = io.NopCloser(cb)
 		return nil
