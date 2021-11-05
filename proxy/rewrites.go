@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"io"
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 
@@ -39,7 +40,7 @@ func (b *compressableBody) Read(p []byte) (n int, err error) {
 }
 
 func headerRequestRewrite(req *http.Request, c *HostConfig) {
-	req.URL.Scheme = c.UpstreamProtocol
+	req.URL.Scheme = c.UpstreamScheme
 	req.URL.Host = c.UpstreamHost
 	req.URL.Path = strings.TrimPrefix(req.URL.Path, c.PathPrefix)
 
@@ -55,25 +56,30 @@ func headerResponseRewrite(resp *http.Response, c *HostConfig) error {
 		if !errors.Is(err, http.ErrNoLocation) {
 			return errors.WithStack(err)
 		}
-	} else {
+	} else if redir.Host == c.TargetHost {
 		redir.Scheme = c.originalScheme
 		redir.Host = c.originalHost
 		redir.Path = path.Join(c.PathPrefix, redir.Path)
 		resp.Header.Set("Location", redir.String())
 	}
 
+	ReplaceCookieDomain(resp, c.TargetHost, c.CookieDomain)
+
+	return nil
+}
+
+// ReplaceCookieDomain replaces the domain of all matching Set-Cookie headers in the response.
+func ReplaceCookieDomain(resp *http.Response, original, replacement string) {
+	original, replacement = stripPort(original), stripPort(replacement) // cookies don't distinguish ports
+
 	cookies := resp.Cookies()
 	resp.Header.Del("Set-Cookie")
 	for _, co := range cookies {
-		// only alter cookies that were set by the upstream host for our original host (the proxy's domain)
-		cDomain := stripPort(c.UpstreamHost) // cookies don't distinguish ports
-		if strings.EqualFold(co.Domain, cDomain) {
-			co.Domain = c.CookieDomain
+		if strings.EqualFold(co.Domain, original) {
+			co.Domain = replacement
 		}
 		resp.Header.Add("Set-Cookie", co.String())
 	}
-
-	return nil
 }
 
 func bodyResponseRewrite(resp *http.Response, c *HostConfig) ([]byte, *compressableBody, error) {
@@ -86,7 +92,7 @@ func bodyResponseRewrite(resp *http.Response, c *HostConfig) ([]byte, *compressa
 		return nil, nil, err
 	}
 
-	return bytes.ReplaceAll(body, []byte(c.UpstreamHost), []byte(c.originalHost+c.PathPrefix)), cb, nil
+	return bytes.ReplaceAll(body, []byte(c.TargetHost), []byte(c.originalHost+c.PathPrefix)), cb, nil
 }
 
 func readBody(h http.Header, body io.ReadCloser) ([]byte, *compressableBody, error) {
@@ -114,12 +120,7 @@ func readBody(h http.Header, body io.ReadCloser) ([]byte, *compressableBody, err
 	return b, cb, nil
 }
 
-// stripPort removes the optional port from the host. It does not validate the port or host.
-// Supports DNS and IPv4 (but not IPv6) hosts.
+// stripPort removes the optional port from the host.
 func stripPort(host string) string {
-	colon := strings.LastIndexByte(host, ':')
-	if colon != -1 {
-		host = host[:colon]
-	}
-	return host
+	return (&url.URL{Host: host}).Hostname()
 }

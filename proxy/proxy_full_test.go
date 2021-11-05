@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/http/httputil"
 	"testing"
 
 	"github.com/pkg/errors"
@@ -96,19 +97,19 @@ func TestFullIntegration(t *testing.T) {
 			return (<-hostMapper)(host)
 		},
 		WithTransport(upstreamServer.Client().Transport),
-		WithReqMiddleware(func(req *http.Request, body []byte) ([]byte, error) {
+		WithReqMiddleware(func(req *http.Request, config *HostConfig, body []byte) ([]byte, error) {
 			f := <-reqMiddleware
 			if f == nil {
 				return body, nil
 			}
-			return f(req, body)
+			return f(req, config, body)
 		}),
-		WithRespMiddleware(func(resp *http.Response, body []byte) ([]byte, error) {
+		WithRespMiddleware(func(resp *http.Response, config *HostConfig, body []byte) ([]byte, error) {
 			f := <-respMiddleware
 			if f == nil {
 				return body, nil
 			}
-			return f(resp, body)
+			return f(resp, config, body)
 		}),
 		WithOnError(func(request *http.Request, err error) {
 			f := <-onErrorReq
@@ -258,12 +259,12 @@ func TestFullIntegration(t *testing.T) {
 				assert.Equal(t, "OK", string(body))
 				assert.Equal(t, "1234", r.Header.Get("Some-Header"))
 			},
-			reqMiddleware: func(req *http.Request, body []byte) ([]byte, error) {
+			reqMiddleware: func(req *http.Request, config *HostConfig, body []byte) ([]byte, error) {
 				req.Host = "noauth.example.com"
 				body = []byte("this is a new body")
 				return body, nil
 			},
-			respMiddleware: func(resp *http.Response, body []byte) ([]byte, error) {
+			respMiddleware: func(resp *http.Response, config *HostConfig, body []byte) ([]byte, error) {
 				resp.Header.Add("Some-Header", "1234")
 				return body, nil
 			},
@@ -309,7 +310,7 @@ func TestFullIntegration(t *testing.T) {
 			assertResponse: func(t *testing.T, r *http.Response) {
 				return
 			},
-			respMiddleware: func(resp *http.Response, body []byte) ([]byte, error) {
+			respMiddleware: func(resp *http.Response, config *HostConfig, body []byte) ([]byte, error) {
 				return nil, errors.New("some response middleware error")
 			},
 			onErrResp: func(response *http.Response, err error) error {
@@ -325,7 +326,8 @@ func TestFullIntegration(t *testing.T) {
 					hc, err := tc.hostMapper(host)
 					if err == nil {
 						hc.UpstreamHost = urlx.ParseOrPanic(upstreamServer.URL).Host
-						hc.UpstreamProtocol = urlx.ParseOrPanic(upstreamServer.URL).Scheme
+						hc.UpstreamScheme = urlx.ParseOrPanic(upstreamServer.URL).Scheme
+						hc.TargetHost = hc.UpstreamHost
 					}
 					return hc, err
 				}
@@ -350,4 +352,96 @@ func TestFullIntegration(t *testing.T) {
 			tc.assertResponse(t, resp)
 		})
 	}
+}
+
+func TestBetweenReverseProxies(t *testing.T) {
+	// the target thinks it is running under the targetHost, while actually it is behind all three proxies
+	targetHost := "foobar.ory.sh"
+	targetHandler, c := httpx.NewChanHandler(1)
+	target := httptest.NewServer(targetHandler)
+
+	revProxyHandler := httputil.NewSingleHostReverseProxy(urlx.ParseOrPanic(target.URL))
+	revProxy := httptest.NewServer(revProxyHandler)
+
+	thisProxy := httptest.NewServer(New(func(ctx context.Context, host string) (*HostConfig, error) {
+		return &HostConfig{
+			CookieDomain:   "sh",
+			UpstreamHost:   urlx.ParseOrPanic(revProxy.URL).Host,
+			UpstreamScheme: urlx.ParseOrPanic(revProxy.URL).Scheme,
+			TargetHost:     targetHost,
+		}, nil
+	}))
+
+	ingressHandler := httputil.NewSingleHostReverseProxy(urlx.ParseOrPanic(thisProxy.URL))
+	ingress := httptest.NewServer(ingressHandler)
+
+	// In this scenario we want to force the use of the X-Forwarded-Host header instead of the Host header.
+	singleHostDirector := ingressHandler.Director
+	ingressHandler.Director = func(req *http.Request) {
+		singleHostDirector(req)
+		req.Header.Set("X-Forwarded-Host", req.Host)
+		req.Host = urlx.ParseOrPanic(ingress.URL).Host
+	}
+
+	t.Run("case=replaces body", func(t *testing.T) {
+		const pattern = "Hello, I am available under http://%s!"
+		c <- func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintf(w, pattern, targetHost)
+		}
+
+		host := "example.com"
+		req, err := http.NewRequest(http.MethodGet, ingress.URL, nil)
+		require.NoError(t, err)
+		req.Host = host
+
+		resp, err := http.DefaultClient.Do(req)
+		require.NoError(t, err)
+		body, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		assert.Equal(t, fmt.Sprintf(pattern, host), string(body))
+	})
+
+	t.Run("case=replaces cookies", func(t *testing.T) {
+		c <- func(w http.ResponseWriter, r *http.Request) {
+			http.SetCookie(w, &http.Cookie{
+				Name:   "foo",
+				Value:  "setting this cookie for my own domain",
+				Domain: targetHost,
+			})
+		}
+
+		req, err := http.NewRequest(http.MethodGet, ingress.URL, nil)
+		require.NoError(t, err)
+		req.Host = "example.com"
+
+		resp, err := http.DefaultClient.Do(req)
+		require.NoError(t, err)
+
+		cookies := resp.Cookies()
+		require.Len(t, cookies, 1)
+		assert.Equal(t, "foo", cookies[0].Name)
+		assert.Equal(t, "setting this cookie for my own domain", cookies[0].Value)
+		assert.Equal(t, "sh", cookies[0].Domain)
+	})
+
+	t.Run("case=replaces location", func(t *testing.T) {
+		c <- func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "http://"+targetHost, http.StatusSeeOther)
+		}
+
+		host := "example.com"
+		req, err := http.NewRequest(http.MethodGet, ingress.URL, nil)
+		require.NoError(t, err)
+		req.Host = host
+
+		resp, err := (&http.Client{
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
+		}).Do(req)
+		require.NoError(t, err)
+
+		assert.Equal(t, http.StatusSeeOther, resp.StatusCode)
+		assert.Equal(t, "http://"+host, resp.Header.Get("Location"))
+	})
 }
