@@ -327,6 +327,7 @@ func TestFullIntegration(t *testing.T) {
 					if err == nil {
 						hc.UpstreamHost = urlx.ParseOrPanic(upstreamServer.URL).Host
 						hc.UpstreamScheme = urlx.ParseOrPanic(upstreamServer.URL).Scheme
+						hc.TargetHost = hc.UpstreamHost
 					}
 					return hc, err
 				}
