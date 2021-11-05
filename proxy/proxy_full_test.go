@@ -383,7 +383,7 @@ func TestBetweenReverseProxies(t *testing.T) {
 		req.Host = urlx.ParseOrPanic(ingress.URL).Host
 	}
 
-	t.Run("case=replaces body properly", func(t *testing.T) {
+	t.Run("case=replaces body", func(t *testing.T) {
 		const pattern = "Hello, I am available under http://%s!"
 		c <- func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(w, pattern, targetHost)
@@ -401,7 +401,7 @@ func TestBetweenReverseProxies(t *testing.T) {
 		assert.Equal(t, fmt.Sprintf(pattern, host), string(body))
 	})
 
-	t.Run("case=replaces cookies properly", func(t *testing.T) {
+	t.Run("case=replaces cookies", func(t *testing.T) {
 		c <- func(w http.ResponseWriter, r *http.Request) {
 			http.SetCookie(w, &http.Cookie{
 				Name:   "foo",
@@ -410,10 +410,9 @@ func TestBetweenReverseProxies(t *testing.T) {
 			})
 		}
 
-		host := "example.com"
 		req, err := http.NewRequest(http.MethodGet, ingress.URL, nil)
 		require.NoError(t, err)
-		req.Host = host
+		req.Host = "example.com"
 
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
@@ -423,5 +422,26 @@ func TestBetweenReverseProxies(t *testing.T) {
 		assert.Equal(t, "foo", cookies[0].Name)
 		assert.Equal(t, "setting this cookie for my own domain", cookies[0].Value)
 		assert.Equal(t, "sh", cookies[0].Domain)
+	})
+
+	t.Run("case=replaces location", func(t *testing.T) {
+		c <- func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "http://"+targetHost, http.StatusSeeOther)
+		}
+
+		host := "example.com"
+		req, err := http.NewRequest(http.MethodGet, ingress.URL, nil)
+		require.NoError(t, err)
+		req.Host = host
+
+		resp, err := (&http.Client{
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
+		}).Do(req)
+		require.NoError(t, err)
+
+		assert.Equal(t, http.StatusSeeOther, resp.StatusCode)
+		assert.Equal(t, "http://"+host, resp.Header.Get("Location"))
 	})
 }
