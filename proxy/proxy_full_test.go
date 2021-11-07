@@ -82,7 +82,7 @@ func TestFullIntegration(t *testing.T) {
 	defer upstreamServer.Close()
 
 	// create the proxy
-	hostMapper := make(chan func(host string) (*HostConfig, error))
+	hostMapper := make(chan func(*http.Request) (*HostConfig, error))
 	reqMiddleware := make(chan ReqMiddleware)
 	respMiddleware := make(chan RespMiddleware)
 
@@ -93,8 +93,8 @@ func TestFullIntegration(t *testing.T) {
 	onErrorResp := make(chan CustomErrorResp)
 
 	proxy := httptest.NewTLSServer(New(
-		func(_ context.Context, host string) (*HostConfig, error) {
-			return (<-hostMapper)(host)
+		func(_ context.Context, r *http.Request) (*HostConfig, error) {
+			return (<-hostMapper)(r)
 		},
 		WithTransport(upstreamServer.Client().Transport),
 		WithReqMiddleware(func(req *http.Request, config *HostConfig, body []byte) ([]byte, error) {
@@ -322,7 +322,8 @@ func TestFullIntegration(t *testing.T) {
 	} {
 		t.Run("case="+tc.desc, func(t *testing.T) {
 			go func() {
-				hostMapper <- func(host string) (*HostConfig, error) {
+				hostMapper <- func(r *http.Request) (*HostConfig, error) {
+					host := r.Host
 					hc, err := tc.hostMapper(host)
 					if err == nil {
 						hc.UpstreamHost = urlx.ParseOrPanic(upstreamServer.URL).Host
@@ -363,7 +364,7 @@ func TestBetweenReverseProxies(t *testing.T) {
 	revProxyHandler := httputil.NewSingleHostReverseProxy(urlx.ParseOrPanic(target.URL))
 	revProxy := httptest.NewServer(revProxyHandler)
 
-	thisProxy := httptest.NewServer(New(func(ctx context.Context, host string) (*HostConfig, error) {
+	thisProxy := httptest.NewServer(New(func(ctx context.Context, _ *http.Request) (*HostConfig, error) {
 		return &HostConfig{
 			CookieDomain:   "sh",
 			UpstreamHost:   urlx.ParseOrPanic(revProxy.URL).Host,

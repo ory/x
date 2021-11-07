@@ -10,8 +10,9 @@ import (
 type (
 	RespMiddleware func(resp *http.Response, config *HostConfig, body []byte) ([]byte, error)
 	ReqMiddleware  func(req *http.Request, config *HostConfig, body []byte) ([]byte, error)
+	HostMapper     func(ctx context.Context, r *http.Request) (*HostConfig, error)
 	options        struct {
-		hostMapper      func(context.Context, string) (*HostConfig, error)
+		hostMapper      HostMapper
 		onResError      func(*http.Response, error) error
 		onReqError      func(*http.Request, error)
 		respMiddlewares []RespMiddleware
@@ -51,7 +52,7 @@ const (
 // director is a custom internal function for altering a http.Request
 func director(o *options) func(*http.Request) {
 	return func(r *http.Request) {
-		c, err := o.hostMapper(r.Context(), r.Host)
+		c, err := o.hostMapper(r.Context(), r)
 		if err != nil {
 			o.onReqError(r, err)
 			return
@@ -169,7 +170,7 @@ func WithTransport(t http.RoundTripper) Options {
 
 // New creates a new Proxy
 // A Proxy sets up a middleware with custom request and response modification handlers
-func New(hostMapper func(ctx context.Context, host string) (*HostConfig, error), opts ...Options) http.Handler {
+func New(hostMapper HostMapper, opts ...Options) http.Handler {
 	o := &options{
 		hostMapper: hostMapper,
 		onReqError: func(*http.Request, error) {},
