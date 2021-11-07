@@ -293,7 +293,7 @@ func TestRewrites(t *testing.T) {
 				CookieDomain:   "example.com",
 				TargetHost:     "some-project-1234.oryapis.com",
 				UpstreamHost:   "some-project-1234.oryapis.com",
-				UpstreamScheme: "http",
+				UpstreamScheme: "https",
 				PathPrefix:     "/foo",
 				originalHost:   "auth.example.com",
 				originalScheme: "https",
@@ -311,17 +311,17 @@ func TestRewrites(t *testing.T) {
 				CookieDomain:   "example.com",
 				TargetHost:     "actually.host.com",
 				UpstreamHost:   "some-project-1234.oryapis.com",
-				UpstreamScheme: "http",
+				UpstreamScheme: "https",
 				PathPrefix:     "/foo",
 				originalHost:   "auth.example.com",
-				originalScheme: "https",
+				originalScheme: "http",
 			}
 
 			resp := newOKResp(fmt.Sprintf("I am available at https://%s", c.TargetHost))
 
 			replaced, _, err := bodyResponseRewrite(resp, c)
 			require.NoError(t, err)
-			assert.Equal(t, fmt.Sprintf("I am available at https://%s", c.originalHost+c.PathPrefix), string(replaced))
+			assert.Equal(t, fmt.Sprintf("I am available at http://%s", c.originalHost+c.PathPrefix), string(replaced))
 		})
 	})
 }
