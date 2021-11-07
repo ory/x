@@ -258,17 +258,17 @@ func TestRewrites(t *testing.T) {
 			assert.NoError(t, err)
 		})
 
-		t.Run("case=json body with path prefix", func(t *testing.T) {
+		t.Run("case=json body with path prefix and method rewrite", func(t *testing.T) {
 			upstreamHost := "some-project-1234.oryapis.com"
 
 			c := &HostConfig{
 				CookieDomain:   "example.com",
 				TargetHost:     upstreamHost,
 				UpstreamHost:   upstreamHost,
-				UpstreamScheme: "http",
+				UpstreamScheme: "https",
 				PathPrefix:     "/foo",
 				originalHost:   "auth.example.com",
-				originalScheme: "https",
+				originalScheme: "http",
 			}
 
 			body, err := sjson.Set("{}", "some_key", "https://"+upstreamHost+"/path")
@@ -283,9 +283,9 @@ func TestRewrites(t *testing.T) {
 			b, _, err := bodyResponseRewrite(resp, c)
 			require.NoError(t, err)
 
-			assert.Equal(t, "https://auth.example.com/foo", gjson.GetBytes(b, "inner_resp.inner_key").Str, "%s", b)
-			assert.Equal(t, "https://auth.example.com/foo/path", gjson.GetBytes(b, "some_key").Str, "%s", b)
-			assert.Equal(t, "https://auth.example.com/foo/bar", gjson.GetBytes(b, "inner_resp_arr.0.inner_key").Str, "%s", b)
+			assert.Equal(t, "http://auth.example.com/foo", gjson.GetBytes(b, "inner_resp.inner_key").Str, "%s", b)
+			assert.Equal(t, "http://auth.example.com/foo/path", gjson.GetBytes(b, "some_key").Str, "%s", b)
+			assert.Equal(t, "http://auth.example.com/foo/bar", gjson.GetBytes(b, "inner_resp_arr.0.inner_key").Str, "%s", b)
 		})
 
 		t.Run("case=string body and no path prefix", func(t *testing.T) {
