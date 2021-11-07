@@ -63,13 +63,13 @@ func headerResponseRewrite(resp *http.Response, c *HostConfig) error {
 		resp.Header.Set("Location", redir.String())
 	}
 
-	ReplaceCookieDomain(resp, c.TargetHost, c.CookieDomain)
+	ReplaceCookieDomainAndSecure(resp, c.TargetHost, c.CookieDomain, c.originalScheme == "https")
 
 	return nil
 }
 
-// ReplaceCookieDomain replaces the domain of all matching Set-Cookie headers in the response.
-func ReplaceCookieDomain(resp *http.Response, original, replacement string) {
+// ReplaceCookieDomainAndSecure replaces the domain of all matching Set-Cookie headers in the response.
+func ReplaceCookieDomainAndSecure(resp *http.Response, original, replacement string, secure bool) {
 	original, replacement = stripPort(original), stripPort(replacement) // cookies don't distinguish ports
 
 	cookies := resp.Cookies()
@@ -77,6 +77,7 @@ func ReplaceCookieDomain(resp *http.Response, original, replacement string) {
 	for _, co := range cookies {
 		if strings.EqualFold(co.Domain, original) {
 			co.Domain = replacement
+			co.Secure = secure
 		}
 		resp.Header.Add("Set-Cookie", co.String())
 	}

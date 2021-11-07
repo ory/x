@@ -408,6 +408,7 @@ func TestBetweenReverseProxies(t *testing.T) {
 				Name:   "foo",
 				Value:  "setting this cookie for my own domain",
 				Domain: targetHost,
+				Secure: true,
 			})
 		}
 
@@ -423,6 +424,7 @@ func TestBetweenReverseProxies(t *testing.T) {
 		assert.Equal(t, "foo", cookies[0].Name)
 		assert.Equal(t, "setting this cookie for my own domain", cookies[0].Value)
 		assert.Equal(t, "sh", cookies[0].Domain)
+		assert.Equal(t, false, cookies[0].Secure)
 	})
 
 	t.Run("case=replaces location", func(t *testing.T) {
