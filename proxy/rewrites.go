@@ -92,7 +92,7 @@ func bodyResponseRewrite(resp *http.Response, c *HostConfig) ([]byte, *compressa
 		return nil, nil, err
 	}
 
-	return bytes.ReplaceAll(body, []byte(c.TargetHost), []byte(c.originalHost+c.PathPrefix)), cb, nil
+	return bytes.ReplaceAll(body, []byte(c.UpstreamScheme+"://"+c.TargetHost), []byte(c.originalScheme+"://"+c.originalHost+c.PathPrefix)), cb, nil
 }
 
 func readBody(h http.Header, body io.ReadCloser) ([]byte, *compressableBody, error) {
