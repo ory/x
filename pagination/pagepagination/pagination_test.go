@@ -26,6 +26,7 @@ func TestPaginationHeader(t *testing.T) {
 		}, ",")
 
 		assert.EqualValues(t, expect, r.Result().Header.Get("Link"))
+		assert.EqualValues(t, "120", r.Result().Header.Get("X-Total-Count"))
 	})
 
 	t.Run("Create next and last, but not previous or first if at the beginning", func(t *testing.T) {
@@ -38,6 +39,7 @@ func TestPaginationHeader(t *testing.T) {
 		}, ",")
 
 		assert.EqualValues(t, expect, r.Result().Header.Get("Link"))
+		assert.EqualValues(t, "120", r.Result().Header.Get("X-Total-Count"))
 	})
 
 	t.Run("Create previous, next, first, and last if in the middle", func(t *testing.T) {
@@ -52,6 +54,7 @@ func TestPaginationHeader(t *testing.T) {
 		}, ",")
 
 		assert.EqualValues(t, expect, r.Result().Header.Get("Link"))
+		assert.EqualValues(t, "300", r.Result().Header.Get("X-Total-Count"))
 	})
 
 	t.Run("Header should default limit to 1 no limit was provided", func(t *testing.T) {
@@ -66,6 +69,7 @@ func TestPaginationHeader(t *testing.T) {
 		}, ",")
 
 		assert.EqualValues(t, expect, r.Result().Header.Get("Link"))
+		assert.EqualValues(t, "100", r.Result().Header.Get("X-Total-Count"))
 	})
 
 	t.Run("Create previous, next, first, but not last if in the middle and no total was provided", func(t *testing.T) {
@@ -79,6 +83,7 @@ func TestPaginationHeader(t *testing.T) {
 		}, ",")
 
 		assert.EqualValues(t, expect, r.Result().Header.Get("Link"))
+		assert.EqualValues(t, "0", r.Result().Header.Get("X-Total-Count"))
 	})
 
 	t.Run("Create only first if the limits provided exceeds the number of clients found", func(t *testing.T) {
@@ -88,6 +93,7 @@ func TestPaginationHeader(t *testing.T) {
 		expect := "<http://example.com?page=0&per_page=5>; rel=\"first\""
 
 		assert.EqualValues(t, expect, r.Result().Header.Get("Link"))
+		assert.EqualValues(t, "5", r.Result().Header.Get("X-Total-Count"))
 	})
 }
 
