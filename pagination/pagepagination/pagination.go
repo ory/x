@@ -87,6 +87,8 @@ func PaginationHeader(w http.ResponseWriter, u *url.URL, total int64, page, item
 		lastOffset = (total / itemsPerPage64) * itemsPerPage64
 	}
 
+	w.Header().Set("X-Total-Count", strconv.FormatInt(total, 10))
+
 	// Check for last page
 	if offset >= lastOffset {
 		if total == 0 {
