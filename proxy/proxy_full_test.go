@@ -329,6 +329,7 @@ func TestFullIntegration(t *testing.T) {
 						hc.UpstreamHost = urlx.ParseOrPanic(upstreamServer.URL).Host
 						hc.UpstreamScheme = urlx.ParseOrPanic(upstreamServer.URL).Scheme
 						hc.TargetHost = hc.UpstreamHost
+						hc.TargetScheme = hc.UpstreamScheme
 					}
 					return hc, err
 				}
@@ -369,6 +370,7 @@ func TestBetweenReverseProxies(t *testing.T) {
 			CookieDomain:   "sh",
 			UpstreamHost:   urlx.ParseOrPanic(revProxy.URL).Host,
 			UpstreamScheme: urlx.ParseOrPanic(revProxy.URL).Scheme,
+			TargetScheme:   "http",
 			TargetHost:     targetHost,
 		}, nil
 	}))

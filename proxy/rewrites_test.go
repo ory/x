@@ -264,6 +264,7 @@ func TestRewrites(t *testing.T) {
 			c := &HostConfig{
 				CookieDomain:   "example.com",
 				TargetHost:     upstreamHost,
+				TargetScheme:   "https",
 				UpstreamHost:   upstreamHost,
 				UpstreamScheme: "https",
 				PathPrefix:     "/foo",
@@ -292,6 +293,7 @@ func TestRewrites(t *testing.T) {
 			c := &HostConfig{
 				CookieDomain:   "example.com",
 				TargetHost:     "some-project-1234.oryapis.com",
+				TargetScheme:   "https",
 				UpstreamHost:   "some-project-1234.oryapis.com",
 				UpstreamScheme: "https",
 				PathPrefix:     "/foo",
@@ -299,17 +301,18 @@ func TestRewrites(t *testing.T) {
 				originalScheme: "https",
 			}
 
-			resp := newOKResp(fmt.Sprintf("this is a string body https://%s", c.UpstreamHost))
+			resp := newOKResp(fmt.Sprintf("this is a string body %s://%s", c.TargetScheme, c.TargetHost))
 
 			replaced, _, err := bodyResponseRewrite(resp, c)
 			require.NoError(t, err)
-			assert.Equal(t, fmt.Sprintf("this is a string body https://%s", c.originalHost+c.PathPrefix), string(replaced))
+			assert.Equal(t, fmt.Sprintf("this is a string body %s://%s", c.originalScheme, c.originalHost+c.PathPrefix), string(replaced))
 		})
 
 		t.Run("case=different target and upstream hosts", func(t *testing.T) {
 			c := &HostConfig{
 				CookieDomain:   "example.com",
 				TargetHost:     "actually.host.com",
+				TargetScheme:   "https",
 				UpstreamHost:   "some-project-1234.oryapis.com",
 				UpstreamScheme: "https",
 				PathPrefix:     "/foo",
@@ -317,11 +320,11 @@ func TestRewrites(t *testing.T) {
 				originalScheme: "http",
 			}
 
-			resp := newOKResp(fmt.Sprintf("I am available at https://%s", c.TargetHost))
+			resp := newOKResp(fmt.Sprintf("I am available at %s://%s", c.TargetScheme, c.TargetHost))
 
 			replaced, _, err := bodyResponseRewrite(resp, c)
 			require.NoError(t, err)
-			assert.Equal(t, fmt.Sprintf("I am available at http://%s", c.originalHost+c.PathPrefix), string(replaced))
+			assert.Equal(t, fmt.Sprintf("I am available at %s://%s", c.originalScheme, c.originalHost+c.PathPrefix), string(replaced))
 		})
 	})
 }
