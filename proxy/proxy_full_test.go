@@ -448,3 +448,111 @@ func TestBetweenReverseProxies(t *testing.T) {
 		assert.Equal(t, "http://"+host, resp.Header.Get("Location"))
 	})
 }
+
+func TestProxyProtoMix(t *testing.T) {
+	const exposedHost = "foo.bar"
+
+	setup := func(t *testing.T, targetServerFunc, upstreamServerFunc func(http.Handler) *httptest.Server) (chan<- http.HandlerFunc, string, string, *http.Client) {
+		targetHandler, targetHandlerC := httpx.NewChanHandler(1)
+		targetServer := targetServerFunc(targetHandler)
+
+		upstream := httputil.NewSingleHostReverseProxy(urlx.ParseOrPanic(targetServer.URL))
+		upstream.Transport = targetServer.Client().Transport
+		upstreamServer := upstreamServerFunc(upstream)
+
+		proxy := httptest.NewServer(New(func(ctx context.Context, r *http.Request) (*HostConfig, error) {
+			return &HostConfig{
+				CookieDomain:   exposedHost,
+				UpstreamHost:   urlx.ParseOrPanic(upstreamServer.URL).Host,
+				UpstreamScheme: urlx.ParseOrPanic(upstreamServer.URL).Scheme,
+				TargetHost:     urlx.ParseOrPanic(targetServer.URL).Host,
+				TargetScheme:   urlx.ParseOrPanic(targetServer.URL).Scheme,
+			}, nil
+		}, WithTransport(upstreamServer.Client().Transport)))
+		client := proxy.Client()
+		client.CheckRedirect = func(*http.Request, []*http.Request) error {
+			return http.ErrUseLastResponse
+		}
+
+		return targetHandlerC, targetServer.URL, proxy.URL, client
+	}
+
+	for _, tc := range []struct {
+		name                               string
+		newUpstreamServer, newTargetServer func(http.Handler) *httptest.Server
+	}{
+		{
+			name:              "upstream http, target https",
+			newUpstreamServer: httptest.NewServer,
+			newTargetServer:   httptest.NewTLSServer,
+		},
+		{
+			name:              "upstream https, target http",
+			newUpstreamServer: httptest.NewTLSServer,
+			newTargetServer:   httptest.NewServer,
+		},
+	} {
+		t.Run("case="+tc.name, func(t *testing.T) {
+			handler, targetURL, proxyURL, client := setup(t, httptest.NewTLSServer, httptest.NewServer)
+
+			t.Run("case=redirect", func(t *testing.T) {
+				handler <- func(w http.ResponseWriter, r *http.Request) {
+					http.Redirect(w, r, targetURL+"/see-other", http.StatusSeeOther)
+				}
+
+				req, err := http.NewRequest(http.MethodGet, proxyURL, nil)
+				require.NoError(t, err)
+				req.Host = exposedHost
+
+				resp, err := client.Do(req)
+				require.NoError(t, err)
+				assert.Equal(t, "http://"+exposedHost+"/see-other", resp.Header.Get("Location"))
+			})
+
+			t.Run("case=body rewrite", func(t *testing.T) {
+				const template = "Hello, I am %s, who are you?"
+
+				handler <- func(w http.ResponseWriter, r *http.Request) {
+					_, _ = w.Write([]byte(fmt.Sprintf(template, targetURL)))
+				}
+
+				req, err := http.NewRequest(http.MethodGet, proxyURL, nil)
+				require.NoError(t, err)
+				req.Host = exposedHost
+
+				resp, err := client.Do(req)
+				require.NoError(t, err)
+				body, err := io.ReadAll(resp.Body)
+				require.NoError(t, err)
+				assert.Equal(t, fmt.Sprintf(template, "http://"+exposedHost), string(body))
+			})
+
+			t.Run("case=secure cookies", func(t *testing.T) {
+				handler <- func(w http.ResponseWriter, r *http.Request) {
+					cookie := &http.Cookie{
+						Name:   "foo",
+						Value:  "bar",
+						Domain: stripPort(urlx.ParseOrPanic(targetURL).Host),
+						Secure: true,
+					}
+					http.SetCookie(w, cookie)
+					_, _ = w.Write([]byte("please eat this cookie"))
+				}
+
+				req, err := http.NewRequest(http.MethodGet, proxyURL, nil)
+				require.NoError(t, err)
+				req.Host = exposedHost
+
+				resp, err := client.Do(req)
+				require.NoError(t, err)
+
+				cookies := resp.Cookies()
+				require.Len(t, cookies, 1)
+				assert.Equal(t, "foo", cookies[0].Name)
+				assert.Equal(t, "bar", cookies[0].Value)
+				assert.Equal(t, exposedHost, cookies[0].Domain)
+				assert.Equal(t, false, cookies[0].Secure)
+			})
+		})
+	}
+}
