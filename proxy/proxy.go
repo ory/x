@@ -31,6 +31,9 @@ type (
 		// TargetHost is the final target of the request. Should be the same as UpstreamHost
 		// if the request is directly passed to the target service.
 		TargetHost string
+		// TargetScheme is the final target's scheme
+		// (i.e. the scheme the target thinks it is running under)
+		TargetScheme string
 		// PathPrefix is a prefix that is prepended on the original host,
 		// but removed before forwarding.
 		PathPrefix string
