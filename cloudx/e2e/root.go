@@ -3,8 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/ory/x/cloudx"
 	"os"
+
+	"github.com/ory/x/cloudx"
 
 	"github.com/pkg/errors"
 
