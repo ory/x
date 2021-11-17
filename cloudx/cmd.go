@@ -18,5 +18,6 @@ func NewRootCommand(project string, version string) *cobra.Command {
 	cmd.AddCommand(NewAuthCmd(cmdName))
 	cmd.AddCommand(NewAuthLogoutCmd())
 	cmd.AddCommand(NewProxyCommand(project, cmdName, version))
+	cmd.AddCommand(NewTunnelCommand(project, cmdName, version))
 	return cmd
 }

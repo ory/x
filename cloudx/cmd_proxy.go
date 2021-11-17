@@ -76,6 +76,16 @@ domain:
 		http://127.0.0.1:3000 \
 		https://ory.example.org
 
+Per default, all redirects point to the root path "/". You can change this behavior using the --default-redirect-url
+flag:
+
+    $ %[1]s --default-redirect-url /welcome \
+		http://127.0.0.1:3000 \
+		https://ory.example.org
+
+Now, all redirects happening e.g. after login will point to "/welcome" instead of "/" unless you
+have specified custom redirects in your Ory configuration or in the flow's "?return_to=" query parameter.
+
 If the request is not authenticated, the HTTP Authorization Header will be empty:
 
 	GET / HTTP/1.1
@@ -128,23 +138,29 @@ An example payload of the JSON Web Token is:
 				return err
 			}
 
+			redirectUrl, err := url.Parse(args[0])
+			if err != nil {
+				return err
+			}
+
 			oryURL, err := getEndpointURL(cmd)
 			if err != nil {
 				return err
 			}
 
 			conf := &config{
-				port:         flagx.MustGetInt(cmd, PortFlag),
-				noJWT:        flagx.MustGetBool(cmd, WithoutJWTFlag),
-				noOpen:       !flagx.MustGetBool(cmd, OpenFlag),
-				upstream:     args[0],
-				cookieDomain: flagx.MustGetString(cmd, CookieDomainFlag),
-				publicURL:    selfUrl,
-				oryURL:       oryURL,
-				pathPrefix:   "/.ory",
+				port:              flagx.MustGetInt(cmd, PortFlag),
+				noJWT:             flagx.MustGetBool(cmd, WithoutJWTFlag),
+				noOpen:            !flagx.MustGetBool(cmd, OpenFlag),
+				upstream:          args[0],
+				cookieDomain:      flagx.MustGetString(cmd, CookieDomainFlag),
+				publicURL:         selfUrl,
+				oryURL:            oryURL,
+				pathPrefix:        "/.ory",
+				defaultRedirectTo: redirectUrl,
 			}
 
-			return run(cmd, conf, version)
+			return run(cmd, conf, version, project)
 		},
 	}
 
@@ -153,6 +169,7 @@ An example payload of the JSON Web Token is:
 	proxyCmd.Flags().String(ServiceURL, "", "Set the Ory SDK URL.")
 	proxyCmd.Flags().Int(PortFlag, portFromEnv(), "The port the proxy should listen on.")
 	proxyCmd.Flags().Bool(WithoutJWTFlag, false, "Do not create a JWT from the Ory Kratos Session. Useful if you need fast start up times of the Ory Proxy.")
+	proxyCmd.Flags().String(DefaultRedirectURLFlag, "/", "Set the URL to redirect to per default after e.g. login or account creation.")
 	return proxyCmd
 }
 

@@ -11,7 +11,7 @@
     "format:check": "prettier --check ${npm_package_config_prettierTarget}"
   },
   "devDependencies": {
-    "cypress": "^8.7.0",
+    "cypress": "^9.0.0",
     "jsonwebtoken": "^8.5.1",
     "jwks-rsa": "^2.0.5",
     "ory-prettier-styles": "1.1.2",

@@ -11,14 +11,14 @@
 
 // This function is called when a project is opened or re-opened (e.g. due to
 // the project's config changing)
-const jwks = require("jwks-rsa")
-const jwt = require("jsonwebtoken")
+const jwks = require('jwks-rsa')
+const jwt = require('jsonwebtoken')
 
 function getKey(header, callback) {
   client.getSigningKey(header.kid, function (err, key) {
-    var signingKey = key.publicKey || key.rsaPublicKey;
-    callback(null, signingKey);
-  });
+    var signingKey = key.publicKey || key.rsaPublicKey
+    callback(null, signingKey)
+  })
 }
 
 /**
@@ -36,18 +36,23 @@ module.exports = (on, config) => {
           jwksUri: config.baseUrl + '/.ory/proxy/jwks.json'
         })
 
-        jwt.verify(token, (header, callback) => {
-          client.getSigningKey(header.kid, (err, key) => {
-            callback(null, key.publicKey || key.rsaPublicKey);
-          });
-        }, undefined, (err, decoded) => {
-          if (err) {
-            return reject(err)
-          }
+        jwt.verify(
+          token,
+          (header, callback) => {
+            client.getSigningKey(header.kid, (err, key) => {
+              callback(null, key.publicKey || key.rsaPublicKey)
+            })
+          },
+          undefined,
+          (err, decoded) => {
+            if (err) {
+              return reject(err)
+            }
 
-          return resolve(decoded)
-        })
+            return resolve(decoded)
+          }
+        )
       })
-    },
+    }
   })
 }
