@@ -106,6 +106,10 @@ func bodyResponseRewrite(resp *http.Response, c *HostConfig) ([]byte, *compressa
 		return nil, nil, err
 	}
 
+	if c.TargetScheme == "" {
+		c.TargetScheme = "https"
+	}
+
 	return bytes.ReplaceAll(body, []byte(c.TargetScheme+"://"+c.TargetHost), []byte(c.originalScheme+"://"+c.originalHost+c.PathPrefix)), cb, nil
 }
 
