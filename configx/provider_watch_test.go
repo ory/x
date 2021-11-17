@@ -30,7 +30,7 @@ var ctx = context.Background()
 func tmpConfigFile(t *testing.T, dsn, foo string) *os.File {
 	config := fmt.Sprintf("dsn: %s\nfoo: %s\n", dsn, foo)
 
-	tdir := filepath.Join(os.TempDir() , strconv.FormatInt(time.Now().UnixNano(),10))
+	tdir := filepath.Join(os.TempDir(), strconv.FormatInt(time.Now().UnixNano(), 10))
 	require.NoError(t,
 		os.MkdirAll(tdir, // DO NOT CHANGE THIS: https://github.com/fsnotify/fsnotify/issues/340
 			os.ModePerm))
