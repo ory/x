@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -29,7 +30,7 @@ var ctx = context.Background()
 func tmpConfigFile(t *testing.T, dsn, foo string) *os.File {
 	config := fmt.Sprintf("dsn: %s\nfoo: %s\n", dsn, foo)
 
-	tdir := os.TempDir() + "/" + strconv.Itoa(time.Now().Nanosecond())
+	tdir := filepath.Join(os.TempDir() , strconv.FormatInt(time.Now().UnixNano(),10))
 	require.NoError(t,
 		os.MkdirAll(tdir, // DO NOT CHANGE THIS: https://github.com/fsnotify/fsnotify/issues/340
 			os.ModePerm))
@@ -60,7 +61,7 @@ bar: %s`, dsn, foo, bar)
 }
 
 func lsof(t *testing.T, file string) string {
-	if runtime.GOOS != "linux" {
+	if runtime.GOOS == "windows" {
 		return ""
 	}
 	var b, be bytes.Buffer
@@ -82,14 +83,14 @@ func lsof(t *testing.T, file string) string {
 }
 
 func checkLsof(t *testing.T, file string) string {
-	if runtime.GOOS != "linux" {
+	if runtime.GOOS == "windows" {
 		return ""
 	}
 
 	var b bytes.Buffer
-	c := exec.Command("bash", "-c", "lsof -n | grep "+file+" | wc -l")
+	c := exec.Command("bash", "-c", "lsof -n | grep '"+file+"' | wc -l")
 	c.Stdout = &b
-	require.NoError(t, c.Run())
+	require.NoError(t, c.Run(), c.String())
 	return b.String()
 }
 
