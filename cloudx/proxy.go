@@ -33,22 +33,25 @@ import (
 )
 
 const (
-	PortFlag         = "port"
-	OpenFlag         = "open"
-	WithoutJWTFlag   = "no-jwt"
-	CookieDomainFlag = "cookie-domain"
-	ServiceURL       = "sdk-url"
+	PortFlag               = "port"
+	OpenFlag               = "open"
+	WithoutJWTFlag         = "no-jwt"
+	CookieDomainFlag       = "cookie-domain"
+	DefaultRedirectURLFlag = "default-redirect-url"
+	ServiceURL             = "sdk-url"
 )
 
 type config struct {
-	port         int
-	noOpen       bool
-	noJWT        bool
-	upstream     string
-	cookieDomain string
-	publicURL    *url.URL
-	oryURL       *url.URL
-	pathPrefix   string
+	port              int
+	noOpen            bool
+	noJWT             bool
+	upstream          string
+	cookieDomain      string
+	publicURL         *url.URL
+	oryURL            *url.URL
+	pathPrefix        string
+	defaultRedirectTo *url.URL
+	isTunnel          bool
 }
 
 func portFromEnv() int {
@@ -59,13 +62,13 @@ func portFromEnv() int {
 	return int(port)
 }
 
-func run(cmd *cobra.Command, conf *config, version string) error {
+func run(cmd *cobra.Command, conf *config, version string, name string) error {
 	upstream, err := url.ParseRequestURI(conf.upstream)
 	if err != nil {
 		return errors.Wrap(err, "unable to parse upstream URL")
 	}
 
-	l := logrusx.New("ory/proxy", version)
+	l := logrusx.New("ory/"+strings.ToLower(name), version)
 
 	writer := herodot.NewJSONWriter(l)
 
@@ -91,7 +94,7 @@ func run(cmd *cobra.Command, conf *config, version string) error {
 
 	mw.UseHandler(proxy.New(
 		func(_ context.Context, r *http.Request) (*proxy.HostConfig, error) {
-			if len(conf.pathPrefix) > 0 || strings.HasPrefix(r.URL.Path, conf.pathPrefix) {
+			if conf.isTunnel || strings.HasPrefix(r.URL.Path, conf.pathPrefix) {
 				return &proxy.HostConfig{
 					CookieDomain:   conf.cookieDomain,
 					UpstreamHost:   conf.oryURL.Host,
@@ -141,10 +144,17 @@ func run(cmd *cobra.Command, conf *config, version string) error {
 		Handler: mw,
 	})
 
-	l.Printf("Starting the %s reverse proxy on: %s", proto, server.Addr)
-	l.Printf(`To access your application through the Ory Proxy, open:
+	if conf.isTunnel {
+		l.Printf("Starting the %s tunnel on: %s", proto, server.Addr)
+		l.Printf(`To access Ory %s via the tunnel, open:
 
-	%s`, conf.publicURL.String())
+	%s`, name, conf.publicURL.String())
+	} else {
+		l.Printf("Starting the %s reverse proxy on: %s", proto, server.Addr)
+		l.Printf(`To access your application via the Ory %s Proxy, open:
+
+	%s`, name, conf.publicURL.String())
+	}
 
 	if !conf.noOpen {
 		if err := exec.Command("open", conf.publicURL.String()).Run(); err != nil {
@@ -155,14 +165,14 @@ func run(cmd *cobra.Command, conf *config, version string) error {
 	if err := graceful.Graceful(func() error {
 		return server.ListenAndServe()
 	}, func(ctx context.Context) error {
-		l.Println("http reverse proxy was shutdown gracefully")
+		l.Println("http server was shutdown gracefully")
 		if err := server.Shutdown(ctx); err != nil {
 			return err
 		}
 
 		return cleanup()
 	}); err != nil {
-		l.Fatalf("Failed to gracefully shutdown %s reverse proxy\n", proto)
+		l.Fatalf("Failed to gracefully shutdown %s server because: %s\n", proto, err)
 	}
 
 	return nil

@@ -21,9 +21,17 @@ jobs:
           cd cloudx/e2e
           npm ci
           go build -tags sqlite -o ory .
-      - run: |
+      - name: Run Proxy E2E Tests
+        run: |
           cd cloudx/e2e
           ./ory proxy https://httpbin.org/anything &
           npm run test
+        env:
+          ORY_KRATOS_URL: https://playground.projects.oryapis.com/
+      - name: Run Tunnel E2E Tests
+        run: |
+          cd cloudx/e2e
+          ./ory tunnel &
+          CYPRESS_IS_TUNNEL=1 npm run test
         env:
           ORY_KRATOS_URL: https://playground.projects.oryapis.com/
