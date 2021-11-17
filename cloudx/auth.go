@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"syscall"
 
 	"github.com/gofrs/uuid/v3"
 	"github.com/pkg/errors"
@@ -107,7 +108,9 @@ func NewSnakeCharmer(cmd *cobra.Command) (*SnakeCharmer, error) {
 		return nil, errors.Wrapf(err, "invalid API endpoint provided: %s", toParse)
 	}
 
-	pwReader := term.ReadPassword
+	pwReader := func() ([]byte, error) {
+		return term.ReadPassword(syscall.Stdin)
+	}
 	if p, ok := cmd.Context().Value(PasswordReader).(passwordReader); ok {
 		pwReader = p
 	}

@@ -133,8 +133,6 @@ An example payload of the JSON Web Token is:
 				return err
 			}
 
-			fmt.Println("asdf ",selfUrl)
-
 			conf := &config{
 				port:         flagx.MustGetInt(cmd, PortFlag),
 				noJWT:        flagx.MustGetBool(cmd, WithoutJWTFlag),
@@ -143,6 +141,7 @@ An example payload of the JSON Web Token is:
 				cookieDomain: flagx.MustGetString(cmd, CookieDomainFlag),
 				publicURL:    selfUrl,
 				oryURL:       oryURL,
+				pathPrefix:   "/.ory",
 			}
 
 			return run(cmd, conf, version)

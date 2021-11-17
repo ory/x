@@ -48,6 +48,7 @@ type config struct {
 	cookieDomain string
 	publicURL    *url.URL
 	oryURL       *url.URL
+	pathPrefix   string
 }
 
 func portFromEnv() int {
@@ -90,13 +91,13 @@ func run(cmd *cobra.Command, conf *config, version string) error {
 
 	mw.UseHandler(proxy.New(
 		func(_ context.Context, r *http.Request) (*proxy.HostConfig, error) {
-			if strings.HasPrefix(r.URL.Path, "/.ory") {
+			if len(conf.pathPrefix) > 0 || strings.HasPrefix(r.URL.Path, conf.pathPrefix) {
 				return &proxy.HostConfig{
 					CookieDomain:   conf.cookieDomain,
 					UpstreamHost:   conf.oryURL.Host,
 					UpstreamScheme: conf.oryURL.Scheme,
 					TargetHost:     conf.oryURL.Host,
-					PathPrefix:     "/.ory",
+					PathPrefix:     conf.pathPrefix,
 				}, nil
 			}
 
@@ -112,7 +113,7 @@ func run(cmd *cobra.Command, conf *config, version string) error {
 			l, err := resp.Location()
 			if err == nil {
 				// Redirect to main page if path is the default ui welcome page.
-				if l.Path == "/.ory/ui/welcome" {
+				if l.Path == filepath.Join(conf.pathPrefix, "/ui/welcome") {
 					l.Path = "/"
 					resp.Header.Set("Location", l.String())
 				}
@@ -122,7 +123,7 @@ func run(cmd *cobra.Command, conf *config, version string) error {
 		}),
 		proxy.WithReqMiddleware(func(r *http.Request, c *proxy.HostConfig, body []byte) ([]byte, error) {
 			if r.URL.Host == conf.oryURL.Host {
-				r.URL.Path = strings.TrimPrefix(r.URL.Path, "/.ory")
+				r.URL.Path = strings.TrimPrefix(r.URL.Path, conf.pathPrefix)
 				r.Host = conf.oryURL.Host
 			}
 
@@ -198,13 +199,13 @@ func checkOry(conf *config, l *logrusx.Logger, writer herodot.Writer, keys *jose
 	}
 
 	return func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-		if r.URL.Path == "/.ory/proxy/jwks.json" {
+		if !conf.noJWT && r.URL.Path == filepath.Join(conf.pathPrefix, "/proxy/jwks.json") {
 			writer.Write(w, r, publicKeys)
 			return
 		}
 
 		switch r.URL.Path {
-		case "/.ory/jwks.json":
+		case filepath.Join(conf.pathPrefix, "/jwks.json"):
 			writer.Write(w, r, publicKeys)
 			return
 		}
@@ -216,7 +217,7 @@ func checkOry(conf *config, l *logrusx.Logger, writer herodot.Writer, keys *jose
 			return
 		}
 
-		if conf.noJWT || strings.HasPrefix(r.URL.Path, "/.ory") {
+		if conf.noJWT || (len(conf.pathPrefix) > 0 && strings.HasPrefix(r.URL.Path, conf.pathPrefix)) {
 			next(w, r)
 			return
 		}

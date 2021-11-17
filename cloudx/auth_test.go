@@ -96,7 +96,7 @@ func TestAuthenticator(t *testing.T) {
 		New: func() *cobra.Command {
 			return NewRootCommand("", "")
 		},
-		Ctx: context.WithValue(context.Background(), PasswordReader, passwordReader(func(fd int) ([]byte, error) {
+		Ctx: context.WithValue(context.Background(), PasswordReader, passwordReader(func() ([]byte, error) {
 			return []byte(password), nil
 		})),
 		PersistentArgs: []string{"--cloud-config", configDir},
