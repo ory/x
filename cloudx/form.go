@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/pkg/errors"
@@ -28,7 +27,7 @@ func getLabel(attrs *kratos.UiNodeInputAttributes, node *kratos.UiNode) string {
 	return fmt.Sprintf("%s: ", attrs.Name)
 }
 
-type passwordReader func(fd int) ([]byte, error)
+type passwordReader func() ([]byte, error)
 
 func renderForm(stdin *bufio.Reader, pwReader passwordReader, stdout io.Writer, ui kratos.UiContainer, method string, out interface{}) (err error) {
 	for _, message := range ui.Messages {
@@ -89,7 +88,7 @@ func renderForm(stdin *bufio.Reader, pwReader passwordReader, stdout io.Writer, 
 				var password string
 				for password == "" {
 					_, _ = fmt.Fprint(stdout, getLabel(attrs, &node))
-					v, err := pwReader(syscall.Stdin)
+					v, err := pwReader()
 					if err != nil {
 						return err
 					}
