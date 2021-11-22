@@ -1,4 +1,4 @@
-version: v0.5.3-alpha.1
+version: v0.8.0-alpha.3
 
 dsn: memory
 
@@ -20,7 +20,22 @@ selfservice:
       enabled: true
     oidc:
       enabled: true
-
+      config:
+        providers:
+          - id: google
+            provider: google
+            mapper_url: file:///etc/config/kratos/oidc.google.jsonnet
+            client_id: "{{ .env.GOOGLE_CLIENT_ID }}"
+            client_secret: "{{ .env.GOOGLE_CLIENT_SECRET }}"
+          - id: apple
+            provider: apple
+            mapper_url: file:///etc/config/kratos/oidc.apple.jsonnet
+            client_id: "{{ .env.APPLE_CLIENT_ID }}"
+            team_id: "{{ .env.APPLE_TEAM_ID }}"
+            private_key_id: "{{ .env.APPLE_PRIVATE_KEY_ID }}"
+            private_key: "{{ .env.APPLE_PRIVATE_KEY }}"
+            scope:
+              - email
   flows:
     error:
       ui_url: http://127.0.0.1:4455/error
@@ -62,13 +77,15 @@ log:
   leak_sensitive_values: true
 
 secrets:
+  cipher:
+    - ipsumipsumipsumipsumipsumipsumip
   cookie:
     - PLEASE-CHANGE-ME-I-AM-VERY-INSECURE
 
 hashers:
   argon2:
     parallelism: 1
-    memory: 131072
+    memory: 128MB
     iterations: 2
     salt_length: 16
     key_length: 16

@@ -8,12 +8,19 @@
   "config": ["stub/kratos/kratos.yaml"],
   "dsn": "sqlite:///var/lib/sqlite/db.sqlite?_fk=true",
   "hashers": {
+    "algorithm": "bcrypt",
     "argon2": {
       "iterations": 2,
       "key_length": 16,
-      "memory": 131072,
+      "memory": "128MB",
       "parallelism": 1,
-      "salt_length": 16
+      "salt_length": 16,
+      "expected_duration": "500ms",
+      "expected_deviation": "500ms",
+      "dedicated_memory": "1GB"
+    },
+    "bcrypt": {
+      "cost":12
     }
   },
   "identity": {
@@ -25,9 +32,13 @@
     "level": "debug"
   },
   "secrets": {
+    "cipher": ["ipsumipsumipsumipsumipsumipsumip"],
     "cookie": [
       "PLEASE-CHANGE-ME-I-AM-VERY-INSECURE"
     ]
+  },
+  "ciphers": {
+    "algorithm": "noop"
   },
   "selfservice": {
     "default_browser_return_url": "http://127.0.0.1:4455/",
@@ -65,7 +76,8 @@
       "settings": {
         "lifespan": "1h",
         "privileged_session_max_age": "15m",
-        "ui_url": "http://127.0.0.1:4455/settings"
+        "ui_url": "http://127.0.0.1:4455/settings",
+        "required_aal": "highest_available"
       },
       "verification": {
         "after": {
@@ -78,7 +90,10 @@
     },
     "methods": {
       "link": {
-        "enabled": true
+        "enabled": true,
+        "config": {
+          "lifespan": "1h"
+        }
       },
       "oidc": {
         "enabled": true,
@@ -88,17 +103,42 @@
               "id": "google",
               "provider": "google",
               "mapper_url": "file:///etc/config/kratos/oidc.google.jsonnet",
-              "client_id": "client@example.com",
-              "client_secret": "secret"
+              "client_id": "googleclient@example.com",
+              "client_secret": "googlesecret"
+            },
+            {
+              "id": "apple",
+              "provider": "apple",
+              "mapper_url": "file:///etc/config/kratos/oidc.apple.jsonnet",
+              "client_id": "appleclient@example.com",
+              "team_id": "apple_team_id",
+              "private_key_id": "apple_key_id",
+              "private_key": "apple_key",
+              "scope": ["email"]
             }
           ]
         }
       },
       "password": {
-        "enabled": true
+        "enabled": true,
+        "config": {
+          "haveibeenpwned_enabled": true,
+          "haveibeenpwned_host": "api.pwnedpasswords.com",
+          "max_breaches": 0,
+          "ignore_network_errors": true
+        }
       },
       "profile": {
         "enabled": true
+      },
+      "totp": {
+        "enabled": false
+      },
+      "webauthn": {
+        "enabled": false
+      },
+      "lookup_secret": {
+        "enabled": false
       }
     },
     "whitelisted_return_urls": [
@@ -109,7 +149,12 @@
     "admin": {
       "base_url": "http://kratos:4434/",
       "host": "0.0.0.0",
-      "port": 4434
+      "port": 4434,
+      "socket": {
+        "owner": "",
+        "group": "",
+        "mode": 493
+      }
     },
     "public": {
       "base_url": "http://127.0.0.1:4433/",
@@ -139,16 +184,30 @@
         "options_passthrough": false
       },
       "host": "0.0.0.0",
-      "port": 4433
+      "port": 4433,
+      "socket": {
+        "owner": "",
+        "group": "",
+        "mode": 493
+      }
     }
   },
+  "cookies": {
+    "path": "/",
+    "same_site": "Lax"
+  },
   "session": {
+    "whoami": {
+      "required_aal": "highest_available"
+    },
     "cookie": {
-      "path": "/",
-      "persistent": true,
-      "same_site": "Lax"
+      "name": "ory_kratos_session",
+      "persistent": true
     },
     "lifespan": "24h"
   },
-  "version": "v0.5.3-alpha.1"
+  "expose-metrics-port": 0,
+  "sqa-opt-out": false,
+  "watch-courier": false,
+  "version": "v0.8.0-alpha.3"
 }

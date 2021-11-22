@@ -1,10 +1,13 @@
 package configx
 
 import (
+	"bytes"
 	"context"
-	"io/ioutil"
+	"os"
+	path2 "path"
 	"path/filepath"
 	"strings"
+	"text/template"
 
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/json"
@@ -59,12 +62,18 @@ func (f *KoanfFile) ReadBytes() ([]byte, error) {
 
 // Read is not supported by the file provider.
 func (f *KoanfFile) Read() (map[string]interface{}, error) {
-	fc, err := ioutil.ReadFile(f.path)
-	if err != nil {
+
+	t := template.Must(template.New(path2.Base(f.path)).ParseFiles(f.path))
+
+	data := make(map[string]interface{})
+	data["env"] = envToMap()
+
+	buf := new(bytes.Buffer)
+	if err := t.Execute(buf, data); err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	v, err := f.parser.Unmarshal(fc)
+	v, err := f.parser.Unmarshal(buf.Bytes())
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -81,6 +90,17 @@ func (f *KoanfFile) Read() (map[string]interface{}, error) {
 	}
 
 	return v, nil
+}
+
+func envToMap() map[string]string {
+	envMap := make(map[string]string)
+
+	for _, v := range os.Environ() {
+		split_v := strings.SplitN(v, "=", 2)
+		envMap[split_v[0]] = split_v[1]
+	}
+
+	return envMap
 }
 
 // WatchChannel watches the file and triggers a callback when it changes. It is a

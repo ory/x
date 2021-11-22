@@ -118,7 +118,12 @@ func TestAdvancedConfigs(t *testing.T) {
 			stub:    "kratos",
 			configs: []string{"stub/kratos/kratos.yaml"},
 			isValid: true, envs: [][2]string{
-				{"SELFSERVICE_METHODS_OIDC_CONFIG_PROVIDERS", `[{"id":"google","provider":"google","mapper_url":"file:///etc/config/kratos/oidc.google.jsonnet","client_id":"client@example.com","client_secret":"secret"}]`},
+				{"GOOGLE_CLIENT_ID", `googleclient@example.com`},
+				{"GOOGLE_CLIENT_SECRET", `googlesecret`},
+				{"APPLE_CLIENT_ID", `appleclient@example.com`},
+				{"APPLE_PRIVATE_KEY_ID", `apple_key_id`},
+				{"APPLE_PRIVATE_KEY", `apple_key`},
+				{"APPLE_TEAM_ID", `apple_team_id`},
 				{"DSN", "sqlite:///var/lib/sqlite/db.sqlite?_fk=true"},
 			}},
 		{
