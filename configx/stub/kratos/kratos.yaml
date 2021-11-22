@@ -20,18 +20,6 @@ selfservice:
       enabled: true
     oidc:
       enabled: true
-      config:
-        providers:
-          - id: google
-            provider: google
-            mapper_url: file:///etc/config/kratos/oidc.google.jsonnet
-            client_id: ...
-            client_secret: ...
-          - id: apple
-            provider: generic
-            mapper_url: file:///etc/config/kratos/oidc.apple.jsonnet
-            client_id: ...
-            client_secret: ...
 
   flows:
     error:

@@ -180,9 +180,6 @@ func (p *Provider) createProviders(ctx context.Context) (providers []koanf.Provi
 	}
 	providers = append(providers, envProvider)
 
-	oidcSecretsProvider := OidcSecretsProvider(p.Koanf)
-	providers = append(providers, oidcSecretsProvider)
-
 	// Workaround for https://github.com/knadh/koanf/pull/47
 	for _, t := range p.forcedValues {
 		providers = append(providers, NewKoanfConfmap([]tuple{t}))
@@ -217,7 +214,7 @@ func (p *Provider) validate(k *koanf.Koanf) error {
 // This is unfortunately required due to several limitations / bugs in koanf:
 //
 // - https://github.com/knadh/koanf/issues/77
-// - https://github.com/knadh/koanf/p	ull/47
+// - https://github.com/knadh/koanf/pull/47
 func (p *Provider) newKoanf() (*koanf.Koanf, error) {
 	span, ctx := p.startSpan(p.originalContext, LoadSpanOpName)
 	defer span.Finish()
@@ -229,10 +226,6 @@ func (p *Provider) newKoanf() (*koanf.Koanf, error) {
 		// for posflag.Provider's API.
 		if _, ok := provider.(*posflag.Posflag); ok {
 			provider = posflag.Provider(p.flags, ".", k)
-		}
-		// OidcSecrets provider also requires access to Koanf instance
-		if _, ok := provider.(*OidcSecrets); ok {
-			provider = OidcSecretsProvider(k)
 		}
 
 		if err := k.Load(provider, nil); err != nil {
