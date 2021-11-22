@@ -28,7 +28,9 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -173,6 +175,14 @@ func New(
 
 	if !optOut {
 		optOut = c.Bool("sqa.opt_out")
+	}
+
+	if !optOut {
+		optOut = c.Bool("sqa_opt_out")
+	}
+
+	if !optOut {
+		optOut, _ = strconv.ParseBool(os.Getenv("SQA_OPT_OUT"))
 	}
 
 	if !optOut {
