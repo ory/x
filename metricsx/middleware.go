@@ -186,6 +186,10 @@ func New(
 	}
 
 	if !optOut {
+		optOut, _ = strconv.ParseBool(os.Getenv("SQA-OPT-OUT"))
+	}
+
+	if !optOut {
 		l.Info("Software quality assurance features are enabled. Learn more at: https://www.ory.sh/docs/ecosystem/sqa")
 		oi = analytics.OSInfo{
 			Version: fmt.Sprintf("%s-%s", runtime.GOOS, runtime.GOARCH),
