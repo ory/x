@@ -20,3 +20,12 @@ func TestNullString_UnmarshalJSON(t *testing.T) {
 	require.NoError(t, json.Unmarshal(data, &ns))
 	assert.EqualValues(t, "hello", ns)
 }
+
+func TestStringSlicePipeDelimiter(t *testing.T) {
+	expected := StringSlicePipeDelimiter([]string{"foo", "bar|baz", "zab"})
+	encoded, err := expected.Value()
+	require.NoError(t, err)
+	var actual StringSlicePipeDelimiter
+	require.NoError(t, actual.Scan(encoded))
+	assert.Equal(t, expected, actual)
+}

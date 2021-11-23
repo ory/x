@@ -10,8 +10,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-
-	"github.com/ory/x/stringsx"
 )
 
 // StringSlicePipeDelimiter de/encodes the string slice to/from a SQL string.
@@ -33,11 +31,28 @@ func (n StringSlicePipeDelimiter) Value() (driver.Value, error) {
 }
 
 func scanStringSlice(delimiter rune, value interface{}) []string {
-	return stringsx.Splitx(fmt.Sprintf("%s", value), string(delimiter))
+	escaped := false
+	s := fmt.Sprintf("%s", value)
+	splitted := strings.FieldsFunc(s, func(r rune) bool {
+		if r == '\\' {
+			escaped = !escaped
+		} else if escaped && r != delimiter {
+			escaped = false
+		}
+		return !escaped && r == delimiter
+	})
+	for k, v := range splitted {
+		splitted[k] = strings.ReplaceAll(v, "\\"+string(delimiter), string(delimiter))
+	}
+	return splitted
 }
 
 func valueStringSlice(delimiter rune, value []string) string {
-	return strings.Join(value, string(delimiter))
+	replace := make([]string, len(value))
+	for k, v := range value {
+		replace[k] = strings.ReplaceAll(v, string(delimiter), "\\"+string(delimiter))
+	}
+	return strings.Join(replace, string(delimiter))
 }
 
 // swagger:type string
