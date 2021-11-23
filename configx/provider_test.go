@@ -122,7 +122,10 @@ func TestAdvancedConfigs(t *testing.T) {
 				{"GOOGLE_CLIENT_SECRET", `googlesecret`},
 				{"APPLE_CLIENT_ID", `appleclient@example.com`},
 				{"APPLE_PRIVATE_KEY_ID", `apple_key_id`},
-				{"APPLE_PRIVATE_KEY", `apple_key`},
+				{"APPLE_PRIVATE_KEY", `-----BEGIN PRIVATE KEY-----
+MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDKNameCl+1fNV8
+Cnx6KIY1tm44ovd+3ImMaY6VFL1tx0rtQowYAtz8e3QiGv6/dadqxk6g7Dbu9HVH
+-----END PRIVATE KEY-----`},
 				{"APPLE_TEAM_ID", `apple_team_id`},
 				{"DSN", "sqlite:///var/lib/sqlite/db.sqlite?_fk=true"},
 			}},

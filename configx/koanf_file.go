@@ -3,6 +3,7 @@ package configx
 import (
 	"bytes"
 	"context"
+	"github.com/Masterminds/sprig/v3"
 	"os"
 	path2 "path"
 	"path/filepath"
@@ -63,7 +64,7 @@ func (f *KoanfFile) ReadBytes() ([]byte, error) {
 // Read is not supported by the file provider.
 func (f *KoanfFile) Read() (map[string]interface{}, error) {
 
-	t := template.Must(template.New(path2.Base(f.path)).ParseFiles(f.path))
+	t := template.Must(template.New(path2.Base(f.path)).Funcs(sprig.TxtFuncMap()).ParseFiles(f.path))
 
 	data := make(map[string]interface{})
 	data["env"] = envToMap()

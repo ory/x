@@ -113,7 +113,7 @@
               "client_id": "appleclient@example.com",
               "team_id": "apple_team_id",
               "private_key_id": "apple_key_id",
-              "private_key": "apple_key",
+              "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDKNameCl+1fNV8\nCnx6KIY1tm44ovd+3ImMaY6VFL1tx0rtQowYAtz8e3QiGv6/dadqxk6g7Dbu9HVH\n-----END PRIVATE KEY-----",
               "scope": ["email"]
             }
           ]

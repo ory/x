@@ -33,7 +33,8 @@ selfservice:
             client_id: "{{ .env.APPLE_CLIENT_ID }}"
             team_id: "{{ .env.APPLE_TEAM_ID }}"
             private_key_id: "{{ .env.APPLE_PRIVATE_KEY_ID }}"
-            private_key: "{{ .env.APPLE_PRIVATE_KEY }}"
+            private_key: |-
+{{ .env.APPLE_PRIVATE_KEY | indent 14 }}
             scope:
               - email
   flows:
