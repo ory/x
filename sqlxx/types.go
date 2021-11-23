@@ -55,6 +55,29 @@ func valueStringSlice(delimiter rune, value []string) string {
 	return strings.Join(replace, string(delimiter))
 }
 
+// swagger:type bool
+type NullBool sql.NullBool
+
+// MarshalJSON returns m as the JSON encoding of m.
+func (ns NullBool) MarshalJSON() ([]byte, error) {
+	if !ns.Valid {
+		return []byte("null"), nil
+	}
+	return json.Marshal(ns.Bool)
+}
+
+// UnmarshalJSON sets *m to a copy of data.
+func (ns *NullBool) UnmarshalJSON(data []byte) error {
+	if ns == nil {
+		return errors.New("json.RawMessage: UnmarshalJSON on nil pointer")
+	}
+	if len(data) == 0 || string(data) == "null" {
+		return nil
+	}
+	ns.Valid = true
+	return errors.WithStack(json.Unmarshal(data, &ns.Bool))
+}
+
 // swagger:type string
 type NullString string
 
