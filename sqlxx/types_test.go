@@ -98,3 +98,25 @@ func TestStringSlicePipeDelimiter(t *testing.T) {
 	require.NoError(t, actual.Scan(encoded))
 	assert.Equal(t, expected, actual)
 }
+
+func TestJSONArrayRawMessage(t *testing.T) {
+	expected, err := JSONArrayRawMessage("").Value()
+	require.NoError(t, err)
+	assert.EqualValues(t, "[]", fmt.Sprintf("%s", expected))
+
+	_, err = JSONArrayRawMessage("{}").Value()
+	require.Error(t, err)
+
+	expected, err = JSONArrayRawMessage(`["foo","bar"]`).Value()
+	require.NoError(t, err)
+	assert.EqualValues(t, `["foo","bar"]`, fmt.Sprintf("%s", expected))
+
+	var v JSONArrayRawMessage
+	require.Error(t, v.Scan("{}"))
+
+	require.NoError(t, v.Scan(""))
+	assert.EqualValues(t, "[]", string(v))
+
+	require.NoError(t, v.Scan(`["foo","bar"]`))
+	assert.EqualValues(t, `["foo","bar"]`, string(v))
+}

@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/tidwall/gjson"
+
 	"github.com/pkg/errors"
 )
 
@@ -180,6 +182,37 @@ func (n MapStringInterface) Value() (driver.Value, error) {
 		return nil, errors.WithStack(err)
 	}
 	return string(value), nil
+}
+
+// JSONArrayRawMessage represents a json.RawMessage which only accepts arrays that works well with JSON, SQL, and Swagger.
+type JSONArrayRawMessage json.RawMessage
+
+// Scan implements the Scanner interface.
+func (m *JSONArrayRawMessage) Scan(value interface{}) error {
+	val := fmt.Sprintf("%s", value)
+	if len(val) == 0 {
+		val = "[]"
+	}
+
+	if parsed := gjson.Parse(val); !parsed.IsArray() {
+		return errors.Errorf("expected JSON value to be an array but got type: %s", parsed.Type.String())
+	}
+
+	*m = []byte(val)
+	return nil
+}
+
+// Value implements the driver Valuer interface.
+func (m JSONArrayRawMessage) Value() (driver.Value, error) {
+	if len(m) == 0 {
+		return "[]", nil
+	}
+
+	if parsed := gjson.ParseBytes(m); !parsed.IsArray() {
+		return nil, errors.Errorf("expected JSON value to be an array but got type: %s", parsed.Type.String())
+	}
+
+	return string(m), nil
 }
 
 // JSONRawMessage represents a json.RawMessage that works well with JSON, SQL, and Swagger.
