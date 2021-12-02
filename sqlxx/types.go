@@ -93,23 +93,23 @@ type NullBool struct {
 }
 
 // Scan implements the Scanner interface.
-func (n *NullBool) Scan(value interface{}) error {
+func (ns *NullBool) Scan(value interface{}) error {
 	var d = sql.NullBool{}
 	if err := d.Scan(value); err != nil {
 		return err
 	}
 
-	n.Bool = d.Bool
-	n.Valid = d.Valid
+	ns.Bool = d.Bool
+	ns.Valid = d.Valid
 	return nil
 }
 
 // Value implements the driver Valuer interface.
-func (n NullBool) Value() (driver.Value, error) {
-	if !n.Valid {
+func (ns NullBool) Value() (driver.Value, error) {
+	if !ns.Valid {
 		return nil, nil
 	}
-	return n.Bool, nil
+	return ns.Bool, nil
 }
 
 // MarshalJSON returns m as the JSON encoding of m.
