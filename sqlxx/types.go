@@ -84,8 +84,33 @@ func valueStringSlice(delimiter rune, value []string) string {
 	return strings.Join(replace, string(delimiter))
 }
 
+// NullBool represents a bool that may be null.
+// NullBool implements the Scanner interface so
 // swagger:type bool
-type NullBool sql.NullBool
+type NullBool struct {
+	Bool  bool
+	Valid bool // Valid is true if Bool is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (n *NullBool) Scan(value interface{}) error {
+	var d = sql.NullBool{}
+	if err := d.Scan(value); err != nil {
+		return err
+	}
+
+	n.Bool = d.Bool
+	n.Valid = d.Valid
+	return nil
+}
+
+// Value implements the driver Valuer interface.
+func (n NullBool) Value() (driver.Value, error) {
+	if !n.Valid {
+		return nil, nil
+	}
+	return n.Bool, nil
+}
 
 // MarshalJSON returns m as the JSON encoding of m.
 func (ns NullBool) MarshalJSON() ([]byte, error) {
