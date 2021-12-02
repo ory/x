@@ -120,3 +120,22 @@ func TestJSONArrayRawMessage(t *testing.T) {
 	require.NoError(t, v.Scan(`["foo","bar"]`))
 	assert.EqualValues(t, `["foo","bar"]`, string(v))
 }
+
+func TestStringSliceJSONFormat(t *testing.T) {
+	expected, err := StringSliceJSONFormat{}.Value()
+	require.NoError(t, err)
+	assert.EqualValues(t, "[]", fmt.Sprintf("%s", expected))
+
+	expected, err = StringSliceJSONFormat{"foo", "bar"}.Value()
+	require.NoError(t, err)
+	assert.EqualValues(t, `["foo","bar"]`, fmt.Sprintf("%s", expected))
+
+	var v StringSliceJSONFormat
+	require.Error(t, v.Scan("{}"))
+
+	require.NoError(t, v.Scan(""))
+	assert.Empty(t, v)
+
+	require.NoError(t, v.Scan(`["foo","bar"]`))
+	assert.EqualValues(t, StringSliceJSONFormat{"foo", "bar"}, v)
+}
