@@ -14,6 +14,33 @@ import (
 	"github.com/pkg/errors"
 )
 
+// StringSliceJSONFormat represents []string{} which is encoded to/from JSON for SQL storage.
+type StringSliceJSONFormat []string
+
+// Scan implements the Scanner interface.
+func (m *StringSliceJSONFormat) Scan(value interface{}) error {
+	val := fmt.Sprintf("%s", value)
+	if len(val) == 0 {
+		val = "[]"
+	}
+
+	if parsed := gjson.Parse(val); !parsed.IsArray() {
+		return errors.Errorf("expected JSON value to be an array but got type: %s", parsed.Type.String())
+	}
+
+	return errors.WithStack(json.Unmarshal([]byte(val), &m))
+}
+
+// Value implements the driver Valuer interface.
+func (m StringSliceJSONFormat) Value() (driver.Value, error) {
+	if len(m) == 0 {
+		return "[]", nil
+	}
+
+	encoded, err := json.Marshal(&m)
+	return string(encoded), errors.WithStack(err)
+}
+
 // StringSlicePipeDelimiter de/encodes the string slice to/from a SQL string.
 type StringSlicePipeDelimiter []string
 
