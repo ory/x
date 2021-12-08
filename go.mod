@@ -27,7 +27,6 @@ require (
 	github.com/docker/docker v20.10.9+incompatible
 	github.com/elastic/go-sysinfo v1.7.1 // indirect
 	github.com/elastic/go-windows v1.0.1 // indirect
-	github.com/fatih/color v1.13.0 // indirect
 	github.com/fatih/structs v1.1.0
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/ghodss/yaml v1.0.0
@@ -38,16 +37,10 @@ require (
 	github.com/go-openapi/swag v0.19.15 // indirect
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/go-stack/stack v1.8.1 // indirect
-	github.com/gobuffalo/fizz v1.13.1-0.20201104174146-3416f0e6618f
-	github.com/gobuffalo/flect v0.2.3 // indirect
-	github.com/gobuffalo/github_flavored_markdown v1.1.1 // indirect
-	github.com/gobuffalo/helpers v0.6.2 // indirect
+	github.com/gobuffalo/fizz v1.14.0
 	github.com/gobuffalo/here v0.6.2 // indirect
 	github.com/gobuffalo/httptest v1.0.2
-	github.com/gobuffalo/nulls v0.4.0 // indirect
-	github.com/gobuffalo/plush/v4 v4.1.6 // indirect
-	github.com/gobuffalo/pop/v5 v5.3.4
-	github.com/gobuffalo/validate/v3 v3.3.0 // indirect
+	github.com/gobuffalo/pop/v6 v6.0.1
 	github.com/gofrs/uuid v4.1.0+incompatible
 	github.com/golang/glog v1.0.0 // indirect
 	github.com/golang/mock v1.6.0
@@ -58,15 +51,14 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.0
 	github.com/inhies/go-bytesize v0.0.0-20210819104631-275770b98743
 	github.com/instana/go-sensor v1.34.0
-	github.com/jackc/pgconn v1.10.1-0.20211002123621-290ee79d1e8d
+	github.com/jackc/pgconn v1.10.1
 	github.com/jackc/pgx/v4 v4.13.0
 	github.com/jandelgado/gcov2lcov v1.0.5
 	github.com/jcchavezs/porto v0.3.0 // indirect
 	github.com/jmoiron/sqlx v1.3.4
-	github.com/joho/godotenv v1.4.0 // indirect
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/knadh/koanf v1.3.0
-	github.com/lib/pq v1.10.3
+	github.com/lib/pq v1.10.4
 	github.com/looplab/fsm v0.3.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/markbates/pkger v0.17.1
@@ -90,7 +82,6 @@ require (
 	github.com/prometheus/client_model v0.2.0
 	github.com/prometheus/common v0.32.1
 	github.com/prometheus/procfs v0.7.3 // indirect
-	github.com/rogpeppe/go-internal v1.8.0 // indirect
 	github.com/rs/cors v1.8.0
 	github.com/seatgeek/logrus-gelf-formatter v0.0.0-20210414080842-5b05eb8ff761
 	github.com/sirupsen/logrus v1.8.1
@@ -119,7 +110,6 @@ require (
 	golang.org/x/sys v0.0.0-20211020174200-9d6173849985 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
-	golang.org/x/tools v0.1.7 // indirect
 	gonum.org/v1/plot v0.10.0
 	google.golang.org/genproto v0.0.0-20211020151524-b7c3a969101a // indirect
 	google.golang.org/grpc v1.41.0
