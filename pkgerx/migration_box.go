@@ -9,7 +9,7 @@ import (
 	"text/template"
 
 	"github.com/gobuffalo/fizz"
-	"github.com/gobuffalo/pop/v5"
+	"github.com/gobuffalo/pop/v6"
 	"github.com/markbates/pkger"
 	"github.com/pkg/errors"
 
