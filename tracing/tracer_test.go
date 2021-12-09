@@ -17,12 +17,15 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/opentracing/opentracing-go"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/ory/x/logrusx"
 	"github.com/ory/x/tracing"
+
+	coltracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 
 	"go.elastic.co/apm/transport"
 )
@@ -307,6 +310,43 @@ func TestInstanaTracer(t *testing.T) {
 	select {
 	case <-done:
 	case <-time.After(time.Second * 3):
+		t.Fatalf("Test server did not receive spans")
+	}
+}
+
+func TestOtlpTracer(t *testing.T) {
+	done := make(chan struct{})
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body := decodeResponseBody(t, r)
+
+		var res coltracepb.ExportTraceServiceRequest
+		err := proto.Unmarshal(body, &res)
+		require.NoError(t, err, "must be able to unmarshal traces")
+		receivedSpan := res.ResourceSpans[0].InstrumentationLibrarySpans[0].Spans[0]
+		assert.Equal(t, "testOperation", receivedSpan.GetName())
+		attributes := receivedSpan.GetAttributes()
+		assert.Equal(t, "testTag", attributes[0].GetKey())
+
+		close(done)
+	}))
+	defer ts.Close()
+
+	require.NoError(t, os.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", ts.URL))
+
+	_, err := tracing.New(logrusx.New("ory/x", "1"), &tracing.Config{
+		ServiceName: "ORY X",
+		Provider:    "otlp",
+	})
+	assert.NoError(t, err)
+
+	span := opentracing.GlobalTracer().StartSpan("testOperation")
+	span.SetTag("testTag", true)
+	span.Finish()
+
+	select {
+	case <-done:
+	case <-time.After(3 * time.Second):
 		t.Fatalf("Test server did not receive spans")
 	}
 }

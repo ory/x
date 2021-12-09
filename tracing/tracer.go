@@ -1,6 +1,7 @@
 package tracing
 
 import (
+	"context"
 	"io"
 	"os"
 	"strings"
@@ -22,6 +23,13 @@ import (
 
 	datadogOpentracer "gopkg.in/DataDog/dd-trace-go.v1/ddtrace/opentracer"
 	datadogTracer "gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+
+	"go.opentelemetry.io/otel"
+	otelOpentracing "go.opentelemetry.io/otel/bridge/opentracing"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"go.opentelemetry.io/otel/sdk/resource"
+	otelSdkTrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
 
 	"go.elastic.co/apm"
 	"go.elastic.co/apm/module/apmot"
@@ -164,6 +172,43 @@ func (t *Tracer) setup() error {
 		opentracing.SetGlobalTracer(t.tracer)
 
 		t.l.Infof("Instana tracer configured!")
+	case "otlp":
+		ctx := context.Background()
+		var serviceName = os.Getenv("OTLP_SERVICE_NAME")
+		if serviceName == "" {
+			serviceName = t.Config.ServiceName
+		}
+
+		res, err := resource.New(ctx,
+			resource.WithAttributes(
+				semconv.ServiceNameKey.String(serviceName),
+			),
+		)
+		if err != nil {
+			return errors.Wrap(err, "new otlp resource")
+		}
+
+		exporter, err := otlptracehttp.New(ctx)
+		if err != nil {
+			return errors.Wrap(err, "new otlp resource")
+		}
+
+		tp := otelSdkTrace.NewTracerProvider(
+			otelSdkTrace.WithResource(res),
+			otelSdkTrace.WithSpanProcessor(
+				otelSdkTrace.NewSimpleSpanProcessor(exporter),
+			),
+		)
+
+		otel.SetTracerProvider(tp)
+
+		bridge := otelOpentracing.NewBridgeTracer()
+		bridge.SetOpenTelemetryTracer(otel.Tracer(""))
+
+		t.tracer = bridge
+		opentracing.SetGlobalTracer(t.tracer)
+
+		t.l.Infof("OTLP tracer configured!")
 	case "":
 		t.l.Infof("No tracer configured - skipping tracing setup")
 	default:
