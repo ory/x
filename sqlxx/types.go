@@ -14,6 +14,31 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Duration represents a JSON and SQL compatible time.Duration.
+// swagger:type string
+type Duration time.Duration
+
+// MarshalJSON returns m as the JSON encoding of m.
+func (ns Duration) MarshalJSON() ([]byte, error) {
+	return json.Marshal(time.Duration(ns).String())
+}
+
+// UnmarshalJSON sets *m to a copy of data.
+func (ns *Duration) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+
+	p, err := time.ParseDuration(s)
+	if err != nil {
+		return err
+	}
+
+	*ns = Duration(p)
+	return nil
+}
+
 // StringSliceJSONFormat represents []string{} which is encoded to/from JSON for SQL storage.
 type StringSliceJSONFormat []string
 
