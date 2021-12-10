@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -13,6 +14,12 @@ func TestNullTime(t *testing.T) {
 	out, err := json.Marshal(NullTime{})
 	require.NoError(t, err)
 	assert.EqualValues(t, "null", string(out))
+}
+
+func TestDuration(t *testing.T) {
+	out, err := json.Marshal(Duration(time.Second))
+	require.NoError(t, err)
+	assert.EqualValues(t, `"1s"`, string(out))
 }
 
 func TestNullString_UnmarshalJSON(t *testing.T) {
