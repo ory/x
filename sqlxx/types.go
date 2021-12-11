@@ -49,7 +49,9 @@ func (m *StringSliceJSONFormat) Scan(value interface{}) error {
 		val = "[]"
 	}
 
-	if parsed := gjson.Parse(val); !parsed.IsArray() {
+	if parsed := gjson.Parse(val); parsed.Type == gjson.Null {
+		val = "[]"
+	} else if !parsed.IsArray() {
 		return errors.Errorf("expected JSON value to be an array but got type: %s", parsed.Type.String())
 	}
 
@@ -271,7 +273,9 @@ func (m *JSONArrayRawMessage) Scan(value interface{}) error {
 		val = "[]"
 	}
 
-	if parsed := gjson.Parse(val); !parsed.IsArray() {
+	if parsed := gjson.Parse(val); parsed.Type == gjson.Null {
+		val = "[]"
+	} else if !parsed.IsArray() {
 		return errors.Errorf("expected JSON value to be an array but got type: %s", parsed.Type.String())
 	}
 
@@ -285,7 +289,9 @@ func (m JSONArrayRawMessage) Value() (driver.Value, error) {
 		return "[]", nil
 	}
 
-	if parsed := gjson.ParseBytes(m); !parsed.IsArray() {
+	if parsed := gjson.ParseBytes(m); parsed.Type == gjson.Null {
+		return "[]", nil
+	} else if !parsed.IsArray() {
 		return nil, errors.Errorf("expected JSON value to be an array but got type: %s", parsed.Type.String())
 	}
 
