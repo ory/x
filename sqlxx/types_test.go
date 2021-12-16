@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -13,6 +14,12 @@ func TestNullTime(t *testing.T) {
 	out, err := json.Marshal(NullTime{})
 	require.NoError(t, err)
 	assert.EqualValues(t, "null", string(out))
+}
+
+func TestDuration(t *testing.T) {
+	out, err := json.Marshal(Duration(time.Second))
+	require.NoError(t, err)
+	assert.EqualValues(t, `"1s"`, string(out))
 }
 
 func TestNullString_UnmarshalJSON(t *testing.T) {
@@ -104,6 +111,10 @@ func TestJSONArrayRawMessage(t *testing.T) {
 	require.NoError(t, err)
 	assert.EqualValues(t, "[]", fmt.Sprintf("%s", expected))
 
+	expected, err = JSONArrayRawMessage("null").Value()
+	require.NoError(t, err)
+	assert.EqualValues(t, "[]", fmt.Sprintf("%s", expected))
+
 	_, err = JSONArrayRawMessage("{}").Value()
 	require.Error(t, err)
 
@@ -115,6 +126,9 @@ func TestJSONArrayRawMessage(t *testing.T) {
 	require.Error(t, v.Scan("{}"))
 
 	require.NoError(t, v.Scan(""))
+	assert.EqualValues(t, "[]", string(v))
+
+	require.NoError(t, v.Scan("null"))
 	assert.EqualValues(t, "[]", string(v))
 
 	require.NoError(t, v.Scan(`["foo","bar"]`))
@@ -134,6 +148,9 @@ func TestStringSliceJSONFormat(t *testing.T) {
 	require.Error(t, v.Scan("{}"))
 
 	require.NoError(t, v.Scan(""))
+	assert.Empty(t, v)
+
+	require.NoError(t, v.Scan("null"))
 	assert.Empty(t, v)
 
 	require.NoError(t, v.Scan(`["foo","bar"]`))
