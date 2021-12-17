@@ -336,7 +336,7 @@ func TestOtlpTracer(t *testing.T) {
 
 	_, err := tracing.New(logrusx.New("ory/x", "1"), &tracing.Config{
 		ServiceName: "ORY X",
-		Provider:    "otlp",
+		Provider:    "otel",
 	})
 	assert.NoError(t, err)
 

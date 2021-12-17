@@ -172,9 +172,9 @@ func (t *Tracer) setup() error {
 		opentracing.SetGlobalTracer(t.tracer)
 
 		t.l.Infof("Instana tracer configured!")
-	case "otlp":
+	case "otel":
 		ctx := context.Background()
-		var serviceName = os.Getenv("OTLP_SERVICE_NAME")
+		var serviceName = os.Getenv("OTEL_SERVICE_NAME")
 		if serviceName == "" {
 			serviceName = t.Config.ServiceName
 		}
@@ -185,12 +185,12 @@ func (t *Tracer) setup() error {
 			),
 		)
 		if err != nil {
-			return errors.Wrap(err, "new otlp resource")
+			return errors.Wrap(err, "new otel resource")
 		}
 
 		exporter, err := otlptracehttp.New(ctx)
 		if err != nil {
-			return errors.Wrap(err, "new otlp resource")
+			return errors.Wrap(err, "new otel exporter")
 		}
 
 		tp := otelSdkTrace.NewTracerProvider(
@@ -208,7 +208,7 @@ func (t *Tracer) setup() error {
 		t.tracer = bridge
 		opentracing.SetGlobalTracer(t.tracer)
 
-		t.l.Infof("OTLP tracer configured!")
+		t.l.Infof("OTEL tracer configured!")
 	case "":
 		t.l.Infof("No tracer configured - skipping tracing setup")
 	default:
