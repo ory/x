@@ -77,7 +77,7 @@ func WithDisabledBase64Loader() Option {
 // WithEnabledBase64Loader disables the base64 loader.
 func WithEnabledBase64Loader() Option {
 	return func(o *options) {
-		o.disableBase64Loader = true
+		o.disableBase64Loader = false
 	}
 }
 
