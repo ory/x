@@ -22,38 +22,60 @@ type options struct {
 
 type Option func(o *options)
 
-func newOptions(opts []Option) *options {
-	o := &options{
+func (o *options) apply(opts []Option) *options {
+	for _, f := range opts {
+		f(o)
+	}
+	return o
+}
+
+func newOptions() *options {
+	return &options{
 		disableFileLoader:   false,
 		disableHTTPLoader:   false,
 		disableBase64Loader: false,
 		base64enc:           base64.RawURLEncoding,
 		hc:                  httpx.NewResilientClient(),
 	}
-
-	for _, f := range opts {
-		f(o)
-	}
-
-	return o
 }
 
-// WithDisableFileLoader disables the file loader.
-func WithDisableFileLoader() Option {
+// WithDisabledFileLoader disables the file loader.
+func WithDisabledFileLoader() Option {
 	return func(o *options) {
 		o.disableFileLoader = true
 	}
 }
 
-// WithDisableHTTPLoader disables the HTTP loader.
-func WithDisableHTTPLoader() Option {
+// WithEnabledFileLoader enables the file loader.
+func WithEnabledFileLoader() Option {
+	return func(o *options) {
+		o.disableFileLoader = false
+	}
+}
+
+// WithDisabledHTTPLoader disables the HTTP loader.
+func WithDisabledHTTPLoader() Option {
 	return func(o *options) {
 		o.disableHTTPLoader = true
 	}
 }
 
-// WithDisableBase64Loader disables the base64 loader.
-func WithDisableBase64Loader() Option {
+// WithEnabledHTTPLoader enables the HTTP loader.
+func WithEnabledHTTPLoader() Option {
+	return func(o *options) {
+		o.disableHTTPLoader = false
+	}
+}
+
+// WithDisabledBase64Loader disables the base64 loader.
+func WithDisabledBase64Loader() Option {
+	return func(o *options) {
+		o.disableBase64Loader = true
+	}
+}
+
+// WithEnabledBase64Loader disables the base64 loader.
+func WithEnabledBase64Loader() Option {
 	return func(o *options) {
 		o.disableBase64Loader = true
 	}
@@ -73,12 +95,23 @@ func WithHTTPClient(hc *retryablehttp.Client) Option {
 	}
 }
 
+// RestrictedReadFile works similar to ReadFileFromAllSources but has all
+// sources disabled per default. You need to enable the loaders you wish to use
+// explicitly.
+func RestrictedReadFile(source string, opts ...Option) (bytes []byte, err error) {
+	o := newOptions()
+	o.disableFileLoader = true
+	o.disableBase64Loader = true
+	o.disableHTTPLoader = true
+	return readFile(source, o.apply(opts))
+}
+
 // ReadFileFromAllSources reads a file from base64, http, https, and file sources.
 //
 // Using options, you can disable individual loaders. For example, the following will
 // return an error:
 //
-//		ReadFileFromAllSources("https://foo.bar/baz.txt", WithDisableHTTPLoader())
+//		ReadFileFromAllSources("https://foo.bar/baz.txt", WithDisabledHTTPLoader())
 //
 // Possible formats are:
 //
@@ -89,14 +122,16 @@ func WithHTTPClient(hc *retryablehttp.Client) Option {
 //
 // For more options, check:
 //
-// - WithDisableFileLoader
-// - WithDisableHTTPLoader
-// - WithDisableBase64Loader
+// - WithDisabledFileLoader
+// - WithDisabledHTTPLoader
+// - WithDisabledBase64Loader
 // - WithBase64Encoding
 // - WithHTTPClient
 func ReadFileFromAllSources(source string, opts ...Option) (bytes []byte, err error) {
-	o := newOptions(opts)
+	return readFile(source, newOptions().apply(opts))
+}
 
+func readFile(source string, o *options) (bytes []byte, err error) {
 	parsed, err := url.ParseRequestURI(source)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse URL")
