@@ -77,7 +77,13 @@ func TestRestrictedReadFile(t *testing.T) {
 		expectedBody string
 	}{
 		{src: "base64://aGVsbG8gd29ybGQ", expectedErr: "base64 loader disabled"},
-		{src: "base64://aGVsbG8gd29ybGQ", expectedErr: "base64 loader disabled", opts: []Option{WithEnabledBase64Loader()}},
+		{src: "base64://aGVsbG8gd29ybGQ", expectedBody: "hello world", opts: []Option{WithEnabledBase64Loader()}},
+
+		{src: "file://stub/text.txt", expectedErr: "file loader disabled"},
+		{src: "file://stub/text.txt", expectedBody: "hello world", opts: []Option{WithEnabledFileLoader()}},
+
+		{src: sslTS.URL, expectedErr: "http(s) loader disabled"},
+		{src: ts.URL, expectedBody: "hello world", opts: []Option{WithEnabledHTTPLoader()}},
 	} {
 		t.Run(fmt.Sprintf("case=%d", k), func(t *testing.T) {
 			body, err := RestrictedReadFile(tc.src, tc.opts...)
