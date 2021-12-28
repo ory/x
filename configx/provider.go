@@ -106,7 +106,7 @@ func New(schema []byte, modifiers ...OptionModifier) (*Provider, error) {
 		onValidationError:        func(k *koanf.Koanf, err error) {},
 		excludeFieldsFromTracing: []string{"dsn", "secret", "password", "key"},
 		logger:                   logrusx.New("discarding config logger", "", logrusx.UseLogger(l)),
-		Koanf:                    koanf.New(Delimiter),
+		Koanf:                    koanf.NewWithConf(koanf.Conf{Delim: Delimiter, StrictMerge: true}),
 	}
 
 	for _, m := range modifiers {
@@ -228,7 +228,12 @@ func (p *Provider) newKoanf() (*koanf.Koanf, error) {
 			provider = posflag.Provider(p.flags, ".", k)
 		}
 
-		if err := k.Load(provider, nil); err != nil {
+		var opts []koanf.Option
+		if _, ok := provider.(*Env); ok {
+			opts = append(opts, koanf.WithMergeFunc(MergeAllTypes))
+		}
+
+		if err := k.Load(provider, nil, opts...); err != nil {
 			return nil, err
 		}
 	}

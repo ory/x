@@ -8,6 +8,8 @@ replace github.com/oleiade/reflections => github.com/oleiade/reflections v1.0.1
 
 replace github.com/gobuffalo/packr => github.com/gobuffalo/packr v1.30.1
 
+replace github.com/knadh/koanf => github.com/aeneasr/koanf v0.14.1-0.20211230115640-aa3902b3267a
+
 require (
 	github.com/DataDog/datadog-go v4.8.2+incompatible // indirect
 	github.com/DataDog/sketches-go v1.2.1 // indirect
@@ -42,7 +44,6 @@ require (
 	github.com/gobuffalo/httptest v1.0.2
 	github.com/gobuffalo/pop/v6 v6.0.1
 	github.com/gofrs/uuid v4.1.0+incompatible
-	github.com/gogo/protobuf v1.3.2
 	github.com/golang/glog v1.0.0 // indirect
 	github.com/golang/mock v1.6.0
 	github.com/google/go-jsonnet v0.17.0
@@ -50,6 +51,7 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.0
+	github.com/imdario/mergo v0.3.12
 	github.com/inhies/go-bytesize v0.0.0-20210819104631-275770b98743
 	github.com/instana/go-sensor v1.34.0
 	github.com/jackc/pgconn v1.10.1
@@ -58,7 +60,7 @@ require (
 	github.com/jcchavezs/porto v0.3.0 // indirect
 	github.com/jmoiron/sqlx v1.3.4
 	github.com/julienschmidt/httprouter v1.3.0
-	github.com/knadh/koanf v1.3.0
+	github.com/knadh/koanf v1.3.3
 	github.com/lib/pq v1.10.4
 	github.com/looplab/fsm v0.3.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
@@ -118,6 +120,7 @@ require (
 	gonum.org/v1/plot v0.10.0
 	google.golang.org/genproto v0.0.0-20211020151524-b7c3a969101a // indirect
 	google.golang.org/grpc v1.42.0
+	google.golang.org/protobuf v1.27.1
 	gopkg.in/DataDog/dd-trace-go.v1 v1.33.0
 	gopkg.in/ini.v1 v1.63.2 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0

@@ -134,6 +134,9 @@ func TestListPaths(t *testing.T) {
 			schema: readFile(t, "./stub/config.schema.json"),
 		},
 		{
+			schema: readFile(t, "./stub/nested-array.schema.json"),
+		},
+		{
 			// this should fail because of recursion
 			schema:    recursiveSchema,
 			expectErr: true,

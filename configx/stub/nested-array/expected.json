@@ -1,0 +1,12 @@
+{
+  "providers": [
+    {
+      "id": "google",
+      "client_id": "client@example.com"
+    },
+    {
+      "client_id": "some@example.com"
+    }
+  ],
+  "config": ["stub/nested-array/kratos.yaml"]
+}
