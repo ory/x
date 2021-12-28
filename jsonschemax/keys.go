@@ -406,5 +406,24 @@ func listPaths(schema *jsonschema.Schema, parent *jsonschema.Schema, parents []s
 		paths = append(paths, path...)
 	}
 
+	if schema.Items != nil {
+		switch t := schema.Items.(type) {
+		case []*jsonschema.Schema:
+			for _, sub := range t {
+				path, err := listPaths(sub, schema, append(parents, "#"), appendPointer(pointers, schema), currentRecursion, maxRecursion)
+				if err != nil {
+					return nil, err
+				}
+				paths = append(paths, path...)
+			}
+		case *jsonschema.Schema:
+			path, err := listPaths(t, schema, append(parents, "#"), appendPointer(pointers, schema), currentRecursion, maxRecursion)
+			if err != nil {
+				return nil, err
+			}
+			paths = append(paths, path...)
+		}
+	}
+
 	return paths, nil
 }

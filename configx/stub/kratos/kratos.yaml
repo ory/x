@@ -50,11 +50,6 @@ selfservice:
     registration:
       lifespan: 10m
       ui_url: http://127.0.0.1:4455/auth/registration
-      after:
-        password:
-          hooks:
-            -
-              hook: session
 
 log:
   level: debug
