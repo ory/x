@@ -5,8 +5,8 @@
     "Examples": null,
     "Name": "bar",
     "Default": null,
-    "Type": [],
-    "TypeHint": 8,
+    "Type": "",
+    "TypeHint": 1,
     "Format": "",
     "Pattern": null,
     "Enum": null,
@@ -18,16 +18,18 @@
     "Minimum": null,
     "Maximum": null,
     "MultipleOf": null,
-    "CustomProperties": null
+    "CustomProperties": {
+      "foobar": "bar"
+    }
   },
   {
     "Title": "",
     "Description": "",
     "Examples": null,
-    "Name": "bar.#",
+    "Name": "foo",
     "Default": null,
-    "Type": "",
-    "TypeHint": 1,
+    "Type": false,
+    "TypeHint": 4,
     "Format": "",
     "Pattern": null,
     "Enum": null,
@@ -35,7 +37,7 @@
     "ReadOnly": false,
     "MinLength": -1,
     "MaxLength": -1,
-    "Required": false,
+    "Required": true,
     "Minimum": null,
     "Maximum": null,
     "MultipleOf": null,
