@@ -131,6 +131,9 @@ func TestListPaths(t *testing.T) {
 			schema: readFile(t, "./stub/.oathkeeper.schema.json"),
 		},
 		{
+			schema: readFile(t, "./stub/nested-simple-array.schema.json"),
+		},
+		{
 			schema: readFile(t, "./stub/config.schema.json"),
 		},
 		{

@@ -1,9 +1,61 @@
+# JSON Schema Helpers
+
+This package contains utilities for working with JSON Schemas.
+
+## Listing all Possible JSON Schema Paths
+
+Using `jsonschemax.ListPaths()` you can get a list of all possible JSON paths in a JSON Schema.
+
+```go
+package main
+
+import (
+	"bytes"
+	"fmt"
+	"github.com/ory/jsonschema/v3"
+	"github.com/ory/x/jsonschemax"
+)
+
+var schema = "..."
+
+func main() {
+	c := jsonschema.NewCompiler()
+	_ = c.AddResource("test.json", bytes.NewBufferString(schema))
+	paths, _ := jsonschemax.ListPaths("test.json", c)
+	fmt.Printf("%+v", paths)
+}
+```
+
+All keys are delimited using `.`. Please note that arrays are denoted with `#`. For example, the JSON Schema
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "properties": {
+    "providers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+Results in paths:
+
+```json
 [
   {
     "Title": "",
     "Description": "",
     "Examples": null,
-    "Name": "baz",
+    "Name": "providers",
     "Default": null,
     "Type": [],
     "TypeHint": 5,
@@ -24,10 +76,10 @@
     "Title": "",
     "Description": "",
     "Examples": null,
-    "Name": "baz.#",
+    "Name": "providers.#",
     "Default": null,
-    "Type": [],
-    "TypeHint": 8,
+    "Type": {},
+    "TypeHint": 5,
     "Format": "",
     "Pattern": null,
     "Enum": null,
@@ -45,7 +97,7 @@
     "Title": "",
     "Description": "",
     "Examples": null,
-    "Name": "baz.#.#",
+    "Name": "providers.#.id",
     "Default": null,
     "Type": "",
     "TypeHint": 1,
@@ -63,3 +115,4 @@
     "CustomProperties": null
   }
 ]
+```

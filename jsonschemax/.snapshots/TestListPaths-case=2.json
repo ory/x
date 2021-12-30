@@ -178,30 +178,23 @@
     "CustomProperties": null
   },
   {
-    "Title": "Provider",
-    "Description": "Can be one of github, gitlab, generic, google, microsoft, discord.",
-    "Examples": [
-      "google"
-    ],
+    "Title": "",
+    "Description": "",
+    "Examples": null,
     "Name": "providers.#.provider",
     "Default": null,
     "Type": "",
     "TypeHint": 1,
     "Format": "",
     "Pattern": null,
-    "Enum": [
-      "github",
-      "gitlab",
-      "generic",
-      "google",
-      "microsoft",
-      "discord"
+    "Enum": null,
+    "Constant": [
+      "microsoft"
     ],
-    "Constant": null,
     "ReadOnly": false,
     "MinLength": -1,
     "MaxLength": -1,
-    "Required": false,
+    "Required": true,
     "Minimum": null,
     "Maximum": null,
     "MultipleOf": null,
