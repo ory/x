@@ -288,7 +288,7 @@ func TestListPaths(t *testing.T) {
 			}
 
 			require.NoError(t, c.AddResource("test.json", bytes.NewBufferString(tc.schema)))
-			actual, err := ListPaths("test.json", c)
+			actual, err := ListPathsWithArraysIncluded("test.json", c)
 			if tc.expectErr {
 				require.Error(t, err, "%+v", actual)
 				return

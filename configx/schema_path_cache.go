@@ -31,7 +31,7 @@ func getSchemaPaths(rawSchema []byte, schema *jsonschema.Schema) ([]jsonschemax.
 		schemaPathCache.Del(key)
 	}
 
-	keys, err := jsonschemax.ListPathsWithInitializedSchema(schema)
+	keys, err := jsonschemax.ListPathsWithInitializedSchemaAndArraysIncluded(schema)
 	if err != nil {
 		return nil, err
 	}

@@ -26,7 +26,7 @@ func main() {
 }
 ```
 
-All keys are delimited using `.`. Please note that arrays are denoted with `#`. For example, the JSON Schema
+All keys are delimited using `.`. Please note that arrays are denoted with `#` when `ListPathsWithArraysIncluded` is used. For example, the JSON Schema
 
 ```json
 {
