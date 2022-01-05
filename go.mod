@@ -12,7 +12,6 @@ require (
 	github.com/DataDog/datadog-go v4.8.2+incompatible // indirect
 	github.com/DataDog/sketches-go v1.2.1 // indirect
 	github.com/HdrHistogram/hdrhistogram-go v1.1.2 // indirect
-	github.com/Microsoft/go-winio v0.5.1 // indirect
 	github.com/ajstarks/svgo v0.0.0-20210927141636-6d70534b1098 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/bmatcuk/doublestar/v2 v2.0.4
@@ -23,7 +22,6 @@ require (
 	github.com/containerd/continuity v0.2.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
 	github.com/dgraph-io/ristretto v0.1.0
-	github.com/docker/cli v20.10.9+incompatible // indirect
 	github.com/docker/docker v20.10.9+incompatible
 	github.com/elastic/go-sysinfo v1.7.1 // indirect
 	github.com/elastic/go-windows v1.0.1 // indirect
@@ -70,7 +68,7 @@ require (
 	github.com/openzipkin-contrib/zipkin-go-opentracing v0.4.5
 	github.com/openzipkin/zipkin-go v0.2.5
 	github.com/ory/analytics-go/v4 v4.0.2
-	github.com/ory/dockertest/v3 v3.8.0
+	github.com/ory/dockertest/v3 v3.8.1
 	github.com/ory/go-acc v0.2.6
 	github.com/ory/herodot v0.9.12
 	github.com/ory/jsonschema/v3 v3.0.4
