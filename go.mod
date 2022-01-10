@@ -8,6 +8,8 @@ replace github.com/oleiade/reflections => github.com/oleiade/reflections v1.0.1
 
 replace github.com/gobuffalo/packr => github.com/gobuffalo/packr v1.30.1
 
+replace github.com/mattn/go-sqlite3 => github.com/mattn/go-sqlite3 v1.14.10
+
 require (
 	github.com/DataDog/datadog-go v4.8.2+incompatible // indirect
 	github.com/DataDog/sketches-go v1.2.1 // indirect
