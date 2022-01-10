@@ -13,12 +13,13 @@ import (
 )
 
 type resilientOptions struct {
-	ctx          context.Context
-	c            *http.Client
-	l            interface{}
-	retryWaitMin time.Duration
-	retryWaitMax time.Duration
-	retryMax     int
+	ctx           context.Context
+	c             *http.Client
+	l             interface{}
+	retryWaitMin  time.Duration
+	retryWaitMax  time.Duration
+	retryMax      int
+	noInternalIPs bool
 }
 
 func newResilientOptions() *resilientOptions {
@@ -32,48 +33,67 @@ func newResilientOptions() *resilientOptions {
 	}
 }
 
+// ResilientOptions is a set of options for the ResilientClient.
 type ResilientOptions func(o *resilientOptions)
 
+// ResilientClientWithClient sets the underlying http client to use.
 func ResilientClientWithClient(c *http.Client) ResilientOptions {
 	return func(o *resilientOptions) {
 		o.c = c
 	}
 }
 
+// ResilientClientWithMaxRetry sets the maximum number of retries.
 func ResilientClientWithMaxRetry(retryMax int) ResilientOptions {
 	return func(o *resilientOptions) {
 		o.retryMax = retryMax
 	}
 }
 
+// ResilientClientWithMinxRetryWait sets the minimum wait time between retries.
 func ResilientClientWithMinxRetryWait(retryWaitMin time.Duration) ResilientOptions {
 	return func(o *resilientOptions) {
 		o.retryWaitMin = retryWaitMin
 	}
 }
 
+// ResilientClientWithMaxRetryWait sets the maximum wait time for a retry.
 func ResilientClientWithMaxRetryWait(retryWaitMax time.Duration) ResilientOptions {
 	return func(o *resilientOptions) {
 		o.retryWaitMax = retryWaitMax
 	}
 }
 
+// ResilientClientWithConnectionTimeout sets the connection timeout for the client.
 func ResilientClientWithConnectionTimeout(connTimeout time.Duration) ResilientOptions {
 	return func(o *resilientOptions) {
 		o.c.Timeout = connTimeout
 	}
 }
 
+// ResilientClientWithLogger sets the logger to be used by the client.
 func ResilientClientWithLogger(l *logrusx.Logger) ResilientOptions {
 	return func(o *resilientOptions) {
 		o.l = l
 	}
 }
 
+// ResilientClientDisallowInternalIPs disallows internal IPs from being used.
+func ResilientClientDisallowInternalIPs() ResilientOptions {
+	return func(o *resilientOptions) {
+		o.noInternalIPs = true
+	}
+}
+
+// NewResilientClient creates a new ResilientClient.
 func NewResilientClient(opts ...ResilientOptions) *retryablehttp.Client {
 	o := newResilientOptions()
 	for _, f := range opts {
 		f(o)
+	}
+
+	if o.noInternalIPs == true {
+		o.c.Transport = &NoInternalIPRoundTripper{RoundTripper: o.c.Transport}
 	}
 
 	return &retryablehttp.Client{

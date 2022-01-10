@@ -2,9 +2,11 @@ package configx
 
 import (
 	"encoding/json"
-	"github.com/ory/x/jsonx"
+
 	"github.com/pkg/errors"
 	"github.com/tidwall/sjson"
+
+	"github.com/ory/x/jsonx"
 )
 
 func MergeAllTypes(src, dst map[string]interface{}) error {
