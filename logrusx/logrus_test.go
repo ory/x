@@ -79,6 +79,7 @@ func TestTextLogger(t *testing.T) {
 	audit := NewAudit("logrusx-audit", "v0.0.0", ForceFormat("text"), ForceLevel(logrus.TraceLevel))
 	tracer := New("logrusx-app", "v0.0.0", ForceFormat("text"), ForceLevel(logrus.TraceLevel))
 	debugger := New("logrusx-server", "v0.0.1", ForceFormat("text"), ForceLevel(logrus.DebugLevel))
+	warner := New("logrusx-server", "v0.0.1", ForceFormat("text"), ForceLevel(logrus.WarnLevel))
 	for k, tc := range []struct {
 		l         *Logger
 		expect    []string
@@ -144,6 +145,14 @@ func TestTextLogger(t *testing.T) {
 		},
 		{
 			l: debugger,
+			expect: []string{"audience=application", "service_name=logrusx-server", "service_version=v0.0.1",
+				"An error occurred.", "message:some error"},
+			call: func(l *Logger) {
+				l.WithError(errors.New("some error")).Error("An error occurred.")
+			},
+		},
+		{
+			l: warner,
 			expect: []string{"audience=application", "service_name=logrusx-server", "service_version=v0.0.1",
 				"An error occurred.", "message:some error"},
 			notExpect: []string{"logrus_test.go", "logrusx_test.TestTextLogger", "trace", "testing.tRunner"},
