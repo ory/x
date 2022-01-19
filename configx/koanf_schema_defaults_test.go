@@ -2,12 +2,14 @@ package configx
 
 import (
 	"bytes"
-	"github.com/ory/jsonschema/v3"
-	"github.com/ory/x/snapshotx"
-	"github.com/stretchr/testify/require"
 	"os"
 	"path"
 	"testing"
+
+	"github.com/stretchr/testify/require"
+
+	"github.com/ory/jsonschema/v3"
+	"github.com/ory/x/snapshotx"
 )
 
 func TestKoanfSchemaDefaults(t *testing.T) {
