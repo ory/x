@@ -73,7 +73,7 @@ require (
 	github.com/ory/dockertest/v3 v3.8.1
 	github.com/ory/go-acc v0.2.6
 	github.com/ory/herodot v0.9.12
-	github.com/ory/jsonschema/v3 v3.0.4
+	github.com/ory/jsonschema/v3 v3.0.5
 	github.com/pborman/uuid v1.2.1
 	github.com/pelletier/go-toml v1.9.4
 	github.com/pkg/errors v0.9.1
@@ -112,7 +112,6 @@ require (
 	golang.org/x/net v0.0.0-20211020060615-d418f374d309 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20211020174200-9d6173849985 // indirect
-	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
 	gonum.org/v1/plot v0.10.0
 	google.golang.org/genproto v0.0.0-20211020151524-b7c3a969101a // indirect

@@ -2,6 +2,7 @@ package configx
 
 import (
 	"bytes"
+	"context"
 	"os"
 	"path"
 	"testing"
@@ -21,10 +22,10 @@ func TestKoanfSchemaDefaults(t *testing.T) {
 	c := jsonschema.NewCompiler()
 	require.NoError(t, c.AddResource(schemaPath, bytes.NewReader(rawSchema)))
 
-	schema, err := c.Compile(schemaPath)
+	schema, err := c.Compile(context.Background(), schemaPath)
 	require.NoError(t, err)
 
-	k, err := newKoanf(schemaPath, nil)
+	k, err := newKoanf(ctx, schemaPath, nil)
 	require.NoError(t, err)
 
 	def, err := NewKoanfSchemaDefaults(rawSchema, schema)

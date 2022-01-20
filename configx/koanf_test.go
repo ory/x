@@ -1,6 +1,7 @@
 package configx
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -13,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newKoanf(schemaPath string, configPaths []string, modifiers ...OptionModifier) (*Provider, error) {
+func newKoanf(ctx context.Context, schemaPath string, configPaths []string, modifiers ...OptionModifier) (*Provider, error) {
 	schema, err := ioutil.ReadFile(schemaPath)
 	if err != nil {
 		return nil, err
@@ -23,7 +24,7 @@ func newKoanf(schemaPath string, configPaths []string, modifiers ...OptionModifi
 	f.StringSliceP("config", "c", configPaths, "")
 
 	modifiers = append(modifiers, WithFlags(f))
-	k, err := New(schema, modifiers...)
+	k, err := New(ctx, schema, modifiers...)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +46,7 @@ func setEnvs(t testing.TB, envs [][2]string) {
 func BenchmarkKoanf(b *testing.B) {
 	setEnvs(b, [][2]string{{"MUTATORS_HEADER_ENABLED", "true"}})
 	schemaPath := path.Join("stub/benchmark/schema.config.json")
-	k, err := newKoanf(schemaPath, []string{"stub/benchmark/benchmark.yaml"})
+	k, err := newKoanf(ctx, schemaPath, []string{"stub/benchmark/benchmark.yaml"})
 	require.NoError(b, err)
 
 	keys := k.Koanf.Keys()

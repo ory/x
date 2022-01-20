@@ -2,6 +2,7 @@ package decoderx
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
@@ -240,7 +241,7 @@ func (t *HTTP) validateRequest(r *http.Request, c *httpDecoderOptions) error {
 	return nil
 }
 
-func (t *HTTP) validatePayload(raw json.RawMessage, c *httpDecoderOptions) error {
+func (t *HTTP) validatePayload(ctx context.Context, raw json.RawMessage, c *httpDecoderOptions) error {
 	if !c.jsonSchemaValidate {
 		return nil
 	}
@@ -249,7 +250,7 @@ func (t *HTTP) validatePayload(raw json.RawMessage, c *httpDecoderOptions) error
 		return errors.WithStack(herodot.ErrInternalServerError.WithReasonf("JSON Schema Validation is required but no compiler was provided."))
 	}
 
-	schema, err := c.jsonSchemaCompiler.Compile(c.jsonSchemaRef)
+	schema, err := c.jsonSchemaCompiler.Compile(ctx, c.jsonSchemaRef)
 	if err != nil {
 		return errors.WithStack(herodot.ErrInternalServerError.WithReasonf("Unable to load JSON Schema from location: %s", c.jsonSchemaRef).WithDebug(err.Error()))
 	}
@@ -310,7 +311,7 @@ func (t *HTTP) decodeJSONForm(r *http.Request, destination interface{}, o *httpD
 		return errors.WithStack(herodot.ErrInternalServerError.WithReasonf("Unable to decode HTTP Form Body because no validation schema was provided. This is a code bug."))
 	}
 
-	paths, err := jsonschemax.ListPathsWithRecursion(o.jsonSchemaRef, o.jsonSchemaCompiler, o.maxCircularReferenceDepth)
+	paths, err := jsonschemax.ListPathsWithRecursion(r.Context(), o.jsonSchemaRef, o.jsonSchemaCompiler, o.maxCircularReferenceDepth)
 	if err != nil {
 		return errors.WithStack(herodot.ErrInternalServerError.WithTrace(err).WithReasonf("Unable to prepare JSON Schema for HTTP Post Body Form parsing: %s", err).WithDebugf("%+v", err))
 	}
@@ -361,7 +362,7 @@ func (t *HTTP) decodeJSONForm(r *http.Request, destination interface{}, o *httpD
 		return errors.WithStack(err)
 	}
 
-	return t.validatePayload(raw, o)
+	return t.validatePayload(r.Context(), raw, o)
 }
 
 func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecoderOptions) error {
@@ -382,7 +383,7 @@ func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecod
 		return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Unable to decode HTTP %s form body: %s", strings.ToUpper(r.Method), err).WithDebug(err.Error()))
 	}
 
-	paths, err := jsonschemax.ListPathsWithRecursion(o.jsonSchemaRef, o.jsonSchemaCompiler, o.maxCircularReferenceDepth)
+	paths, err := jsonschemax.ListPathsWithRecursion(r.Context(), o.jsonSchemaRef, o.jsonSchemaCompiler, o.maxCircularReferenceDepth)
 	if err != nil {
 		return errors.WithStack(herodot.ErrInternalServerError.WithTrace(err).WithReasonf("Unable to prepare JSON Schema for HTTP Post Body Form parsing: %s", err).WithDebugf("%+v", err))
 	}
@@ -401,7 +402,7 @@ func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecod
 		return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Unable to decode JSON payload: %s", err))
 	}
 
-	return t.validatePayload(raw, o)
+	return t.validatePayload(r.Context(), raw, o)
 }
 
 func (t *HTTP) decodeURLValues(values url.Values, paths []jsonschemax.Path, o *httpDecoderOptions) (json.RawMessage, error) {
@@ -563,7 +564,7 @@ func (t *HTTP) decodeJSON(r *http.Request, destination interface{}, o *httpDecod
 		return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Unable to decode JSON payload: %s", err))
 	}
 
-	if err := t.validatePayload(raw, o); err != nil {
+	if err := t.validatePayload(r.Context(), raw, o); err != nil {
 		if o.expectJSONFlattened && strings.Contains(err.Error(), "json: unknown field") && !isRetry {
 			return t.decodeJSONForm(r, destination, o)
 		}

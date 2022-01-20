@@ -2,6 +2,7 @@ package jsonschemax
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
@@ -96,7 +97,7 @@ type Path struct {
 }
 
 // ListPathsBytes works like ListPathsWithRecursion but prepares the JSON Schema itself.
-func ListPathsBytes(raw json.RawMessage, maxRecursion int16) ([]Path, error) {
+func ListPathsBytes(ctx context.Context, raw json.RawMessage, maxRecursion int16) ([]Path, error) {
 	compiler := jsonschema.NewCompiler()
 	compiler.ExtractAnnotations = true
 	id := fmt.Sprintf("%x.json", sha256.Sum256(raw))
@@ -104,26 +105,26 @@ func ListPathsBytes(raw json.RawMessage, maxRecursion int16) ([]Path, error) {
 		return nil, err
 	}
 	compiler.ExtractAnnotations = true
-	return runPathsFromCompiler(id, compiler, maxRecursion, false)
+	return runPathsFromCompiler(ctx, id, compiler, maxRecursion, false)
 }
 
 // ListPathsWithRecursion will follow circular references until maxRecursion is reached, without
 // returning an error.
-func ListPathsWithRecursion(ref string, compiler *jsonschema.Compiler, maxRecursion uint8) ([]Path, error) {
-	return runPathsFromCompiler(ref, compiler, int16(maxRecursion), false)
+func ListPathsWithRecursion(ctx context.Context, ref string, compiler *jsonschema.Compiler, maxRecursion uint8) ([]Path, error) {
+	return runPathsFromCompiler(ctx, ref, compiler, int16(maxRecursion), false)
 }
 
 // ListPaths lists all paths of a JSON Schema. Will return an error
 // if circular references are found.
-func ListPaths(ref string, compiler *jsonschema.Compiler) ([]Path, error) {
-	return runPathsFromCompiler(ref, compiler, -1, false)
+func ListPaths(ctx context.Context, ref string, compiler *jsonschema.Compiler) ([]Path, error) {
+	return runPathsFromCompiler(ctx, ref, compiler, -1, false)
 }
 
 // ListPathsWithArraysIncluded lists all paths of a JSON Schema. Will return an error
 // if circular references are found.
 // Includes arrays with `#`.
-func ListPathsWithArraysIncluded(ref string, compiler *jsonschema.Compiler) ([]Path, error) {
-	return runPathsFromCompiler(ref, compiler, -1, true)
+func ListPathsWithArraysIncluded(ctx context.Context, ref string, compiler *jsonschema.Compiler) ([]Path, error) {
+	return runPathsFromCompiler(ctx, ref, compiler, -1, true)
 }
 
 // ListPathsWithInitializedSchema loads the paths from the schema without compiling it.
@@ -141,14 +142,14 @@ func ListPathsWithInitializedSchemaAndArraysIncluded(schema *jsonschema.Schema) 
 	return runPaths(schema, -1, true)
 }
 
-func runPathsFromCompiler(ref string, compiler *jsonschema.Compiler, maxRecursion int16, includeArrays bool) ([]Path, error) {
+func runPathsFromCompiler(ctx context.Context, ref string, compiler *jsonschema.Compiler, maxRecursion int16, includeArrays bool) ([]Path, error) {
 	if compiler == nil {
 		compiler = jsonschema.NewCompiler()
 	}
 
 	compiler.ExtractAnnotations = true
 
-	schema, err := compiler.Compile(ref)
+	schema, err := compiler.Compile(ctx, ref)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
