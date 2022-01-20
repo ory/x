@@ -2,6 +2,7 @@ package tracing
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"testing"
 
@@ -51,7 +52,7 @@ func TestConfigSchema(t *testing.T) {
 
 		require.NoError(t, c.AddResource("config", bytes.NewBufferString(fmt.Sprintf(rootSchema, ConfigSchemaID))))
 
-		schema, err := c.Compile("config")
+		schema, err := c.Compile(context.Background(), "config")
 		require.NoError(t, err)
 
 		assert.NoError(t, schema.Validate(bytes.NewBufferString(rawConfig)))

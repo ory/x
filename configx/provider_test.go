@@ -31,7 +31,7 @@ func TestProviderMethods(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	p, err := New([]byte(`{}`), WithFlags(f), WithContext(ctx))
+	p, err := New(ctx, []byte(`{}`), WithFlags(f), WithContext(ctx))
 	require.NoError(t, err)
 
 	t.Run("check flags", func(t *testing.T) {
@@ -190,7 +190,7 @@ func TestAdvancedConfigs(t *testing.T) {
 			schemaPath := path.Join("stub", tc.stub, "config.schema.json")
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
-			k, err := newKoanf(schemaPath, tc.configs, append(tc.ops, WithContext(ctx))...)
+			k, err := newKoanf(ctx, schemaPath, tc.configs, append(tc.ops, WithContext(ctx))...)
 			if !tc.isValid {
 				require.Error(t, err)
 				return

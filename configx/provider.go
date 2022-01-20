@@ -90,8 +90,8 @@ func RegisterConfigFlag(flags *pflag.FlagSet, fallback []string) {
 // 2. Config files (yaml, yml, toml, json)
 // 3. Command line flags
 // 4. Environment variables
-func New(schema []byte, modifiers ...OptionModifier) (*Provider, error) {
-	validator, err := getSchema(schema)
+func New(ctx context.Context, schema []byte, modifiers ...OptionModifier) (*Provider, error) {
+	validator, err := getSchema(ctx, schema)
 	if err != nil {
 		return nil, err
 	}
