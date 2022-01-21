@@ -1,6 +1,7 @@
 package httpx
 
 import (
+	"github.com/opentracing/opentracing-go/mocktracer"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -37,4 +38,24 @@ func TestNoPrivateIPs(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "is in the")
 	}
+}
+
+func TestClientWithTracer(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("Hello, world!"))
+	}))
+	t.Cleanup(ts.Close)
+
+	tracer := mocktracer.New()
+	c := NewResilientClient(
+		ResilientClientWithTracer(tracer),
+	)
+
+	target, err := url.ParseRequestURI(ts.URL)
+	require.NoError(t, err)
+
+	_, err = c.Get(target.String())
+	
+	assert.NoError(t, err)
+
 }
