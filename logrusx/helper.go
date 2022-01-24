@@ -50,20 +50,14 @@ func (l *Logger) WithContext(ctx context.Context) *Logger {
 
 func (l *Logger) HTTPHeadersRedacted(h http.Header) map[string]interface{} {
 	headers := map[string]interface{}{}
-	if cookie := l.maybeRedact(h.Get("Cookie")); cookie != nil {
-		headers["cookie"] = cookie
-	}
 
-	if auth := l.maybeRedact(h.Get("Authorization")); auth != nil {
-		headers["authorization"] = auth
-	}
-
-	for key := range h {
-		if strings.ToLower(key) == "cookie" ||
-			strings.ToLower(key) == "authorization" {
-			continue
+	for key, value := range h {
+		keyLower := strings.ToLower(key)
+		if keyLower == "authorization" || keyLower == "cookie" || keyLower == "set-cookie" {
+			headers[keyLower] = l.maybeRedact(value)
+		} else {
+			headers[keyLower] = value
 		}
-		headers[strings.ToLower(key)] = h.Get(key)
 	}
 
 	return headers
