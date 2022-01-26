@@ -1,6 +1,7 @@
 package configx
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"fmt"
@@ -22,6 +23,8 @@ import (
 	"github.com/ory/x/logrusx"
 	"github.com/ory/x/watcherx"
 )
+
+var ctx = context.Background()
 
 func tmpConfigFile(t *testing.T, dsn, foo string) *os.File {
 	config := fmt.Sprintf("dsn: %s\nfoo: %s\n", dsn, foo)
@@ -60,11 +63,22 @@ func lsof(t *testing.T, file string) string {
 	if runtime.GOOS == "windows" {
 		return ""
 	}
-	var b bytes.Buffer
-	c := exec.Command("bash", "-c", "lsof -n | grep "+file+"")
+	var b, be bytes.Buffer
+	c := exec.Command("lsof", "-n")
 	c.Stdout = &b
-	require.NoError(t, c.Run())
-	return b.String()
+	c.Stderr = &be
+	require.NoError(t, c.Run(), "stderr says: %s %s", be.String(), b.String())
+	var out string
+	scanner := bufio.NewScanner(&b)
+	for scanner.Scan() {
+		text := scanner.Text()
+		if strings.Contains(text, file) {
+			out += text + "\n"
+			break
+		}
+	}
+	require.NoError(t, scanner.Err())
+	return out
 }
 
 func checkLsof(t *testing.T, file string) string {
@@ -111,7 +125,7 @@ func TestReload(t *testing.T) {
 			}),
 			WithContext(ctx),
 		)
-		p, err := newKoanf("./stub/watch/config.schema.json", []string{cf.Name()}, modifiers...)
+		p, err := newKoanf(ctx, "./stub/watch/config.schema.json", []string{cf.Name()}, modifiers...)
 		require.NoError(t, err)
 		return p, l
 	}
@@ -215,7 +229,7 @@ func TestReload(t *testing.T) {
 		hook := test.NewLocal(l.Entry.Logger)
 
 		var b bytes.Buffer
-		_, err := newKoanf("./stub/watch/config.schema.json", []string{configFile.Name()},
+		_, err := newKoanf(ctx, "./stub/watch/config.schema.json", []string{configFile.Name()},
 			WithStandardValidationReporter(&b),
 			WithLogrusWatcher(l),
 		)

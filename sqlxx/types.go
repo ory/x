@@ -9,10 +9,64 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
+	"github.com/tidwall/gjson"
 
-	"github.com/ory/x/stringsx"
+	"github.com/pkg/errors"
 )
+
+// Duration represents a JSON and SQL compatible time.Duration.
+// swagger:type string
+type Duration time.Duration
+
+// MarshalJSON returns m as the JSON encoding of m.
+func (ns Duration) MarshalJSON() ([]byte, error) {
+	return json.Marshal(time.Duration(ns).String())
+}
+
+// UnmarshalJSON sets *m to a copy of data.
+func (ns *Duration) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+
+	p, err := time.ParseDuration(s)
+	if err != nil {
+		return err
+	}
+
+	*ns = Duration(p)
+	return nil
+}
+
+// StringSliceJSONFormat represents []string{} which is encoded to/from JSON for SQL storage.
+type StringSliceJSONFormat []string
+
+// Scan implements the Scanner interface.
+func (m *StringSliceJSONFormat) Scan(value interface{}) error {
+	val := fmt.Sprintf("%s", value)
+	if len(val) == 0 {
+		val = "[]"
+	}
+
+	if parsed := gjson.Parse(val); parsed.Type == gjson.Null {
+		val = "[]"
+	} else if !parsed.IsArray() {
+		return errors.Errorf("expected JSON value to be an array but got type: %s", parsed.Type.String())
+	}
+
+	return errors.WithStack(json.Unmarshal([]byte(val), &m))
+}
+
+// Value implements the driver Valuer interface.
+func (m StringSliceJSONFormat) Value() (driver.Value, error) {
+	if len(m) == 0 {
+		return "[]", nil
+	}
+
+	encoded, err := json.Marshal(&m)
+	return string(encoded), errors.WithStack(err)
+}
 
 // StringSlicePipeDelimiter de/encodes the string slice to/from a SQL string.
 type StringSlicePipeDelimiter []string
@@ -33,11 +87,76 @@ func (n StringSlicePipeDelimiter) Value() (driver.Value, error) {
 }
 
 func scanStringSlice(delimiter rune, value interface{}) []string {
-	return stringsx.Splitx(fmt.Sprintf("%s", value), string(delimiter))
+	escaped := false
+	s := fmt.Sprintf("%s", value)
+	splitted := strings.FieldsFunc(s, func(r rune) bool {
+		if r == '\\' {
+			escaped = !escaped
+		} else if escaped && r != delimiter {
+			escaped = false
+		}
+		return !escaped && r == delimiter
+	})
+	for k, v := range splitted {
+		splitted[k] = strings.ReplaceAll(v, "\\"+string(delimiter), string(delimiter))
+	}
+	return splitted
 }
 
 func valueStringSlice(delimiter rune, value []string) string {
-	return strings.Join(value, string(delimiter))
+	replace := make([]string, len(value))
+	for k, v := range value {
+		replace[k] = strings.ReplaceAll(v, string(delimiter), "\\"+string(delimiter))
+	}
+	return strings.Join(replace, string(delimiter))
+}
+
+// NullBool represents a bool that may be null.
+// NullBool implements the Scanner interface so
+// swagger:type bool
+type NullBool struct {
+	Bool  bool
+	Valid bool // Valid is true if Bool is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullBool) Scan(value interface{}) error {
+	var d = sql.NullBool{}
+	if err := d.Scan(value); err != nil {
+		return err
+	}
+
+	ns.Bool = d.Bool
+	ns.Valid = d.Valid
+	return nil
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullBool) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return ns.Bool, nil
+}
+
+// MarshalJSON returns m as the JSON encoding of m.
+func (ns NullBool) MarshalJSON() ([]byte, error) {
+	if !ns.Valid {
+		return []byte("null"), nil
+	}
+	return json.Marshal(ns.Bool)
+}
+
+// UnmarshalJSON sets *m to a copy of data.
+func (ns *NullBool) UnmarshalJSON(data []byte) error {
+	if ns == nil {
+		return errors.New("json.RawMessage: UnmarshalJSON on nil pointer")
+	}
+	if len(data) == 0 || string(data) == "null" {
+		return nil
+	}
+	ns.Valid = true
+	return errors.WithStack(json.Unmarshal(data, &ns.Bool))
 }
 
 // swagger:type string
@@ -142,6 +261,41 @@ func (n MapStringInterface) Value() (driver.Value, error) {
 		return nil, errors.WithStack(err)
 	}
 	return string(value), nil
+}
+
+// JSONArrayRawMessage represents a json.RawMessage which only accepts arrays that works well with JSON, SQL, and Swagger.
+type JSONArrayRawMessage json.RawMessage
+
+// Scan implements the Scanner interface.
+func (m *JSONArrayRawMessage) Scan(value interface{}) error {
+	val := fmt.Sprintf("%s", value)
+	if len(val) == 0 {
+		val = "[]"
+	}
+
+	if parsed := gjson.Parse(val); parsed.Type == gjson.Null {
+		val = "[]"
+	} else if !parsed.IsArray() {
+		return errors.Errorf("expected JSON value to be an array but got type: %s", parsed.Type.String())
+	}
+
+	*m = []byte(val)
+	return nil
+}
+
+// Value implements the driver Valuer interface.
+func (m JSONArrayRawMessage) Value() (driver.Value, error) {
+	if len(m) == 0 {
+		return "[]", nil
+	}
+
+	if parsed := gjson.ParseBytes(m); parsed.Type == gjson.Null {
+		return "[]", nil
+	} else if !parsed.IsArray() {
+		return nil, errors.Errorf("expected JSON value to be an array but got type: %s", parsed.Type.String())
+	}
+
+	return string(m), nil
 }
 
 // JSONRawMessage represents a json.RawMessage that works well with JSON, SQL, and Swagger.

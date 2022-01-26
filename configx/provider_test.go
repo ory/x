@@ -31,7 +31,7 @@ func TestProviderMethods(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	p, err := New([]byte(`{}`), WithFlags(f), WithContext(ctx))
+	p, err := New(ctx, []byte(`{}`), WithFlags(f), WithContext(ctx))
 	require.NoError(t, err)
 
 	t.Run("check flags", func(t *testing.T) {
@@ -115,12 +115,22 @@ func TestAdvancedConfigs(t *testing.T) {
 		expectedF func(*testing.T, *Provider)
 	}{
 		{
+			stub:    "nested-array",
+			configs: []string{"stub/nested-array/kratos.yaml"},
+			isValid: true, envs: [][2]string{
+				{"PROVIDERS_0_CLIENT_ID", "client@example.com"},
+				{"PROVIDERS_1_CLIENT_ID", "some@example.com"},
+			},
+		},
+		{
 			stub:    "kratos",
 			configs: []string{"stub/kratos/kratos.yaml"},
 			isValid: true, envs: [][2]string{
 				{"SELFSERVICE_METHODS_OIDC_CONFIG_PROVIDERS", `[{"id":"google","provider":"google","mapper_url":"file:///etc/config/kratos/oidc.google.jsonnet","client_id":"client@example.com","client_secret":"secret"}]`},
 				{"DSN", "sqlite:///var/lib/sqlite/db.sqlite?_fk=true"},
-			}},
+				{"SELFSERVICE_FLOWS_REGISTRATION_AFTER_PASSWORD_HOOKS_0_HOOK", "session"},
+			},
+		},
 		{
 			stub:    "multi",
 			configs: []string{"stub/multi/a.yaml", "stub/multi/b.yaml"},
@@ -180,7 +190,7 @@ func TestAdvancedConfigs(t *testing.T) {
 			schemaPath := path.Join("stub", tc.stub, "config.schema.json")
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
-			k, err := newKoanf(schemaPath, tc.configs, append(tc.ops, WithContext(ctx))...)
+			k, err := newKoanf(ctx, schemaPath, tc.configs, append(tc.ops, WithContext(ctx))...)
 			if !tc.isValid {
 				require.Error(t, err)
 				return

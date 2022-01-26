@@ -1,6 +1,8 @@
 package configx
 
 import (
+	"strings"
+
 	"github.com/knadh/koanf/maps"
 	"github.com/pkg/errors"
 
@@ -28,6 +30,11 @@ func (k *KoanfSchemaDefaults) ReadBytes() ([]byte, error) {
 func (k *KoanfSchemaDefaults) Read() (map[string]interface{}, error) {
 	values := map[string]interface{}{}
 	for _, key := range k.keys {
+		// It's an array!
+		if strings.Contains(key.Name, "#") {
+			continue
+		}
+
 		if key.Default != nil {
 			values[key.Name] = key.Default
 		}

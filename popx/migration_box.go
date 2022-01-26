@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/gobuffalo/pop/v5"
+	"github.com/gobuffalo/pop/v6"
 	"github.com/pkg/errors"
 
 	"github.com/ory/x/logrusx"
@@ -64,7 +64,7 @@ func NewMigrationBox(dir fs.FS, m *Migrator, opts ...func(*MigrationBox) *Migrat
 				return errors.Wrapf(err, "error processing %s", mf.Path)
 			}
 			if content == "" {
-				m.l.WithField("migration", mf.Path).Debug("Ignoring migration because content is empty. This is ok!")
+				m.l.WithField("migration", mf.Path).Trace("This is usually ok - ignoring migration because content is empty. This is ok!")
 				return nil
 			}
 			if _, err = tx.Exec(content); err != nil {
@@ -95,14 +95,14 @@ func (fm *MigrationBox) findMigrations(runner func([]byte) func(mf Migration, c 
 		match, err := pop.ParseMigrationFilename(info.Name())
 		if err != nil {
 			if strings.HasPrefix(err.Error(), "unsupported dialect") {
-				fm.l.Debugf("Ignoring migration file %s because dialect is not supported: %s", info.Name(), err.Error())
+				fm.l.Tracef("This is usually ok - ignoring migration file %s because dialect is not supported: %s", info.Name(), err.Error())
 				return nil
 			}
 			return errors.WithStack(err)
 		}
 
 		if match == nil {
-			fm.l.Debugf("Ignoring migration file %s because it does not match the file pattern.", info.Name())
+			fm.l.Tracef("This is usually ok - ignoring migration file %s because it does not match the file pattern.", info.Name())
 			return nil
 		}
 

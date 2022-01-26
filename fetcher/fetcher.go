@@ -28,9 +28,9 @@ type opts struct {
 var ErrUnknownScheme = stderrors.New("unknown scheme")
 
 // WithClient sets the http.Client the fetcher uses.
-func WithClient(hc *http.Client) func(*opts) {
+func WithClient(hc *retryablehttp.Client) func(*opts) {
 	return func(o *opts) {
-		o.hc = httpx.NewResilientClient(httpx.ResilientClientWithClient(hc))
+		o.hc = hc
 	}
 }
 

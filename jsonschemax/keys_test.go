@@ -2,6 +2,7 @@ package jsonschemax
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -113,7 +114,7 @@ func TestListPathsWithRecursion(t *testing.T) {
 		t.Run(fmt.Sprintf("case=%d", k), func(t *testing.T) {
 			c := jsonschema.NewCompiler()
 			require.NoError(t, c.AddResource("test.json", bytes.NewBufferString(recursiveSchema)))
-			actual, err := ListPathsWithRecursion("test.json", c, tc.recursion)
+			actual, err := ListPathsWithRecursion(context.Background(), "test.json", c, tc.recursion)
 			require.NoError(t, err)
 
 			snapshotx.SnapshotTExcept(t, actual, nil)
@@ -131,7 +132,13 @@ func TestListPaths(t *testing.T) {
 			schema: readFile(t, "./stub/.oathkeeper.schema.json"),
 		},
 		{
+			schema: readFile(t, "./stub/nested-simple-array.schema.json"),
+		},
+		{
 			schema: readFile(t, "./stub/config.schema.json"),
+		},
+		{
+			schema: readFile(t, "./stub/nested-array.schema.json"),
 		},
 		{
 			// this should fail because of recursion
@@ -282,7 +289,7 @@ func TestListPaths(t *testing.T) {
 			}
 
 			require.NoError(t, c.AddResource("test.json", bytes.NewBufferString(tc.schema)))
-			actual, err := ListPaths("test.json", c)
+			actual, err := ListPathsWithArraysIncluded(context.Background(), "test.json", c)
 			if tc.expectErr {
 				require.Error(t, err, "%+v", actual)
 				return

@@ -1,6 +1,7 @@
 package configx
 
 import (
+	"context"
 	_ "embed"
 	"testing"
 
@@ -15,7 +16,7 @@ var kratosSchema []byte
 func TestNewKoanfEnvCache(t *testing.T) {
 	ref, compiler, err := newCompiler(kratosSchema)
 	require.NoError(t, err)
-	schema, err := compiler.Compile(ref)
+	schema, err := compiler.Compile(context.Background(), ref)
 	require.NoError(t, err)
 
 	c := *schemaPathCacheConfig

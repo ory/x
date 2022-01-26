@@ -1,6 +1,7 @@
 package logrusx
 
 import (
+	"context"
 	"testing"
 
 	"github.com/sirupsen/logrus/hooks/test"
@@ -27,7 +28,7 @@ func TestConfigSchema(t *testing.T) {
 	t.Run("case=basic validation and retrieval", func(t *testing.T) {
 		c := jsonschema.NewCompiler()
 		require.NoError(t, AddConfigSchema(c))
-		schema, err := c.Compile(ConfigSchemaID)
+		schema, err := c.Compile(context.Background(), ConfigSchemaID)
 		require.NoError(t, err)
 
 		logConfig := map[string]interface{}{

@@ -149,17 +149,14 @@ func WatchChangeFeed(ctx context.Context, cx *sqlx.DB, tableName string, c Event
 			close(done)
 		}
 
-		// We need to execute this without a context or else this will fail because the parent context was already canceled.
-		//
-		// See also https://www.cockroachlabs.com/docs/v21.1/changefeed-for#considerations
-		if _, err = cx.Exec("CANCEL QUERY (SELECT query_id FROM [SHOW CLUSTER QUERIES] WHERE query LIKE 'EXPERIMENTAL CHANGEFEED %')"); err != nil {
+		if err := rows.Close(); err != nil {
 			c <- &ErrorEvent{
 				error: err,
 			}
 			return
 		}
 
-		if err := rows.Close(); err != nil {
+		if err := cx.Close(); err != nil {
 			c <- &ErrorEvent{
 				error: err,
 			}

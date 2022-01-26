@@ -11,7 +11,7 @@ import (
 
 	"github.com/ory/x/logrusx"
 
-	"github.com/gobuffalo/pop/v5"
+	"github.com/gobuffalo/pop/v6"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 )

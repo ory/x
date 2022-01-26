@@ -9,7 +9,7 @@ import (
 	"text/template"
 
 	"github.com/gobuffalo/fizz"
-	"github.com/gobuffalo/pop/v5"
+	"github.com/gobuffalo/pop/v6"
 	"github.com/markbates/pkger"
 	"github.com/pkg/errors"
 
@@ -171,7 +171,16 @@ func (fm *MigrationBox) findMigrations(runner func(f io.Reader) func(mf pop.Migr
 			Type:      match.Type,
 			Runner:    runner(bytes.NewReader(content)),
 		}
-		fm.Migrations[mf.Direction] = append(fm.Migrations[mf.Direction], mf)
+
+		switch mf.Direction {
+		case "down":
+			fm.DownMigrations.Migrations = append(fm.DownMigrations.Migrations, mf)
+		case "up":
+			fm.UpMigrations.Migrations = append(fm.UpMigrations.Migrations, mf)
+		default:
+			return errors.Errorf("unknown direction %s", mf.Direction)
+		}
+
 		return nil
 	})
 }

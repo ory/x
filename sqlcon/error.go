@@ -12,8 +12,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/ory/herodot"
-
-	"github.com/ory/x/errorsx"
 )
 
 var (
@@ -58,24 +56,26 @@ func handlePostgres(err error, sqlState string) error {
 	return errors.WithStack(err)
 }
 
+type stater interface {
+	SQLState() string
+}
+
 // HandleError returns the right sqlcon.Err* depending on the input error.
 func HandleError(err error) error {
 	if err == nil {
 		return nil
 	}
 
+	var st stater
 	if errors.Is(err, sql.ErrNoRows) {
 		return errors.WithStack(ErrNoRows)
-	}
-
-	switch e := errorsx.Cause(err).(type) {
-	case interface{ SQLState() string }:
-		return handlePostgres(err, e.SQLState())
-	case *pq.Error:
+	} else if errors.As(err, &st) {
+		return handlePostgres(err, st.SQLState())
+	} else if e := new(pq.Error); errors.As(err, &e) {
 		return handlePostgres(err, string(e.Code))
-	case *pgconn.PgError:
+	} else if e := new(pgconn.PgError); errors.As(err, &e) {
 		return handlePostgres(err, e.Code)
-	case *mysql.MySQLError:
+	} else if e := new(mysql.MySQLError); errors.As(err, &e) {
 		switch e.Number {
 		case 1062:
 			return errors.Wrap(ErrUniqueViolation, err.Error())

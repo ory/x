@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/gobuffalo/pop/v5/logging"
+	"github.com/gobuffalo/pop/v6/logging"
 
 	"github.com/sirupsen/logrus"
 
@@ -130,11 +130,11 @@ func (l *Logger) WithError(err error) *Logger {
 	}
 
 	ctx := map[string]interface{}{"message": err.Error()}
-	if l.Entry.Logger.IsLevelEnabled(logrus.TraceLevel) {
+	if l.Entry.Logger.IsLevelEnabled(logrus.DebugLevel) {
 		if e, ok := err.(errorsx.StackTracer); ok {
-			ctx["trace"] = fmt.Sprintf("%+v", e.StackTrace())
+			ctx["stack_trace"] = fmt.Sprintf("%+v", e.StackTrace())
 		} else {
-			ctx["trace"] = fmt.Sprintf("stack trace could not be recovered from error type %s", reflect.TypeOf(err))
+			ctx["stack_trace"] = fmt.Sprintf("stack trace could not be recovered from error type %s", reflect.TypeOf(err))
 		}
 	}
 	if c := errorsx.ReasonCarrier(nil); errors.As(err, &c) {

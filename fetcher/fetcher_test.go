@@ -3,6 +3,7 @@ package fetcher
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/ory/x/httpx"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -31,7 +32,7 @@ func TestFetcher(t *testing.T) {
 	require.NoError(t, file.Close())
 
 	for fc, fetcher := range []*Fetcher{
-		NewFetcher(WithClient(ts.Client())),
+		NewFetcher(WithClient(httpx.NewResilientClient(httpx.ResilientClientWithClient(ts.Client())))),
 		NewFetcher(),
 	} {
 		for k, tc := range []struct {

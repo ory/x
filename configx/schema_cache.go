@@ -1,6 +1,7 @@
 package configx
 
 import (
+	"context"
 	"crypto/sha256"
 	"fmt"
 
@@ -19,7 +20,7 @@ var schemaCacheConfig = &ristretto.Config{
 }
 var schemaCache, _ = ristretto.NewCache(schemaCacheConfig)
 
-func getSchema(schema []byte) (*jsonschema.Schema, error) {
+func getSchema(ctx context.Context, schema []byte) (*jsonschema.Schema, error) {
 	key := fmt.Sprintf("%x", sha256.Sum256(schema))
 	if val, found := schemaCache.Get(key); found {
 		if validator, ok := val.(*jsonschema.Schema); ok {
@@ -33,7 +34,7 @@ func getSchema(schema []byte) (*jsonschema.Schema, error) {
 		return nil, err
 	}
 
-	validator, err := comp.Compile(schemaID)
+	validator, err := comp.Compile(ctx, schemaID)
 	if err != nil {
 		return nil, err
 	}

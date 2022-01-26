@@ -28,10 +28,14 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/ory/x/httpx"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
@@ -45,7 +49,6 @@ import (
 	"github.com/ory/x/resilience"
 
 	"github.com/pborman/uuid"
-	"github.com/urfave/negroni"
 
 	analytics "github.com/ory/analytics-go/v4"
 )
@@ -175,6 +178,18 @@ func New(
 	}
 
 	if !optOut {
+		optOut = c.Bool("sqa_opt_out")
+	}
+
+	if !optOut {
+		optOut, _ = strconv.ParseBool(os.Getenv("SQA_OPT_OUT"))
+	}
+
+	if !optOut {
+		optOut, _ = strconv.ParseBool(os.Getenv("SQA-OPT-OUT"))
+	}
+
+	if !optOut {
 		l.Info("Software quality assurance features are enabled. Learn more at: https://www.ory.sh/docs/ecosystem/sqa")
 		oi = analytics.OSInfo{
 			Version: fmt.Sprintf("%s-%s", runtime.GOOS, runtime.GOARCH),
@@ -245,6 +260,11 @@ func (sw *Service) ObserveMemory() {
 	}
 }
 
+type negroniMiddleware interface {
+	Size() int
+	Status() int
+}
+
 // ServeHTTP is a middleware for sending meta information to segment.
 func (sw *Service) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	var start time.Time
@@ -269,9 +289,7 @@ func (sw *Service) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.
 	query := sw.anonymizeQuery(r.URL.Query(), sw.salt)
 
 	// Collecting request info
-	res := rw.(negroni.ResponseWriter)
-	stat := res.Status()
-	size := res.Size()
+	stat, size := httpx.GetResponseMeta(rw)
 
 	if err := sw.c.Enqueue(analytics.Page{
 		UserId: sw.o.ClusterID,
