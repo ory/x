@@ -12,22 +12,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ory/x/stringsx"
-
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/client"
 	"github.com/gobuffalo/pop/v6"
-
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/client"
-
 	"github.com/ory/dockertest/v3"
-
+	dc "github.com/ory/dockertest/v3/docker"
 	"github.com/ory/x/logrusx"
 	"github.com/ory/x/resilience"
+	"github.com/ory/x/stringsx"
 )
 
 // atexit := atexit.NewOnExit()
@@ -38,12 +35,27 @@ import (
 
 // func WrapCleanup
 
+type dockerPool interface {
+	Purge(r *dockertest.Resource) error
+	Run(repository, tag string, env []string) (*dockertest.Resource, error)
+	RunWithOptions(opts *dockertest.RunOptions, hcOpts ...func(*dc.HostConfig)) (*dockertest.Resource, error)
+}
+
 var resources = []*dockertest.Resource{}
-var pool *dockertest.Pool
+var pool dockerPool
+
+func getPool() (dockerPool, error) {
+	if pool != nil {
+		return pool, nil
+	}
+	var err error
+	pool, err = dockertest.NewPool("")
+	return pool, err
+}
 
 // KillAllTestDatabases deletes all test databases.
 func KillAllTestDatabases() {
-	pool, err := dockertest.NewPool("")
+	pool, err := getPool()
 	if err != nil {
 		panic(err)
 	}
@@ -136,7 +148,7 @@ func connectPop(t require.TestingT, url string) (c *pop.Connection) {
 // ## PostgreSQL ##
 
 func startPostgreSQL() (*dockertest.Resource, error) {
-	pool, err := dockertest.NewPool("")
+	pool, err := getPool()
 	if err != nil {
 		return nil, errors.Wrap(err, "Could not connect to docker")
 	}
@@ -149,26 +161,35 @@ func startPostgreSQL() (*dockertest.Resource, error) {
 }
 
 // RunTestPostgreSQL runs a PostgreSQL database and returns the URL to it.
+// If a docker container is started for the database, the container be removed
+// at the end of the test.
 func RunTestPostgreSQL(t testing.TB) string {
 	if dsn := os.Getenv("TEST_DATABASE_POSTGRESQL"); dsn != "" {
 		t.Logf("Skipping Docker setup because environment variable TEST_DATABASE_POSTGRESQL is set to: %s", dsn)
 		return dsn
 	}
 
-	u, err := RunPostgreSQL()
+	u, cleanup, err := runPosgreSQLCleanup()
 	require.NoError(t, err)
+	t.Cleanup(cleanup)
 
 	return u
 }
 
 // RunPostgreSQL runs a PostgreSQL database and returns the URL to it.
 func RunPostgreSQL() (string, error) {
+	dsn, _, err := runPosgreSQLCleanup()
+	return dsn, err
+}
+
+func runPosgreSQLCleanup() (string, func(), error) {
 	resource, err := startPostgreSQL()
 	if err != nil {
-		return "", err
+		return "", func() {}, err
 	}
 
-	return fmt.Sprintf("postgres://postgres:secret@127.0.0.1:%s/postgres?sslmode=disable", resource.GetPort("5432/tcp")), nil
+	return fmt.Sprintf("postgres://postgres:secret@127.0.0.1:%s/postgres?sslmode=disable", resource.GetPort("5432/tcp")),
+		func() { pool.Purge(resource) }, nil
 }
 
 // ConnectToTestPostgreSQL connects to a PostgreSQL database.
@@ -186,6 +207,9 @@ func ConnectToTestPostgreSQL() (*sqlx.DB, error) {
 	return db, nil
 }
 
+// ConnectToTestPostgreSQLPop connects to a test PostgreSQL database.
+// If a docker container is started for the database, the container be removed
+// at the end of the test.
 func ConnectToTestPostgreSQLPop(t testing.TB) *pop.Connection {
 	url := RunTestPostgreSQL(t)
 	return connectPop(t, url)
@@ -194,7 +218,7 @@ func ConnectToTestPostgreSQLPop(t testing.TB) *pop.Connection {
 // ## MySQL ##
 
 func startMySQL() (*dockertest.Resource, error) {
-	pool, err := dockertest.NewPool("")
+	pool, err := getPool()
 	if err != nil {
 		return nil, errors.Wrap(err, "Could not connect to docker")
 	}
@@ -208,23 +232,32 @@ func startMySQL() (*dockertest.Resource, error) {
 
 // RunMySQL runs a RunMySQL database and returns the URL to it.
 func RunMySQL() (string, error) {
+	dsn, _, err := runMySQLCleanup()
+	return dsn, err
+}
+
+func runMySQLCleanup() (string, func(), error) {
 	resource, err := startMySQL()
 	if err != nil {
-		return "", err
+		return "", func() {}, err
 	}
 
-	return fmt.Sprintf("mysql://root:secret@(localhost:%s)/mysql?parseTime=true&multiStatements=true", resource.GetPort("3306/tcp")), nil
+	return fmt.Sprintf("mysql://root:secret@(localhost:%s)/mysql?parseTime=true&multiStatements=true", resource.GetPort("3306/tcp")),
+		func() { pool.Purge(resource) }, nil
 }
 
 // RunTestMySQL runs a MySQL database and returns the URL to it.
+// If a docker container is started for the database, the container be removed
+// at the end of the test.
 func RunTestMySQL(t testing.TB) string {
 	if dsn := os.Getenv("TEST_DATABASE_MYSQL"); dsn != "" {
 		t.Logf("Skipping Docker setup because environment variable TEST_DATABASE_MYSQL is set to: %s", dsn)
 		return dsn
 	}
 
-	u, err := RunMySQL()
+	u, cleanup, err := runMySQLCleanup()
 	require.NoError(t, err)
+	t.Cleanup(cleanup)
 
 	return u
 }
@@ -253,7 +286,7 @@ func ConnectToTestMySQLPop(t testing.TB) *pop.Connection {
 // ## CockroachDB
 
 func startCockroachDB(version string) (*dockertest.Resource, error) {
-	pool, err := dockertest.NewPool("")
+	pool, err := getPool()
 	if err != nil {
 		return nil, errors.Wrap(err, "Could not connect to docker")
 	}
@@ -284,20 +317,36 @@ func RunCockroachDBWithVersion(version string) (string, error) {
 	return fmt.Sprintf("cockroach://root@localhost:%s/defaultdb?sslmode=disable", resource.GetPort("26257/tcp")), nil
 }
 
+func runCockroachDBWithVersionCleanup(version string) (string, func(), error) {
+	resource, err := startCockroachDB(version)
+	if err != nil {
+		return "", func() {}, err
+	}
+
+	return fmt.Sprintf("cockroach://root@localhost:%s/defaultdb?sslmode=disable", resource.GetPort("26257/tcp")),
+		func() { pool.Purge(resource) },
+		nil
+}
+
 // RunTestCockroachDB runs a CockroachDB database and returns the URL to it.
+// If a docker container is started for the database, the container be removed
+// at the end of the test.
 func RunTestCockroachDB(t testing.TB) string {
 	return RunTestCockroachDBWithVersion(t, "")
 }
 
 // RunTestCockroachDB runs a CockroachDB database and returns the URL to it.
+// If a docker container is started for the database, the container be removed
+// at the end of the test.
 func RunTestCockroachDBWithVersion(t testing.TB, version string) string {
 	if dsn := os.Getenv("TEST_DATABASE_COCKROACHDB"); dsn != "" {
 		t.Logf("Skipping Docker setup because environment variable TEST_DATABASE_COCKROACHDB is set to: %s", dsn)
 		return dsn
 	}
 
-	u, err := RunCockroachDBWithVersion(version)
+	u, cleanup, err := runCockroachDBWithVersionCleanup(version)
 	require.NoError(t, err)
+	t.Cleanup(cleanup)
 
 	return u
 }
@@ -318,12 +367,15 @@ func ConnectToTestCockroachDB() (*sqlx.DB, error) {
 	return db, nil
 }
 
+// ConnectToTestCockroachDBPop connects to a test CockroachDB database.
+// If a docker container is started for the database, the container be removed
+// at the end of the test.
 func ConnectToTestCockroachDBPop(t testing.TB) *pop.Connection {
 	url := RunTestCockroachDB(t)
 	return connectPop(t, url)
 }
 
-func bootstrap(u, port, d string, pool *dockertest.Pool, resource *dockertest.Resource) (db *sqlx.DB) {
+func bootstrap(u, port, d string, pool dockerPool, resource *dockertest.Resource) (db *sqlx.DB) {
 	if err := resilience.Retry(logrusx.New("", ""), time.Second*5, time.Minute*5, func() error {
 		var err error
 		db, err = sqlx.Open(d, fmt.Sprintf(u, resource.GetPort(port)))
