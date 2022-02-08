@@ -2,12 +2,14 @@ package httpx
 
 import (
 	"context"
-	"github.com/opentracing/opentracing-go"
-	"github.com/ory/x/tracing"
 	"io"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/opentracing/opentracing-go"
+
+	"github.com/ory/x/tracing"
 
 	"github.com/hashicorp/go-retryablehttp"
 

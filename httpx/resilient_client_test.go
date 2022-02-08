@@ -1,12 +1,13 @@
 package httpx
 
 import (
-	"github.com/opentracing/opentracing-go/mocktracer"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
+
+	"github.com/opentracing/opentracing-go/mocktracer"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -55,7 +56,7 @@ func TestClientWithTracer(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = c.Get(target.String())
-	
+
 	assert.NoError(t, err)
 
 }
