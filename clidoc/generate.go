@@ -40,11 +40,11 @@ func generate(cmd *cobra.Command, dir string) error {
 	}
 
 	basename := strings.Replace(cmd.CommandPath(), " ", "-", -1)
-	if err := os.MkdirAll(filepath.Join(dir, "docs", "docs", "cli"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(dir), 0755); err != nil {
 		return err
 	}
 
-	filename := filepath.Join(dir, "docs", "docs", "cli", basename) + ".md"
+	filename := filepath.Join(dir, basename) + ".md"
 	f, err := os.Create(filename)
 	if err != nil {
 		return err
