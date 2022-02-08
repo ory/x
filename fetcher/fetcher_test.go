@@ -3,11 +3,12 @@ package fetcher
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/ory/x/httpx"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"testing"
+
+	"github.com/ory/x/httpx"
 
 	"github.com/gobuffalo/httptest"
 	"github.com/julienschmidt/httprouter"
