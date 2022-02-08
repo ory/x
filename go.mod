@@ -19,7 +19,7 @@ require (
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/bradleyjkemp/cupaloy/v2 v2.6.0
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
-	github.com/cockroachdb/cockroach-go/v2 v2.2.7-0.20220208154057-30596364793d
+	github.com/cockroachdb/cockroach-go/v2 v2.2.7
 	github.com/containerd/containerd v1.5.7 // indirect
 	github.com/containerd/continuity v0.2.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
