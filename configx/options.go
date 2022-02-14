@@ -60,6 +60,12 @@ func SkipValidation() OptionModifier {
 	}
 }
 
+func DisableEnvLoading() OptionModifier {
+	return func(p *Provider) {
+		p.disableEnvLoading = true
+	}
+}
+
 func WithValue(key string, value interface{}) OptionModifier {
 	return func(p *Provider) {
 		p.forcedValues = append(p.forcedValues, tuple{Key: key, Value: value})

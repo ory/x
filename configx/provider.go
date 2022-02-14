@@ -66,8 +66,10 @@ type Provider struct {
 	files        []string
 	changeFeed   *KoanfMemory
 
-	skipValidation bool
-	logger         *logrusx.Logger
+	skipValidation    bool
+	disableEnvLoading bool
+
+	logger *logrusx.Logger
 
 	providers     []koanf.Provider
 	userProviders []koanf.Provider
@@ -174,11 +176,13 @@ func (p *Provider) createProviders(ctx context.Context) (providers []koanf.Provi
 		providers = append(providers, posflag.Provider(p.flags, ".", p.Koanf))
 	}
 
-	envProvider, err := NewKoanfEnv("", p.schema, p.validator)
-	if err != nil {
-		return nil, err
+	if !p.disableEnvLoading {
+		envProvider, err := NewKoanfEnv("", p.schema, p.validator)
+		if err != nil {
+			return nil, err
+		}
+		providers = append(providers, envProvider)
 	}
-	providers = append(providers, envProvider)
 
 	// Workaround for https://github.com/knadh/koanf/pull/47
 	for _, t := range p.forcedValues {
