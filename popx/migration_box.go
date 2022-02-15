@@ -20,8 +20,10 @@ type (
 		Dir              fs.FS
 		l                *logrusx.Logger
 		migrationContent MigrationContent
+		goMigrations     Migrations
 	}
 	MigrationContent func(mf Migration, c *pop.Connection, r []byte, usingTemplate bool) (string, error)
+	GoMigration      func(c *pop.Tx) error
 )
 
 func WithTemplateValues(v map[string]interface{}) func(*MigrationBox) *MigrationBox {
@@ -41,10 +43,17 @@ func WithMigrationContentMiddleware(middleware func(content string, err error) (
 	}
 }
 
-// NewMigrationBox from a packr.Dir and a Connection.
-//
-//	migrations, err := NewMigrationBox(pkger.Dir("/migrations"))
-//
+// WithGoMigrations adds migrations that have a custom migration runner.
+// TEST THEM THOROUGHLY!
+// It will be very hard to fix a buggy migration.
+func WithGoMigrations(migrations Migrations) func(*MigrationBox) *MigrationBox {
+	return func(m *MigrationBox) *MigrationBox {
+		m.goMigrations = migrations
+		return m
+	}
+}
+
+// NewMigrationBox creates a new migration box.
 func NewMigrationBox(dir fs.FS, m *Migrator, opts ...func(*MigrationBox) *MigrationBox) (*MigrationBox, error) {
 	mb := &MigrationBox{
 		Migrator:         m,
@@ -77,6 +86,10 @@ func NewMigrationBox(dir fs.FS, m *Migrator, opts ...func(*MigrationBox) *Migrat
 	err := mb.findMigrations(runner)
 	if err != nil {
 		return mb, err
+	}
+
+	for _, migration := range mb.goMigrations {
+		mb.Migrations[migration.Direction] = append(mb.Migrations[migration.Direction], migration)
 	}
 
 	return mb, nil
