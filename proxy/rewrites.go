@@ -3,18 +3,24 @@ package proxy
 import (
 	"bytes"
 	"compress/gzip"
+	"github.com/pkg/errors"
 	"io"
 	"net/http"
 	"net/url"
 	"path"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 type compressableBody struct {
 	buf bytes.Buffer
 	w   io.WriteCloser
+}
+
+// we require a read and write for websocket connections
+var _ io.ReadWriteCloser = new(compressableBody)
+
+func (b *compressableBody) Close() error {
+	return nil
 }
 
 func (b *compressableBody) Write(d []byte) (int, error) {
@@ -119,6 +125,21 @@ func readBody(h http.Header, body io.ReadCloser) ([]byte, *compressableBody, err
 		return nil, nil, errors.WithStack(err)
 	}
 	return b, cb, nil
+}
+
+func handleWebsocketResponse(n int, cb *compressableBody, body io.ReadCloser) (int, io.ReadWriteCloser, error) {
+	var err error
+	readWriteCloser, ok := body.(io.ReadWriteCloser)
+	if ok {
+		if cb != nil {
+			n, err = readWriteCloser.Write(cb.buf.Bytes())
+			if err != nil {
+				return 0, nil, errors.WithStack(err)
+			}
+		}
+		return n, readWriteCloser, nil
+	}
+	return n, cb, nil
 }
 
 // stripPort removes the optional port from the host.

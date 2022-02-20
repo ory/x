@@ -2,7 +2,6 @@ package proxy
 
 import (
 	"context"
-	"io"
 	"net/http"
 	"net/http/httputil"
 )
@@ -104,7 +103,7 @@ func director(o *options) func(*http.Request) {
 
 		r.Header.Del("Content-Length")
 		r.ContentLength = int64(n)
-		r.Body = io.NopCloser(cb)
+		r.Body = cb
 	}
 }
 
@@ -139,9 +138,14 @@ func modifyResponse(o *options) func(*http.Response) error {
 			return o.onResError(r, err)
 		}
 
+		n, t, err := handleWebsocketResponse(n, cb, r.Body)
+		if err != nil {
+			return err
+		}
+
 		r.Header.Del("Content-Length")
 		r.ContentLength = int64(n)
-		r.Body = io.NopCloser(cb)
+		r.Body = t
 		return nil
 	}
 }

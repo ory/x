@@ -4,12 +4,15 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/gorilla/websocket"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
+	"net/url"
 	"testing"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -557,4 +560,96 @@ func TestProxyProtoMix(t *testing.T) {
 			})
 		})
 	}
+}
+
+func TestProxyWebsocketRequests(t *testing.T) {
+	// create an echo server that uses websockets to communicate
+	setupWebsocketServer := func(ctx context.Context) *httptest.Server {
+		upgrader := websocket.Upgrader{}
+		mux := http.NewServeMux()
+		mux.Handle("/echo", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			c, err := upgrader.Upgrade(w, r, nil)
+			require.NoError(t, err)
+			defer c.Close()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					mt, message, err := c.ReadMessage()
+					if err != nil {
+						return
+					}
+					require.NotEmpty(t, message)
+					err = c.WriteMessage(mt, message)
+					require.NoError(t, err)
+				}
+			}
+		}))
+		return httptest.NewServer(mux)
+	}
+
+	setupProxy := func(targetServer *httptest.Server) *httptest.Server {
+		proxy := httptest.NewServer(New(func(ctx context.Context, r *http.Request) (*HostConfig, error) {
+			return &HostConfig{
+				UpstreamHost:   urlx.ParseOrPanic(targetServer.URL).Host,
+				UpstreamScheme: urlx.ParseOrPanic(targetServer.URL).Scheme,
+				TargetHost:     urlx.ParseOrPanic(targetServer.URL).Host,
+				TargetScheme:   urlx.ParseOrPanic(targetServer.URL).Scheme,
+			}, nil
+		}))
+
+		return proxy
+	}
+
+	t.Logf("Creating websocket server with proxy with context timeout of 5 seconds")
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+
+	t.Cleanup(cancel)
+
+	websocketServer := setupWebsocketServer(ctx)
+	defer websocketServer.Close()
+
+	proxyServer := setupProxy(websocketServer)
+	defer proxyServer.Close()
+
+	u := url.URL{Scheme: "ws", Host: urlx.ParseOrPanic(proxyServer.URL).Host, Path: "/echo"}
+	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	require.NoError(t, err)
+	defer c.Close()
+
+	messages := make(chan string, 1)
+
+	// setup message reader
+	go func(ctx context.Context) {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				_, message, err := c.ReadMessage()
+				if err != nil {
+					return
+				}
+				messages <- string(message)
+				t.Logf("Received message from websocket client: %s\n", message)
+			}
+		}
+	}(ctx)
+
+	// write a message
+	testMessage := "test"
+	t.Logf("Writing message to websocket server: %s\n", testMessage)
+	require.NoError(t, c.WriteMessage(websocket.TextMessage, []byte(testMessage)))
+
+	readChannel := func() string {
+		select {
+		case msg := <-messages:
+			return msg
+		case <-ctx.Done():
+			return ""
+		}
+	}
+
+	require.Equalf(t, readChannel(), testMessage, "could not retrieve the test message from the websocket server")
 }
