@@ -20,6 +20,9 @@ type compressableBody struct {
 var _ io.ReadWriteCloser = new(compressableBody)
 
 func (b *compressableBody) Close() error {
+	if b != nil {
+		b.buf.Reset()
+	}
 	return nil
 }
 
