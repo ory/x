@@ -3,6 +3,7 @@ package proxy
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
 	"io"
@@ -614,11 +615,12 @@ func TestProxyWebsocketRequests(t *testing.T) {
 	defer proxyServer.Close()
 
 	u := url.URL{Scheme: "ws", Host: urlx.ParseOrPanic(proxyServer.URL).Host, Path: "/echo"}
+
 	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	require.NoError(t, err)
 	defer c.Close()
 
-	messages := make(chan string, 1)
+	messages := make(chan []byte, 2)
 
 	// setup message reader
 	go func(ctx context.Context) {
@@ -631,7 +633,7 @@ func TestProxyWebsocketRequests(t *testing.T) {
 				if err != nil {
 					return
 				}
-				messages <- string(message)
+				messages <- message
 				t.Logf("Received message from websocket client: %s\n", message)
 			}
 		}
@@ -639,17 +641,21 @@ func TestProxyWebsocketRequests(t *testing.T) {
 
 	// write a message
 	testMessage := "test"
+	testJson := json.RawMessage(`{"data":"1234"}`)
 	t.Logf("Writing message to websocket server: %s\n", testMessage)
 	require.NoError(t, c.WriteMessage(websocket.TextMessage, []byte(testMessage)))
+	t.Logf("Writing message to websocket server: %s\n", testJson)
+	require.NoError(t, c.WriteJSON(testJson))
 
-	readChannel := func() string {
+	readChannel := func() []byte {
 		select {
 		case msg := <-messages:
 			return msg
 		case <-ctx.Done():
-			return ""
+			return []byte("")
 		}
 	}
 
-	require.Equalf(t, readChannel(), testMessage, "could not retrieve the test message from the websocket server")
+	require.Equalf(t, testMessage, string(readChannel()), "could not retrieve the test message from the websocket server")
+	require.JSONEqf(t, string(testJson), string(readChannel()), "could not retrieve the test json from the websocket server")
 }

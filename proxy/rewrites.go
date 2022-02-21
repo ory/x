@@ -22,6 +22,9 @@ var _ io.ReadWriteCloser = new(compressableBody)
 func (b *compressableBody) Close() error {
 	if b != nil {
 		b.buf.Reset()
+		if b.w != nil {
+			return b.w.Close()
+		}
 	}
 	return nil
 }
