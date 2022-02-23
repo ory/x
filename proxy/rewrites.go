@@ -3,12 +3,13 @@ package proxy
 import (
 	"bytes"
 	"compress/gzip"
-	"github.com/pkg/errors"
 	"io"
 	"net/http"
 	"net/url"
 	"path"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 type compressableBody struct {
