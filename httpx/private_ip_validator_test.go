@@ -21,12 +21,13 @@ func TestIsAssociatedIPAllowed(t *testing.T) {
 		"::1",
 	} {
 		t.Run("case="+disallowed, func(t *testing.T) {
-			require.Error(t, DisallowIPPrivateAddresses(disallowed))
+			require.Error(t, DisallowIPPrivateAddresses(disallowed, nil))
 		})
 	}
 }
 
 func TestDisallowLocalIPAddressesWhenSet(t *testing.T) {
-	require.NoError(t, DisallowIPPrivateAddresses(""))
-	require.Error(t, DisallowIPPrivateAddresses("127.0.0.1"))
+	require.NoError(t, DisallowIPPrivateAddresses("", nil))
+	require.NoError(t, DisallowIPPrivateAddresses("127.0.0.1", []string{"127.0.0.1"}))
+	require.Error(t, DisallowIPPrivateAddresses("127.0.0.1", nil))
 }

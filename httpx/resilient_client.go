@@ -24,6 +24,7 @@ type resilientOptions struct {
 	retryWaitMax  time.Duration
 	retryMax      int
 	noInternalIPs bool
+	allowList     []string
 	tracer        opentracing.Tracer
 }
 
@@ -97,6 +98,13 @@ func ResilientClientDisallowInternalIPs() ResilientOptions {
 	}
 }
 
+// ResilientClientDisallowExceptions allows exceptions for internal IPs / hostnames from being used.
+func ResilientClientDisallowExceptions(ipOrHostnameOrURLs []string) ResilientOptions {
+	return func(o *resilientOptions) {
+		o.allowList = ipOrHostnameOrURLs
+	}
+}
+
 // NewResilientClient creates a new ResilientClient.
 func NewResilientClient(opts ...ResilientOptions) *retryablehttp.Client {
 	o := newResilientOptions()
@@ -105,7 +113,7 @@ func NewResilientClient(opts ...ResilientOptions) *retryablehttp.Client {
 	}
 
 	if o.noInternalIPs == true {
-		o.c.Transport = &NoInternalIPRoundTripper{RoundTripper: o.c.Transport}
+		o.c.Transport = &NoInternalIPRoundTripper{RoundTripper: o.c.Transport, allowList: o.allowList}
 	}
 
 	if o.tracer != nil {

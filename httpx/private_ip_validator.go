@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/ory/x/stringsx"
 
@@ -17,7 +18,7 @@ func DisallowPrivateIPAddressesWhenSet(ipOrHostnameOrURL string) error {
 	if ipOrHostnameOrURL == "" {
 		return nil
 	}
-	return DisallowIPPrivateAddresses(ipOrHostnameOrURL)
+	return DisallowIPPrivateAddresses(ipOrHostnameOrURL, nil)
 }
 
 // DisallowIPPrivateAddresses returns nil for a domain (with NS lookup), IP, or IPv6 address if it
@@ -27,7 +28,7 @@ func DisallowPrivateIPAddressesWhenSet(ipOrHostnameOrURL string) error {
 // Please keep in mind that validations for domains is valid only when looking up.
 // A malicious actor could easily update the DSN record post validation to point
 // to an internal IP
-func DisallowIPPrivateAddresses(ipOrHostnameOrURL string) error {
+func DisallowIPPrivateAddresses(ipOrHostnameOrURL string, allowList []string) error {
 	lookup := func(hostname string) ([]net.IP, error) {
 		lookup, err := net.LookupIP(hostname)
 		if err != nil {
@@ -39,6 +40,14 @@ func DisallowIPPrivateAddresses(ipOrHostnameOrURL string) error {
 			return nil, errors.WithStack(err)
 		}
 		return lookup, nil
+	}
+
+	if allowList != nil {
+		for _, allowedPrivateAddr := range allowList {
+			if strings.Contains(ipOrHostnameOrURL, allowedPrivateAddr) {
+				return nil
+			}
+		}
 	}
 
 	var ips []net.IP
@@ -90,11 +99,13 @@ var _ http.RoundTripper = (*NoInternalIPRoundTripper)(nil)
 // NoInternalIPRoundTripper is a RoundTripper that disallows internal IP addresses.
 type NoInternalIPRoundTripper struct {
 	http.RoundTripper
+	allowList []string
 }
 
 func (n NoInternalIPRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
 	host, _, _ := net.SplitHostPort(request.Host)
-	if err := DisallowIPPrivateAddresses(stringsx.Coalesce(host, request.Host)); err != nil {
+
+	if err := DisallowIPPrivateAddresses(stringsx.Coalesce(host, request.Host), n.allowList); err != nil {
 		return nil, err
 	}
 
