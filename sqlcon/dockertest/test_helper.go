@@ -62,7 +62,7 @@ func KillAllTestDatabases() {
 
 	for _, r := range resources {
 		if err := pool.Purge(r); err != nil {
-			panic(err)
+			log.Printf("Failed to purge resource: %s", err)
 		}
 	}
 
@@ -224,7 +224,7 @@ func startMySQL() (*dockertest.Resource, error) {
 	}
 
 	resource, err := pool.Run(
-		"mysql/mysql-server",
+		"mysql",
 		"8.0",
 		[]string{
 			"MYSQL_ROOT_PASSWORD=secret",
