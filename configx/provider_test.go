@@ -31,7 +31,7 @@ func TestProviderMethods(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	p, err := New(ctx, []byte(`{}`), WithFlags(f), WithContext(ctx))
+	p, err := New(ctx, []byte(`{"type": "object", "properties": {"foo-bar-baz": {"type": "string"}, "b": {"type": "string"}}}`), WithFlags(f), WithContext(ctx))
 	require.NoError(t, err)
 
 	t.Run("check flags", func(t *testing.T) {

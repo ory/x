@@ -39,9 +39,9 @@ func (p *PFlagProvider) Read() (map[string]interface{}, error) {
 	}
 	knownFlags := make(map[string]interface{}, len(all))
 	for k, v := range all {
-		k = strings.ReplaceAll(k, "-", ".")
+		k = strings.ReplaceAll(k, ".", "-")
 		for _, path := range p.paths {
-			normalized := strings.ReplaceAll(path.Name, "-", ".")
+			normalized := strings.ReplaceAll(path.Name, ".", "-")
 			if k == normalized {
 				knownFlags[k] = v
 				break

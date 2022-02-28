@@ -4,7 +4,6 @@
       "auto_max_procs_enabled": false
     }
   },
-  "config": ["stub/hydra/hydra.yaml"],
   "dsn": "sqlite:///var/lib/sqlite/db.sqlite?_fk=true",
   "log": {
     "format": "text",

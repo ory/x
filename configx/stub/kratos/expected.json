@@ -5,9 +5,6 @@
       "from_address": "no-reply@ory.kratos.sh"
     }
   },
-  "config": [
-    "stub/kratos/kratos.yaml"
-  ],
   "dsn": "sqlite:///var/lib/sqlite/db.sqlite?_fk=true",
   "hashers": {
     "argon2": {
