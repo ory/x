@@ -38,8 +38,5 @@ func ApplyJSONPatch(p json.RawMessage, object interface{}, denyPaths ...string) 
 		return err
 	}
 
-	if err := json.Unmarshal(modified, object); err != nil {
-		return err
-	}
-	return nil
+	return json.Unmarshal(modified, object)
 }
