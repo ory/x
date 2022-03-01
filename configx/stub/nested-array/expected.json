@@ -7,6 +7,5 @@
     {
       "client_id": "some@example.com"
     }
-  ],
-  "config": ["stub/nested-array/kratos.yaml"]
+  ]
 }

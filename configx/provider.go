@@ -173,7 +173,11 @@ func (p *Provider) createProviders(ctx context.Context) (providers []koanf.Provi
 	providers = append(providers, p.userProviders...)
 
 	if p.flags != nil {
-		providers = append(providers, posflag.Provider(p.flags, ".", p.Koanf))
+		pp, err := NewPFlagProvider(p.schema, p.validator, p.flags, p.Koanf)
+		if err != nil {
+			return nil, err
+		}
+		providers = append(providers, pp)
 	}
 
 	if !p.disableEnvLoading {

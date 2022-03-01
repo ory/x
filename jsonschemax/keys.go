@@ -164,7 +164,7 @@ func runPaths(schema *jsonschema.Schema, maxRecursion int16, includeArrays bool)
 		return nil, errors.WithStack(err)
 	}
 
-	sort.Sort(paths)
+	sort.Stable(paths)
 	return makeUnique(paths)
 }
 
