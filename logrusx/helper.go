@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"reflect"
 	"strings"
 
@@ -96,6 +97,62 @@ func (l *Logger) WithRequest(r *http.Request) *Logger {
 	}
 
 	return ll
+}
+
+func (l *Logger) Logf(level logrus.Level, format string, args ...interface{}) {
+	if !l.leakSensitive {
+		var myArgs []interface{}
+		for _, arg := range args {
+			urlArg, ok := arg.(*url.URL)
+			if ok {
+				urlCopy, _ := url.Parse(urlArg.String())
+				urlCopy.RawQuery = `Value is sensitive and has been redacted. To see the value set config key "log.leak_sensitive_values = true" or environment variable "LOG_LEAK_SENSITIVE_VALUES=true".`
+				myArgs = append(myArgs, urlCopy)
+			} else {
+				myArgs = append(myArgs, arg)
+			}
+		}
+		l.Entry.Logf(level, format, myArgs...)
+		return
+	}
+	l.Entry.Logf(level, format, args...)
+}
+
+func (l *Logger) Tracef(format string, args ...interface{}) {
+	l.Logf(logrus.TraceLevel, format, args...)
+}
+
+func (l *Logger) Debugf(format string, args ...interface{}) {
+	l.Logf(logrus.DebugLevel, format, args...)
+}
+
+func (l *Logger) Infof(format string, args ...interface{}) {
+	l.Logf(logrus.InfoLevel, format, args...)
+}
+
+func (l *Logger) Printf(format string, args ...interface{}) {
+	l.Infof(format, args...)
+}
+
+func (l *Logger) Warnf(format string, args ...interface{}) {
+	l.Logf(logrus.WarnLevel, format, args...)
+}
+
+func (l *Logger) Warningf(format string, args ...interface{}) {
+	l.Warnf(format, args...)
+}
+
+func (l *Logger) Errorf(format string, args ...interface{}) {
+	l.Logf(logrus.ErrorLevel, format, args...)
+}
+
+func (l *Logger) Fatalf(format string, args ...interface{}) {
+	l.Logf(logrus.FatalLevel, format, args...)
+	l.Entry.Logger.Exit(1)
+}
+
+func (l *Logger) Panicf(format string, args ...interface{}) {
+	l.Logf(logrus.PanicLevel, format, args...)
 }
 
 func (l *Logger) WithFields(f logrus.Fields) *Logger {
