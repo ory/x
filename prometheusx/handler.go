@@ -30,8 +30,12 @@ func NewHandler(
 	}
 }
 
+type router interface {
+	GET(path string, handle httprouter.Handle)
+}
+
 // SetRoutes registers this handler's routes.
-func (h *Handler) SetRoutes(r *httprouter.Router) {
+func (h *Handler) SetRoutes(r router) {
 	r.GET(MetricsPrometheusPath, h.Metrics)
 }
 
