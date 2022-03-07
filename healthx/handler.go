@@ -77,14 +77,18 @@ func NewHandler(
 	}
 }
 
+type router interface {
+	GET(path string, handle httprouter.Handle)
+}
+
 // SetHealthRoutes registers this handler's routes for health checking.
-func (h *Handler) SetHealthRoutes(r *httprouter.Router, shareErrors bool) {
+func (h *Handler) SetHealthRoutes(r router, shareErrors bool) {
 	r.GET(AliveCheckPath, h.Alive)
 	r.GET(ReadyCheckPath, h.Ready(shareErrors))
 }
 
 // SetHealthRoutes registers this handler's routes for health checking.
-func (h *Handler) SetVersionRoutes(r *httprouter.Router) {
+func (h *Handler) SetVersionRoutes(r router) {
 	r.GET(VersionPath, h.Version)
 }
 
