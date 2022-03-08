@@ -179,16 +179,14 @@ func TestTextLogger(t *testing.T) {
 		},
 		{
 			l:         tracer,
-			expect:    []string{"Value is sensitive and has been redacted. To see the value set config key \"log.leak_sensitive_values = true\" or environment variable \"LOG_LEAK_SENSITIVE_VALUES=true\"."},
-			notExpect: []string{"bar=foo"},
+			notExpect: []string{"?bar=foo"},
 			call: func(l *Logger) {
 				l.Printf("%s", fakeRequest.URL)
 			},
 		},
 		{
-			l:         New("logrusx-app", "v0.0.0", ForceFormat("text"), ForceLevel(logrus.TraceLevel), LeakSensitive()),
-			expect:    []string{"bar=foo"},
-			notExpect: []string{"Value is sensitive and has been redacted. To see the value set config key \"log.leak_sensitive_values = true\" or environment variable \"LOG_LEAK_SENSITIVE_VALUES=true\"."},
+			l:      New("logrusx-app", "v0.0.0", ForceFormat("text"), ForceLevel(logrus.TraceLevel), LeakSensitive()),
+			expect: []string{"?bar=foo"},
 			call: func(l *Logger) {
 				l.Printf("%s", fakeRequest.URL)
 			},

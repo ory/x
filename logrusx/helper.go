@@ -105,9 +105,8 @@ func (l *Logger) Logf(level logrus.Level, format string, args ...interface{}) {
 		for _, arg := range args {
 			urlArg, ok := arg.(*url.URL)
 			if ok {
-				urlCopy, _ := url.Parse(urlArg.String())
-				urlCopy.RawQuery = `Value is sensitive and has been redacted. To see the value set config key "log.leak_sensitive_values = true" or environment variable "LOG_LEAK_SENSITIVE_VALUES=true".`
-				myArgs = append(myArgs, urlCopy)
+				urlCopy := url.URL{Scheme: urlArg.Scheme, Host: urlArg.Host, Path: urlArg.Path}
+				myArgs = append(myArgs, &urlCopy)
 			} else {
 				myArgs = append(myArgs, arg)
 			}
