@@ -101,18 +101,18 @@ func (l *Logger) WithRequest(r *http.Request) *Logger {
 
 func (l *Logger) Logf(level logrus.Level, format string, args ...interface{}) {
 	if !l.leakSensitive {
-		var myArgs []interface{}
-		for _, arg := range args {
-			urlArg, ok := arg.(*url.URL)
-			if ok {
+		for i, arg := range args {
+			switch urlArg := arg.(type) {
+			case url.URL:
 				urlCopy := url.URL{Scheme: urlArg.Scheme, Host: urlArg.Host, Path: urlArg.Path}
-				myArgs = append(myArgs, &urlCopy)
-			} else {
-				myArgs = append(myArgs, arg)
+				args[i] = urlCopy
+			case *url.URL:
+				urlCopy := url.URL{Scheme: urlArg.Scheme, Host: urlArg.Host, Path: urlArg.Path}
+				args[i] = &urlCopy
+			default:
+				continue
 			}
 		}
-		l.Entry.Logf(level, format, myArgs...)
-		return
 	}
 	l.Entry.Logf(level, format, args...)
 }

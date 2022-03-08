@@ -191,6 +191,20 @@ func TestTextLogger(t *testing.T) {
 				l.Printf("%s", fakeRequest.URL)
 			},
 		},
+		{
+			l:         tracer,
+			notExpect: []string{"RawQuery:bar=foo"},
+			call: func(l *Logger) {
+				l.Printf("%+v", *fakeRequest.URL)
+			},
+		},
+		{
+			l:      New("logrusx-app", "v0.0.0", ForceFormat("text"), ForceLevel(logrus.TraceLevel), LeakSensitive()),
+			expect: []string{"RawQuery:bar=foo"},
+			call: func(l *Logger) {
+				l.Printf("%+v", *fakeRequest.URL)
+			},
+		},
 	} {
 		t.Run("case="+strconv.Itoa(k), func(t *testing.T) {
 			var b bytes.Buffer
