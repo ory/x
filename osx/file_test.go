@@ -31,8 +31,10 @@ func TestReadFileFromAllSources(t *testing.T) {
 		expectedBody string
 	}{
 		{src: "base64://aGVsbG8gd29ybGQ", expectedBody: "hello world"},
-		{src: "base64://aGVsbG8gd29ybGQ=", expectedBody: "hello world", opts: []Option{WithBase64Encoding(base64.URLEncoding)}},
-		{src: "base64://aGVsbG8gd29ybGQ=", expectedErr: "unable to base64 decode the location: illegal base64 data at input byte 15"},
+		{src: "base64://aGVsbG8gd29ybGQ=", expectedBody: "hello world", opts: []Option{WithoutResilientBase64Encoding(), WithBase64Encoding(base64.URLEncoding)}},
+		{src: "base64://aGVsbG8gd29ybGQ=", expectedErr: "unable to base64 decode the location: illegal base64 data at input byte 15", opts: []Option{WithoutResilientBase64Encoding()}},
+		{src: "base64://aGVsbG8gd29ybGQ=", expectedBody: "hello world"},
+		{src: "base64://aGVsbG8gd29ybGQ", expectedBody: "hello world"},
 		{src: "base64://aGVsbG8gd29ybGQ", expectedErr: "base64 loader disabled", opts: []Option{WithDisabledBase64Loader()}},
 		{src: "base64://notbase64", expectedErr: "unable to base64 decode the location: illegal base64 data at input byte 8"},
 

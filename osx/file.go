@@ -7,17 +7,19 @@ import (
 	"os"
 
 	"github.com/hashicorp/go-retryablehttp"
+
 	"github.com/pkg/errors"
 
 	"github.com/ory/x/httpx"
 )
 
 type options struct {
-	disableFileLoader   bool
-	disableHTTPLoader   bool
-	disableBase64Loader bool
-	base64enc           *base64.Encoding
-	hc                  *retryablehttp.Client
+	disableFileLoader            bool
+	disableHTTPLoader            bool
+	disableBase64Loader          bool
+	base64enc                    *base64.Encoding
+	disableResilientBase64Loader bool
+	hc                           *retryablehttp.Client
 }
 
 type Option func(o *options)
@@ -85,6 +87,13 @@ func WithEnabledBase64Loader() Option {
 func WithBase64Encoding(enc *base64.Encoding) Option {
 	return func(o *options) {
 		o.base64enc = enc
+	}
+}
+
+// WithoutResilientBase64Encoding sets the base64 encoding.
+func WithoutResilientBase64Encoding() Option {
+	return func(o *options) {
+		o.disableResilientBase64Loader = true
 	}
 }
 
@@ -166,10 +175,27 @@ func readFile(source string, o *options) (bytes []byte, err error) {
 			return nil, errors.New("base64 loader disabled")
 		}
 
-		bytes, err = o.base64enc.DecodeString(parsed.Host + parsed.RawPath)
-		if err != nil {
-			return nil, errors.Wrap(err, "unable to base64 decode the location")
+		if o.disableResilientBase64Loader {
+			bytes, err = o.base64enc.DecodeString(parsed.Host + parsed.RawPath)
+			if err != nil {
+				return nil, errors.Wrap(err, "unable to base64 decode the location")
+			}
+			return bytes, nil
 		}
+
+		for _, enc := range []*base64.Encoding{
+			base64.StdEncoding,
+			base64.URLEncoding,
+			base64.RawURLEncoding,
+			base64.RawStdEncoding,
+		} {
+			bytes, err = enc.DecodeString(parsed.Host + parsed.RawPath)
+			if err == nil {
+				return bytes, nil
+			}
+		}
+
+		return nil, errors.Wrap(err, "unable to base64 decode the location")
 	default:
 		return nil, errors.Errorf("unsupported source `%s`", parsed.Scheme)
 	}
