@@ -2,14 +2,22 @@ package otelx
 
 import (
 	"bytes"
+<<<<<<< HEAD
 	_ "embed"
+=======
+>>>>>>> da7ab92 (feat: add otelx package)
 	"io"
 )
 
 type JaegerConfig struct {
+<<<<<<< HEAD
 	LocalAgentHost string  `json:"local_agent_host"`
 	LocalAgentPort int     `json:"local_agent_port"`
 	SamplingRatio  float64 `json:"sampling_ratio"`
+=======
+	LocalAgentAddress string  `json:"local_agent_address"`
+	SamplingRatio     float64 `json:"sampling_ratio"`
+>>>>>>> da7ab92 (feat: add otelx package)
 }
 
 type ProvidersConfig struct {
