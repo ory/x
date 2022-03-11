@@ -1,0 +1,70 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "ory://tracing-config",
+  "type": "object",
+  "additionalProperties": false,
+  "description": "Configure distributed tracing.",
+  "properties": {
+    "provider": {
+      "type": "string",
+      "description": "Set this to the tracing backend you wish to use. Supports Jaeger.",
+      "enum": [
+        "jaeger"
+      ],
+      "examples": [
+        "jaeger"
+      ]
+    },
+    "service_name": {
+      "type": "string",
+      "description": "Specifies the service name to use on the tracer.",
+      "examples": [
+        "Ory Hydra",
+        "Ory Kratos",
+        "Ory Keto",
+        "Ory Oathkeeper"
+      ]
+    },
+    "providers": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "jaeger": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Configures the jaeger tracing backend.",
+          "properties": {
+            "local_agent_host": {
+              "type": "string",
+              "description": "The hostname of the jaeger-agent where spans should be sent to.",
+              "oneOf": [
+                {
+                  "format": "hostname"
+                },
+                {
+                  "format": "ipv4"
+                }
+              ],
+              "examples": [
+                "localhost",
+                "192.168.1.2"
+              ]
+            },
+            "local_agent_port": {
+              "type": "integer",
+              "description": "The port of the jaeger-agent.",
+              "minimum": 0,
+              "maximum": 65535
+            },
+            "sampling_ratio": {
+              "type": "number",
+              "description": "Ratio for sampling traces",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        }
+      }
+    }
+  }
+}

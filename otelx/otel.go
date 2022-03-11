@@ -1,6 +1,7 @@
 package otelx
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/ory/x/logrusx"
@@ -50,7 +51,7 @@ func (t *Tracer) setup(name string) error {
 	case "jaeger":
 		exp, err := jaeger.New(jaeger.WithAgentEndpoint(
 			jaeger.WithAgentHost(t.Config.Providers.Jaeger.LocalAgentHost),
-			jaeger.WithAgentPort(t.Config.Providers.Jaeger.LocalAgentPort),
+			jaeger.WithAgentPort(fmt.Sprint(t.Config.Providers.Jaeger.LocalAgentPort)),
 		))
 		if err != nil {
 			return err
