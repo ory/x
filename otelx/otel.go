@@ -49,7 +49,8 @@ func (t *Tracer) setup(name string) error {
 	switch t.Config.Provider {
 	case "jaeger":
 		exp, err := jaeger.New(jaeger.WithAgentEndpoint(
-			t.Config.Providers.Jaeger.LocalAgentAddress,
+			jaeger.WithAgentHost(t.Config.Providers.Jaeger.LocalAgentHost),
+			jaeger.WithAgentPort(t.Config.Providers.Jaeger.LocalAgentPort),
 		))
 		if err != nil {
 			return err
