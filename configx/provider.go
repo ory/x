@@ -18,6 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/ory/x/logrusx"
+	"github.com/ory/x/otelx"
 
 	"github.com/ory/x/jsonschemax"
 
@@ -474,6 +475,20 @@ func (p *Provider) CORS(prefix string, defaults cors.Options) (cors.Options, boo
 		MaxAge:             p.IntF(prefix+"cors.max_age", defaults.MaxAge),
 		Debug:              p.BoolF(prefix+"cors.debug", defaults.Debug),
 	}, p.Bool(prefix + "cors.enabled")
+}
+
+func (p *Provider) TracingConfigOtel(serviceName string) *otelx.Config {
+	return &otelx.Config{
+		ServiceName: p.StringF("otelx.service_name", serviceName),
+		Provider:    p.String("otelx.provider"),
+		Providers: &otelx.ProvidersConfig{
+			Jaeger: &otelx.JaegerConfig{
+				SamplingRatio:  p.Float64F("otelx.providers.jaeger.sampling_ratio", float64(1)),
+				LocalAgentHost: p.String("otelx.providers.jaeger.local_agent_host"),
+				LocalAgentPort: p.Int("otelx.providers.jaeger.local_agent_port"),
+			},
+		},
+	}
 }
 
 func (p *Provider) TracingConfig(serviceName string) *tracing.Config {
