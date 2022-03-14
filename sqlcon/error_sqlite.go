@@ -17,13 +17,13 @@ func handleSqlite(err error) error {
 		case sqlite3.ErrConstraintUnique:
 			fallthrough
 		case sqlite3.ErrConstraintPrimaryKey:
-			return ErrUniqueViolation.WithWrap(err)
+			return errors.WithStack(ErrUniqueViolation.WithWrap(err))
 		}
 
 		switch e.Code {
 		case sqlite3.ErrError:
 			if strings.Contains(err.Error(), "no such table") {
-				return ErrNoSuchTable.WithWrap(err)
+				return errors.WithStack(ErrNoSuchTable.WithWrap(err))
 			}
 		}
 

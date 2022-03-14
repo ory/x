@@ -47,13 +47,13 @@ var (
 func handlePostgres(err error, sqlState string) error {
 	switch sqlState {
 	case "23505": // "unique_violation"
-		return ErrUniqueViolation.WithWrap(err)
+		return errors.WithStack(ErrUniqueViolation.WithWrap(err))
 	case "40001": // "serialization_failure" in CRDB
 		fallthrough
 	case "CR000": // "serialization_failure"
-		return ErrConcurrentUpdate.WithWrap(err)
+		return errors.WithStack(ErrConcurrentUpdate.WithWrap(err))
 	case "42P01": // "no such table"
-		return ErrNoSuchTable.WithWrap(err)
+		return errors.WithStack(ErrNoSuchTable.WithWrap(err))
 	}
 	return errors.WithStack(err)
 }
@@ -80,9 +80,9 @@ func HandleError(err error) error {
 	} else if e := new(mysql.MySQLError); errors.As(err, &e) {
 		switch e.Number {
 		case 1062:
-			return ErrUniqueViolation.WithWrap(err)
+			return errors.WithStack(ErrUniqueViolation.WithWrap(err))
 		case 1146:
-			return ErrNoSuchTable.WithWrap(e)
+			return errors.WithStack(ErrNoSuchTable.WithWrap(e))
 		}
 	}
 
