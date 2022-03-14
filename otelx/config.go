@@ -33,7 +33,7 @@ type Config struct {
 //go:embed config.schema.json
 var ConfigSchema string
 
-const ConfigSchemaID = "ory://tracing-config"
+const ConfigSchemaID = "ory://otelx-config"
 
 // AddConfigSchema adds the tracing schema to the compiler.
 // The interface is specified instead of `jsonschema.Compiler` to allow the use of any jsonschema library fork or version.
