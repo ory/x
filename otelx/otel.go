@@ -1,13 +1,12 @@
 package otelx
 
 import (
-<<<<<<< HEAD
 	"fmt"
-=======
->>>>>>> da7ab92 (feat: add otelx package)
 	"io"
+	"os"
 
 	"github.com/ory/x/logrusx"
+	"github.com/ory/x/stringsx"
 	"github.com/pkg/errors"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/jaeger"
@@ -53,20 +52,52 @@ func (t *Tracer) setup(name string) error {
 	switch t.Config.Provider {
 	case "jaeger":
 		exp, err := jaeger.New(jaeger.WithAgentEndpoint(
-<<<<<<< HEAD
 			jaeger.WithAgentHost(t.Config.Providers.Jaeger.LocalAgentHost),
 			jaeger.WithAgentPort(fmt.Sprint(t.Config.Providers.Jaeger.LocalAgentPort)),
-=======
-			t.Config.Providers.Jaeger.LocalAgentAddress,
->>>>>>> da7ab92 (feat: add otelx package)
 		))
+		// host, isHost := os.LookupEnv("OTEL_EXPORTER_JAEGER_AGENT_HOST")
+		// port, isPort := os.LookupEnv("OTEL_EXPORTER_JAEGER_AGENT_PORT")
+
+		// var eo jaeger.EndpointOption
+		// if isHost && isPort {
+		// 	eo = jaeger.WithAgentEndpoint(
+		// 		jaeger.WithAgentHost(host), jaeger.WithAgentPort(port),
+		// 	)
+		// } else {
+		// 	if t.Config.Providers != nil {
+		// 		eo = jaeger.WithAgentEndpoint(
+		// 			jaeger.WithAgentHost(t.Config.Providers.Jaeger.LocalAgentHost),
+		// 			jaeger.WithAgentPort(fmt.Sprint(t.Config.Providers.Jaeger.LocalAgentPort)),
+		// 		)
+		// 	}
+		// }
+
+		// exp, err := jaeger.New(eo)
+		host := stringsx.Coalesce(
+			t.Config.Providers.Jaeger.LocalAgentHost,
+			os.Getenv("OTEL_EXPORTER_JAEGER_AGENT_HOST"),
+		)
+		var port string
+		if t.Config.Providers.Jaeger.LocalAgentPort != 0 {
+			port = t.Config.Providers.Jaeger.LocalAgentHost
+		} else {
+			port = os.Getenv("OTEL_EXPORTER_JAEGER_AGENT_PORT")
+		}
+
+		exp, err = jaeger.New(
+			jaeger.WithAgentEndpoint(
+				jaeger.WithAgentHost(host), jaeger.WithAgentPort(port),
+			),
+		)
 		if err != nil {
 			return err
 		}
 
-		samplingRatio := t.Config.Providers.Jaeger.SamplingRatio
-		if samplingRatio == 0 {
-			samplingRatio = 0.5
+		samplingRatio := 0.5
+		if t.Config.Providers != nil {
+			if t.Config.Providers.Jaeger.SamplingRatio != 0 {
+				samplingRatio = t.Config.Providers.Jaeger.SamplingRatio
+			}
 		}
 
 		tp := sdktrace.NewTracerProvider(
