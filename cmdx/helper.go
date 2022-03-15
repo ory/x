@@ -161,6 +161,12 @@ func ExecCtx(ctx context.Context, cmd *cobra.Command, stdIn io.Reader, args ...s
 	return stdOut.String(), stdErr.String(), err
 }
 
+func ExecDebugCtx(t *testing.T, ctx context.Context, cmd *cobra.Command, stdIn io.Reader, args ...string) (string, string, error) {
+	stdOut, stdErr := &bytes.Buffer{}, &bytes.Buffer{}
+	err := ExecBackgroundCtx(ctx, cmd, stdIn, io.MultiWriter(os.Stdout, stdOut), io.MultiWriter(os.Stderr, stdErr), args...).Wait()
+	return stdOut.String(), stdErr.String(), err
+}
+
 // ExecNoErr is a helper that assumes a successful run from Exec.
 // Returns STD_OUT.
 func ExecNoErr(t testing.TB, cmd *cobra.Command, args ...string) string {
@@ -201,6 +207,10 @@ type CommandExecuter struct {
 
 func (c *CommandExecuter) Exec(stdin io.Reader, args ...string) (string, string, error) {
 	return ExecCtx(c.Ctx, c.New(), stdin, append(c.PersistentArgs, args...)...)
+}
+
+func (c *CommandExecuter) ExecDebug(t *testing.T, stdin io.Reader, args ...string) (string, string, error) {
+	return ExecDebugCtx(t, c.Ctx, c.New(), stdin, append(c.PersistentArgs, args...)...)
 }
 
 func (c *CommandExecuter) ExecBackground(stdin io.Reader, stdOut, stdErr io.Writer, args ...string) *errgroup.Group {
