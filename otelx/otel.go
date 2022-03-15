@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/jaeger"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
@@ -111,6 +112,8 @@ func (t *Tracer) setup(name string) error {
 			)),
 		)
 
+		tc := propagation.TraceContext{}
+		otel.SetTextMapPropagator(tc)
 		otel.SetTracerProvider(tp)
 		t.tracer = tp.Tracer(name)
 	default:
