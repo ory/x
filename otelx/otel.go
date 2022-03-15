@@ -8,6 +8,7 @@ import (
 	"github.com/ory/x/logrusx"
 	"github.com/ory/x/stringsx"
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/contrib/samplers/jaegerremote"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/jaeger"
 	"go.opentelemetry.io/otel/propagation"
@@ -56,24 +57,6 @@ func (t *Tracer) setup(name string) error {
 			jaeger.WithAgentHost(t.Config.Providers.Jaeger.LocalAgentHost),
 			jaeger.WithAgentPort(fmt.Sprint(t.Config.Providers.Jaeger.LocalAgentPort)),
 		))
-		// host, isHost := os.LookupEnv("OTEL_EXPORTER_JAEGER_AGENT_HOST")
-		// port, isPort := os.LookupEnv("OTEL_EXPORTER_JAEGER_AGENT_PORT")
-
-		// var eo jaeger.EndpointOption
-		// if isHost && isPort {
-		// 	eo = jaeger.WithAgentEndpoint(
-		// 		jaeger.WithAgentHost(host), jaeger.WithAgentPort(port),
-		// 	)
-		// } else {
-		// 	if t.Config.Providers != nil {
-		// 		eo = jaeger.WithAgentEndpoint(
-		// 			jaeger.WithAgentHost(t.Config.Providers.Jaeger.LocalAgentHost),
-		// 			jaeger.WithAgentPort(fmt.Sprint(t.Config.Providers.Jaeger.LocalAgentPort)),
-		// 		)
-		// 	}
-		// }
-
-		// exp, err := jaeger.New(eo)
 		host := stringsx.Coalesce(
 			t.Config.Providers.Jaeger.LocalAgentHost,
 			os.Getenv("OTEL_EXPORTER_JAEGER_AGENT_HOST"),
@@ -94,27 +77,28 @@ func (t *Tracer) setup(name string) error {
 			return err
 		}
 
-		samplingRatio := 0.5
-		if t.Config.Providers != nil {
-			if t.Config.Providers.Jaeger.SamplingRatio != 0 {
-				samplingRatio = t.Config.Providers.Jaeger.SamplingRatio
-			}
-		}
-
-		tp := sdktrace.NewTracerProvider(
+		tpOpts := []sdktrace.TracerProviderOption{
 			sdktrace.WithBatcher(exp),
 			sdktrace.WithResource(resource.NewWithAttributes(
 				semconv.SchemaURL,
 				semconv.ServiceNameKey.String(t.Config.ServiceName),
 			)),
-			sdktrace.WithSampler(sdktrace.TraceIDRatioBased(
-				samplingRatio,
-			)),
-		)
+		}
+
+		if t.Config.Providers.Jaeger.Sampling.ServerURL != "" {
+			jaegerRemoteSampler := jaegerremote.New(
+				"jaegerremote",
+				jaegerremote.WithSamplingServerURL(t.Config.Providers.Jaeger.Sampling.ServerURL),
+			)
+			tpOpts = append(tpOpts, sdktrace.WithSampler(jaegerRemoteSampler))
+		}
+
+		tp := sdktrace.NewTracerProvider(tpOpts...)
+		otel.SetTracerProvider(tp)
 
 		tc := propagation.TraceContext{}
 		otel.SetTextMapPropagator(tc)
-		otel.SetTracerProvider(tp)
+
 		t.tracer = tp.Tracer(name)
 	default:
 		return errors.Errorf("unknown tracer: %s", t.Config.Provider)

@@ -481,7 +481,9 @@ func (p *Provider) TracingConfigOtel(serviceName string) *otelx.Config {
 		Provider:    p.String("otelx.provider"),
 		Providers: &otelx.ProvidersConfig{
 			Jaeger: &otelx.JaegerConfig{
-				SamplingRatio:  p.Float64F("otelx.providers.jaeger.sampling_ratio", float64(1)),
+				Sampling: &otelx.JaegerSampling{
+					ServerURL: p.String("tracing.providers.jaeger.sampling.server_url"),
+				},
 				LocalAgentHost: p.String("otelx.providers.jaeger.local_agent_host"),
 				LocalAgentPort: p.Int("otelx.providers.jaeger.local_agent_port"),
 			},

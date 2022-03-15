@@ -42,7 +42,9 @@ func TestJaegerTracer(t *testing.T) {
 		Provider:    "jaeger",
 		Providers: &ProvidersConfig{
 			Jaeger: &JaegerConfig{
-				SamplingRatio: 1,
+				Sampling: &JaegerSampling{
+					ServerURL: "http://localhost:5778/sampling",
+				},
 			},
 		},
 	})

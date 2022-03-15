@@ -7,9 +7,13 @@ import (
 )
 
 type JaegerConfig struct {
-	LocalAgentHost string  `json:"local_agent_host"`
-	LocalAgentPort int     `json:"local_agent_port"`
-	SamplingRatio  float64 `json:"sampling_ratio"`
+	LocalAgentHost string          `json:"local_agent_host"`
+	LocalAgentPort int             `json:"local_agent_port"`
+	Sampling       *JaegerSampling `json:"sampling"`
+}
+
+type JaegerSampling struct {
+	ServerURL string `json:"server_url"`
 }
 
 type ProvidersConfig struct {
