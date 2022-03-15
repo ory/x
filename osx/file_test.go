@@ -39,7 +39,9 @@ func TestReadFileFromAllSources(t *testing.T) {
 		{src: "base64://notbase64", expectedErr: "unable to base64 decode the location: illegal base64 data at input byte 8"},
 
 		{src: "file://stub/text.txt", expectedBody: "hello world"},
+		{src: "stub/text.txt", expectedBody: "hello world"},
 		{src: "file://stub/text.txt", expectedErr: "file loader disabled", opts: []Option{WithDisabledFileLoader()}},
+		{src: "stub/text.txt", expectedErr: "file loader disabled", opts: []Option{WithDisabledFileLoader()}},
 
 		{src: ts.URL, expectedBody: "hello world"},
 		{src: sslTS.URL, expectedErr: "unable to load remote file: GET " + sslTS.URL + " giving up after 1 attempt(s): Get \"" + sslTS.URL + "\": x509: certificate signed by unknown authority"},
@@ -49,8 +51,6 @@ func TestReadFileFromAllSources(t *testing.T) {
 		{src: "file://stub/text.txt", expectedErr: "file loader disabled", opts: []Option{WithDisabledFileLoader()}},
 
 		{src: "lmao://stub/text.txt", expectedErr: "unsupported source `lmao`"},
-
-		{src: "/stub/text.txt", expectedErr: "unsupported source ``"},
 	} {
 		t.Run(fmt.Sprintf("case=%d", k), func(t *testing.T) {
 			body, err := ReadFileFromAllSources(tc.src, tc.opts...)
