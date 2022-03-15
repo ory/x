@@ -12,10 +12,10 @@ import (
 	"github.com/ory/x/stringsx"
 )
 
-func NewProxyCommand(project string, self string, version string) *cobra.Command {
+func NewProxyCommand(self string, version string) *cobra.Command {
 	proxyCmd := &cobra.Command{
 		Use:   "proxy [upstream] <[public-url]>",
-		Short: fmt.Sprintf("Integrate with Ory %s using a reverse proxy", project),
+		Short: "Run your app and Ory on the same domain using a reverse proxy",
 		Args:  cobra.RangeArgs(1, 2),
 		Long: fmt.Sprintf(`This command starts a reverse proxy which must be deployed in front of your application.
 This proxy works both in development and in production, for example when deploying a
@@ -31,7 +31,7 @@ section of your Ory Cloud Console.
 
 Alternatively, you can set this using the --sdk-url flag:
 
-	$ %[1]s  --sdk-url https://playground.projects.oryapis.com \
+	$ %[1]s proxy --sdk-url https://playground.projects.oryapis.com \
 		...
 
 The first argument [upstream] points to the location of your application. If you are
@@ -48,7 +48,7 @@ host and port this proxy listens on:
 You must set the [public-url] if you are not using the Ory Proxy in locally or in
 development:
 
-	$ %[1]s  \
+	$ %[1]s proxy \
 		http://localhost:3000 \
 		https://example.org
 
@@ -57,13 +57,13 @@ Please note that you can not set a path in the [public-url]!
 Per default, the proxy listens on port 4000. If you want to listen on another port, use the
 port flag:
 
-	$ %[1]s  --port 8080 \
+	$ %[1]s proxy --port 8080 \
 		http://localhost:3000 \
 		https://example.org
 
 If your public URL is available on a non-standard HTTP/HTTPS port, you can set that port in the [public-url]:
 
-	$ %[1]s  \
+	$ %[1]s proxy \
 		http://localhost:3000 \
 		https://example.org:1234
 
@@ -71,7 +71,7 @@ If this proxy runs on a subdomain, and you want Ory's cookies (e.g. the session 
 be available on all of your domain, you can use the following CLI flag to customize the cookie
 domain:
 
-	$ %[1]s  \
+	$ %[1]s proxy \
 		--cookie-domain example.org \
 		http://127.0.0.1:3000 \
 		https://ory.example.org
@@ -160,7 +160,7 @@ An example payload of the JSON Web Token is:
 				defaultRedirectTo: redirectUrl,
 			}
 
-			return run(cmd, conf, version, project)
+			return run(cmd, conf, version, "cloud")
 		},
 	}
 

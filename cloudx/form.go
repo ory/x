@@ -9,15 +9,16 @@ import (
 	"strings"
 	"time"
 
+	cloud "github.com/ory/client-go"
+
 	"github.com/pkg/errors"
 	"github.com/tidwall/sjson"
 
-	kratos "github.com/ory/kratos-client-go"
 	"github.com/ory/x/cmdx"
 )
 
-func getLabel(attrs *kratos.UiNodeInputAttributes, node *kratos.UiNode) string {
-	if attrs.Name == "password_identifier" {
+func getLabel(attrs *cloud.UiNodeInputAttributes, node *cloud.UiNode) string {
+	if attrs.Name == "identifier" {
 		return fmt.Sprintf("%s: ", "Email")
 	} else if node.Meta.Label != nil {
 		return fmt.Sprintf("%s: ", node.Meta.Label.Text)
@@ -29,20 +30,20 @@ func getLabel(attrs *kratos.UiNodeInputAttributes, node *kratos.UiNode) string {
 
 type passwordReader func() ([]byte, error)
 
-func renderForm(stdin *bufio.Reader, pwReader passwordReader, stdout io.Writer, ui kratos.UiContainer, method string, out interface{}) (err error) {
+func renderForm(stdin *bufio.Reader, pwReader passwordReader, stderr io.Writer, ui cloud.UiContainer, method string, out interface{}) (err error) {
 	for _, message := range ui.Messages {
-		_, _ = fmt.Fprintf(stdout, "%s\n", message.Text)
+		_, _ = fmt.Fprintf(stderr, "%s\n", message.Text)
 	}
 
 	for _, node := range ui.Nodes {
 		for _, message := range node.Messages {
-			_, _ = fmt.Fprintf(stdout, "%s\n", message.Text)
+			_, _ = fmt.Fprintf(stderr, "%s\n", message.Text)
 		}
 	}
 
 	values := json.RawMessage(`{}`)
 	for _, node := range ui.Nodes {
-		if node.Group != method {
+		if node.Group != method && node.Group != "default" {
 			continue
 		}
 
@@ -58,7 +59,7 @@ func renderForm(stdin *bufio.Reader, pwReader passwordReader, stdout io.Writer, 
 
 			if attrs.Name == "traits.consent.tos" {
 				for {
-					ok, err := cmdx.AskScannerForConfirmation(getLabel(attrs, &node), stdin, stdout)
+					ok, err := cmdx.AskScannerForConfirmation(getLabel(attrs, &node), stdin, stderr)
 					if err != nil {
 						return err
 					}
@@ -74,8 +75,10 @@ func renderForm(stdin *bufio.Reader, pwReader passwordReader, stdout io.Writer, 
 			}
 
 			switch attrs.Type {
+			case "hidden":
+				continue
 			case "checkbox":
-				result, err := cmdx.AskScannerForConfirmation(getLabel(attrs, &node), stdin, stdout)
+				result, err := cmdx.AskScannerForConfirmation(getLabel(attrs, &node), stdin, stderr)
 				if err != nil {
 					return err
 				}
@@ -87,7 +90,7 @@ func renderForm(stdin *bufio.Reader, pwReader passwordReader, stdout io.Writer, 
 			case "password":
 				var password string
 				for password == "" {
-					_, _ = fmt.Fprint(stdout, getLabel(attrs, &node))
+					_, _ = fmt.Fprint(stderr, getLabel(attrs, &node))
 					v, err := pwReader()
 					if err != nil {
 						return err
@@ -103,7 +106,7 @@ func renderForm(stdin *bufio.Reader, pwReader passwordReader, stdout io.Writer, 
 			default:
 				var value string
 				for value == "" {
-					_, _ = fmt.Fprint(stdout, getLabel(attrs, &node))
+					_, _ = fmt.Fprint(stderr, getLabel(attrs, &node))
 					v, err := stdin.ReadString('\n')
 					if err != nil {
 						return errors.Wrap(err, "failed to read from stdin")

@@ -1,0 +1,7 @@
+[
+  {
+    "op": "add",
+    "path": "/services/identity/config/selfservice/methods/webauthn/config/rp/display_name",
+    "value": "some value"
+  }
+]

@@ -21,7 +21,7 @@ func NewRootCmd() *cobra.Command {
 	}
 
 	c.AddCommand(
-		cloudx.NewProxyCommand("", "", ""),
+		cloudx.NewProxyCommand("", ""),
 		cloudx.NewTunnelCommand("", "", ""),
 	)
 

@@ -1,0 +1,12 @@
+[
+  {
+    "op": "replace",
+    "path": "/services/identity/config/selfservice/methods/webauthn/enabled",
+    "value": true
+  },
+  {
+    "op": "add",
+    "path": "/services/identity/config/selfservice/methods/webauthn/config/passwordless",
+    "value": true
+  }
+]
