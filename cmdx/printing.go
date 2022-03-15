@@ -187,10 +187,10 @@ func printJSON(w io.Writer, v interface{}, pretty bool) {
 }
 
 func RegisterJSONFormatFlags(flags *pflag.FlagSet) {
-	flags.StringP(FlagFormat, FlagFormat[:1], string(FormatDefault), fmt.Sprintf("Set the output format. One of %s, %s, and %s.", FormatDefault, FormatJSON, FormatJSONPretty))
+	flags.String(FlagFormat, string(FormatDefault), fmt.Sprintf("Set the output format. One of %s, %s, and %s.", FormatDefault, FormatJSON, FormatJSONPretty))
 }
 
 func RegisterFormatFlags(flags *pflag.FlagSet) {
 	RegisterNoiseFlags(flags)
-	flags.StringP(FlagFormat, FlagFormat[:1], string(FormatDefault), fmt.Sprintf("Set the output format. One of %s, %s, and %s.", FormatTable, FormatJSON, FormatJSONPretty))
+	flags.String(FlagFormat, string(FormatDefault), fmt.Sprintf("Set the output format. One of %s, %s, and %s.", FormatTable, FormatJSON, FormatJSONPretty))
 }
