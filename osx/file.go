@@ -124,6 +124,7 @@ func RestrictedReadFile(source string, opts ...Option) (bytes []byte, err error)
 //
 // Possible formats are:
 //
+// - /path/to/file
 // - file:///path/to/file
 // - https://host.com/path/to/file
 // - http://host.com/path/to/file
@@ -141,12 +142,21 @@ func ReadFileFromAllSources(source string, opts ...Option) (bytes []byte, err er
 }
 
 func readFile(source string, o *options) (bytes []byte, err error) {
-	parsed, err := url.ParseRequestURI(source)
+	parsed, err := url.Parse(source)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse URL")
 	}
 
 	switch parsed.Scheme {
+	case "":
+		if o.disableFileLoader {
+			return nil, errors.New("file loader disabled")
+		}
+
+		bytes, err = os.ReadFile(source)
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to read the file")
+		}
 	case "file":
 		if o.disableFileLoader {
 			return nil, errors.New("file loader disabled")
