@@ -24,6 +24,7 @@ require (
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
+	github.com/go-openapi/errors v0.20.0 // indirect
 	github.com/go-openapi/runtime v0.20.0
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/gobuffalo/fizz v1.14.0
@@ -39,6 +40,7 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-hclog v0.12.0 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.0
+	github.com/imdario/mergo v0.3.12
 	github.com/inhies/go-bytesize v0.0.0-20210819104631-275770b98743
 	github.com/instana/go-sensor v1.34.0
 	github.com/jackc/pgconn v1.10.1
@@ -56,14 +58,12 @@ require (
 	github.com/openzipkin-contrib/zipkin-go-opentracing v0.4.5
 	github.com/openzipkin/zipkin-go v0.2.5
 	github.com/ory/analytics-go/v4 v4.0.3
+	github.com/ory/client-go v0.0.1-alpha.124.0.20220315143046-ccd5264271b3
 	github.com/ory/dockertest/v3 v3.8.1
 	github.com/ory/go-acc v0.2.6
+	github.com/ory/graceful v0.1.1
 	github.com/ory/herodot v0.9.13
 	github.com/ory/jsonschema/v3 v3.0.7
-	github.com/ory/graceful v0.1.1
-	github.com/ory/herodot v0.9.12
-	github.com/ory/jsonschema/v3 v3.0.4
-	github.com/ory/kratos-client-go v0.8.0-alpha.2
 	github.com/pborman/uuid v1.2.1
 	github.com/pelletier/go-toml v1.9.4
 	github.com/philhofer/fwd v1.1.1 // indirect
@@ -97,11 +97,7 @@ require (
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 	golang.org/x/mod v0.5.1
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20211020174200-9d6173849985 // indirect
-	golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1
-	golang.org/x/text v0.3.7 // indirect
-	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
-	golang.org/x/tools v0.1.7 // indirect
+	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 	gonum.org/v1/plot v0.10.0
 	google.golang.org/grpc v1.43.0
 	google.golang.org/protobuf v1.27.1
