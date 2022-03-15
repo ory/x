@@ -9,7 +9,7 @@ import (
 func NewAuthLogoutCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "logout",
-		Short: "Sign out of Ory Cloud",
+		Short: "Signs you out of your account on this computer.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			h, err := NewSnakeCharmer(cmd)
 			if err != nil {
@@ -22,6 +22,6 @@ func NewAuthLogoutCmd() *cobra.Command {
 			return nil
 		},
 	}
-	RegisterFlags(cmd.PersistentFlags())
+	RegisterConfigFlag(cmd.PersistentFlags())
 	return cmd
 }
