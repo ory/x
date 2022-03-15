@@ -1,12 +1,14 @@
 package jsonx
 
 import (
-	"github.com/ory/x/snapshotx"
-	"github.com/stretchr/testify/require"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/require"
+
+	"github.com/ory/x/snapshotx"
 )
 
 func TestEmbedSources(t *testing.T) {
@@ -26,7 +28,9 @@ func TestEmbedSources(t *testing.T) {
 				input, err := os.ReadFile(p)
 				require.NoError(t, err)
 
-				actual, err := EmbedSources(input)
+				actual, err := EmbedSources(input, WithIgnoreKeys(
+					"ignore_this_key",
+				))
 				require.NoError(t, err)
 
 				snapshotx.SnapshotTExcept(t, actual, nil)
@@ -34,6 +38,15 @@ func TestEmbedSources(t *testing.T) {
 
 			return nil
 		}))
+	})
+
+	t.Run("only embeds base64", func(t *testing.T) {
+		actual, err := EmbedSources([]byte(`{"key":"https://foobar.com", "bar":"base64://YXNkZg=="}`), WithOnlySchemes(
+			"base64",
+		))
+		require.NoError(t, err)
+
+		snapshotx.SnapshotTExcept(t, actual, nil)
 	})
 
 	t.Run("fails on invalid source", func(t *testing.T) {

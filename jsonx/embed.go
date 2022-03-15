@@ -3,27 +3,57 @@ package jsonx
 import (
 	"encoding/base64"
 	"encoding/json"
-	"github.com/ory/x/fetcher"
-	"github.com/tidwall/gjson"
-	"github.com/tidwall/sjson"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
+
+	"github.com/ory/x/osx"
+	"github.com/ory/x/stringslice"
 )
 
-func EmbedSources(in json.RawMessage) (out json.RawMessage, err error) {
+type options struct {
+	ignoreKeys  []string
+	onlySchemes []string
+}
+
+type OptionsModifier func(*options)
+
+func newOptions(o []OptionsModifier) *options {
+	opt := &options{}
+	for _, f := range o {
+		f(opt)
+	}
+	return opt
+}
+
+func WithIgnoreKeys(keys ...string) OptionsModifier {
+	return func(o *options) {
+		o.ignoreKeys = keys
+	}
+}
+
+func WithOnlySchemes(scheme ...string) OptionsModifier {
+	return func(o *options) {
+		o.onlySchemes = scheme
+	}
+}
+
+func EmbedSources(in json.RawMessage, opts ...OptionsModifier) (out json.RawMessage, err error) {
 	out = make([]byte, len(in))
 	copy(out, in)
-	if err := embed(gjson.ParseBytes(in), nil, &out); err != nil {
+	if err := embed(gjson.ParseBytes(in), nil, &out, newOptions(opts)); err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func embed(parsed gjson.Result, parents []string, result *json.RawMessage) (err error) {
+func embed(parsed gjson.Result, parents []string, result *json.RawMessage, o *options) (err error) {
 	if parsed.IsObject() {
 		parsed.ForEach(func(k, v gjson.Result) bool {
-			err = embed(v, append(parents, strings.ReplaceAll(k.String(), ".", "\\.")), result)
+			err = embed(v, append(parents, strings.ReplaceAll(k.String(), ".", "\\.")), result, o)
 			if err != nil {
 				return false
 			}
@@ -34,7 +64,7 @@ func embed(parsed gjson.Result, parents []string, result *json.RawMessage) (err 
 		}
 	} else if parsed.IsArray() {
 		for kk, vv := range parsed.Array() {
-			if err = embed(vv, append(parents, strconv.Itoa(kk)), result); err != nil {
+			if err = embed(vv, append(parents, strconv.Itoa(kk)), result, o); err != nil {
 				return err
 			}
 		}
@@ -42,21 +72,32 @@ func embed(parsed gjson.Result, parents []string, result *json.RawMessage) (err 
 		return nil
 	}
 
+	if len(parents) > 0 && stringslice.Has(o.ignoreKeys, parents[len(parents)-1]) {
+		return nil
+	}
+
 	loc, err := url.ParseRequestURI(parsed.String())
 	if err != nil {
 		// Not a URL, return
 		return nil
-	} else if loc.Scheme != "file" && loc.Scheme != "http" && loc.Scheme != "https" && loc.Scheme != "base64" {
+	}
+
+	if len(o.onlySchemes) == 0 {
+		if loc.Scheme != "file" && loc.Scheme != "http" && loc.Scheme != "https" && loc.Scheme != "base64" {
+			// Not a known pattern, ignore
+			return nil
+		}
+	} else if !stringslice.Has(o.onlySchemes, loc.Scheme) {
 		// Not a known pattern, ignore
 		return nil
 	}
 
-	contents, err := fetcher.NewFetcher().Fetch(loc.String())
+	contents, err := osx.ReadFileFromAllSources(loc.String())
 	if err != nil {
 		return err
 	}
 
-	encoded := base64.StdEncoding.EncodeToString(contents.Bytes())
+	encoded := base64.StdEncoding.EncodeToString(contents)
 	key := strings.Join(parents, ".")
 	if key == "" {
 		key = "@"
