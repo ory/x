@@ -1,0 +1,44 @@
+{
+  "services": {
+    "identity": {
+      "config": {
+        "courier": {
+          "smtp": {
+            "from_name": "Updated Project from JSON via Ory"
+          },
+          "templates": {
+            "recovery": {
+              "invalid": {
+                "email": {}
+              },
+              "valid": {
+                "email": {}
+              }
+            },
+            "verification": {
+              "invalid": {
+                "email": {}
+              },
+              "valid": {
+                "email": {}
+              }
+            }
+          }
+        },
+        "session": {
+          "lifespan": "72h0m0s",
+          "cookie": {
+            "domain": "upbeat-mclean-xjvqxk4i7e.projects.oryapis",
+            "name": "ory_session_upbeatmcleanxjvqxk4i7e",
+            "path": "/",
+            "same_site": "Lax"
+          },
+          "whoami": {
+            "required_aal": "aal1"
+          }
+        }
+      }
+    }
+  },
+  "name": "Updated Project from JSON"
+}
