@@ -8,6 +8,8 @@ import (
 	"github.com/ory/x/logrusx"
 	"github.com/ory/x/stringsx"
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/contrib/propagation/b3"
+	jaegerPropagator "go.opentelemetry.io/contrib/propagation/jaeger"
 	"go.opentelemetry.io/contrib/samplers/jaegerremote"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/jaeger"
@@ -96,8 +98,18 @@ func (t *Tracer) setup(name string) error {
 		tp := sdktrace.NewTracerProvider(tpOpts...)
 		otel.SetTracerProvider(tp)
 
-		tc := propagation.TraceContext{}
-		otel.SetTextMapPropagator(tc)
+		// At the moment, software across our cloud stack only support Zipkin (B3)
+		// and Jaeger propagation formats. Proposals for standardized formats for
+		// context propagation are in the works (ref: https://www.w3.org/TR/trace-context/
+		// and https://www.w3.org/TR/baggage/).
+		//
+		// Simply add propagation.TraceContext{} and propagation.Baggage{}
+		// here to enable those as well.
+		prop := propagation.NewCompositeTextMapPropagator(
+			jaegerPropagator.Jaeger{},
+			b3.New(b3.WithInjectEncoding(b3.B3MultipleHeader|b3.B3SingleHeader)),
+		)
+		otel.SetTextMapPropagator(prop)
 
 		t.tracer = tp.Tracer(name)
 	default:
