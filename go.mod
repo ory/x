@@ -91,6 +91,8 @@ require (
 	go.elastic.co/apm/module/apmot v1.14.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace v0.25.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.29.0
+	go.opentelemetry.io/contrib/propagators/b3 v1.4.0
+	go.opentelemetry.io/contrib/propagators/jaeger v1.4.0
 	go.opentelemetry.io/contrib/samplers/jaegerremote v0.0.0-20220314184135-32895002a444
 	go.opentelemetry.io/otel v1.4.1
 	go.opentelemetry.io/otel/bridge/opentracing v1.2.0
