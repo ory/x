@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/uber/jaeger-client-go"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
@@ -261,7 +262,10 @@ func (p *Provider) SetTracer(ctx context.Context, t *otelx.Tracer) {
 }
 
 func (p *Provider) startSpan(ctx context.Context, opName string) (context.Context, trace.Span) {
-	tracer := p.tracer.Tracer()
+	tracer := otel.Tracer("github.com/ory/x/configx")
+	if p.tracer != nil && p.tracer.Tracer() != nil {
+		tracer = p.tracer.Tracer()
+	}
 	return tracer.Start(ctx, opName)
 }
 
