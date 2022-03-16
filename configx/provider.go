@@ -287,8 +287,10 @@ func (p *Provider) traceConfig(ctx context.Context, k *koanf.Koanf, opName strin
 		if redact {
 			fields = append(fields, attribute.String(key, "[redacted]"))
 		} else {
-			// XXX: can this be safely asserted as string?
-			fields = append(fields, attribute.String(key, k.Get(key).(string)))
+			// XXX: The issue here is, we can't guess what attribute type to
+			// use without trying every type supported in Koanf and checking for
+			// a zero value. Is fmt.Sprint the best way?
+			fields = append(fields, attribute.String(key, fmt.Sprint(k.Get(key))))
 		}
 	}
 
