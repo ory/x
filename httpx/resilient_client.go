@@ -7,9 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/opentracing/opentracing-go"
-
-	"github.com/ory/x/tracing"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/hashicorp/go-retryablehttp"
 
@@ -24,7 +23,7 @@ type resilientOptions struct {
 	retryWaitMax  time.Duration
 	retryMax      int
 	noInternalIPs bool
-	tracer        opentracing.Tracer
+	tracer        trace.Tracer
 }
 
 func newResilientOptions() *resilientOptions {
@@ -49,7 +48,7 @@ func ResilientClientWithClient(c *http.Client) ResilientOptions {
 }
 
 // ResilientClientWithTracer wraps the http clients transport with a tracing instrumentation
-func ResilientClientWithTracer(tracer opentracing.Tracer) ResilientOptions {
+func ResilientClientWithTracer(tracer trace.Tracer) ResilientOptions {
 	return func(o *resilientOptions) {
 		o.tracer = tracer
 	}
@@ -109,7 +108,7 @@ func NewResilientClient(opts ...ResilientOptions) *retryablehttp.Client {
 	}
 
 	if o.tracer != nil {
-		o.c.Transport = tracing.RoundTripper(o.tracer, o.c.Transport)
+		o.c.Transport = otelhttp.NewTransport(o.c.Transport)
 	}
 
 	return &retryablehttp.Client{
