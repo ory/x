@@ -1,7 +1,6 @@
 package otelx
 
 import (
-	"fmt"
 	"io"
 	"os"
 
@@ -50,15 +49,11 @@ func New(name string, l *logrusx.Logger, c *Config) (*Tracer, error) {
 //    OTEL_EXPORTER_JAEGER_AGENT_PORT
 //
 // Optionally, Config.Providers.Jaeger.LocalAgentAddress can be set.
-// NOTE: the default sampling ratio is set to 0.5. You might want to change
-// this in production.
+// NOTE: If Config.Providers.Jaeger.Sampling.ServerURL is not specfied,
+// AlwaysSample is used.
 func (t *Tracer) setup(name string) error {
 	switch t.Config.Provider {
 	case "jaeger":
-		exp, err := jaeger.New(jaeger.WithAgentEndpoint(
-			jaeger.WithAgentHost(t.Config.Providers.Jaeger.LocalAgentHost),
-			jaeger.WithAgentPort(fmt.Sprint(t.Config.Providers.Jaeger.LocalAgentPort)),
-		))
 		host := stringsx.Coalesce(
 			t.Config.Providers.Jaeger.LocalAgentHost,
 			os.Getenv("OTEL_EXPORTER_JAEGER_AGENT_HOST"),
@@ -70,7 +65,7 @@ func (t *Tracer) setup(name string) error {
 			port = os.Getenv("OTEL_EXPORTER_JAEGER_AGENT_PORT")
 		}
 
-		exp, err = jaeger.New(
+		exp, err := jaeger.New(
 			jaeger.WithAgentEndpoint(
 				jaeger.WithAgentHost(host), jaeger.WithAgentPort(port),
 			),
@@ -93,8 +88,9 @@ func (t *Tracer) setup(name string) error {
 				jaegerremote.WithSamplingServerURL(t.Config.Providers.Jaeger.Sampling.ServerURL),
 			)
 			tpOpts = append(tpOpts, sdktrace.WithSampler(jaegerRemoteSampler))
+		} else {
+			tpOpts = append(tpOpts, sdktrace.WithSampler(sdktrace.AlwaysSample()))
 		}
-
 		tp := sdktrace.NewTracerProvider(tpOpts...)
 		otel.SetTracerProvider(tp)
 

@@ -30,11 +30,11 @@ func TestConfigSchema(t *testing.T) {
 		conf := Config{
 			ServiceName: "Ory X",
 			Provider:    "jaeger",
-			Providers: &ProvidersConfig{
-				Jaeger: &JaegerConfig{
+			Providers: ProvidersConfig{
+				Jaeger: JaegerConfig{
 					LocalAgentHost: "localhost",
 					LocalAgentPort: 6831,
-					Sampling: &JaegerSampling{
+					Sampling: JaegerSampling{
 						ServerURL: "http://localhost:5778/sampling",
 					},
 				},

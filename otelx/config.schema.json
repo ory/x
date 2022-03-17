@@ -56,11 +56,8 @@
               "minimum": 0,
               "maximum": 65535
             },
-            "sampling_ratio": {
-              "type": "number",
-              "description": "Ratio for sampling traces",
-              "minimum": 0,
-              "maximum": 1
+            "sampling": {
+              "server_url": "http://localhost:5778/sampling"
             }
           }
         }

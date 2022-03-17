@@ -7,9 +7,9 @@ import (
 )
 
 type JaegerConfig struct {
-	LocalAgentHost string          `json:"local_agent_host"`
-	LocalAgentPort int             `json:"local_agent_port"`
-	Sampling       *JaegerSampling `json:"sampling"`
+	LocalAgentHost string         `json:"local_agent_host"`
+	LocalAgentPort int            `json:"local_agent_port"`
+	Sampling       JaegerSampling `json:"sampling"`
 }
 
 type JaegerSampling struct {
@@ -17,13 +17,13 @@ type JaegerSampling struct {
 }
 
 type ProvidersConfig struct {
-	Jaeger *JaegerConfig `json:"jaeger"`
+	Jaeger JaegerConfig `json:"jaeger"`
 }
 
 type Config struct {
-	ServiceName string           `json:"service_name"`
-	Provider    string           `json:"provider"`
-	Providers   *ProvidersConfig `json:"providers"`
+	ServiceName string          `json:"service_name"`
+	Provider    string          `json:"provider"`
+	Providers   ProvidersConfig `json:"providers"`
 }
 
 //go:embed config.schema.json
