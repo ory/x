@@ -120,6 +120,19 @@ func TestTextLogger(t *testing.T) {
 			},
 		},
 		{
+			l: New("logrusx-app", "v0.0.0", ForceFormat("text"), ForceLevel(logrus.TraceLevel), RedactionText("redacted")),
+			expect: []string{"logrus_test.go", "logrusx_test.TestTextLogger",
+				"audience=application", "service_name=logrusx-app", "service_version=v0.0.0",
+				"An error occurred.", "headers:map[", "accept:application/json", "accept-encoding:gzip",
+				"user-agent:Go-http-client/1.1", "x-request-id:id1234", "host:127.0.0.1:63232", "method:GET",
+				"query:redacted",
+			},
+			notExpect: []string{"testing.tRunner", "bar=foo"},
+			call: func(l *Logger) {
+				l.WithRequest(fakeRequest).Error("An error occurred.")
+			},
+		},
+		{
 			l: New("logrusx-server", "v0.0.1", ForceFormat("text"), LeakSensitive(), ForceLevel(logrus.DebugLevel)),
 			expect: []string{
 				"audience=application", "service_name=logrusx-server", "service_version=v0.0.1",

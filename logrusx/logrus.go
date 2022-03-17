@@ -23,6 +23,7 @@ type (
 		reportCaller  bool
 		exitFunc      func(int)
 		leakSensitive bool
+		redactionText string
 		hooks         []logrus.Hook
 		c             configurator
 	}
@@ -167,6 +168,12 @@ func LeakSensitive() Option {
 	}
 }
 
+func RedactionText(text string) Option {
+	return func(o *options) {
+		o.redactionText = text
+	}
+}
+
 func (c *nullConfigurator) Bool(_ string) bool {
 	return false
 }
@@ -192,6 +199,7 @@ func New(name string, version string, opts ...Option) *Logger {
 		name:          name,
 		version:       version,
 		leakSensitive: o.leakSensitive || o.c.Bool("log.leak_sensitive_values"),
+		redactionText: stringsx.DefaultIfEmpty(o.redactionText, `Value is sensitive and has been redacted. To see the value set config key "log.leak_sensitive_values = true" or environment variable "LOG_LEAK_SENSITIVE_VALUES=true".`),
 		Entry: newLogger(o.l, o).WithFields(logrus.Fields{
 			"audience": "application", "service_name": name, "service_version": version}),
 	}
@@ -203,6 +211,7 @@ func NewAudit(name string, version string, opts ...Option) *Logger {
 
 func (l *Logger) UseConfig(c configurator) {
 	l.leakSensitive = l.leakSensitive || c.Bool("log.leak_sensitive_values")
+	l.redactionText = stringsx.DefaultIfEmpty(c.String("log.redaction_text"), l.redactionText)
 	o := newOptions(append(l.opts, WithConfigurator(c)))
 	setLevel(l.Entry.Logger, o)
 	setFormatter(l.Entry.Logger, o)
