@@ -12,7 +12,6 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
-// TODO: Actually parse buf and extract span attributes.
 func TestJaegerTracer(t *testing.T) {
 	host := "127.0.0.1"
 	port := "6831"
@@ -40,13 +39,6 @@ func TestJaegerTracer(t *testing.T) {
 	ot, err := New("github.com/ory/x/otelx", logrusx.New("ory/x", "1"), &Config{
 		ServiceName: "Ory X",
 		Provider:    "jaeger",
-		Providers: &ProvidersConfig{
-			Jaeger: &JaegerConfig{
-				Sampling: &JaegerSampling{
-					ServerURL: "http://localhost:5778/sampling",
-				},
-			},
-		},
 	})
 	require.NoError(t, err)
 
@@ -55,9 +47,5 @@ func TestJaegerTracer(t *testing.T) {
 	span.SetAttributes(attribute.Bool("testAttribute", true))
 	span.End()
 
-	select {
-	case <-done:
-		// case <-time.After(3 * time.Second):
-		// 	t.Fatalf("Test server did not receive spans")
-	}
+	<-done
 }
