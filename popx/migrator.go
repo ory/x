@@ -13,13 +13,12 @@ import (
 	"time"
 
 	"github.com/cockroachdb/cockroach-go/v2/crdb"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/ory/x/cmdx"
-
-	"github.com/ory/x/tracing"
-
-	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/log"
+	"github.com/ory/x/otelx"
 
 	"github.com/gobuffalo/pop/v6"
 
@@ -39,7 +38,7 @@ var mrx = regexp.MustCompile(`^(\d+)_([^.]+)(\.[a-z0-9]+)?\.(up|down)\.(sql|fizz
 // to use something like MigrationBox or FileMigrator. A "blank"
 // Migrator should only be used as the basis for a new type of
 // migration system.
-func NewMigrator(c *pop.Connection, l *logrusx.Logger, tracer *tracing.Tracer, perMigrationTimeout time.Duration) *Migrator {
+func NewMigrator(c *pop.Connection, l *logrusx.Logger, tracer *otelx.Tracer, perMigrationTimeout time.Duration) *Migrator {
 	return &Migrator{
 		Connection: c,
 		l:          l,
@@ -61,7 +60,7 @@ type Migrator struct {
 	Migrations          map[string]Migrations
 	l                   *logrusx.Logger
 	PerMigrationTimeout time.Duration
-	tracer              *tracing.Tracer
+	tracer              *otelx.Tracer
 
 	// DumpMigrations if true will dump the migrations to a file called schema.sql
 	DumpMigrations bool
@@ -85,8 +84,11 @@ func (m *Migrator) Up(ctx context.Context) error {
 // If step <= 0 all pending migrations are run.
 func (m *Migrator) UpTo(ctx context.Context, step int) (applied int, err error) {
 	span, ctx := m.startSpan(ctx, MigrationUpOpName)
-	defer span.Finish()
-	span.LogFields(log.Int("up_to_step", step))
+	defer span.End()
+	// span.LogFields(log.Int("up_to_step", step))
+	span.AddEvent("up_to_step", trace.WithAttributes(
+		attribute.Int("up_to_step", step),
+	))
 
 	c := m.Connection.WithContext(ctx)
 	err = m.exec(ctx, func() error {
@@ -169,7 +171,7 @@ func (m *Migrator) UpTo(ctx context.Context, step int) (applied int, err error) 
 // database by the specified number of steps.
 func (m *Migrator) Down(ctx context.Context, step int) error {
 	span, ctx := m.startSpan(ctx, MigrationDownOpName)
-	defer span.Finish()
+	defer span.End()
 
 	c := m.Connection.WithContext(ctx)
 	return m.exec(ctx, func() error {
@@ -293,8 +295,8 @@ func (m *Migrator) migrateToTransactionalMigrationTable(ctx context.Context, c *
 
 func (m *Migrator) isolatedTransaction(ctx context.Context, direction string, fn func(tx *pop.Tx) error) error {
 	span, ctx := m.startSpan(ctx, MigrationRunTransactionOpName)
-	defer span.Finish()
-	span.SetTag("migration_direction", direction)
+	defer span.End()
+	span.SetAttributes(attribute.String("migration_direction", direction))
 
 	if m.PerMigrationTimeout > 0 {
 		var cancel context.CancelFunc
@@ -346,7 +348,7 @@ func (m *Migrator) execMigrationTransaction(ctx context.Context, c *pop.Connecti
 // operation.
 func (m *Migrator) CreateSchemaMigrations(ctx context.Context) error {
 	span, ctx := m.startSpan(ctx, MigrationInitOpName)
-	defer span.Finish()
+	defer span.End()
 
 	c := m.Connection.WithContext(ctx)
 
@@ -442,7 +444,7 @@ func errIsTableNotFound(err error) bool {
 // Status prints out the status of applied/pending migrations.
 func (m *Migrator) Status(ctx context.Context) (MigrationStatuses, error) {
 	span, ctx := m.startSpan(ctx, MigrationStatusOpName)
-	defer span.Finish()
+	defer span.End()
 
 	con := m.Connection.WithContext(ctx)
 
@@ -504,24 +506,22 @@ func (m *Migrator) DumpMigrationSchema(ctx context.Context) error {
 	return nil
 }
 
-func (m *Migrator) wrapSpan(ctx context.Context, opName string, f func(ctx context.Context, span opentracing.Span) error) error {
+func (m *Migrator) wrapSpan(ctx context.Context, opName string, f func(ctx context.Context, span trace.Span) error) error {
 	span, ctx := m.startSpan(ctx, opName)
-	defer span.Finish()
+	defer span.End()
 
 	return f(ctx, span)
 }
 
-func (m *Migrator) startSpan(ctx context.Context, opName string) (opentracing.Span, context.Context) {
-	tracer := opentracing.GlobalTracer()
+func (m *Migrator) startSpan(ctx context.Context, opName string) (trace.Span, context.Context) {
+	tracer := otel.Tracer("github.com/ory/x/popx")
 	if m.tracer.IsLoaded() {
 		tracer = m.tracer.Tracer()
-
 	}
 
-	span, ctx := opentracing.StartSpanFromContextWithTracer(ctx, tracer, opName)
-	span.SetTag("component", "github.com/ory/x/popx")
+	ctx, span := tracer.Start(ctx, opName)
+	span.SetAttributes(attribute.String("component", "github.com/ory/x/popx"))
 
-	span.LogFields()
 	return span, ctx
 }
 
