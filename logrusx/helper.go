@@ -22,6 +22,7 @@ import (
 type Logger struct {
 	*logrus.Entry
 	leakSensitive bool
+	redactionText string
 	opts          []Option
 	name          string
 	version       string
@@ -171,7 +172,7 @@ func (l *Logger) maybeRedact(value interface{}) interface{} {
 		return nil
 	}
 	if !l.leakSensitive {
-		return `Value is sensitive and has been redacted. To see the value set config key "log.leak_sensitive_values = true" or environment variable "LOG_LEAK_SENSITIVE_VALUES=true".`
+		return l.redactionText
 	}
 	return value
 }
