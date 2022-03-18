@@ -8,7 +8,7 @@ const prefix = isTunnel ? '' : '/.ory'
 const login = (email, password) => {
   console.log(Cypress.env('IS_TUNNEL'), { isTunnel, prefix })
   cy.visit(prefix + '/ui/login')
-  cy.get('[name="password_identifier"]').type(email)
+  cy.get('[name="identifier"]').type(email)
   cy.get('[name="password"]').type(password)
   cy.get('[name="method"]').click()
   loggedIn(email)
