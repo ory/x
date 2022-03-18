@@ -42,7 +42,8 @@ func renderForm(stdin *bufio.Reader, pwReader passwordReader, stderr io.Writer, 
 	}
 
 	values := json.RawMessage(`{}`)
-	for _, node := range ui.Nodes {
+	for k := range ui.Nodes {
+		node := ui.Nodes[k]
 		if node.Group != method && node.Group != "default" {
 			continue
 		}

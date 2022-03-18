@@ -38,7 +38,7 @@ const (
 	fileName   = ".ory-cloud.json"
 	configFlag = "config"
 	osEnvVar   = "ORY_CLOUD_CONFIG_PATH"
-	cloudUrl   = "ORY_CLOUD_URL"
+	cloudURL   = "ORY_CLOUD_URL"
 	version    = "v0alpha0"
 	yesFlag    = "yes"
 )
@@ -62,7 +62,7 @@ func (i *AuthContext) ID() string {
 	return i.IdentityTraits.ID.String()
 }
 
-func (_ *AuthContext) Header() []string {
+func (*AuthContext) Header() []string {
 	return []string{"ID", "EMAIL", "SELECTED_PROJECT"}
 }
 
@@ -136,7 +136,7 @@ func NewSnakeCharmer(cmd *cobra.Command) (*SnakeCharmer, error) {
 	}
 
 	toParse := stringsx.Coalesce(
-		os.Getenv(cloudUrl),
+		os.Getenv(cloudURL),
 		"https://project.console.ory.sh",
 	)
 
@@ -233,11 +233,11 @@ func (h *SnakeCharmer) EnsureContext() (*AuthContext, error) {
 	if len(c.SessionToken) > 0 {
 		_, _ = fmt.Fprintf(h.verboseErrWriter, "You are authenticated as: %s\n", c.IdentityTraits.Email)
 		return c, nil
-	} else {
-		c, err = h.Authenticate()
-		if err != nil {
-			return nil, err
-		}
+	}
+
+	c, err = h.Authenticate()
+	if err != nil {
+		return nil, err
 	}
 
 	if len(c.SessionToken) == 0 {
@@ -407,7 +407,7 @@ func (h *SnakeCharmer) sessionToContext(session *cloud.Session, token string) (*
 
 func (h *SnakeCharmer) Authenticate() (*AuthContext, error) {
 	if h.isQuiet {
-		return nil, errors.New("can not sign in or sign up when flag --quiet is set.")
+		return nil, errors.New("can not sign in or sign up when flag --quiet is set")
 	}
 
 	ac, err := h.readConfig()
@@ -602,12 +602,14 @@ func (h *SnakeCharmer) PatchProject(id string, raw []json.RawMessage, add, repla
 	if v, err := toPatch("add", add); err != nil {
 		return nil, err
 	} else {
+		//revive:disable indent-error-flow
 		patches = append(patches, v...)
 	}
 
 	if v, err := toPatch("replace", replace); err != nil {
 		return nil, err
 	} else {
+		//revive:disable indent-error-flow
 		patches = append(patches, v...)
 	}
 

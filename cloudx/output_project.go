@@ -15,7 +15,7 @@ func (i *outputProject) ID() string {
 	return i.Id
 }
 
-func (_ *outputProject) Header() []string {
+func (*outputProject) Header() []string {
 	return []string{"ID", "SLUG", "STATE", "NAME"}
 }
 
@@ -32,7 +32,7 @@ func (i *outputProject) Interface() interface{} {
 	return i
 }
 
-func (_ *outputProjectCollection) Header() []string {
+func (*outputProjectCollection) Header() []string {
 	return []string{"ID", "SLUG", "STATE", "NAME"}
 }
 

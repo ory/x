@@ -161,7 +161,7 @@ func ExecCtx(ctx context.Context, cmd *cobra.Command, stdIn io.Reader, args ...s
 	return stdOut.String(), stdErr.String(), err
 }
 
-func ExecDebugCtx(t *testing.T, ctx context.Context, cmd *cobra.Command, stdIn io.Reader, args ...string) (string, string, error) {
+func ExecDebugCtx(ctx context.Context, t *testing.T, cmd *cobra.Command, stdIn io.Reader, args ...string) (string, string, error) {
 	stdOut, stdErr := &bytes.Buffer{}, &bytes.Buffer{}
 	err := ExecBackgroundCtx(ctx, cmd, stdIn, io.MultiWriter(os.Stdout, stdOut), io.MultiWriter(os.Stderr, stdErr), args...).Wait()
 	return stdOut.String(), stdErr.String(), err
@@ -210,7 +210,7 @@ func (c *CommandExecuter) Exec(stdin io.Reader, args ...string) (string, string,
 }
 
 func (c *CommandExecuter) ExecDebug(t *testing.T, stdin io.Reader, args ...string) (string, string, error) {
-	return ExecDebugCtx(t, c.Ctx, c.New(), stdin, append(c.PersistentArgs, args...)...)
+	return ExecDebugCtx(c.Ctx, t, c.New(), stdin, append(c.PersistentArgs, args...)...)
 }
 
 func (c *CommandExecuter) ExecBackground(stdin io.Reader, stdOut, stdErr io.Writer, args ...string) *errgroup.Group {
