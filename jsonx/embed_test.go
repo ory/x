@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/stretchr/testify/require"
 
 	"github.com/ory/x/snapshotx"
@@ -50,7 +52,9 @@ func TestEmbedSources(t *testing.T) {
 	})
 
 	t.Run("fails on invalid source", func(t *testing.T) {
-		_, err := EmbedSources([]byte(`{"foo":"base64://invalid"}`))
-		require.Error(t, err)
+		expected := []byte(`{"foo":"base64://invalid}`)
+		actual, err := EmbedSources(expected)
+		require.NoError(t, err)
+		assert.Equal(t, string(expected), string(actual))
 	})
 }
