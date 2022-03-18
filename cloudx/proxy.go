@@ -157,6 +157,7 @@ func run(cmd *cobra.Command, conf *config, version string, name string) error {
 	}
 
 	if !conf.noOpen {
+		// #nosec G204 - this is ok
 		if err := exec.Command("open", conf.publicURL.String()).Run(); err != nil {
 			l.WithError(err).Warn("Unable to automatically open the proxy URL in your browser. Please open it manually!")
 		}

@@ -73,17 +73,17 @@ application and it does not generate any JSON Web Tokens.`, self, project),
 
 		RunE: func(cmd *cobra.Command, args []string) error {
 			port := flagx.MustGetInt(cmd, PortFlag)
-			selfUrlString := fmt.Sprintf("http://localhost:%d", port)
+			selfURLString := fmt.Sprintf("http://localhost:%d", port)
 			if len(args) == 2 {
-				selfUrlString = args[1]
+				selfURLString = args[1]
 			}
 
-			selfUrl, err := url.ParseRequestURI(selfUrlString)
+			selfURL, err := url.ParseRequestURI(selfURLString)
 			if err != nil {
 				return err
 			}
 
-			redirectUrl, err := url.Parse(args[0])
+			redirectURL, err := url.Parse(args[0])
 			if err != nil {
 				return err
 			}
@@ -99,11 +99,11 @@ application and it does not generate any JSON Web Tokens.`, self, project),
 				noOpen:            true,
 				upstream:          oryURL.String(),
 				cookieDomain:      flagx.MustGetString(cmd, CookieDomainFlag),
-				publicURL:         selfUrl,
+				publicURL:         selfURL,
 				oryURL:            oryURL,
 				pathPrefix:        "",
 				isTunnel:          true,
-				defaultRedirectTo: redirectUrl,
+				defaultRedirectTo: redirectURL,
 			}
 
 			return run(cmd, conf, version, project)
