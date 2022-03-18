@@ -45,10 +45,10 @@ func newConfigDir(t *testing.T) string {
 }
 
 func readConfig(t *testing.T, configDir string) *AuthContext {
-	f, err := os.Open(configDir)
+	f, err := os.ReadFile(configDir)
 	require.NoError(t, err)
 	var ac AuthContext
-	require.NoError(t, json.NewDecoder(f).Decode(&ac))
+	require.NoError(t, json.Unmarshal(f, &ac))
 	return &ac
 }
 
