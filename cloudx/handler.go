@@ -146,7 +146,7 @@ func NewSnakeCharmer(cmd *cobra.Command) (*SnakeCharmer, error) {
 	}
 
 	pwReader := func() ([]byte, error) {
-		return term.ReadPassword(syscall.Stdin)
+		return term.ReadPassword(int(syscall.Stdin))
 	}
 	if p, ok := cmd.Context().Value(PasswordReader).(passwordReader); ok {
 		pwReader = p
