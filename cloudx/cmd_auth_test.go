@@ -3,7 +3,6 @@ package cloudx
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"os"
 	"testing"
 	"time"
@@ -73,11 +72,7 @@ func TestAuthenticator(t *testing.T) {
 
 		t.Run("set up 2fa", func(t *testing.T) {
 			expectSignInSuccess(t)
-
-			f, err := os.Open(configDir)
-			require.NoError(t, err)
-			var ac AuthContext
-			require.NoError(t, json.NewDecoder(f).Decode(&ac))
+			ac := readConfig(t, configDir)
 
 			c, err := newKratosClient()
 			require.NoError(t, err)
