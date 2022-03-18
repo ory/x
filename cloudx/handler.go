@@ -200,17 +200,16 @@ func (h *SnakeCharmer) WriteConfig(c *AuthContext) error {
 }
 
 func (h *SnakeCharmer) readConfig() (*AuthContext, error) {
-	file, err := os.Open(h.configLocation)
+	contents, err := os.ReadFile(h.configLocation)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return new(AuthContext), ErrNoConfig
 		}
 		return nil, errors.Wrapf(err, "unable to open ory config file location: %s", h.configLocation)
 	}
-	defer file.Close()
 
 	var c AuthContext
-	if err := json.NewDecoder(file).Decode(&c); err != nil {
+	if err := json.Unmarshal(contents, &c); err != nil {
 		return nil, errors.Wrapf(err, "unable to JSON decode the ory config file: %s", h.configLocation)
 	}
 
