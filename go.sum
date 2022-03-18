@@ -1041,8 +1041,8 @@ github.com/openzipkin/zipkin-go v0.2.5 h1:UwtQQx2pyPIgWYHRg+epgdx1/HnBQTgN3/oIYE
 github.com/openzipkin/zipkin-go v0.2.5/go.mod h1:KpXfKdgRDnnhsxw4pNIH9Md5lyFqKUa4YDFlwRYAMyE=
 github.com/ory/analytics-go/v4 v4.0.3 h1:2zNBQLlm3UiD8U7DdUGLLUBm62ZA5GtbEJ3S5U+xEOI=
 github.com/ory/analytics-go/v4 v4.0.3/go.mod h1:A3Chm/3TmM8jw4nqRss+gFhAYHRI5j/HFYH3C1FRahU=
-github.com/ory/client-go v0.0.1-alpha.124.0.20220315143046-ccd5264271b3 h1:SVQvPupC3ddcghnlEF+i87xoQoAbMKKedwS84LelVyU=
-github.com/ory/client-go v0.0.1-alpha.124.0.20220315143046-ccd5264271b3/go.mod h1:r9jBJhtHPhzR+/Cvnw/K33LmYYbWwXogHKWFih9nUII=
+github.com/ory/client-go v0.0.1-alpha.138 h1:1Mq+PJz7Q1NA8N+Nntlw6DCq4piMdXFexJ1gAR7d2vE=
+github.com/ory/client-go v0.0.1-alpha.138/go.mod h1:dWbi9DBEjiDXwyuJ1+A2WT1/bIp9HwvVxZxzHzp4YHU=
 github.com/ory/dockertest/v3 v3.8.1 h1:vU/8d1We4qIad2YM0kOwRVtnyue7ExvacPiw1yDm17g=
 github.com/ory/dockertest/v3 v3.8.1/go.mod h1:wSRQ3wmkz+uSARYMk7kVJFDBGm8x5gSxIhI7NDc+BAQ=
 github.com/ory/go-acc v0.2.6 h1:YfI+L9dxI7QCtWn2RbawqO0vXhiThdXu/RgizJBbaq0=
