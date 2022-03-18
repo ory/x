@@ -46,7 +46,7 @@ You must set the [tunnel-url] if you are not using the tunnel in local developme
 		https://www.example.org \
 		https://auth.example.org
 
-Please note that you can not set a path in the [public-url]!
+Please note that you can not set a path in the [tunnel-url]!
 
 Per default, the tunnel listens on port 4000. If you want to listen on another port, use the
 port flag:
