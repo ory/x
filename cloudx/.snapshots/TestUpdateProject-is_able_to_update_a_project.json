@@ -14,18 +14,26 @@
           "templates": {
             "recovery": {
               "invalid": {
-                "email": {}
+                "email": {
+                  "body": {}
+                }
               },
               "valid": {
-                "email": {}
+                "email": {
+                  "body": {}
+                }
               }
             },
             "verification": {
               "invalid": {
-                "email": {}
+                "email": {
+                  "body": {}
+                }
               },
               "valid": {
-                "email": {}
+                "email": {
+                  "body": {}
+                }
               }
             }
           }
@@ -39,7 +47,7 @@
             },
             {
               "id": "beb7e08859084ec71bc073694fff7c71eb0eb82593ca11b29068c1e02ad385c4fb8451cb3b58d8c9385ed955f31ab51b6d94e187ffea8d9ba817c12782ef5782",
-              "url": "https://storage.googleapis.com/bac-gcs-local/beb7e08859084ec71bc073694fff7c71eb0eb82593ca11b29068c1e02ad385c4fb8451cb3b58d8c9385ed955f31ab51b6d94e187ffea8d9ba817c12782ef5782.json"
+              "url": "https://storage.googleapis.com/bac-gcs-staging/beb7e08859084ec71bc073694fff7c71eb0eb82593ca11b29068c1e02ad385c4fb8451cb3b58d8c9385ed955f31ab51b6d94e187ffea8d9ba817c12782ef5782.json"
             },
             {
               "id": "preset://username",

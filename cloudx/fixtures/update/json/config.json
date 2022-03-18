@@ -14,18 +14,26 @@
           "templates": {
             "recovery": {
               "invalid": {
-                "email": {}
+                "email": {
+                  "body": {}
+                }
               },
               "valid": {
-                "email": {}
+                "email": {
+                  "body": {}
+                }
               }
             },
             "verification": {
               "invalid": {
-                "email": {}
+                "email": {
+                  "body": {}
+                }
               },
               "valid": {
-                "email": {}
+                "email": {
+                  "body": {}
+                }
               }
             }
           }
