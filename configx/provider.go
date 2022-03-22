@@ -483,15 +483,15 @@ func (p *Provider) CORS(prefix string, defaults cors.Options) (cors.Options, boo
 
 func (p *Provider) TracingConfigOtel(serviceName string) *otelx.Config {
 	return &otelx.Config{
-		ServiceName: p.StringF("otelx.service_name", serviceName),
-		Provider:    p.String("otelx.provider"),
+		ServiceName: p.StringF("tracing.service_name", serviceName),
+		Provider:    p.String("tracing.provider"),
 		Providers: otelx.ProvidersConfig{
 			Jaeger: otelx.JaegerConfig{
 				Sampling: otelx.JaegerSampling{
-					ServerURL: p.String("otelx.providers.jaeger.sampling.server_url"),
+					ServerURL: p.String("tracing.providers.jaeger.sampling.server_url"),
 				},
-				LocalAgentHost: p.String("otelx.providers.jaeger.local_agent_host"),
-				LocalAgentPort: p.Int("otelx.providers.jaeger.local_agent_port"),
+				LocalAgentHost: p.String("tracing.providers.jaeger.local_agent_host"),
+				LocalAgentPort: p.Int("tracing.providers.jaeger.local_agent_port"),
 			},
 		},
 	}

@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "ory://otelx-config",
+  "$id": "ory://tracing-config",
   "type": "object",
   "additionalProperties": false,
   "description": "Configure distributed tracing using OpenTelemetry",
