@@ -69,7 +69,7 @@ jobs:
       - name: Run nancy
         uses: sonatype-nexus-community/nancy-github-action@main
       - run: make .bin/go-acc .bin/gcov2lcov
-      - run: COCKROACH_BINARY=cockroach .bin/go-acc -o coverage.out ./... -- -v -failfast -timeout=20m -tags sqlite
+      - run: COCKROACH_BINARY=cockroach .bin/go-acc -o coverage.out ./... -- -v -failfast -timeout=5m -tags sqlite
       - name: Convert coverage report to lcov
         run: .bin/gcov2lcov -infile=coverage.out -outfile=coverage.lcov
       - name: Coveralls
