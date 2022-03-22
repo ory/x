@@ -23,6 +23,6 @@ func NewRootCommand(project string, version string) *cobra.Command {
 	cmd.AddCommand(NewUpdateCmd())
 	cmd.AddCommand(NewGetCmd())
 	cmd.AddCommand(NewProxyCommand(cmdName, version))
-	cmd.AddCommand(NewTunnelCommand(project, cmdName, version))
+	cmd.AddCommand(NewTunnelCommand(cmdName, version))
 	return cmd
 }
