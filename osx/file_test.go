@@ -44,7 +44,7 @@ func TestReadFileFromAllSources(t *testing.T) {
 		{src: "stub/text.txt", expectedErr: "file loader disabled", opts: []Option{WithDisabledFileLoader()}},
 
 		{src: ts.URL, expectedBody: "hello world"},
-		{src: sslTS.URL, expectedErr: "unable to load remote file: GET " + sslTS.URL + " giving up after 1 attempt(s): Get \"" + sslTS.URL + "\": x509: certificate signed by unknown authority"},
+		{src: sslTS.URL, expectedErr: "unable to load remote file: GET " + sslTS.URL + " giving up after 5 attempt(s): Get \"" + sslTS.URL + "\": x509: “Acme Co” certificate is not trusted"},
 		{src: sslTS.URL, expectedBody: "hello world", opts: []Option{WithHTTPClient(httpx.NewResilientClient(httpx.ResilientClientWithClient(sslTS.Client())))}},
 		{src: sslTS.URL, expectedErr: "http(s) loader disabled", opts: []Option{WithDisabledHTTPLoader()}},
 
