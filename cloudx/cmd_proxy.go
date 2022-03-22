@@ -168,7 +168,7 @@ An example payload of the JSON Web Token is:
 	proxyCmd.Flags().String(ServiceURL, "", "Set the Ory SDK URL.")
 	proxyCmd.Flags().Int(PortFlag, portFromEnv(), "The port the proxy should listen on.")
 	proxyCmd.Flags().Bool(WithoutJWTFlag, false, "Do not create a JWT from the Ory Kratos Session. Useful if you need fast start up times of the Ory Proxy.")
-	proxyCmd.Flags().String(DefaultRedirectURLFlag, "/", "Set the URL to redirect to per default after e.g. login or account creation.")
+	proxyCmd.Flags().String(DefaultRedirectURLFlag, "", "Set the URL to redirect to per default after e.g. login or account creation.")
 	return proxyCmd
 }
 
