@@ -108,6 +108,8 @@ func (t *Tracer) setup(name string) error {
 		otel.SetTextMapPropagator(prop)
 
 		t.tracer = tp.Tracer(name)
+	case "":
+		t.l.Infof("No tracer configured - skipping tracing setup")
 	default:
 		return errors.Errorf("unknown tracer: %s", t.Config.Provider)
 	}
