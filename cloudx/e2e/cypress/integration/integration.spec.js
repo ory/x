@@ -6,18 +6,29 @@ const isTunnel = parseInt(Cypress.env('IS_TUNNEL')) === 1
 const prefix = isTunnel ? '' : '/.ory'
 
 const login = (email, password) => {
-  console.log(Cypress.env('IS_TUNNEL'), { isTunnel, prefix })
   cy.visit(prefix + '/ui/login')
   cy.get('[name="identifier"]').type(email)
   cy.get('[name="password"]').type(password)
   cy.get('[name="method"]').click()
-  loggedIn(email)
 }
 
 const loggedIn = (email) => {
-  cy.visit(prefix + '/ui/welcome')
-  cy.get('pre code').should('contain.text', email)
-  cy.get('[data-testid="logout"]').should('have.attr', 'aria-disabled', 'false')
+  cy.request('http://localhost:4001/anything').should((res) => {
+    console.log({body: res.body})
+
+
+    if (!isTunnel) {
+      expect(res.body.headers['Authorization']).to.not.be.empty
+      cy.task(
+          'verify',
+          res.body.headers['Authorization'].replace(/bearer /gi, '')
+      ).then((decoded) => {
+        expect(decoded.session.identity.traits.email).to.equal(email)
+      })
+    } else {
+      expect(res.body.headers['cookie'].indexOf('ory_session_playground')>-1).to.be.true
+    }
+  })
 }
 
 describe('ory proxy', () => {
@@ -38,30 +49,26 @@ describe('ory proxy', () => {
     cy.get('[name="traits.email"]').type(email)
     cy.get('[name="password"]').type(password)
     cy.get('[name="method"]').click()
-    cy.visit(prefix + '/ui/welcome')
+    if (isTunnel) {
+      cy.location('host').should('eq', 'localhost:4001')
+    }
+
     loggedIn(email)
   })
 
   it('should be able to execute login', () => {
     login(email, password)
-    if (!isTunnel) {
-      cy.request('/anything').should((res) => {
-        expect(res.body.headers['Authorization']).to.not.be.empty
-        const token = res.body.headers['Authorization'].replace(/bearer /gi, '')
-        console.log({ token })
-
-        cy.task(
-          'verify',
-          res.body.headers['Authorization'].replace(/bearer /gi, '')
-        ).then((decoded) => {
-          expect(decoded.session.identity.traits.email).to.equal(email)
-        })
-      })
+    if (isTunnel) {
+      cy.location('host').should('eq', 'localhost:4001')
     }
+
+    loggedIn(email)
   })
 
   it('should be able to execute logout', () => {
     login(email, password)
+    loggedIn(email)
+
     cy.visit(prefix + '/ui/welcome')
     cy.get('[data-testid="logout"]').should(
       'have.attr',
@@ -70,10 +77,12 @@ describe('ory proxy', () => {
     )
     cy.get('[data-testid="logout"]').click()
 
-    if (!isTunnel) {
-      cy.request('/anything').should((res) => {
-        expect(res.body.headers['Authorization']).to.be.undefined
-      })
+    if (isTunnel) {
+      cy.location('host').should('eq', 'localhost:4001')
     }
+
+    cy.request('http://localhost:4001/anything').should((res) => {
+      expect(res.body.headers['Authorization']).to.be.undefined
+    })
   })
 })

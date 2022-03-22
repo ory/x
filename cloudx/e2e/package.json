@@ -5,6 +5,7 @@
     "prettierTarget": "{**/,}*{.js,.md,.ts}"
   },
   "scripts": {
+    "server": "node app.js",
     "test": "cypress run",
     "test:dev": "cypress open",
     "format": "prettier --write ${npm_package_config_prettierTarget}",
@@ -16,5 +17,8 @@
     "jwks-rsa": "^2.0.5",
     "ory-prettier-styles": "1.1.2",
     "prettier": "2.3.2"
+  },
+  "dependencies": {
+    "express": "^4.17.3"
   }
 }

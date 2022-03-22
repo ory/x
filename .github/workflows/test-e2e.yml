@@ -31,7 +31,8 @@ jobs:
       - name: Run Tunnel E2E Tests
         run: |
           cd cloudx/e2e
-          ./ory tunnel &
+          npm run server &
+          ./ory tunnel http://localhost:4001 &
           CYPRESS_IS_TUNNEL=1 npm run test
         env:
           ORY_KRATOS_URL: https://playground.projects.oryapis.com/
