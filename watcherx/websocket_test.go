@@ -121,6 +121,7 @@ func TestWatchWebsocket(t *testing.T) {
 		s := httptest.NewServer(handler)
 
 		ctxClient1, cancelClient1 := context.WithCancel(context.Background())
+		defer cancelClient1()
 		u := urlx.ParseOrPanic("ws" + strings.TrimLeft(s.URL, "http"))
 		_, err = WatchWebsocket(ctxClient1, u, c)
 		require.NoError(t, err)
