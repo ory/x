@@ -25,10 +25,11 @@ func TestReadFileFromAllSources(t *testing.T) {
 	defer sslTS.Close()
 
 	for k, tc := range []struct {
-		opts         []Option
-		src          string
-		expectedErr  string
-		expectedBody string
+		opts                []Option
+		src                 string
+		expectedErr         string
+		expectedErrContains string
+		expectedBody        string
 	}{
 		{src: "base64://aGVsbG8gd29ybGQ", expectedBody: "hello world"},
 		{src: "base64://aGVsbG8gd29ybGQ=", expectedBody: "hello world", opts: []Option{WithoutResilientBase64Encoding(), WithBase64Encoding(base64.URLEncoding)}},
@@ -44,7 +45,7 @@ func TestReadFileFromAllSources(t *testing.T) {
 		{src: "stub/text.txt", expectedErr: "file loader disabled", opts: []Option{WithDisabledFileLoader()}},
 
 		{src: ts.URL, expectedBody: "hello world"},
-		{src: sslTS.URL, expectedErr: "unable to load remote file: GET " + sslTS.URL + " giving up after 5 attempt(s): Get \"" + sslTS.URL + "\": x509: “Acme Co” certificate is not trusted"},
+		{src: sslTS.URL, expectedErrContains: "x509:"},
 		{src: sslTS.URL, expectedBody: "hello world", opts: []Option{WithHTTPClient(httpx.NewResilientClient(httpx.ResilientClientWithClient(sslTS.Client())))}},
 		{src: sslTS.URL, expectedErr: "http(s) loader disabled", opts: []Option{WithDisabledHTTPLoader()}},
 
@@ -57,6 +58,10 @@ func TestReadFileFromAllSources(t *testing.T) {
 			if tc.expectedErr != "" {
 				require.Error(t, err)
 				assert.Equal(t, tc.expectedErr, err.Error())
+				return
+			} else if tc.expectedErrContains != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.expectedErrContains)
 				return
 			}
 			require.NoError(t, err)
