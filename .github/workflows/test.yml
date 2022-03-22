@@ -23,9 +23,6 @@ jobs:
       - run: |
           go test -tags sqlite -failfast -short -timeout=20m $(go list ./... | grep -v sqlcon | grep -v watcherx | grep -v pkgerx | grep -v configx)
         shell: bash
-        env:
-          ORY_CLOUD_CONSOLE_URL: https://project.console.staging.ory.dev
-          ORY_CLOUD_API_URL: https://api.console.staging.ory.dev
 
   test:
     name: Run Tests and Lint Code
@@ -34,8 +31,6 @@ jobs:
       TEST_DATABASE_POSTGRESQL: postgres://test:test@localhost:5432/sqlcon?sslmode=disable
       TEST_DATABASE_MYSQL: mysql://root:test@tcp(localhost:3306)/mysql?parseTime=true&multiStatements=true
       TEST_DATABASE_COCKROACHDB: cockroach://root@localhost:26257/defaultdb?sslmode=disable
-      ORY_CLOUD_CONSOLE_URL: https://project.console.staging.ory.dev
-      ORY_CLOUD_API_URL: https://api.console.staging.ory.dev
     services:
       postgres:
         image: postgres:11.8
