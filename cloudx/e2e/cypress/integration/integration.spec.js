@@ -12,8 +12,10 @@ const login = (email, password) => {
   cy.get('[name="method"]').click()
 }
 
+const api = isTunnel ? 'http://localhost:4001' : ''
+
 const loggedIn = (email) => {
-  cy.request('http://localhost:4001/anything').should((res) => {
+  cy.request(api+'/anything').should((res) => {
     console.log({body: res.body})
 
 
@@ -81,7 +83,7 @@ describe('ory proxy', () => {
       cy.location('host').should('eq', 'localhost:4001')
     }
 
-    cy.request('http://localhost:4001/anything').should((res) => {
+    cy.request(api+'/anything').should((res) => {
       expect(res.body.headers['Authorization']).to.be.undefined
     })
   })
