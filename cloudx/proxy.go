@@ -117,8 +117,7 @@ func run(cmd *cobra.Command, conf *config, version string, name string) error {
 			if err == nil {
 				// Redirect to main page if path is the default ui welcome page.
 				if l.Path == filepath.Join(conf.pathPrefix, "/ui/welcome") {
-					l.Path = "/"
-					resp.Header.Set("Location", l.String())
+					resp.Header.Set("Location", conf.defaultRedirectTo.String())
 				}
 			}
 
