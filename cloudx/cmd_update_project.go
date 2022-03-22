@@ -12,10 +12,15 @@ import (
 
 func NewProjectsUpdateCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "project <id>",
-		Args:    cobra.ExactArgs(1),
-		Short:   "Update Ory Cloud Project Service Configuration",
-		Example: `ory update project <your-project-id> --name \"my updated name\" --file /path/to/config.json --file /path/to/config.yml --file https://example.org/config.yaml --file base64://<json>`,
+		Use:   "project id",
+		Args:  cobra.ExactArgs(1),
+		Short: "Update Ory Cloud Project Service Configuration",
+		Example: `ory update project ecaaa3cb-0730-4ee8-a6df-9553cdfeef89 \
+--name \"my updated name\" \
+--file /path/to/config.json \
+--file /path/to/config.yml \
+--file https://example.org/config.yaml \
+--file base64://<json>`,
 		Long: `Use this command to replace your current Ory Cloud Project's service configuration. All values
 will be overwritten. To update individual files use the ` + "`patch`" + ` command instead.
 
