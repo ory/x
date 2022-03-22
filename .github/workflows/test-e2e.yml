@@ -25,7 +25,6 @@ jobs:
         run: |
           cd cloudx/e2e
           npm run server &
-          killall ory
           ./ory tunnel http://localhost:4001 &
           CYPRESS_IS_TUNNEL=1 npm run test
         env:
