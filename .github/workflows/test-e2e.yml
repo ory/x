@@ -7,7 +7,31 @@ on:
       - master
 
 jobs:
-  build:
+  test-tunnel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.17'
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+      - run: |
+          cd cloudx/e2e
+          npm ci
+          go build -tags sqlite -o ory .
+      - name: Run Tunnel E2E Tests
+        run: |
+          cd cloudx/e2e
+          npm run server &
+          killall ory
+          ./ory tunnel http://localhost:4001 &
+          CYPRESS_IS_TUNNEL=1 npm run test
+        env:
+          ORY_KRATOS_URL: https://playground.projects.oryapis.com/
+
+  test-proxy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -26,14 +50,5 @@ jobs:
           cd cloudx/e2e
           ./ory proxy https://httpbin.org/anything &
           npm run test
-        env:
-          ORY_KRATOS_URL: https://playground.projects.oryapis.com/
-      - name: Run Tunnel E2E Tests
-        run: |
-          cd cloudx/e2e
-          npm run server &
-          killall ory
-          ./ory tunnel http://localhost:4001 &
-          CYPRESS_IS_TUNNEL=1 npm run test
         env:
           ORY_KRATOS_URL: https://playground.projects.oryapis.com/
