@@ -122,6 +122,6 @@ application and it does not generate any JSON Web Tokens.`, self),
 	proxyCmd.Flags().String(CookieDomainFlag, "", "Set a dedicated cookie domain.")
 	proxyCmd.Flags().String(ServiceURL, "", "Set the Ory SDK URL.")
 	proxyCmd.Flags().Int(PortFlag, portFromEnv(), "The port the proxy should listen on.")
-	proxyCmd.Flags().String(DefaultRedirectURLFlag, "/", "Set the URL to redirect to per default after e.g. login or account creation.")
+	proxyCmd.Flags().String(DefaultRedirectURLFlag, "", "Set the URL to redirect to per default after e.g. login or account creation.")
 	return proxyCmd
 }
