@@ -111,8 +111,9 @@ func (t *Tracer) setup(name string) error {
 			b3.New(b3.WithInjectEncoding(b3.B3MultipleHeader|b3.B3SingleHeader)),
 		)
 		otel.SetTextMapPropagator(prop)
-
 		t.tracer = tp.Tracer(name)
+
+		t.l.Infof("Jaeger tracer configured!")
 	case "":
 		t.l.Infof("No tracer configured - skipping tracing setup")
 	default:
