@@ -668,10 +668,12 @@ func (h *SnakeCharmer) UpdateProject(id string, name string, configs []json.RawM
 	if err := json.NewEncoder(&b).Encode(interim); err != nil {
 		return nil, errors.WithStack(err)
 	}
-	dec := json.NewDecoder(&b)
-	dec.DisallowUnknownFields()
-	if err := dec.Decode(&payload); err != nil {
+	if err := json.NewDecoder(&b).Decode(&payload); err != nil {
 		return nil, errors.WithStack(err)
+	}
+
+	if len(payload.Services.Identity.Config) == 0 {
+		return nil, errors.Errorf("value of key `services.identity.config` is required and can not be empty")
 	}
 
 	if name != "" {

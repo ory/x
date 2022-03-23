@@ -26,6 +26,18 @@ func TestPatchProject(t *testing.T) {
 		assert.False(t, gjson.Get(stdout, "services.identity.config.selfservice.methods.password.enabled").Bool())
 	})
 
+	t.Run("is able to add a key with string", func(t *testing.T) {
+		stdout, _, err := cmd.ExecDebug(t, nil, "patch", "project", project, "--format", "json", "--replace", "/services/identity/config/selfservice/flows/error/ui_url=\"https://example.com/error-ui\"")
+		require.NoError(t, err)
+		assert.Equal(t, "https://example.com/error-ui", gjson.Get(stdout, "services.identity.config.selfservice.flows.error.ui_url").String())
+	})
+
+	t.Run("is able to add a key with raw json", func(t *testing.T) {
+		stdout, _, err := cmd.ExecDebug(t, nil, "patch", "project", project, "--format", "json", "--replace", `/services/identity/config/selfservice/flows/error={"ui_url":"https://example.org/error-ui"}`)
+		require.NoError(t, err)
+		assert.Equal(t, "https://example.org/error-ui", gjson.Get(stdout, "services.identity.config.selfservice.flows.error.ui_url").String())
+	})
+
 	t.Run("is able to remove a key", func(t *testing.T) {
 		stdout, _, err := cmd.ExecDebug(t, nil, "patch", "project", project, "--format", "json", "--remove", `/services/identity/config/selfservice/methods/password/enabled`)
 		require.NoError(t, err)

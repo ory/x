@@ -77,12 +77,12 @@ require (
 	github.com/seatgeek/logrus-gelf-formatter v0.0.0-20210414080842-5b05eb8ff761
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cast v1.4.1
-	github.com/spf13/cobra v1.2.1
+	github.com/spf13/cobra v1.4.0
 	github.com/spf13/pflag v1.0.5
 	github.com/square/go-jose/v3 v3.0.0-20200630053402-0a67ce9b0693
 	github.com/stretchr/testify v1.7.0
-	github.com/tidwall/gjson v1.9.4
-	github.com/tidwall/sjson v1.2.2
+	github.com/tidwall/gjson v1.14.0
+	github.com/tidwall/sjson v1.2.4
 	github.com/uber/jaeger-client-go v2.29.1+incompatible
 	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
 	github.com/urfave/negroni v1.0.0

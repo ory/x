@@ -28,9 +28,9 @@ func NewProjectsPatchCmd() *cobra.Command {
 			}
 
 			files := flagx.MustGetStringSlice(cmd, "file")
-			add := flagx.MustGetStringSlice(cmd, "add")
-			replace := flagx.MustGetStringSlice(cmd, "replace")
-			remove := flagx.MustGetStringSlice(cmd, "remove")
+			add := flagx.MustGetStringArray(cmd, "add")
+			replace := flagx.MustGetStringArray(cmd, "replace")
+			remove := flagx.MustGetStringArray(cmd, "remove")
 
 			if len(files)+len(add)+len(replace)+len(remove) == 0 {
 				return errors.New("at least one of --file, --add, --replace, or --remove must be set")
@@ -57,9 +57,9 @@ func NewProjectsPatchCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringSliceP("file", "f", nil, "Configuration file(s) (file://config.json, https://example.org/config.yaml, ...) to update the project")
-	cmd.Flags().StringSlice("replace", nil, "Replace a specific key in the configuration")
-	cmd.Flags().StringSlice("add", nil, "Add a specific key to the configuration")
-	cmd.Flags().StringSlice("remove", nil, "Remove a specific key from the configuration")
+	cmd.Flags().StringArray("replace", nil, "Replace a specific key in the configuration")
+	cmd.Flags().StringArray("add", nil, "Add a specific key to the configuration")
+	cmd.Flags().StringArray("remove", nil, "Remove a specific key from the configuration")
 	RegisterYesFlag(cmd.Flags())
 	cmdx.RegisterFormatFlags(cmd.Flags())
 	return cmd
