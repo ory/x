@@ -50,6 +50,15 @@ func MustGetStringSlice(cmd *cobra.Command, name string) []string {
 	return ss
 }
 
+// MustGetStringArray returns a []string flag or fatals if an error occurs.
+func MustGetStringArray(cmd *cobra.Command, name string) []string {
+	ss, err := cmd.Flags().GetStringArray(name)
+	if err != nil {
+		cmdx.Fatalf(err.Error())
+	}
+	return ss
+}
+
 // MustGetInt returns a int flag or fatals if an error occurs.
 func MustGetInt(cmd *cobra.Command, name string) int {
 	ss, err := cmd.Flags().GetInt(name)

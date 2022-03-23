@@ -2,8 +2,9 @@ package cloudx
 
 import (
 	"fmt"
-	"github.com/ory/x/stringsx"
 	"net/url"
+
+	"github.com/ory/x/stringsx"
 
 	"github.com/spf13/cobra"
 
