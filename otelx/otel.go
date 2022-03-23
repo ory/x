@@ -82,10 +82,15 @@ func (t *Tracer) setup(name string) error {
 			)),
 		}
 
-		if t.Config.Providers.Jaeger.Sampling.ServerURL != "" {
+		samplingServerURL := stringsx.Coalesce(
+			t.Config.Providers.Jaeger.Sampling.ServerURL,
+			os.Getenv("OTEL_EXPORTER_JAEGER_SAMPLING_SERVER_URL"),
+		)
+
+		if samplingServerURL != "" {
 			jaegerRemoteSampler := jaegerremote.New(
 				"jaegerremote",
-				jaegerremote.WithSamplingServerURL(t.Config.Providers.Jaeger.Sampling.ServerURL),
+				jaegerremote.WithSamplingServerURL(samplingServerURL),
 			)
 			tpOpts = append(tpOpts, sdktrace.WithSampler(jaegerRemoteSampler))
 		} else {
