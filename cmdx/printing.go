@@ -3,14 +3,12 @@ package cmdx
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/goccy/go-yaml"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"io"
 	"strings"
 	"text/tabwriter"
-
-	"github.com/ghodss/yaml"
-
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 type (

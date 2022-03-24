@@ -30,6 +30,7 @@ require (
 	github.com/gobuffalo/fizz v1.14.0
 	github.com/gobuffalo/httptest v1.0.2
 	github.com/gobuffalo/pop/v6 v6.0.1
+	github.com/goccy/go-yaml v1.9.5
 	github.com/gofrs/uuid v4.1.0+incompatible
 	github.com/gofrs/uuid/v3 v3.1.2
 	github.com/golang/glog v1.0.0 // indirect
