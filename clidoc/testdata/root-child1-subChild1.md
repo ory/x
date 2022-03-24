@@ -13,8 +13,16 @@ To improve this file please make your change against the appropriate "./cmd/*.go
 
 
 
+### Synopsis
+
+A sample text
+subChild1
+
+&lt;[some argument]&gt;
+
+
 ```
-root child1 subChild1 [flags]
+root child1 subChild1 <args> [flags]
 ```
 
 ### Options

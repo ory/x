@@ -15,10 +15,26 @@ import (
 func noopRun(_ *cobra.Command, _ []string) {}
 
 var (
-	root      = &cobra.Command{Use: "root", Run: noopRun}
-	child1    = &cobra.Command{Use: "child1", Run: noopRun}
-	child2    = &cobra.Command{Use: "child2", Run: noopRun}
-	subChild1 = &cobra.Command{Use: "subChild1", Run: noopRun}
+	root = &cobra.Command{Use: "root", Run: noopRun, Long: `A sample text
+root
+
+<[some argument]>
+`}
+	child1 = &cobra.Command{Use: "child1", Run: noopRun, Long: `A sample text
+child1
+
+<[some argument]>
+`}
+	child2 = &cobra.Command{Use: "child2", Run: noopRun, Long: `A sample text
+child2
+
+<[some argument]>
+`}
+	subChild1 = &cobra.Command{Use: "subChild1 <args>", Run: noopRun, Long: `A sample text
+subChild1
+
+<[some argument]>
+`}
 )
 
 func snapshotDir(t *testing.T, path ...string) (assertNoChange func(t *testing.T)) {
