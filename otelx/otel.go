@@ -113,7 +113,7 @@ func (t *Tracer) setup(name string) error {
 		otel.SetTextMapPropagator(prop)
 		t.tracer = tp.Tracer(name)
 
-		t.l.Infof("Jaeger tracer configured!")
+		t.l.Infof("Jaeger tracer configured! Sending spans to %s:%s", host, port)
 	case "":
 		t.l.Infof("No tracer configured - skipping tracing setup")
 	default:
