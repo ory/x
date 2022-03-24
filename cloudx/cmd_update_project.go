@@ -14,27 +14,65 @@ func NewProjectsUpdateCmd() *cobra.Command {
 		Use:   "project id",
 		Args:  cobra.ExactArgs(1),
 		Short: "Update Ory Cloud Project Service Configuration",
-		Example: `ory update project ecaaa3cb-0730-4ee8-a6df-9553cdfeef89 \
+		Example: `$ ory update project ecaaa3cb-0730-4ee8-a6df-9553cdfeef89 \
 	--name \"my updated name\" \
 	--file /path/to/config.json \
 	--file /path/to/config.yml \
 	--file https://example.org/config.yaml \
 	--file base64://<json>
 
-ory update project ecaaa3cb-0730-4ee8-a6df-9553cdfeef89 \
+ID		ecaaa3cb-0730-4ee8-a6df-9553cdfeef89 
+SLUG	good-wright-t7kzy3vugf		
+STATE	running					
+NAME	Example Project	
+
+$ ory update project ecaaa3cb-0730-4ee8-a6df-9553cdfeef89 \
 	--name \"my updated name\" \
 	--file /path/to/config.json \
-	--format kratos-config > my-config.yaml`,
+	--format json-pretty
+
+{
+  "name": "my updated name",
+  "identity": {
+	"services": {
+	  "config": {
+		"courier": {
+		  "smtp": {
+			"from_name": "..."
+		  }
+		  // ...
+		}
+	  }
+	}
+  }
+}`,
 		Long: `Use this command to replace your current Ory Cloud Project's service configuration. All values
 will be overwritten. To update individual settings use the ` + "`patch`" + ` command instead.
 
 If the ` + "`--name`" + ` flag is not set, the project's name will not be changed.
 
-The configuration file format can be found at:
+The full configuration payload can be found at
 
 	https://www.ory.sh/docs/reference/api#operation/updateProject
 
-If you wish to generate a configuration for self-hosting Ory Kratos, use ` + "`--format kratos-config`" + `.`,
+As an example an input could look like:
+
+	{
+      "name": "my updated name",
+	  "identity": {
+		"services": {
+		  "config": {
+			"courier": {
+			  "smtp": {
+				"from_name": "..."
+			  }
+			  // ...
+			}
+		  }
+		}
+	  }
+	}
+`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			h, err := NewSnakeCharmer(cmd)
 			if err != nil {
@@ -57,14 +95,14 @@ If you wish to generate a configuration for self-hosting Ory Kratos, use ` + "`-
 				return PrintOpenAPIError(cmd, err)
 			}
 
-			return h.PrintUpdateProject(cmd, p)
+			cmdx.PrintRow(cmd, (*outputProject)(&p.Project))
+			return h.PrintUpdateProjectWarnings(p)
 		},
 	}
 
 	cmd.Flags().StringP("name", "n", "", "The name of the project, required when quiet mode is used")
 	cmd.Flags().StringSliceP("file", "f", nil, "Configuration file(s) (file://config.json, https://example.org/config.yaml, ...) to update the project")
 	RegisterYesFlag(cmd.Flags())
-	cmdx.RegisterNoiseFlags(cmd.Flags())
-	RegisterExtendedOutput(cmd.Flags())
+	cmdx.RegisterFormatFlags(cmd.Flags())
 	return cmd
 }

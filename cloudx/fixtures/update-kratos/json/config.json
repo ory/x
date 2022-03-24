@@ -1,0 +1,222 @@
+{
+  "cookies": {
+    "domain": "upbeat-mclean-xjvqxk4i7e.projects.oryapis",
+    "path": "/",
+    "same_site": "Lax"
+  },
+  "courier": {
+    "smtp": {
+      "from_name": "ory-cy-e2e-da2f162d-af61-42dd-90dc-e3fcfa7c84a0-Updated Project from JSON via Ory"
+    },
+    "templates": {
+      "recovery": {
+        "invalid": {
+          "email": {
+            "body": {}
+          }
+        },
+        "valid": {
+          "email": {
+            "body": {}
+          }
+        }
+      },
+      "verification": {
+        "invalid": {
+          "email": {
+            "body": {}
+          }
+        },
+        "valid": {
+          "email": {
+            "body": {}
+          }
+        }
+      }
+    }
+  },
+  "identity": {
+    "default_schema_id": "from-disk",
+    "schemas": [
+      {
+        "id": "preset://email",
+        "url": "base64://ewogICIkaWQiOiAiaHR0cHM6Ly9zY2hlbWFzLm9yeS5zaC9wcmVzZXRzL2tyYXRvcy9pZGVudGl0eS5lbWFpbC5zY2hlbWEuanNvbiIsCiAgIiRzY2hlbWEiOiAiaHR0cDovL2pzb24tc2NoZW1hLm9yZy9kcmFmdC0wNy9zY2hlbWEjIiwKICAidGl0bGUiOiAiUGVyc29uIiwKICAidHlwZSI6ICJvYmplY3QiLAogICJwcm9wZXJ0aWVzIjogewogICAgInRyYWl0cyI6IHsKICAgICAgInR5cGUiOiAib2JqZWN0IiwKICAgICAgInByb3BlcnRpZXMiOiB7CiAgICAgICAgImVtYWlsIjogewogICAgICAgICAgInR5cGUiOiAic3RyaW5nIiwKICAgICAgICAgICJmb3JtYXQiOiAiZW1haWwiLAogICAgICAgICAgInRpdGxlIjogIkUtTWFpbCIsCiAgICAgICAgICAib3J5LnNoL2tyYXRvcyI6IHsKICAgICAgICAgICAgImNyZWRlbnRpYWxzIjogewogICAgICAgICAgICAgICJwYXNzd29yZCI6IHsKICAgICAgICAgICAgICAgICJpZGVudGlmaWVyIjogdHJ1ZQogICAgICAgICAgICAgIH0sCiAgICAgICAgICAgICAgIndlYmF1dGhuIjogewogICAgICAgICAgICAgICAgImlkZW50aWZpZXIiOiB0cnVlCiAgICAgICAgICAgICAgfSwKICAgICAgICAgICAgICAidG90cCI6IHsKICAgICAgICAgICAgICAgICJhY2NvdW50X25hbWUiOiB0cnVlCiAgICAgICAgICAgICAgfQogICAgICAgICAgICB9LAogICAgICAgICAgICAicmVjb3ZlcnkiOiB7CiAgICAgICAgICAgICAgInZpYSI6ICJlbWFpbCIKICAgICAgICAgICAgfSwKICAgICAgICAgICAgInZlcmlmaWNhdGlvbiI6IHsKICAgICAgICAgICAgICAidmlhIjogImVtYWlsIgogICAgICAgICAgICB9CiAgICAgICAgICB9LAogICAgICAgICAgIm1heExlbmd0aCI6IDMyMAogICAgICAgIH0KICAgICAgfSwKICAgICAgInJlcXVpcmVkIjogWwogICAgICAgICJlbWFpbCIKICAgICAgXSwKICAgICAgImFkZGl0aW9uYWxQcm9wZXJ0aWVzIjogZmFsc2UKICAgIH0KICB9Cn0K"
+      },
+      {
+        "id": "from-base64",
+        "url": "base64://ewogICIkaWQiOiAiaHR0cHM6Ly9zY2hlbWFzLm9yeS5zaC9wcmVzZXRzL2tyYXRvcy9pZGVudGl0eS5lbWFpbC5zY2hlbWEuanNvbiIsCiAgIiRzY2hlbWEiOiAiaHR0cDovL2pzb24tc2NoZW1hLm9yZy9kcmFmdC0wNy9zY2hlbWEjIiwKICAidGl0bGUiOiAiUGVyc29uIiwKICAidHlwZSI6ICJvYmplY3QiLAogICJwcm9wZXJ0aWVzIjogewogICAgInRyYWl0cyI6IHsKICAgICAgInR5cGUiOiAib2JqZWN0IiwKICAgICAgInByb3BlcnRpZXMiOiB7CiAgICAgICAgImVtYWlsIjogewogICAgICAgICAgInR5cGUiOiAic3RyaW5nIiwKICAgICAgICAgICJmb3JtYXQiOiAiZW1haWwiLAogICAgICAgICAgInRpdGxlIjogIkUtTWFpbCIsCiAgICAgICAgICAib3J5LnNoL2tyYXRvcyI6IHsKICAgICAgICAgICAgImNyZWRlbnRpYWxzIjogewogICAgICAgICAgICAgICJwYXNzd29yZCI6IHsKICAgICAgICAgICAgICAgICJpZGVudGlmaWVyIjogdHJ1ZQogICAgICAgICAgICAgIH0sCiAgICAgICAgICAgICAgIndlYmF1dGhuIjogewogICAgICAgICAgICAgICAgImlkZW50aWZpZXIiOiB0cnVlCiAgICAgICAgICAgICAgfSwKICAgICAgICAgICAgICAidG90cCI6IHsKICAgICAgICAgICAgICAgICJhY2NvdW50X25hbWUiOiB0cnVlCiAgICAgICAgICAgICAgfQogICAgICAgICAgICB9LAogICAgICAgICAgICAicmVjb3ZlcnkiOiB7CiAgICAgICAgICAgICAgInZpYSI6ICJlbWFpbCIKICAgICAgICAgICAgfSwKICAgICAgICAgICAgInZlcmlmaWNhdGlvbiI6IHsKICAgICAgICAgICAgICAidmlhIjogImVtYWlsIgogICAgICAgICAgICB9CiAgICAgICAgICB9LAogICAgICAgICAgIm1heExlbmd0aCI6IDMyMAogICAgICAgIH0KICAgICAgfSwKICAgICAgInJlcXVpcmVkIjogWwogICAgICAgICJlbWFpbCIKICAgICAgXSwKICAgICAgImFkZGl0aW9uYWxQcm9wZXJ0aWVzIjogZmFsc2UKICAgIH0KICB9Cn0K"
+      },
+      {
+        "id": "from-disk",
+        "url": "file://fixtures/update/json/identity-schema.json"
+      }
+    ]
+  },
+  "selfservice": {
+    "allowed_return_urls": [],
+    "default_browser_return_url": "/ui/welcome",
+    "flows": {
+      "error": {
+        "ui_url": "/ui/custom-error"
+      },
+      "login": {
+        "lifespan": "30m0s",
+        "after": {
+          "hooks": [],
+          "oidc": {
+            "hooks": []
+          },
+          "password": {
+            "hooks": []
+          },
+          "webauthn": {
+            "hooks": []
+          }
+        },
+        "before": {
+          "hooks": []
+        },
+        "ui_url": "/ui/custom-login"
+      },
+      "logout": {
+        "after": {}
+      },
+      "recovery": {
+        "lifespan": "30m0s",
+        "after": {
+          "hooks": []
+        },
+        "enabled": true,
+        "ui_url": "/ui/recovery"
+      },
+      "registration": {
+        "enabled": true,
+        "lifespan": "30m0s",
+        "after": {
+          "hooks": [],
+          "oidc": {
+            "hooks": [
+              {
+                "hook": "session"
+              }
+            ]
+          },
+          "password": {
+            "hooks": [
+              {
+                "hook": "session"
+              }
+            ]
+          },
+          "webauthn": {
+            "hooks": []
+          }
+        },
+        "before": {
+          "hooks": []
+        },
+        "ui_url": "/ui/registration"
+      },
+      "settings": {
+        "lifespan": "30m0s",
+        "after": {
+          "hooks": [],
+          "password": {
+            "hooks": []
+          },
+          "profile": {
+            "hooks": []
+          }
+        },
+        "privileged_session_max_age": "15m0s",
+        "required_aal": "highest_available",
+        "ui_url": "/ui/settings"
+      },
+      "verification": {
+        "lifespan": "30m0s",
+        "after": {
+          "hooks": []
+        },
+        "enabled": true,
+        "ui_url": "/ui/verification"
+      }
+    },
+    "methods": {
+      "link": {
+        "config": {
+          "base_url": "",
+          "lifespan": "15m0s"
+        },
+        "enabled": true
+      },
+      "lookup_secret": {
+        "enabled": false
+      },
+      "oidc": {
+        "config": {
+          "providers": []
+        },
+        "enabled": false
+      },
+      "password": {
+        "config": {
+          "haveibeenpwned_enabled": true,
+          "identifier_similarity_check_enabled": true,
+          "ignore_network_errors": true,
+          "max_breaches": 1,
+          "min_password_length": 8
+        },
+        "enabled": true
+      },
+      "profile": {
+        "enabled": true
+      },
+      "totp": {
+        "enabled": false,
+        "config": {
+          "issuer": "afds"
+        }
+      },
+      "webauthn": {
+        "enabled": false,
+        "config": {
+          "passwordless": false,
+          "rp": {
+            "display_name": "afds",
+            "id": "upbeat-mclean-xjvqxk4i7e.projects.oryapis",
+            "origin": "https://upbeat-mclean-xjvqxk4i7e.projects.oryapis"
+          }
+        }
+      }
+    }
+  },
+  "serve": {
+    "admin": {
+      "base_url": "https://upbeat-mclean-xjvqxk4i7e.projects.oryapis:8080/",
+      "request_log": {
+        "disable_for_health": true
+      }
+    },
+    "public": {
+      "base_url": "https://upbeat-mclean-xjvqxk4i7e.projects.oryapis:8080/",
+      "cors": {
+        "enabled": false
+      },
+      "request_log": {
+        "disable_for_health": true
+      }
+    }
+  },
+  "session": {
+    "lifespan": "72h0m0s",
+    "cookie": {
+      "domain": "upbeat-mclean-xjvqxk4i7e.projects.oryapis",
+      "name": "ory_session_upbeatmcleanxjvqxk4i7e",
+      "path": "/",
+      "same_site": "Lax"
+    },
+    "whoami": {
+      "required_aal": "aal1"
+    }
+  }
+}

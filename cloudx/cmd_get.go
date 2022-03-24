@@ -14,6 +14,7 @@ func NewGetCmd() *cobra.Command {
 		Short: fmt.Sprintf("Get a resource"),
 	}
 	cmd.AddCommand(NewGetProjectCmd())
+	cmd.AddCommand(NewGetKratosConfigCmd())
 	RegisterConfigFlag(cmd.PersistentFlags())
 	RegisterYesFlag(cmd.PersistentFlags())
 	cmdx.RegisterNoiseFlags(cmd.PersistentFlags())

@@ -7,6 +7,8 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/ghodss/yaml"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -35,6 +37,7 @@ const (
 	FormatQuiet      format = "quiet"
 	FormatTable      format = "table"
 	FormatJSON       format = "json"
+	FormatYAML       format = "yaml"
 	FormatJSONPretty format = "json-pretty"
 	FormatDefault    format = "default"
 
@@ -53,7 +56,7 @@ func (Nil) Interface() interface{} {
 
 func PrintErrors(cmd *cobra.Command, errs map[string]error) {
 	for src, err := range errs {
-		fmt.Fprintf(cmd.ErrOrStderr(), "%s: %s\n", src, err.Error())
+		_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "%s: %s\n", src, err.Error())
 	}
 }
 
@@ -63,12 +66,14 @@ func PrintRow(cmd *cobra.Command, row TableRow) {
 	switch f {
 	case FormatQuiet:
 		if idAble, ok := row.(interface{ ID() string }); ok {
-			fmt.Fprintln(cmd.OutOrStdout(), idAble.ID())
+			_, _ = fmt.Fprintln(cmd.OutOrStdout(), idAble.ID())
 			break
 		}
-		fmt.Fprintln(cmd.OutOrStdout(), row.Columns()[0])
+		_, _ = fmt.Fprintln(cmd.OutOrStdout(), row.Columns()[0])
 	case FormatJSON:
 		printJSON(cmd.OutOrStdout(), row.Interface(), false)
+	case FormatYAML:
+		printYAML(cmd.OutOrStdout(), row.Interface())
 	case FormatJSONPretty:
 		printJSON(cmd.OutOrStdout(), row.Interface(), true)
 	case FormatTable, FormatDefault:
@@ -76,10 +81,10 @@ func PrintRow(cmd *cobra.Command, row TableRow) {
 
 		fields := row.Columns()
 		for i, h := range row.Header() {
-			fmt.Fprintf(w, "%s\t%s\t\n", h, fields[i])
+			_, _ = fmt.Fprintf(w, "%s\t%s\t\n", h, fields[i])
 		}
 
-		w.Flush()
+		_ = w.Flush()
 	}
 }
 
@@ -106,6 +111,8 @@ func PrintTable(cmd *cobra.Command, table Table) {
 		printJSON(cmd.OutOrStdout(), table.Interface(), false)
 	case FormatJSONPretty:
 		printJSON(cmd.OutOrStdout(), table.Interface(), true)
+	case FormatYAML:
+		printYAML(cmd.OutOrStdout(), table.Interface())
 	default:
 		w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 8, 1, '\t', 0)
 
@@ -122,6 +129,8 @@ func PrintTable(cmd *cobra.Command, table Table) {
 	}
 }
 
+type interfacer interface{ Interface() interface{} }
+
 func PrintJSONAble(cmd *cobra.Command, d interface{ String() string }) {
 	if d == nil {
 		d = Nil{}
@@ -131,13 +140,19 @@ func PrintJSONAble(cmd *cobra.Command, d interface{ String() string }) {
 		_, _ = fmt.Fprint(cmd.OutOrStdout(), d.String())
 	case FormatJSON:
 		var v interface{} = d
-		if i, ok := d.(interface{ Interface() interface{} }); ok {
+		if i, ok := d.(interfacer); ok {
 			v = i
 		}
 		printJSON(cmd.OutOrStdout(), v, false)
 	case FormatJSONPretty:
 		var v interface{} = d
-		if i, ok := d.(interface{ Interface() interface{} }); ok {
+		if i, ok := d.(interfacer); ok {
+			v = i
+		}
+		printJSON(cmd.OutOrStdout(), v, true)
+	case FormatYAML:
+		var v interface{} = d
+		if i, ok := d.(interfacer); ok {
 			v = i
 		}
 		printJSON(cmd.OutOrStdout(), v, true)
@@ -186,11 +201,17 @@ func printJSON(w io.Writer, v interface{}, pretty bool) {
 	Must(err, "Error encoding JSON: %s", err)
 }
 
+func printYAML(w io.Writer, v interface{}) {
+	e, err := yaml.Marshal(v)
+	Must(err, "Error encoding YAML: %s", err)
+	_, _ = w.Write(e)
+}
+
 func RegisterJSONFormatFlags(flags *pflag.FlagSet) {
-	flags.String(FlagFormat, string(FormatDefault), fmt.Sprintf("Set the output format. One of %s, %s, and %s.", FormatDefault, FormatJSON, FormatJSONPretty))
+	flags.String(FlagFormat, string(FormatDefault), fmt.Sprintf("Set the output format. One of %s, %s, %s, and %s.", FormatDefault, FormatJSON, FormatYAML, FormatJSONPretty))
 }
 
 func RegisterFormatFlags(flags *pflag.FlagSet) {
 	RegisterNoiseFlags(flags)
-	flags.String(FlagFormat, string(FormatDefault), fmt.Sprintf("Set the output format. One of %s, %s, and %s.", FormatTable, FormatJSON, FormatJSONPretty))
+	flags.String(FlagFormat, string(FormatDefault), fmt.Sprintf("Set the output format. One of %s, %s, %s, and %s.", FormatTable, FormatJSON, FormatYAML, FormatJSONPretty))
 }

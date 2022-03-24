@@ -141,7 +141,7 @@
               },
               "enabled": true,
               "lifespan": "30m0s",
-              "ui_url": "/ui/verification"
+              "ui_url": "/ui/custom-verification"
             }
           },
           "methods": {

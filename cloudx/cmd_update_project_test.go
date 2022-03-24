@@ -6,8 +6,6 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/ghodss/yaml"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"
@@ -82,13 +80,5 @@ func TestUpdateProject(t *testing.T) {
 		r.WriteString(email + "\n") // Email fakeEmail()
 		_, _, err := cmd.ExecDebug(t, &r, "update", "project", project, "--format", "json", "--file", "./fixtures/update/json/config.json")
 		require.NoError(t, err)
-	})
-
-	t.Run("is able to update a project and get it as a kratos config", func(t *testing.T) {
-		stdout, _, err := cmd.ExecDebug(t, nil, "update", "project", project, "--format", "kratos-config", "--file", "./fixtures/update/json/config.json")
-		require.NoError(t, err)
-		actual, err := yaml.YAMLToJSON([]byte(stdout))
-		require.NoError(t, err)
-		assert.Equal(t, "/ui/error", gjson.GetBytes(actual, "selfservice.flows.error.ui_url").String())
 	})
 }

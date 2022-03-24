@@ -1,0 +1,217 @@
+{
+  "cookies": {
+    "path": "/",
+    "same_site": "Lax"
+  },
+  "courier": {
+    "smtp": {
+    },
+    "templates": {
+      "recovery": {
+        "invalid": {
+          "email": {
+            "body": {}
+          }
+        },
+        "valid": {
+          "email": {
+            "body": {}
+          }
+        }
+      },
+      "verification": {
+        "invalid": {
+          "email": {
+            "body": {}
+          }
+        },
+        "valid": {
+          "email": {
+            "body": {}
+          }
+        }
+      }
+    }
+  },
+  "identity": {
+    "default_schema_id": "beb7e08859084ec71bc073694fff7c71eb0eb82593ca11b29068c1e02ad385c4fb8451cb3b58d8c9385ed955f31ab51b6d94e187ffea8d9ba817c12782ef5782",
+    "schemas": [
+      {
+        "id": "preset://email",
+        "url": "base64://ewogICIkaWQiOiAiaHR0cHM6Ly9zY2hlbWFzLm9yeS5zaC9wcmVzZXRzL2tyYXRvcy9pZGVudGl0eS5lbWFpbC5zY2hlbWEuanNvbiIsCiAgIiRzY2hlbWEiOiAiaHR0cDovL2pzb24tc2NoZW1hLm9yZy9kcmFmdC0wNy9zY2hlbWEjIiwKICAidGl0bGUiOiAiUGVyc29uIiwKICAidHlwZSI6ICJvYmplY3QiLAogICJwcm9wZXJ0aWVzIjogewogICAgInRyYWl0cyI6IHsKICAgICAgInR5cGUiOiAib2JqZWN0IiwKICAgICAgInByb3BlcnRpZXMiOiB7CiAgICAgICAgImVtYWlsIjogewogICAgICAgICAgInR5cGUiOiAic3RyaW5nIiwKICAgICAgICAgICJmb3JtYXQiOiAiZW1haWwiLAogICAgICAgICAgInRpdGxlIjogIkUtTWFpbCIsCiAgICAgICAgICAib3J5LnNoL2tyYXRvcyI6IHsKICAgICAgICAgICAgImNyZWRlbnRpYWxzIjogewogICAgICAgICAgICAgICJwYXNzd29yZCI6IHsKICAgICAgICAgICAgICAgICJpZGVudGlmaWVyIjogdHJ1ZQogICAgICAgICAgICAgIH0sCiAgICAgICAgICAgICAgIndlYmF1dGhuIjogewogICAgICAgICAgICAgICAgImlkZW50aWZpZXIiOiB0cnVlCiAgICAgICAgICAgICAgfSwKICAgICAgICAgICAgICAidG90cCI6IHsKICAgICAgICAgICAgICAgICJhY2NvdW50X25hbWUiOiB0cnVlCiAgICAgICAgICAgICAgfQogICAgICAgICAgICB9LAogICAgICAgICAgICAicmVjb3ZlcnkiOiB7CiAgICAgICAgICAgICAgInZpYSI6ICJlbWFpbCIKICAgICAgICAgICAgfSwKICAgICAgICAgICAgInZlcmlmaWNhdGlvbiI6IHsKICAgICAgICAgICAgICAidmlhIjogImVtYWlsIgogICAgICAgICAgICB9CiAgICAgICAgICB9LAogICAgICAgICAgIm1heExlbmd0aCI6IDMyMAogICAgICAgIH0KICAgICAgfSwKICAgICAgInJlcXVpcmVkIjogWwogICAgICAgICJlbWFpbCIKICAgICAgXSwKICAgICAgImFkZGl0aW9uYWxQcm9wZXJ0aWVzIjogZmFsc2UKICAgIH0KICB9Cn0K"
+      },
+      {
+        "id": "beb7e08859084ec71bc073694fff7c71eb0eb82593ca11b29068c1e02ad385c4fb8451cb3b58d8c9385ed955f31ab51b6d94e187ffea8d9ba817c12782ef5782",
+        "url": "https://storage.googleapis.com/bac-gcs-production/beb7e08859084ec71bc073694fff7c71eb0eb82593ca11b29068c1e02ad385c4fb8451cb3b58d8c9385ed955f31ab51b6d94e187ffea8d9ba817c12782ef5782.json"
+      },
+      {
+        "id": "preset://username",
+        "url": "base64://ewogICIkaWQiOiAiaHR0cHM6Ly9zY2hlbWFzLm9yeS5zaC9wcmVzZXRzL2tyYXRvcy9pZGVudGl0eS51c2VybmFtZS5zY2hlbWEuanNvbiIsCiAgIiRzY2hlbWEiOiAiaHR0cDovL2pzb24tc2NoZW1hLm9yZy9kcmFmdC0wNy9zY2hlbWEjIiwKICAidGl0bGUiOiAiUGVyc29uIiwKICAidHlwZSI6ICJvYmplY3QiLAogICJwcm9wZXJ0aWVzIjogewogICAgInRyYWl0cyI6IHsKICAgICAgInR5cGUiOiAib2JqZWN0IiwKICAgICAgInByb3BlcnRpZXMiOiB7CiAgICAgICAgInVzZXJuYW1lIjogewogICAgICAgICAgInR5cGUiOiAic3RyaW5nIiwKICAgICAgICAgICJ0aXRsZSI6ICJVc2VybmFtZSIsCiAgICAgICAgICAibWF4TGVuZ3RoIjogMTAwLAogICAgICAgICAgIm9yeS5zaC9rcmF0b3MiOiB7CiAgICAgICAgICAgICJjcmVkZW50aWFscyI6IHsKICAgICAgICAgICAgICAicGFzc3dvcmQiOiB7CiAgICAgICAgICAgICAgICAiaWRlbnRpZmllciI6IHRydWUKICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICJ3ZWJhdXRobiI6IHsKICAgICAgICAgICAgICAgICJpZGVudGlmaWVyIjogdHJ1ZQogICAgICAgICAgICAgIH0sCiAgICAgICAgICAgICAgInRvdHAiOiB7CiAgICAgICAgICAgICAgICAiYWNjb3VudF9uYW1lIjogdHJ1ZQogICAgICAgICAgICAgIH0KICAgICAgICAgICAgfQogICAgICAgICAgfQogICAgICAgIH0KICAgICAgfSwKICAgICAgInJlcXVpcmVkIjogWwogICAgICAgICJ1c2VybmFtZSIKICAgICAgXSwKICAgICAgImFkZGl0aW9uYWxQcm9wZXJ0aWVzIjogZmFsc2UKICAgIH0KICB9Cn0K"
+      }
+    ]
+  },
+  "selfservice": {
+    "allowed_return_urls": [],
+    "default_browser_return_url": "/ui/welcome",
+    "flows": {
+      "error": {
+        "ui_url": "/ui/custom-error"
+      },
+      "login": {
+        "after": {
+          "hooks": [],
+          "oidc": {
+            "hooks": []
+          },
+          "password": {
+            "hooks": []
+          },
+          "webauthn": {
+            "hooks": []
+          }
+        },
+        "before": {
+          "hooks": []
+        },
+        "lifespan": "30m0s",
+        "ui_url": "/ui/custom-login"
+      },
+      "logout": {
+        "after": {}
+      },
+      "recovery": {
+        "after": {
+          "hooks": []
+        },
+        "enabled": true,
+        "lifespan": "30m0s",
+        "ui_url": "/ui/recovery"
+      },
+      "registration": {
+        "after": {
+          "hooks": [],
+          "oidc": {
+            "hooks": [
+              {
+                "hook": "session"
+              }
+            ]
+          },
+          "password": {
+            "hooks": [
+              {
+                "hook": "session"
+              }
+            ]
+          },
+          "webauthn": {
+            "hooks": []
+          }
+        },
+        "before": {
+          "hooks": []
+        },
+        "enabled": true,
+        "lifespan": "30m0s",
+        "ui_url": "/ui/registration"
+      },
+      "settings": {
+        "after": {
+          "hooks": [],
+          "password": {
+            "hooks": []
+          },
+          "profile": {
+            "hooks": []
+          }
+        },
+        "lifespan": "30m0s",
+        "privileged_session_max_age": "15m0s",
+        "required_aal": "highest_available",
+        "ui_url": "/ui/settings"
+      },
+      "verification": {
+        "after": {
+          "hooks": []
+        },
+        "enabled": true,
+        "lifespan": "30m0s",
+        "ui_url": "/ui/verification"
+      }
+    },
+    "methods": {
+      "link": {
+        "config": {
+          "base_url": "",
+          "lifespan": "15m0s"
+        },
+        "enabled": true
+      },
+      "lookup_secret": {
+        "enabled": false
+      },
+      "oidc": {
+        "config": {
+          "providers": []
+        },
+        "enabled": false
+      },
+      "password": {
+        "config": {
+          "haveibeenpwned_enabled": true,
+          "identifier_similarity_check_enabled": true,
+          "ignore_network_errors": true,
+          "max_breaches": 1,
+          "min_password_length": 8
+        },
+        "enabled": true
+      },
+      "profile": {
+        "enabled": true
+      },
+      "totp": {
+        "config": {
+          "issuer": "afds"
+        },
+        "enabled": false
+      },
+      "webauthn": {
+        "config": {
+          "passwordless": false,
+          "rp": {
+            "display_name": "afds",
+            "id": "upbeat-mclean-xjvqxk4i7e.projects.oryapis",
+            "origin": "https://upbeat-mclean-xjvqxk4i7e.projects.oryapis"
+          }
+        },
+        "enabled": false
+      }
+    }
+  },
+  "serve": {
+    "admin": {
+      "request_log": {
+        "disable_for_health": true
+      }
+    },
+    "public": {
+      "cors": {
+        "enabled": false
+      },
+      "request_log": {
+        "disable_for_health": true
+      }
+    }
+  },
+  "session": {
+    "cookie": {
+      "path": "/",
+      "persistent": false,
+      "same_site": "Lax"
+    },
+    "lifespan": "72h0m0s",
+    "whoami": {
+      "required_aal": "aal1"
+    }
+  }
+}
