@@ -3,7 +3,6 @@ package clidoc
 import (
 	"bytes"
 	"fmt"
-	"html"
 	"io"
 	"os"
 	"path/filepath"
@@ -12,7 +11,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/cobra/doc"
 )
 
 // Generate generates markdown documentation for a cobra command and its children.
@@ -72,10 +70,10 @@ To improve this file please make your change against the appropriate "./cmd/*.go
 	}
 
 	var b bytes.Buffer
-	if err := doc.GenMarkdownCustom(cmd, &b, trimExt); err != nil {
+	if err := GenMarkdownCustom(cmd, &b, trimExt); err != nil {
 		return err
 	}
 
-	_, err = f.WriteString(html.EscapeString(b.String()))
+	_, err = f.WriteString(b.String())
 	return err
 }

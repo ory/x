@@ -13,6 +13,14 @@ To improve this file please make your change against the appropriate "./cmd/*.go
 
 
 
+### Synopsis
+
+A sample text
+root
+
+&lt;[some argument]&gt;
+
+
 ```
 root [flags]
 ```
