@@ -35,12 +35,13 @@ import (
 )
 
 const (
-	fileName   = ".ory-cloud.json"
-	configFlag = "config"
-	osEnvVar   = "ORY_CLOUD_CONFIG_PATH"
-	cloudURL   = "ORY_CLOUD_URL"
-	version    = "v0alpha0"
-	yesFlag    = "yes"
+	fileName           = ".ory-cloud.json"
+	configFlag         = "config"
+	osEnvVar           = "ORY_CLOUD_CONFIG_PATH"
+	cloudURL           = "ORY_CLOUD_URL"
+	version            = "v0alpha0"
+	yesFlag            = "yes"
+	FormatKratosConfig = "kratos-config"
 )
 
 func RegisterConfigFlag(f *pflag.FlagSet) {
