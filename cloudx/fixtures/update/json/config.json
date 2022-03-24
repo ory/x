@@ -141,7 +141,7 @@
                 "hooks": []
               },
               "enabled": true,
-              "ui_url": "/ui/verification"
+              "ui_url": "/ui/custom-verification"
             }
           },
           "methods": {

@@ -30,9 +30,7 @@ specified in the patch will be overwritten. To replace the config use the ` + "`
 The format of the patch is a JSON-Patch document. For more details please check:
 
 	https://www.ory.sh/docs/reference/api#operation/patchProject
-	https://jsonpatch.com
-
-If you wish to generate a configuration for self-hosting Ory Kratos, use ` + "`--format kratos-config`" + `.`,
+	https://jsonpatch.com`,
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			h, err := NewSnakeCharmer(cmd)
 			if err != nil {
@@ -58,7 +56,8 @@ If you wish to generate a configuration for self-hosting Ory Kratos, use ` + "`-
 				return PrintOpenAPIError(cmd, err)
 			}
 
-			return h.PrintUpdateProject(cmd, p)
+			cmdx.PrintRow(cmd, (*outputProject)(&p.Project))
+			return h.PrintUpdateProjectWarnings(p)
 		},
 	}
 
@@ -67,7 +66,6 @@ If you wish to generate a configuration for self-hosting Ory Kratos, use ` + "`-
 	cmd.Flags().StringArray("add", nil, "Add a specific key to the configuration")
 	cmd.Flags().StringArray("remove", nil, "Remove a specific key from the configuration")
 	RegisterYesFlag(cmd.Flags())
-	cmdx.RegisterNoiseFlags(cmd.Flags())
-	RegisterExtendedOutput(cmd.Flags())
+	cmdx.RegisterFormatFlags(cmd.Flags())
 	return cmd
 }

@@ -4,15 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 	"github.com/tidwall/gjson"
 
 	"github.com/ory/client-go"
-	"github.com/ory/x/flagx"
-
 	"github.com/ory/x/cmdx"
 )
 
@@ -52,31 +48,7 @@ func PrintOpenAPIError(cmd *cobra.Command, err error) error {
 	return err
 }
 
-func RegisterExtendedOutput(flags *pflag.FlagSet) {
-	flags.String(cmdx.FlagFormat, string(cmdx.FormatDefault), fmt.Sprintf("Set the output format. One of %s, %s, %s, and %s.", cmdx.FormatDefault, cmdx.FormatJSON, cmdx.FormatJSONPretty, FormatKratosConfig))
-}
-
-func PrintExtendedFormat(cmd *cobra.Command, project *client.Project) error {
-	if flagx.MustGetString(cmd, cmdx.FlagFormat) != FormatKratosConfig {
-		cmdx.PrintRow(cmd, (*outputProject)(project))
-		return nil
-	}
-
-	out, err := yaml.Marshal(project.Services.Identity.Config)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	if _, err := fmt.Fprintf(cmd.OutOrStdout(), "%s\n", out); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (h *SnakeCharmer) PrintUpdateProject(cmd *cobra.Command, p *client.SuccessfulProjectUpdate) error {
-	if err := PrintExtendedFormat(cmd, &p.Project); err != nil {
-		return err
-	}
-
+func (h *SnakeCharmer) PrintUpdateProjectWarnings(p *client.SuccessfulProjectUpdate) error {
 	if len(p.Warnings) > 0 {
 		_, _ = fmt.Fprintln(h.verboseErrWriter)
 		_, _ = fmt.Fprintln(h.verboseErrWriter, "Warnings were found.")

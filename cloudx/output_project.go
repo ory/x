@@ -1,15 +1,22 @@
 package cloudx
 
 import (
+	"fmt"
+
 	cloud "github.com/ory/client-go"
 )
 
 type (
+	outputConfig            map[string]interface{}
 	outputProject           cloud.Project
 	outputProjectCollection struct {
 		projects []cloud.Project
 	}
 )
+
+func (i outputConfig) String() string {
+	return fmt.Sprintf("%+v", map[string]interface{}(i))
+}
 
 func (i *outputProject) ID() string {
 	return i.Id

@@ -13,5 +13,6 @@ func NewPatchCmd() *cobra.Command {
 	}
 	RegisterConfigFlag(cmd.PersistentFlags())
 	cmd.AddCommand(NewProjectsPatchCmd())
+	cmd.AddCommand(NewPatchKratosConfigCmd())
 	return cmd
 }
