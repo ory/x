@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/ghodss/yaml"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"
@@ -40,5 +42,13 @@ func TestGetProject(t *testing.T) {
 		stdout, _, err := cmd.Exec(&r, "get", "project", project, "--format", "json")
 		require.NoError(t, err)
 		assert.Contains(t, project, gjson.Parse(stdout).Get("id").String())
+	})
+
+	t.Run("is able to get project as a kratos config", func(t *testing.T) {
+		stdout, _, err := cmd.ExecDebug(t, nil, "get", "project", project, "--format", "kratos-config")
+		require.NoError(t, err)
+		actual, err := yaml.YAMLToJSON([]byte(stdout))
+		require.NoError(t, err)
+		assert.Equal(t, "/ui/error", gjson.GetBytes(actual, "selfservice.flows.error.ui_url").String())
 	})
 }

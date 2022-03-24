@@ -17,6 +17,5 @@ func NewGetCmd() *cobra.Command {
 	RegisterConfigFlag(cmd.PersistentFlags())
 	RegisterYesFlag(cmd.PersistentFlags())
 	cmdx.RegisterNoiseFlags(cmd.PersistentFlags())
-	cmdx.RegisterJSONFormatFlags(cmd.PersistentFlags())
 	return cmd
 }
