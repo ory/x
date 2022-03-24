@@ -186,6 +186,8 @@ func getFormat(cmd *cobra.Command) format {
 		return FormatJSON
 	case string(FormatJSONPretty):
 		return FormatJSONPretty
+	case string(FormatYAML):
+		return FormatYAML
 	default:
 		return FormatDefault
 	}
