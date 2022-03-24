@@ -153,7 +153,7 @@ func PrintJSONAble(cmd *cobra.Command, d interface{ String() string }) {
 		if i, ok := d.(interfacer); ok {
 			v = i
 		}
-		printJSON(cmd.OutOrStdout(), v, true)
+		printYAML(cmd.OutOrStdout(), v)
 	}
 }
 
@@ -202,7 +202,9 @@ func printJSON(w io.Writer, v interface{}, pretty bool) {
 }
 
 func printYAML(w io.Writer, v interface{}) {
-	e, err := yaml.Marshal(v)
+	j, err := json.Marshal(v)
+	Must(err, "Error encoding JSON: %s", err)
+	e, err := yaml.JSONToYAML(j)
 	Must(err, "Error encoding YAML: %s", err)
 	_, _ = w.Write(e)
 }
