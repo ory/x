@@ -263,7 +263,7 @@ func TestPrinting(t *testing.T) {
 				},
 				{
 					fArgs:    []string{"--" + FlagFormat, string(FormatYAML)},
-					expected: "[]",
+					expected: "null",
 				},
 			} {
 				t.Run(fmt.Sprintf("format=%v", tc.fArgs), func(t *testing.T) {
