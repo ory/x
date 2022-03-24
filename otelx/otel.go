@@ -3,6 +3,7 @@ package otelx
 import (
 	"io"
 	"os"
+	"strconv"
 
 	"github.com/ory/x/logrusx"
 	"github.com/ory/x/stringsx"
@@ -60,7 +61,7 @@ func (t *Tracer) setup(name string) error {
 		)
 		var port string
 		if t.Config.Providers.Jaeger.LocalAgentPort != 0 {
-			port = t.Config.Providers.Jaeger.LocalAgentHost
+			port = strconv.Itoa(t.Config.Providers.Jaeger.LocalAgentPort)
 		} else {
 			port = os.Getenv("OTEL_EXPORTER_JAEGER_AGENT_PORT")
 		}
