@@ -26,7 +26,7 @@ func filterOpts() []otelhttp.Option {
 	}
 	opts := []otelhttp.Option{}
 	for _, f := range filters {
-		opts = append(opts, f)
+		opts = append(opts, otelhttp.WithFilter(f))
 	}
 	return opts
 }
