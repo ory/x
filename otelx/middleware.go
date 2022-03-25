@@ -1,35 +1,61 @@
 package otelx
 
 import (
-	"context"
 	"net/http"
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
+	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
+	"go.opentelemetry.io/otel/trace"
 )
 
-func NewHandler(handler http.Handler, operation string) http.Handler {
-	healthFilter := func(r *http.Request) bool {
-		path := r.URL.Path
-		if strings.HasPrefix(path, "/health/") {
-			return false
-		}
-		return true
+func healthFilter(r *http.Request) bool {
+	path := r.URL.Path
+	if strings.HasPrefix(path, "/health/") {
+		return false
 	}
-
-	return otelhttp.NewHandler(handler, operation, otelhttp.WithFilter(
-		healthFilter,
-	))
+	return true
 }
 
-// Middleware to satisfy httprouter.Handle. Pass a http.Handler from NewHandler
-// here.
-func WrapHTTPRouter(h http.Handler) httprouter.Handle {
+func filterOpts() []otelhttp.Option {
+	filters := []otelhttp.Filter{
+		healthFilter,
+	}
+	opts := []otelhttp.Option{}
+	for _, f := range filters {
+		opts = append(opts, f)
+	}
+	return opts
+}
+
+func NewHandler(handler http.Handler, operation string) http.Handler {
+	return otelhttp.NewHandler(handler, operation, filterOpts()...)
+}
+
+// Middleware to satisfy httprouter.Handle.
+func WrapHTTPRouter(next httprouter.Handle, operation string) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		ctx := r.Context()
-		newCtx := context.WithValue(ctx, "params", ps)
-		r = r.WithContext(newCtx)
-		h.ServeHTTP(w, r)
+		var tracer trace.Tracer
+		if span := trace.SpanFromContext(r.Context()); span.SpanContext().IsValid() {
+			tracer = span.TracerProvider().Tracer("github.com/ory/x/otelx")
+		} else {
+			tracer = otel.GetTracerProvider().Tracer("github.com/ory/x/otelx")
+		}
+
+		opts := append([]trace.SpanStartOption{
+			trace.WithAttributes(semconv.NetAttributesFromHTTPRequest("tcp", r)...),
+			trace.WithAttributes(semconv.EndUserAttributesFromHTTPRequest(r)...),
+			trace.WithAttributes(semconv.HTTPServerAttributesFromHTTPRequest(operation, "", r)...),
+		})
+
+		ctx := otel.GetTextMapPropagator().Extract(r.Context(), propagation.HeaderCarrier(r.Header))
+		_, span := tracer.Start(ctx, operation, opts...)
+		span.SetName(operation)
+		defer span.End()
+
+		next(w, r, ps)
 	}
 }
