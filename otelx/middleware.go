@@ -35,9 +35,11 @@ func NewHandler(handler http.Handler, operation string) http.Handler {
 	return otelhttp.NewHandler(handler, operation, filterOpts()...)
 }
 
-// Middleware to satisfy httprouter.Handle.
-func WrapHTTPRouter(next httprouter.Handle, operation string) httprouter.Handle {
+// Middleware to satisfy httprouter.Handle. The URL path is used as
+// the span name.
+func WrapHTTPRouter(next httprouter.Handle) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		operation := r.URL.Path
 		var tracer trace.Tracer
 		if span := trace.SpanFromContext(r.Context()); span.SpanContext().IsValid() {
 			tracer = span.TracerProvider().Tracer("github.com/ory/x/otelx")
