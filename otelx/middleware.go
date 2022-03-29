@@ -58,6 +58,7 @@ func WrapHTTPRouter(next httprouter.Handle) httprouter.Handle {
 		span.SetName(operation)
 		defer span.End()
 
+		r = r.WithContext(ctx)
 		next(w, r, ps)
 	}
 }
