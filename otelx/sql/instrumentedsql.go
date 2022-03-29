@@ -12,7 +12,6 @@ import (
 )
 
 type tracer struct {
-	traceOrphans bool
 }
 
 type span struct {
@@ -21,7 +20,7 @@ type span struct {
 	parent trace.Span
 }
 
-func NewTracer(traceOrphans bool) instrumentedsql.Tracer { return tracer{traceOrphans: traceOrphans} }
+func NewTracer() instrumentedsql.Tracer { return tracer{} }
 
 // GetSpan returns a span
 func (t tracer) GetSpan(ctx context.Context) instrumentedsql.Span {
@@ -33,20 +32,19 @@ func (t tracer) GetSpan(ctx context.Context) instrumentedsql.Span {
 }
 
 func (s span) NewChild(name string) instrumentedsql.Span {
-	if s.parent == nil && !s.traceOrphans {
+	if s.ctx == nil {
 		return s
 	}
 
 	var parent trace.Span
 	tp := otel.GetTracerProvider().Tracer("github.com/ory/x/otelx/sql")
-	if s.parent == nil {
-		_, parent = tp.Start(context.Background(), name)
-		return span{parent: parent, tracer: s.tracer}
-	} else {
-		_, parent = tp.Start(s.ctx, name)
-	}
+	// if s.parent == nil {
+	// 	_, parent = tp.Start(context.Background(), name)
+	// 	return span{parent: parent, tracer: s.tracer}
+	// } else {
+	_, parent = tp.Start(s.ctx, name)
 
-	return span{parent: parent, tracer: s.tracer}
+	return span{ctx: s.ctx, parent: parent}
 }
 
 func (s span) SetLabel(k, v string) {
