@@ -1,7 +1,6 @@
 package otelx
 
 import (
-	"io"
 	"os"
 	"strconv"
 
@@ -25,7 +24,6 @@ type Tracer struct {
 
 	l      *logrusx.Logger
 	tracer trace.Tracer
-	closer io.Closer
 }
 
 // Creates a new tracer. If name is empty, a default tracer name is used
@@ -38,6 +36,13 @@ func New(name string, l *logrusx.Logger, c *Config) (*Tracer, error) {
 	}
 
 	return t, nil
+}
+
+// Creates a new no-op tracer.
+func NewNoop(l *logrusx.Logger, c *Config) *Tracer {
+	tp := trace.NewNoopTracerProvider()
+	t := &Tracer{Config: c, l: l, tracer: tp.Tracer("")}
+	return t
 }
 
 // setup configures a Resource and sets up the TracerProvider
