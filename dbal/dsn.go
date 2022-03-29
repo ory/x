@@ -1,6 +1,8 @@
 package dbal
 
 import (
+	"fmt"
+	"os"
 	"regexp"
 )
 
@@ -18,4 +20,14 @@ var dsnRegex = regexp.MustCompile(`^(sqlite://file:(?:.+)\?((\w+=\w+)(&\w+=\w+)*
 // see: https://sqlite.org/inmemorydb.html
 func IsMemorySQLite(dsn string) bool {
 	return dsnRegex.MatchString(dsn)
+}
+
+// NewSharedUniqueInMemorySQLiteDatabase creates a new unique SQLite database
+// which is shared amongst all callers and identified by an individual file name.
+func NewSharedUniqueInMemorySQLiteDatabase() (string, error) {
+	dir, err := os.MkdirTemp(os.TempDir(), "unique-sqlite-db-*")
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("sqlite://file:%s/db.sqlite?_fk=true&mode=memory&cache=shared", dir), nil
 }
