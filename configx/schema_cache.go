@@ -17,7 +17,11 @@ var schemaCacheConfig = &ristretto.Config{
 	BufferItems:        64,
 	Metrics:            false,
 	IgnoreInternalCost: true,
+	Cost: func(value interface{}) int64 {
+		return 1
+	},
 }
+
 var schemaCache, _ = ristretto.NewCache(schemaCacheConfig)
 
 func getSchema(ctx context.Context, schema []byte) (*jsonschema.Schema, error) {
