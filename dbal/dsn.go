@@ -1,12 +1,14 @@
 package dbal
 
 import (
+	"fmt"
+	"os"
 	"regexp"
 )
 
 const (
-	SQLiteInMemory       = "sqlite://file::memory:?_fk=true"
-	SQLiteSharedInMemory = "sqlite://file::memory:?_fk=true&cache=shared"
+	SQLiteInMemory       = "sqlite://:memory:?_fk=true"
+	SQLiteSharedInMemory = "sqlite://:memory:?_fk=true&cache=shared"
 )
 
 var dsnRegex = regexp.MustCompile(`^(sqlite://file:(?:.+)\?((\w+=\w+)(&\w+=\w+)*)?(&?mode=memory)(&\w+=\w+)*)$|(?:sqlite://(file:)?:memory:(?:\?\w+=\w+)?(?:&\w+=\w+)*)|^(?:(?::memory:)|(?:memory))$`)
@@ -18,4 +20,13 @@ var dsnRegex = regexp.MustCompile(`^(sqlite://file:(?:.+)\?((\w+=\w+)(&\w+=\w+)*
 // see: https://sqlite.org/inmemorydb.html
 func IsMemorySQLite(dsn string) bool {
 	return dsnRegex.MatchString(dsn)
+}
+
+// NewUniqueSQLiteDatabase creates a new unique SQLite database
+func NewUniqueSQLiteDatabase() (string, error) {
+	dir, err := os.MkdirTemp(os.TempDir(), "unique-sqlite-db-*")
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("sqlite://file:%s/db.sqlite?_fk=true", dir), nil
 }
