@@ -493,31 +493,6 @@ func (p *Provider) TracingConfig(serviceName string) *otelx.Config {
 	}
 }
 
-// func (p *Provider) TracingConfig(serviceName string) *tracing.Config {
-// 	return &tracing.Config{
-// 		ServiceName: p.StringF("tracing.service_name", serviceName),
-// 		Provider:    p.String("tracing.provider"),
-// 		Providers: &tracing.ProvidersConfig{
-// 			Jaeger: &tracing.JaegerConfig{
-// 				Sampling: &tracing.JaegerSampling{
-// 					Type:      p.StringF("tracing.providers.jaeger.sampling.type", "const"),
-// 					Value:     p.Float64F("tracing.providers.jaeger.sampling.value", float64(1)),
-// 					ServerURL: p.String("tracing.providers.jaeger.sampling.server_url"),
-// 				},
-// 				LocalAgentAddress: p.String("tracing.providers.jaeger.local_agent_address"),
-// 				MaxTagValueLength: p.IntF("tracing.providers.jaeger.max_tag_value_length", jaeger.DefaultMaxTagValueLength),
-// 				Propagation: stringsx.Coalesce(
-// 					os.Getenv("JAEGER_PROPAGATION"),
-// 					p.String("tracing.providers.jaeger.propagation"),
-// 				),
-// 			},
-// 			Zipkin: &tracing.ZipkinConfig{
-// 				ServerURL: p.String("tracing.providers.zipkin.server_url"),
-// 			},
-// 		},
-// 	}
-// }
-
 func (p *Provider) RequestURIF(path string, fallback *url.URL) *url.URL {
 	p.l.RLock()
 	defer p.l.RUnlock()

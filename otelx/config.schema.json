@@ -57,7 +57,28 @@
               "maximum": 65535
             },
             "sampling": {
-              "server_url": "http://localhost:5778/sampling"
+              "type": "object",
+              "propertyNames": {
+                "enum": [
+                  "server_url"
+                ]
+              },
+              "allOf": [
+                {
+                  "properties": {
+                    "server_url": {
+                      "type": "string",
+                      "description": "The address of jaeger-agent's HTTP sampling server",
+                      "format": "uri"
+                    }
+                  }
+                }
+              ],
+              "examples": [
+                {
+                  "server_url": "http://localhost:5778/sampling"
+                }
+              ]
             }
           }
         }

@@ -27,6 +27,7 @@ func TestJaegerTracer(t *testing.T) {
 				continue
 			}
 			if len(buf) != 0 {
+				t.Log("recieved span!")
 				done <- struct{}{}
 			}
 			break
