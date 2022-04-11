@@ -23,7 +23,7 @@ func jsonKey(f reflect.StructField) *string {
 }
 
 // AllValidJSONKeys returns all JSON keys from the struct or *struct type.
-// It does not return keys from nested structs, but embedded structs.
+// It does not return keys from nested slices, but embedded/nested structs.
 func AllValidJSONKeys(s interface{}) (keys []string) {
 	t := reflect.TypeOf(s)
 	v := reflect.ValueOf(s)
