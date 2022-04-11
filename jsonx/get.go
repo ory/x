@@ -8,6 +8,20 @@ import (
 	"github.com/tidwall/gjson"
 )
 
+func jsonKey(f reflect.StructField) *string {
+	if jsonTag := f.Tag.Get("json"); jsonTag != "" {
+		if jsonTag == "-" {
+			return nil
+		}
+		return &strings.Split(jsonTag, ",")[0]
+	} else if f.Anonymous {
+		return nil
+	} else if f.IsExported() {
+		return &f.Name
+	}
+	return nil
+}
+
 // AllValidJSONKeys returns all JSON keys from the struct or *struct type.
 // It does not return keys from nested structs, but embedded structs.
 func AllValidJSONKeys(s interface{}) (keys []string) {
@@ -19,17 +33,18 @@ func AllValidJSONKeys(s interface{}) (keys []string) {
 	}
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
-		if jsonTag := f.Tag.Get("json"); jsonTag != "" {
-			if jsonTag == "-" {
-				continue
+		jKey := jsonKey(f)
+		if k := f.Type.Kind(); k == reflect.Struct || k == reflect.Ptr {
+			subKeys := AllValidJSONKeys(v.Field(i).Interface())
+			for _, subKey := range subKeys {
+				if jKey != nil {
+					keys = append(keys, *jKey+"."+subKey)
+				} else {
+					keys = append(keys, subKey)
+				}
 			}
-			keys = append(keys, strings.Split(jsonTag, ",")[0])
-		} else if f.IsExported() {
-			if f.Anonymous {
-				keys = append(keys, AllValidJSONKeys(v.Field(i).Interface())...)
-			} else {
-				keys = append(keys, f.Name)
-			}
+		} else if jKey != nil {
+			keys = append(keys, *jKey)
 		}
 	}
 	return keys

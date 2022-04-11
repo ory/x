@@ -65,17 +65,37 @@ func TestGetJSONKeys(t *testing.T) {
 			}{},
 			expected: []string{"B"},
 		},
+		{
+			name: "nested structs",
+			input: struct {
+				A struct {
+					B string `json:"b"`
+				} `json:"a"`
+			}{},
+			expected: []string{"a.b"},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			assert.Equal(t, tc.expected, AllValidJSONKeys(tc.input))
 
 			// collect keys with gjson, which only works reliably for non-omitempty fields
-			var keys []string
-			gjson.Parse(TestMarshalJSONString(t, tc.input)).ForEach(func(key, value gjson.Result) bool {
-				keys = append(keys, key.String())
-				return true
-			})
-			assert.ElementsMatch(t, tc.expected, keys)
+			var collectKeys func(gjson.Result) []string
+			collectKeys = func(res gjson.Result) []string {
+				var keys []string
+				res.ForEach(func(key, value gjson.Result) bool {
+					if value.IsObject() {
+						childKeys := collectKeys(value)
+						for _, k := range childKeys {
+							keys = append(keys, key.String()+"."+k)
+						}
+					} else {
+						keys = append(keys, key.String())
+					}
+					return true
+				})
+				return keys
+			}
+			assert.ElementsMatch(t, tc.expected, collectKeys(gjson.Parse(TestMarshalJSONString(t, tc.input))))
 		})
 	}
 }
@@ -95,6 +115,15 @@ func TestResultGetValidKey(t *testing.T) {
 			v = r.GetRequireValidKey(&panicFail{}, "A").Str
 		})
 		assert.Equal(t, "a", v)
+	})
+
+	t.Run("case=nested key", func(t *testing.T) {
+		r := ParseEnsureKeys(struct{ A struct{ B string } }{}, []byte(`{"A":{"B":"b"}}`))
+		var v string
+		require.NotPanics(t, func() {
+			v = r.GetRequireValidKey(&panicFail{}, "A.B").Str
+		})
+		assert.Equal(t, "b", v)
 	})
 }
 
