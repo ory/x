@@ -36,20 +36,20 @@ func AllValidJSONKeys(s interface{}) (keys []string) {
 }
 
 // ParseEnsureKeys returns a result that has the GetRequireValidKey function.
-func ParseEnsureKeys(original interface{}, raw []byte) *result {
-	return &result{
+func ParseEnsureKeys(original interface{}, raw []byte) *Result {
+	return &Result{
 		keys:   AllValidJSONKeys(original),
 		result: gjson.ParseBytes(raw),
 	}
 }
 
-type result struct {
+type Result struct {
 	result gjson.Result
 	keys   []string
 }
 
 // GetRequireValidKey ensures that the key is valid before returning the result.
-func (r *result) GetRequireValidKey(t require.TestingT, key string) gjson.Result {
+func (r *Result) GetRequireValidKey(t require.TestingT, key string) gjson.Result {
 	require.Contains(t, r.keys, key)
 	return r.result.Get(key)
 }
