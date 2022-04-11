@@ -6,8 +6,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"
-
-	"github.com/ory/x/stringslice"
 )
 
 // AllValidJSONKeys returns all JSON keys from the struct or *struct type.
@@ -52,7 +50,7 @@ type result struct {
 
 // GetRequireValidKey ensures that the key is valid before returning the result.
 func (r *result) GetRequireValidKey(t require.TestingT, key string) gjson.Result {
-	require.True(t, stringslice.Has(r.keys, key))
+	require.Contains(t, r.keys, key)
 	return r.result.Get(key)
 }
 
