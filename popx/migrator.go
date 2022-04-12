@@ -28,8 +28,9 @@ import (
 )
 
 const (
-	Pending = "Pending"
-	Applied = "Applied"
+	Pending          = "Pending"
+	Applied          = "Applied"
+	tracingComponent = "github.com/ory/x/popx"
 )
 
 var mrx = regexp.MustCompile(`^(\d+)_([^.]+)(\.[a-z0-9]+)?\.(up|down)\.(sql|fizz)$`)
@@ -514,13 +515,13 @@ func (m *Migrator) wrapSpan(ctx context.Context, opName string, f func(ctx conte
 }
 
 func (m *Migrator) startSpan(ctx context.Context, opName string) (trace.Span, context.Context) {
-	tracer := otel.Tracer("github.com/ory/x/popx")
+	tracer := otel.Tracer(tracingComponent)
 	if m.tracer.IsLoaded() {
 		tracer = m.tracer.Tracer()
 	}
 
 	ctx, span := tracer.Start(ctx, opName)
-	span.SetAttributes(attribute.String("component", "github.com/ory/x/popx"))
+	span.SetAttributes(attribute.String("component", tracingComponent))
 
 	return span, ctx
 }

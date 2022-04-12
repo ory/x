@@ -11,8 +11,9 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-type tracer struct {
-}
+const tracingComponent = "github.com/ory/x/otelx/sql"
+
+type tracer struct{}
 
 type span struct {
 	tracer
@@ -37,7 +38,7 @@ func (s span) NewChild(name string) instrumentedsql.Span {
 	}
 
 	var parent trace.Span
-	tp := otel.GetTracerProvider().Tracer("github.com/ory/x/otelx/sql")
+	tp := otel.GetTracerProvider().Tracer(tracingComponent)
 	// if s.parent == nil {
 	// 	_, parent = tp.Start(context.Background(), name)
 	// 	return span{parent: parent, tracer: s.tracer}

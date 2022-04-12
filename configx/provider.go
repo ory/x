@@ -42,6 +42,8 @@ type tuple struct {
 	Value interface{}
 }
 
+const tracingComponent = "github.com/ory/x/configx"
+
 type Provider struct {
 	l sync.RWMutex
 	*koanf.Koanf
@@ -269,7 +271,7 @@ func (p *Provider) traceConfig(ctx context.Context, k *koanf.Koanf, opName strin
 	ctx, span := p.startSpan(ctx, opName)
 	defer span.End()
 
-	span.SetAttributes(attribute.String("component", "github.com/ory/x/configx"))
+	span.SetAttributes(attribute.String("component", tracingComponent))
 
 	fields := make([]attribute.KeyValue, 0, len(k.Keys()))
 	for _, key := range k.Keys() {

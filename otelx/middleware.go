@@ -12,6 +12,8 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+const tracingComponent = "github.com/ory/x/otelx"
+
 func isHealthFilter(r *http.Request) bool {
 	path := r.URL.Path
 	if strings.HasPrefix(path, "/health/") {
@@ -22,7 +24,7 @@ func isHealthFilter(r *http.Request) bool {
 
 func filterOpts() []otelhttp.Option {
 	filters := []otelhttp.Filter{
-		healthFilter,
+		isHealthFilter,
 	}
 	opts := []otelhttp.Option{}
 	for _, f := range filters {
@@ -42,9 +44,9 @@ func WrapHTTPRouter(next httprouter.Handle) httprouter.Handle {
 		operation := r.URL.Path
 		var tracer trace.Tracer
 		if span := trace.SpanFromContext(r.Context()); span.SpanContext().IsValid() {
-			tracer = span.TracerProvider().Tracer("github.com/ory/x/otelx")
+			tracer = span.TracerProvider().Tracer(tracingComponent)
 		} else {
-			tracer = otel.GetTracerProvider().Tracer("github.com/ory/x/otelx")
+			tracer = otel.GetTracerProvider().Tracer(tracingComponent)
 		}
 
 		opts := append([]trace.SpanStartOption{
