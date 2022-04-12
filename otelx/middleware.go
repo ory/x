@@ -12,7 +12,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-func healthFilter(r *http.Request) bool {
+func isHealthFilter(r *http.Request) bool {
 	path := r.URL.Path
 	if strings.HasPrefix(path, "/health/") {
 		return false
