@@ -1,21 +1,8 @@
 package otelx
 
 import (
-	"os"
-	"strconv"
-
 	"github.com/ory/x/logrusx"
-	"github.com/ory/x/stringsx"
 	"github.com/pkg/errors"
-	"go.opentelemetry.io/contrib/propagators/b3"
-	jaegerPropagator "go.opentelemetry.io/contrib/propagators/jaeger"
-	"go.opentelemetry.io/contrib/samplers/jaegerremote"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/jaeger"
-	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/resource"
-	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -45,81 +32,17 @@ func NewNoop(l *logrusx.Logger, c *Config) *Tracer {
 	return t
 }
 
-// setup configures a Resource and sets up the TracerProvider
-// to send spans to the provided URL.
-//
-// Endpoint configuration is implicitly read from the below environment
-// variables, by default:
-//
-//    OTEL_EXPORTER_JAEGER_AGENT_HOST
-//    OTEL_EXPORTER_JAEGER_AGENT_PORT
-//
-// Optionally, Config.Providers.Jaeger.LocalAgentAddress can be set.
-// NOTE: If Config.Providers.Jaeger.Sampling.ServerURL is not specfied,
-// AlwaysSample is used.
+// setup sets up the tracer.
 func (t *Tracer) setup(name string) error {
 	switch t.Config.Provider {
 	case "jaeger":
-		host := stringsx.Coalesce(
-			t.Config.Providers.Jaeger.LocalAgentHost,
-			os.Getenv("OTEL_EXPORTER_JAEGER_AGENT_HOST"),
-		)
-		var port string
-		if t.Config.Providers.Jaeger.LocalAgentPort != 0 {
-			port = strconv.Itoa(t.Config.Providers.Jaeger.LocalAgentPort)
-		} else {
-			port = os.Getenv("OTEL_EXPORTER_JAEGER_AGENT_PORT")
-		}
-
-		exp, err := jaeger.New(
-			jaeger.WithAgentEndpoint(
-				jaeger.WithAgentHost(host), jaeger.WithAgentPort(port),
-			),
-		)
+		tracer, err := SetupJaeger(t, name)
 		if err != nil {
 			return err
 		}
 
-		tpOpts := []sdktrace.TracerProviderOption{
-			sdktrace.WithBatcher(exp),
-			sdktrace.WithResource(resource.NewWithAttributes(
-				semconv.SchemaURL,
-				semconv.ServiceNameKey.String(t.Config.ServiceName),
-			)),
-		}
-
-		samplingServerURL := stringsx.Coalesce(
-			t.Config.Providers.Jaeger.Sampling.ServerURL,
-			os.Getenv("OTEL_EXPORTER_JAEGER_SAMPLING_SERVER_URL"),
-		)
-
-		if samplingServerURL != "" {
-			jaegerRemoteSampler := jaegerremote.New(
-				"jaegerremote",
-				jaegerremote.WithSamplingServerURL(samplingServerURL),
-			)
-			tpOpts = append(tpOpts, sdktrace.WithSampler(jaegerRemoteSampler))
-		} else {
-			tpOpts = append(tpOpts, sdktrace.WithSampler(sdktrace.AlwaysSample()))
-		}
-		tp := sdktrace.NewTracerProvider(tpOpts...)
-		otel.SetTracerProvider(tp)
-
-		// At the moment, software across our cloud stack only support Zipkin (B3)
-		// and Jaeger propagation formats. Proposals for standardized formats for
-		// context propagation are in the works (ref: https://www.w3.org/TR/trace-context/
-		// and https://www.w3.org/TR/baggage/).
-		//
-		// Simply add propagation.TraceContext{} and propagation.Baggage{}
-		// here to enable those as well.
-		prop := propagation.NewCompositeTextMapPropagator(
-			jaegerPropagator.Jaeger{},
-			b3.New(b3.WithInjectEncoding(b3.B3MultipleHeader|b3.B3SingleHeader)),
-		)
-		otel.SetTextMapPropagator(prop)
-		t.tracer = tp.Tracer(name)
-
-		t.l.Infof("Jaeger tracer configured! Sending spans to %s:%s", host, port)
+		t.tracer = tracer
+		t.l.Infof("Jaeger tracer configured!")
 	case "":
 		t.l.Infof("No tracer configured - skipping tracing setup")
 	default:
