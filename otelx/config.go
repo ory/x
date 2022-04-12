@@ -7,9 +7,10 @@ import (
 )
 
 type JaegerConfig struct {
-	LocalAgentHost string         `json:"local_agent_host"`
-	LocalAgentPort int            `json:"local_agent_port"`
-	Sampling       JaegerSampling `json:"sampling"`
+	LocalAgentAddress string         `json:"local_agent_address"`
+	LocalAgentHost    string         `json:"local_agent_host"`
+	LocalAgentPort    int            `json:"local_agent_port"`
+	Sampling          JaegerSampling `json:"sampling"`
 }
 
 type JaegerSampling struct {

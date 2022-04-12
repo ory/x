@@ -32,8 +32,9 @@ func TestConfigSchema(t *testing.T) {
 			Provider:    "jaeger",
 			Providers: ProvidersConfig{
 				Jaeger: JaegerConfig{
-					LocalAgentHost: "localhost",
-					LocalAgentPort: 6831,
+					LocalAgentAddress: "localhost:6831",
+					LocalAgentHost:    "localhost",
+					LocalAgentPort:    6831,
 					Sampling: JaegerSampling{
 						ServerURL: "http://localhost:5778/sampling",
 					},
