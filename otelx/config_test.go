@@ -52,4 +52,25 @@ func TestConfigSchema(t *testing.T) {
 
 		assert.NoError(t, schema.Validate(bytes.NewBufferString(rawConfig)))
 	})
+
+	t.Run("case=AddressTakesPrecedence", func(t *testing.T) {
+		conf := Config{
+			ServiceName: "Ory X",
+			Provider:    "jaeger",
+			Providers: ProvidersConfig{
+				Jaeger: JaegerConfig{
+					LocalAgentAddress: "foo:6831",
+					LocalAgentHost:    "bar",
+					LocalAgentPort:    6832,
+					Sampling: JaegerSampling{
+						ServerURL: "http://localhost:5778/sampling",
+					},
+				},
+			},
+		}
+
+		host, port := configureHostPort(conf)
+		assert.Equal(t, host, "foo")
+		assert.Equal(t, port, "6831")
+	})
 }

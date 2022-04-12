@@ -18,6 +18,31 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+func configureHostPort(c Config) (host, port string) {
+	address := stringsx.Coalesce(
+		c.Providers.Jaeger.LocalAgentAddress,
+		os.Getenv("OTEL_EXPORTER_JAEGER_AGENT_ADDRESS"),
+	)
+	splitAddr := strings.Split(address, ":")
+
+	if len(splitAddr) == 2 {
+		host = splitAddr[0]
+		port = splitAddr[1]
+	} else {
+		host = stringsx.Coalesce(
+			c.Providers.Jaeger.LocalAgentHost,
+			os.Getenv("OTEL_EXPORTER_JAEGER_AGENT_HOST"),
+		)
+
+		if c.Providers.Jaeger.LocalAgentPort != 0 {
+			port = strconv.Itoa(c.Providers.Jaeger.LocalAgentPort)
+		} else {
+			port = os.Getenv("OTEL_EXPORTER_JAEGER_AGENT_PORT")
+		}
+	}
+	return
+}
+
 // Endpoint configuration is implicitly read from the below environment
 // variables, by default:
 //
@@ -30,30 +55,7 @@ import (
 // NOTE: If Config.Providers.Jaeger.Sampling.ServerURL is not specfied,
 // AlwaysSample is used.
 func SetupJaeger(t *Tracer, tracerName string) (trace.Tracer, error) {
-	address := stringsx.Coalesce(
-		t.Config.Providers.Jaeger.LocalAgentAddress,
-		os.Getenv("OTEL_EXPORTER_JAEGER_AGENT_ADDRESS"),
-	)
-	splitAddr := strings.Split(address, ":")
-
-	var host, port string
-
-	if len(splitAddr) == 2 {
-		host = splitAddr[0]
-		port = splitAddr[1]
-	} else {
-		host = stringsx.Coalesce(
-			t.Config.Providers.Jaeger.LocalAgentHost,
-			os.Getenv("OTEL_EXPORTER_JAEGER_AGENT_HOST"),
-		)
-
-		if t.Config.Providers.Jaeger.LocalAgentPort != 0 {
-			port = strconv.Itoa(t.Config.Providers.Jaeger.LocalAgentPort)
-		} else {
-			port = os.Getenv("OTEL_EXPORTER_JAEGER_AGENT_PORT")
-		}
-	}
-
+	host, port := configureHostPort(*t.Config)
 	exp, err := jaeger.New(
 		jaeger.WithAgentEndpoint(
 			jaeger.WithAgentHost(host), jaeger.WithAgentPort(port),
