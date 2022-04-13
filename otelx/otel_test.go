@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"os"
 	"testing"
 
 	"github.com/ory/x/logrusx"
@@ -34,12 +33,14 @@ func TestJaegerTracer(t *testing.T) {
 		}
 	}(fmt.Sprintf("%s:%s", host, port))
 
-	require.NoError(t, os.Setenv("OTEL_EXPORTER_JAEGER_AGENT_HOST", host))
-	require.NoError(t, os.Setenv("OTEL_EXPORTER_JAEGER_AGENT_PORT", port))
-
 	ot, err := New("github.com/ory/x/otelx", logrusx.New("ory/x", "1"), &Config{
 		ServiceName: "Ory X",
 		Provider:    "jaeger",
+		Providers: ProvidersConfig{
+			Jaeger: JaegerConfig{
+				LocalAgentAddress: "127.0.0.1:6831",
+			},
+		},
 	})
 	require.NoError(t, err)
 

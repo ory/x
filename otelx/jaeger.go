@@ -1,11 +1,9 @@
 package otelx
 
 import (
-	"os"
 	"strconv"
 	"strings"
 
-	"github.com/ory/x/stringsx"
 	"go.opentelemetry.io/contrib/propagators/b3"
 	jaegerPropagator "go.opentelemetry.io/contrib/propagators/jaeger"
 	"go.opentelemetry.io/contrib/samplers/jaegerremote"
@@ -19,38 +17,22 @@ import (
 )
 
 func configureHostPort(c Config) (host, port string) {
-	address := stringsx.Coalesce(
-		c.Providers.Jaeger.LocalAgentAddress,
-		os.Getenv("OTEL_EXPORTER_JAEGER_AGENT_ADDRESS"),
-	)
+	address := c.Providers.Jaeger.LocalAgentAddress
 	splitAddr := strings.Split(address, ":")
 
 	if len(splitAddr) == 2 {
 		host = splitAddr[0]
 		port = splitAddr[1]
 	} else {
-		host = stringsx.Coalesce(
-			c.Providers.Jaeger.LocalAgentHost,
-			os.Getenv("OTEL_EXPORTER_JAEGER_AGENT_HOST"),
-		)
+		host = c.Providers.Jaeger.LocalAgentHost
 
 		if c.Providers.Jaeger.LocalAgentPort != 0 {
 			port = strconv.Itoa(c.Providers.Jaeger.LocalAgentPort)
-		} else {
-			port = os.Getenv("OTEL_EXPORTER_JAEGER_AGENT_PORT")
 		}
 	}
 	return
 }
 
-// Endpoint configuration is implicitly read from the below environment
-// variables, by default:
-//
-//    OTEL_EXPORTER_JAEGER_AGENT_ADDRESS (takes precedence)
-//    OTEL_EXPORTER_JAEGER_AGENT_HOST
-//    OTEL_EXPORTER_JAEGER_AGENT_PORT
-//    OTEL_EXPORTER_JAEGER_SAMPLING_SERVER_URL
-//
 // Optionally, Config.Providers.Jaeger.LocalAgentAddress can be set.
 // NOTE: If Config.Providers.Jaeger.Sampling.ServerURL is not specfied,
 // AlwaysSample is used.
@@ -73,10 +55,7 @@ func SetupJaeger(t *Tracer, tracerName string) (trace.Tracer, error) {
 		)),
 	}
 
-	samplingServerURL := stringsx.Coalesce(
-		t.Config.Providers.Jaeger.Sampling.ServerURL,
-		os.Getenv("OTEL_EXPORTER_JAEGER_SAMPLING_SERVER_URL"),
-	)
+	samplingServerURL := t.Config.Providers.Jaeger.Sampling.ServerURL
 
 	if samplingServerURL != "" {
 		jaegerRemoteSampler := jaegerremote.New(
