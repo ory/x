@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ory/x/logrusx"
-	"github.com/ory/x/tracing"
+	"github.com/ory/x/otelx"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -28,7 +28,7 @@ func newCompiler(schema []byte) (string, *jsonschema.Compiler, error) {
 	// DO NOT REMOVE THIS
 	compiler.ExtractAnnotations = true
 
-	if err := tracing.AddConfigSchema(compiler); err != nil {
+	if err := otelx.AddConfigSchema(compiler); err != nil {
 		return "", nil, err
 	}
 	if err := logrusx.AddConfigSchema(compiler); err != nil {
