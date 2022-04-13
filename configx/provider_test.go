@@ -150,12 +150,14 @@ func TestAdvancedConfigs(t *testing.T) {
 			envs: [][2]string{
 				{"DSN", "sqlite:///var/lib/sqlite/db.sqlite?_fk=true"},
 				{"OTEL_EXPORTER_JAEGER_SAMPLING_SERVER_URL", "http://jaeger:5778/sampling"},
+				{"OTEL_EXPORTER_JAEGER_AGENT_ADDRESS", "jaeger:6831"},
 				{"OTEL_EXPORTER_JAEGER_AGENT_HOST", "jaeger"},
 				{"OTEL_EXPORTER_JAEGER_AGENT_PORT", "6832"},
 			},
 			expectedF: func(t *testing.T, p *Provider) {
 				assert.Equal(t, "sqlite:///var/lib/sqlite/db.sqlite?_fk=true", p.Get("dsn"))
 				assert.Equal(t, "jaeger", p.Get("tracing.provider"))
+				assert.Equal(t, "jaeger:6832", p.Get("tracing.providers.jaeger.local_agent_address"))
 				assert.Equal(t, "jaeger", p.Get("tracing.providers.jaeger.local_agent_host"))
 				assert.Equal(t, "6832", p.Get("tracing.providers.jaeger.local_agent_port"))
 			}},
@@ -173,6 +175,7 @@ func TestAdvancedConfigs(t *testing.T) {
 			envs: [][2]string{
 				{"DSN", "sqlite:///var/lib/sqlite/db.sqlite?_fk=true"},
 				{"OTEL_EXPORTER_JAEGER_SAMPLING_SERVER_URL", "http://jaeger:5778/sampling"},
+				{"OTEL_EXPORTER_JAEGER_AGENT_ADDRESS", "jaeger:6831"},
 				{"OTEL_EXPORTER_JAEGER_AGENT_HOST", "jaeger"},
 				{"OTEL_EXPORTER_JAEGER_AGENT_PORT", "6832"},
 			},

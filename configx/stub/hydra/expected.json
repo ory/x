@@ -123,6 +123,7 @@
     "provider": "jaeger",
     "providers": {
       "jaeger": {
+        "local_agent_address": "jaeger:6832",
         "local_agent_host": "jaeger",
         "local_agent_port": "6832",
         "sampling": {
