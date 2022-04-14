@@ -1,8 +1,7 @@
 package otelx
 
 import (
-	"strconv"
-	"strings"
+	"net"
 
 	"go.opentelemetry.io/contrib/propagators/b3"
 	jaegerPropagator "go.opentelemetry.io/contrib/propagators/jaeger"
@@ -16,28 +15,15 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-func configureHostPort(c Config) (host, port string) {
-	address := c.Providers.Jaeger.LocalAgentAddress
-	splitAddr := strings.Split(address, ":")
-
-	if len(splitAddr) == 2 {
-		host = splitAddr[0]
-		port = splitAddr[1]
-	} else {
-		host = c.Providers.Jaeger.LocalAgentHost
-
-		if c.Providers.Jaeger.LocalAgentPort != 0 {
-			port = strconv.Itoa(c.Providers.Jaeger.LocalAgentPort)
-		}
-	}
-	return
-}
-
 // Optionally, Config.Providers.Jaeger.LocalAgentAddress can be set.
 // NOTE: If Config.Providers.Jaeger.Sampling.ServerURL is not specfied,
 // AlwaysSample is used.
 func SetupJaeger(t *Tracer, tracerName string) (trace.Tracer, error) {
-	host, port := configureHostPort(*t.Config)
+	host, port, err := net.SplitHostPort(t.Config.Providers.Jaeger.LocalAgentAddress)
+	if err != nil {
+		return nil, err
+	}
+
 	exp, err := jaeger.New(
 		jaeger.WithAgentEndpoint(
 			jaeger.WithAgentHost(host), jaeger.WithAgentPort(port),
