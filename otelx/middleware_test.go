@@ -3,6 +3,7 @@ package otelx
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -19,27 +20,28 @@ func TestShouldNotTraceHealthEndpoint(t *testing.T) {
 	}{
 		{
 			path:            "health/ready",
-			testDescription: "ready",
+			testDescription: "health",
 		},
 		{
-			path:            "health/alive",
-			testDescription: "alive",
+			path:            "foo/bar",
+			testDescription: "notHealth",
 		},
 	}
 	for _, test := range testCases {
 		t.Run(test.testDescription, func(t *testing.T) {
-			ime := tracetest.NewInMemoryExporter()
-			tp := sdktrace.NewTracerProvider(sdktrace.WithBatcher(ime))
-			otel.SetTracerProvider(tp)
-			defer ime.Reset()
+			recorder := tracetest.NewSpanRecorder()
+			otel.SetTracerProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(recorder)))
 
 			req := httptest.NewRequest(http.MethodGet, "https://api.example.com/"+test.path, nil)
 			h := NewHandler(negroni.New(), "test op")
 			h.ServeHTTP(negroni.NewResponseWriter(httptest.NewRecorder()), req)
 
-			spans := ime.GetSpans()
-			assert.Len(t, spans, 0)
+			spans := recorder.Ended()
+			if strings.Contains(test.path, "health") {
+				assert.Len(t, spans, 0)
+			} else {
+				assert.Len(t, spans, 1)
+			}
 		})
 	}
-
 }
