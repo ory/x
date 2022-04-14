@@ -15,7 +15,7 @@ import (
 
 const rootSchema = `{
   "properties": {
-    "otelx": {
+    "tracing": {
       "$ref": "%s"
     }
   }
