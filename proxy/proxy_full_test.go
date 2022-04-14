@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/rs/cors"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -322,6 +323,173 @@ func TestFullIntegration(t *testing.T) {
 				assert.Error(t, err)
 				assert.Equal(t, "some response middleware error", err.Error())
 				return err
+			},
+		},
+		{
+			desc: "cors with allowed origin",
+			hostMapper: func(host string) (*HostConfig, error) {
+				if host != "example.com" {
+					return nil, fmt.Errorf("got unexpected host %s, expected 'example.com'", host)
+				}
+				return &HostConfig{
+					CorsOptions: &cors.Options{
+						AllowCredentials: true,
+						AllowedMethods:   []string{"GET"},
+						AllowedOrigins:   []string{"https://example.com"},
+					},
+					CorsEnabled:  true,
+					CookieDomain: "example.com",
+					PathPrefix:   "/foo",
+				}, nil
+			},
+			handler: func(assert *assert.Assertions, w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			},
+			request: func(t *testing.T) *http.Request {
+				req, err := http.NewRequest(http.MethodGet, proxy.URL+"/foo", bytes.NewBufferString(fmt.Sprintf("some random content containing the request URL and path prefix %s/bar but also other stuff", upstreamServer.URL)))
+				require.NoError(t, err)
+				req.Host = "example.com"
+				req.Header.Add("Origin", "https://example.com")
+				return req
+			},
+			assertResponse: func(t *testing.T, resp *http.Response) {
+				assert.Equal(t, http.StatusOK, resp.StatusCode)
+				assert.Equal(t, "Origin", resp.Header.Get("Vary"))
+				assert.Equal(t, "https://example.com", resp.Header.Get("Access-Control-Allow-Origin"))
+				assert.Equal(t, "true", resp.Header.Get("Access-Control-Allow-Credentials"))
+			},
+		},
+		{
+			desc: "cors with multiple allowed origins",
+			hostMapper: func(host string) (*HostConfig, error) {
+				if host != "sub.sub.foobar.com" {
+					return nil, fmt.Errorf("got unexpected host %s, expected 'example.com'", host)
+				}
+				return &HostConfig{
+					CorsOptions: &cors.Options{
+						AllowCredentials: true,
+						AllowedMethods:   []string{"GET"},
+						AllowedOrigins:   []string{"https://example.com", "https://foo.bar", "https://sub.sub.foobar.com"},
+					},
+					CorsEnabled:  true,
+					CookieDomain: "foobar.com",
+					PathPrefix:   "/foo",
+				}, nil
+			},
+			handler: func(assert *assert.Assertions, w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			},
+			request: func(t *testing.T) *http.Request {
+				req, err := http.NewRequest(http.MethodGet, proxy.URL+"/foo", bytes.NewBufferString(fmt.Sprintf("some random content containing the request URL and path prefix %s/bar but also other stuff", upstreamServer.URL)))
+				require.NoError(t, err)
+				req.Host = "sub.sub.foobar.com"
+				req.Header.Add("Origin", "https://sub.sub.foobar.com")
+				return req
+			},
+			assertResponse: func(t *testing.T, resp *http.Response) {
+				assert.Equal(t, http.StatusOK, resp.StatusCode)
+				assert.Equal(t, "Origin", resp.Header.Get("Vary"))
+				assert.Equal(t, "https://sub.sub.foobar.com", resp.Header.Get("Access-Control-Allow-Origin"))
+				assert.Equal(t, "true", resp.Header.Get("Access-Control-Allow-Credentials"))
+			},
+		},
+		{
+			desc: "cors fails on unknown origin",
+			hostMapper: func(host string) (*HostConfig, error) {
+				if host != "example.com" {
+					return nil, fmt.Errorf("got unexpected host %s, expected 'example.com'", host)
+				}
+				return &HostConfig{
+					CorsOptions: &cors.Options{
+						AllowCredentials: true,
+						AllowedMethods:   []string{"GET"},
+						AllowedOrigins:   []string{"https://another.com"},
+					},
+					CorsEnabled:  true,
+					CookieDomain: "another.com",
+					PathPrefix:   "/foo",
+				}, nil
+			},
+			handler: func(assert *assert.Assertions, w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			},
+			request: func(t *testing.T) *http.Request {
+				req, err := http.NewRequest(http.MethodGet, proxy.URL+"/foo", bytes.NewBufferString(fmt.Sprintf("some random content containing the request URL and path prefix %s/bar but also other stuff", upstreamServer.URL)))
+				require.NoError(t, err)
+				req.Host = "example.com"
+				req.Header.Add("Origin", "https://example.com")
+				return req
+			},
+			assertResponse: func(t *testing.T, resp *http.Response) {
+				assert.Equal(t, http.StatusOK, resp.StatusCode)
+				assert.Equal(t, "Origin", resp.Header.Get("Vary"))
+				assert.Equal(t, "", resp.Header.Get("Access-Control-Allow-Origin"))
+			},
+		},
+		{
+			desc: "cors fails on unsupported method",
+			hostMapper: func(host string) (*HostConfig, error) {
+				if host != "example.com" {
+					return nil, fmt.Errorf("got unexpected host %s, expected 'example.com'", host)
+				}
+				return &HostConfig{
+					CorsOptions: &cors.Options{
+						AllowCredentials: true,
+						AllowedMethods:   []string{"GET"},
+						AllowedOrigins:   []string{"https://example.com"},
+					},
+					CorsEnabled:  true,
+					CookieDomain: "example.com",
+					PathPrefix:   "/foo",
+				}, nil
+			},
+			handler: func(assert *assert.Assertions, w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			},
+			request: func(t *testing.T) *http.Request {
+				req, err := http.NewRequest(http.MethodPost, proxy.URL+"/foo", bytes.NewBufferString(fmt.Sprintf("some random content containing the request URL and path prefix %s/bar but also other stuff", upstreamServer.URL)))
+				require.NoError(t, err)
+				req.Host = "example.com"
+				req.Header.Add("Origin", "https://example.com")
+				return req
+			},
+			assertResponse: func(t *testing.T, resp *http.Response) {
+				assert.Equal(t, http.StatusOK, resp.StatusCode)
+				assert.Equal(t, "Origin", resp.Header.Get("Vary"))
+				assert.Equal(t, "", resp.Header.Get("Access-Control-Allow-Origin"))
+			},
+		},
+		{
+			desc: "cors succeeds on wildcard domains",
+			hostMapper: func(host string) (*HostConfig, error) {
+				if host != "example.com" {
+					return nil, fmt.Errorf("got unexpected host %s, expected 'example.com'", host)
+				}
+				return &HostConfig{
+					CorsOptions: &cors.Options{
+						AllowCredentials: true,
+						AllowedMethods:   []string{"GET"},
+						AllowedOrigins:   []string{"*"},
+					},
+					CorsEnabled:  true,
+					CookieDomain: "another.com",
+					PathPrefix:   "/foo",
+				}, nil
+			},
+			handler: func(assert *assert.Assertions, w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			},
+			request: func(t *testing.T) *http.Request {
+				req, err := http.NewRequest(http.MethodGet, proxy.URL+"/foo", bytes.NewBufferString(fmt.Sprintf("some random content containing the request URL and path prefix %s/bar but also other stuff", upstreamServer.URL)))
+				require.NoError(t, err)
+				req.Host = "example.com"
+				req.Header.Add("Origin", "https://example.com")
+				return req
+			},
+			assertResponse: func(t *testing.T, resp *http.Response) {
+				assert.Equal(t, http.StatusOK, resp.StatusCode)
+				assert.Equal(t, "Origin", resp.Header.Get("Vary"))
+				assert.Equal(t, "*", resp.Header.Get("Access-Control-Allow-Origin"))
 			},
 		},
 	} {

@@ -61,14 +61,13 @@ const (
 // director is a custom internal function for altering a http.Request
 func director(o *options) func(*http.Request) {
 	return func(r *http.Request) {
-		c, err := o.hostMapper(r.Context(), r)
-		if err != nil {
-			o.onReqError(r, err)
-			return
-		}
+		var c *HostConfig
+		var err error
 
-		if c.CorsEnabled && c.CorsOptions != nil {
-			cors.New(*c.CorsOptions).HandlerFunc(nil, r)
+		if oh := r.Context().Value(hostConfigKey); oh == nil {
+			panic("could not get value from context")
+		} else {
+			c = oh.(*HostConfig)
 		}
 
 		if forwardedProto := r.Header.Get("X-Forwarded-Proto"); forwardedProto != "" {
@@ -186,6 +185,28 @@ func WithTransport(t http.RoundTripper) Options {
 	}
 }
 
+func (o *options) beforeProxyMiddleware(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		// get the hostmapper configurations before the request is proxied
+		c, err := o.hostMapper(request.Context(), request)
+		if err != nil {
+			o.onReqError(request, err)
+			return
+		}
+
+		// cache the host config in the request context
+		// this will be passed on to the request and response proxy functions
+		*request = *request.WithContext(context.WithValue(request.Context(), hostConfigKey, c))
+
+		// Add our Cors middleware.
+		// This middleware will only trigger if the host config has cors enabled on that request.
+		if c.CorsEnabled && c.CorsOptions != nil {
+			cors.New(*c.CorsOptions).HandlerFunc(writer, request)
+		}
+		h.ServeHTTP(writer, request)
+	})
+}
+
 // New creates a new Proxy
 // A Proxy sets up a middleware with custom request and response modification handlers
 func New(hostMapper HostMapper, opts ...Options) http.Handler {
@@ -200,9 +221,11 @@ func New(hostMapper HostMapper, opts ...Options) http.Handler {
 		op(o)
 	}
 
-	return &httputil.ReverseProxy{
+	rp := &httputil.ReverseProxy{
 		Director:       director(o),
 		ModifyResponse: modifyResponse(o),
 		Transport:      o.transport,
 	}
+
+	return o.beforeProxyMiddleware(rp)
 }
