@@ -57,10 +57,10 @@ const (
 func director(o *options) func(*http.Request) {
 	return func(r *http.Request) {
 		ctx := r.Context()
-		newCtx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "x.proxy")
+		ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "x.proxy")
 		defer span.End()
 
-		c, err := o.hostMapper(newCtx, r)
+		c, err := o.hostMapper(ctx, r)
 		if err != nil {
 			o.onReqError(r, err)
 			return
@@ -79,7 +79,7 @@ func director(o *options) func(*http.Request) {
 			c.originalHost = r.Host
 		}
 
-		*r = *r.WithContext(context.WithValue(newCtx, hostConfigKey, c))
+		*r = *r.WithContext(context.WithValue(ctx, hostConfigKey, c))
 
 		headerRequestRewrite(r, c)
 
