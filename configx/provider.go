@@ -292,8 +292,7 @@ func (p *Provider) traceConfig(ctx context.Context, k *koanf.Koanf, opName strin
 		}
 	}
 
-	// TODO: better name for trace event?
-	span.AddEvent("log", trace.WithAttributes(fields...))
+	span.AddEvent("event.log", trace.WithAttributes(fields...))
 }
 
 func (p *Provider) runOnChanges(e watcherx.Event, err error) {

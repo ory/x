@@ -39,10 +39,6 @@ func (s span) NewChild(name string) instrumentedsql.Span {
 
 	var parent trace.Span
 	tp := otel.GetTracerProvider().Tracer(tracingComponent)
-	// if s.parent == nil {
-	// 	_, parent = tp.Start(context.Background(), name)
-	// 	return span{parent: parent, tracer: s.tracer}
-	// } else {
 	_, parent = tp.Start(s.ctx, name)
 
 	return span{ctx: s.ctx, parent: parent}
