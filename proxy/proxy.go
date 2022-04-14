@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"context"
+	"github.com/rs/cors"
 	"net/http"
 	"net/http/httputil"
 )
@@ -19,6 +20,12 @@ type (
 		transport       http.RoundTripper
 	}
 	HostConfig struct {
+		// CorsEnabled is a flag to enable or disable CORS
+		// Default: false
+		CorsEnabled bool
+		// CorsOptions allows to configure CORS
+		// If left empty, no CORS headers will be set even when CorsEnabled is true
+		CorsOptions *cors.Options
 		// CookieDomain is the host under which cookies are set.
 		// If left empty, no cookie domain will be set
 		CookieDomain string
@@ -58,6 +65,10 @@ func director(o *options) func(*http.Request) {
 		if err != nil {
 			o.onReqError(r, err)
 			return
+		}
+
+		if c.CorsEnabled && c.CorsOptions != nil {
+			cors.New(*c.CorsOptions).HandlerFunc(nil, r)
 		}
 
 		if forwardedProto := r.Header.Get("X-Forwarded-Proto"); forwardedProto != "" {
