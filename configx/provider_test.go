@@ -151,16 +151,13 @@ func TestAdvancedConfigs(t *testing.T) {
 				{"DSN", "sqlite:///var/lib/sqlite/db.sqlite?_fk=true"},
 				{"TRACING_PROVIDER", "jaeger"},
 				{"TRACING_PROVIDERS_JAEGER_SAMPLING_SERVER_URL", "http://jaeger:5778/sampling"},
-				{"TRACING_PROVIDERS_JAEGER_LOCAL_AGENT_HOST", "jaeger"},
-				{"TRACING_PROVIDERS_JAEGER_LOCAL_AGENT_PORT", "6832"},
+				{"TRACING_PROVIDERS_JAEGER_LOCAL_AGENT_ADDRESS", "jaeger:6831"},
 				{"TRACING_PROVIDERS_JAEGER_SAMPLING_TYPE", "const"},
 				{"TRACING_PROVIDERS_JAEGER_SAMPLING_VALUE", "1"},
 			},
 			expectedF: func(t *testing.T, p *Provider) {
 				assert.Equal(t, "sqlite:///var/lib/sqlite/db.sqlite?_fk=true", p.Get("dsn"))
 				assert.Equal(t, "jaeger", p.Get("tracing.provider"))
-				assert.Equal(t, "jaeger", p.Get("tracing.providers.jaeger.local_agent_host"))
-				assert.Equal(t, float64(6832), p.Get("tracing.providers.jaeger.local_agent_port"))
 			}},
 		{
 			stub:    "hydra",
@@ -176,9 +173,8 @@ func TestAdvancedConfigs(t *testing.T) {
 			envs: [][2]string{
 				{"DSN", "sqlite:///var/lib/sqlite/db.sqlite?_fk=true"},
 				{"TRACING_PROVIDER", "jaeger"},
+				{"TRACING_PROVIDERS_JAEGER_LOCAL_AGENT_ADDRESS", "jaeger:6831"},
 				{"TRACING_PROVIDERS_JAEGER_SAMPLING_SERVER_URL", "http://jaeger:5778/sampling"},
-				{"TRACING_PROVIDERS_JAEGER_LOCAL_AGENT_HOST", "jaeger"},
-				{"TRACING_PROVIDERS_JAEGER_LOCAL_AGENT_PORT", "6832"},
 				{"TRACING_PROVIDERS_JAEGER_SAMPLING_TYPE", "const"},
 				{"TRACING_PROVIDERS_JAEGER_SAMPLING_VALUE", "1"},
 			},

@@ -52,28 +52,6 @@
                 "127.0.0.1:6831"
               ]
             },
-            "local_agent_host": {
-              "type": "string",
-              "description": "The hostname of the jaeger-agent where spans should be sent to.",
-              "oneOf": [
-                {
-                  "format": "hostname"
-                },
-                {
-                  "format": "ipv4"
-                }
-              ],
-              "examples": [
-                "localhost",
-                "192.168.1.2"
-              ]
-            },
-            "local_agent_port": {
-              "type": "integer",
-              "description": "The port of the jaeger-agent.",
-              "minimum": 0,
-              "maximum": 65535
-            },
             "sampling": {
               "type": "object",
               "propertyNames": {
