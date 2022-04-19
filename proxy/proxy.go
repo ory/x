@@ -3,9 +3,10 @@ package proxy
 import (
 	"context"
 	"errors"
-	"github.com/rs/cors"
 	"net/http"
 	"net/http/httputil"
+
+	"github.com/rs/cors"
 )
 
 type (

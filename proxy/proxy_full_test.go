@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/rs/cors"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -14,6 +13,8 @@ import (
 	"net/url"
 	"testing"
 	"time"
+
+	"github.com/rs/cors"
 
 	"github.com/gorilla/websocket"
 
