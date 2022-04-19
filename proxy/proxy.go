@@ -2,7 +2,6 @@ package proxy
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"net/http/httputil"
 
@@ -63,18 +62,9 @@ const (
 // director is a custom internal function for altering a http.Request
 func director(o *options) func(*http.Request) {
 	return func(r *http.Request) {
-		var c *HostConfig
-		var err error
-		var oh interface{}
-
-		if oh = r.Context().Value(hostConfigKey); oh == nil {
-			o.onReqError(r, errors.New("could not get value from context"))
-			return
-		}
-
-		var ok bool
-		if c, ok = oh.(*HostConfig); !ok {
-			o.onReqError(r, errors.New("value from context is not of an expected type"))
+		c, err := o.getHostConfig(r)
+		if err != nil {
+			o.onReqError(r, err)
 			return
 		}
 
@@ -90,8 +80,6 @@ func director(o *options) func(*http.Request) {
 		} else {
 			c.originalHost = r.Host
 		}
-
-		*r = *r.WithContext(context.WithValue(r.Context(), hostConfigKey, c))
 
 		headerRequestRewrite(r, c)
 
@@ -128,20 +116,12 @@ func director(o *options) func(*http.Request) {
 // modifyResponse is a custom internal function for altering a http.Response
 func modifyResponse(o *options) func(*http.Response) error {
 	return func(r *http.Response) error {
-		var c *HostConfig
-		var oh interface{}
-
-		if oh = r.Request.Context().Value(hostConfigKey); oh == nil {
-			return o.onResError(r, errors.New("could not get value from context"))
-		}
-
-		var ok bool
-		if c, ok = oh.(*HostConfig); !ok {
-			return o.onResError(r, errors.New("value from context is not of an expected type"))
-		}
-
-		err := headerResponseRewrite(r, c)
+		c, err := o.getHostConfig(r.Request)
 		if err != nil {
+			return err
+		}
+
+		if err := headerResponseRewrite(r, c); err != nil {
 			return o.onResError(r, err)
 		}
 
@@ -198,18 +178,28 @@ func WithTransport(t http.RoundTripper) Options {
 	}
 }
 
+func (o *options) getHostConfig(r *http.Request) (*HostConfig, error) {
+	if cached, ok := r.Context().Value(hostConfigKey).(*HostConfig); ok && cached != nil {
+		return cached, nil
+	}
+	c, err := o.hostMapper(r.Context(), r)
+	if err != nil {
+		return nil, err
+	}
+	// cache the host config in the request context
+	// this will be passed on to the request and response proxy functions
+	*r = *r.WithContext(context.WithValue(r.Context(), hostConfigKey, c))
+	return c, nil
+}
+
 func (o *options) beforeProxyMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		// get the hostmapper configurations before the request is proxied
-		c, err := o.hostMapper(request.Context(), request)
+		c, err := o.getHostConfig(request)
 		if err != nil {
 			o.onReqError(request, err)
 			return
 		}
-
-		// cache the host config in the request context
-		// this will be passed on to the request and response proxy functions
-		*request = *request.WithContext(context.WithValue(request.Context(), hostConfigKey, c))
 
 		// Add our Cors middleware.
 		// This middleware will only trigger if the host config has cors enabled on that request.
