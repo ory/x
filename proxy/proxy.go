@@ -65,12 +65,17 @@ func director(o *options) func(*http.Request) {
 	return func(r *http.Request) {
 		var c *HostConfig
 		var err error
+		var oh interface{}
 
-		if oh := r.Context().Value(hostConfigKey); oh == nil {
+		if oh = r.Context().Value(hostConfigKey); oh == nil {
 			o.onReqError(r, errors.New("could not get value from context"))
 			return
-		} else {
-			c = oh.(*HostConfig)
+		}
+
+		var ok bool
+		if c, ok = oh.(*HostConfig); !ok {
+			o.onReqError(r, errors.New("value from context is not of an expected type"))
+			return
 		}
 
 		if forwardedProto := r.Header.Get("X-Forwarded-Proto"); forwardedProto != "" {
@@ -124,10 +129,15 @@ func director(o *options) func(*http.Request) {
 func modifyResponse(o *options) func(*http.Response) error {
 	return func(r *http.Response) error {
 		var c *HostConfig
-		if oh := r.Request.Context().Value(hostConfigKey); oh == nil {
+		var oh interface{}
+
+		if oh = r.Request.Context().Value(hostConfigKey); oh == nil {
 			return o.onResError(r, errors.New("could not get value from context"))
-		} else {
-			c = oh.(*HostConfig)
+		}
+
+		var ok bool
+		if c, ok = oh.(*HostConfig); !ok {
+			return o.onResError(r, errors.New("value from context is not of an expected type"))
 		}
 
 		err := headerResponseRewrite(r, c)
