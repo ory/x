@@ -2,7 +2,7 @@ package otelx
 
 import (
 	"github.com/ory/x/logrusx"
-	"github.com/pkg/errors"
+	"github.com/ory/x/stringsx"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -34,8 +34,8 @@ func NewNoop(l *logrusx.Logger, c *Config) *Tracer {
 
 // setup sets up the tracer.
 func (t *Tracer) setup(name string) error {
-	switch t.Config.Provider {
-	case "jaeger":
+	switch f := stringsx.SwitchExact(t.Config.Provider); {
+	case f.AddCase("jaeger"):
 		tracer, err := SetupJaeger(t, name)
 		if err != nil {
 			return err
@@ -43,10 +43,10 @@ func (t *Tracer) setup(name string) error {
 
 		t.tracer = tracer
 		t.l.Infof("Jaeger tracer configured! Sending spans to %s", t.Config.Providers.Jaeger.LocalAgentAddress)
-	case "":
+	case f.AddCase(""):
 		t.l.Infof("No tracer configured - skipping tracing setup")
 	default:
-		return errors.Errorf("unknown tracer: %s", t.Config.Provider)
+		return f.ToUnknownCaseErr()
 	}
 	return nil
 }
