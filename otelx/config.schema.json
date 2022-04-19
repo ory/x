@@ -43,9 +43,6 @@
                 },
                 {
                   "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}:([0-9]*)$"
-                },
-                {
-                  "format": "uri"
                 }
               ],
               "examples": [
@@ -59,20 +56,20 @@
                   "server_url"
                 ]
               },
+              "additionalProperties": false,
               "properties": {
                 "server_url": {
                   "type": "string",
                   "description": "The address of jaeger-agent's HTTP sampling server",
-                  "format": "uri"
-                },
-                "additionalProperties": false
-              },
-              "examples": [
-                {
-                  "server_url": "http://localhost:5778/sampling"
+                  "format": "uri",
+                  "examples": [
+                    {
+                      "server_url": "http://localhost:5778/sampling"
+                    }
+                  ]
                 }
-              ]
-            }
+              }
+           }
           }
         }
       }
