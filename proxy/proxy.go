@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 	"net/http/httputil"
+
+	"github.com/rs/cors"
 )
 
 type (
@@ -19,6 +21,12 @@ type (
 		transport       http.RoundTripper
 	}
 	HostConfig struct {
+		// CorsEnabled is a flag to enable or disable CORS
+		// Default: false
+		CorsEnabled bool
+		// CorsOptions allows to configure CORS
+		// If left empty, no CORS headers will be set even when CorsEnabled is true
+		CorsOptions *cors.Options
 		// CookieDomain is the host under which cookies are set.
 		// If left empty, no cookie domain will be set
 		CookieDomain string
@@ -54,7 +62,7 @@ const (
 // director is a custom internal function for altering a http.Request
 func director(o *options) func(*http.Request) {
 	return func(r *http.Request) {
-		c, err := o.hostMapper(r.Context(), r)
+		c, err := o.getHostConfig(r)
 		if err != nil {
 			o.onReqError(r, err)
 			return
@@ -72,8 +80,6 @@ func director(o *options) func(*http.Request) {
 		} else {
 			c.originalHost = r.Host
 		}
-
-		*r = *r.WithContext(context.WithValue(r.Context(), hostConfigKey, c))
 
 		headerRequestRewrite(r, c)
 
@@ -110,15 +116,12 @@ func director(o *options) func(*http.Request) {
 // modifyResponse is a custom internal function for altering a http.Response
 func modifyResponse(o *options) func(*http.Response) error {
 	return func(r *http.Response) error {
-		var c *HostConfig
-		if oh := r.Request.Context().Value(hostConfigKey); oh == nil {
-			panic("could not get value from context")
-		} else {
-			c = oh.(*HostConfig)
+		c, err := o.getHostConfig(r.Request)
+		if err != nil {
+			return err
 		}
 
-		err := headerResponseRewrite(r, c)
-		if err != nil {
+		if err := headerResponseRewrite(r, c); err != nil {
 			return o.onResError(r, err)
 		}
 
@@ -175,6 +178,38 @@ func WithTransport(t http.RoundTripper) Options {
 	}
 }
 
+func (o *options) getHostConfig(r *http.Request) (*HostConfig, error) {
+	if cached, ok := r.Context().Value(hostConfigKey).(*HostConfig); ok && cached != nil {
+		return cached, nil
+	}
+	c, err := o.hostMapper(r.Context(), r)
+	if err != nil {
+		return nil, err
+	}
+	// cache the host config in the request context
+	// this will be passed on to the request and response proxy functions
+	*r = *r.WithContext(context.WithValue(r.Context(), hostConfigKey, c))
+	return c, nil
+}
+
+func (o *options) beforeProxyMiddleware(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		// get the hostmapper configurations before the request is proxied
+		c, err := o.getHostConfig(request)
+		if err != nil {
+			o.onReqError(request, err)
+			return
+		}
+
+		// Add our Cors middleware.
+		// This middleware will only trigger if the host config has cors enabled on that request.
+		if c.CorsEnabled && c.CorsOptions != nil {
+			cors.New(*c.CorsOptions).HandlerFunc(writer, request)
+		}
+		h.ServeHTTP(writer, request)
+	})
+}
+
 // New creates a new Proxy
 // A Proxy sets up a middleware with custom request and response modification handlers
 func New(hostMapper HostMapper, opts ...Options) http.Handler {
@@ -189,9 +224,11 @@ func New(hostMapper HostMapper, opts ...Options) http.Handler {
 		op(o)
 	}
 
-	return &httputil.ReverseProxy{
+	rp := &httputil.ReverseProxy{
 		Director:       director(o),
 		ModifyResponse: modifyResponse(o),
 		Transport:      o.transport,
 	}
+
+	return o.beforeProxyMiddleware(rp)
 }
