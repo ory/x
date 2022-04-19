@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"context"
+	"errors"
 	"github.com/rs/cors"
 	"net/http"
 	"net/http/httputil"
@@ -65,7 +66,8 @@ func director(o *options) func(*http.Request) {
 		var err error
 
 		if oh := r.Context().Value(hostConfigKey); oh == nil {
-			panic("could not get value from context")
+			o.onReqError(r, errors.New("could not get value from context"))
+			return
 		} else {
 			c = oh.(*HostConfig)
 		}
@@ -122,7 +124,7 @@ func modifyResponse(o *options) func(*http.Response) error {
 	return func(r *http.Response) error {
 		var c *HostConfig
 		if oh := r.Request.Context().Value(hostConfigKey); oh == nil {
-			panic("could not get value from context")
+			return o.onResError(r, errors.New("could not get value from context"))
 		} else {
 			c = oh.(*HostConfig)
 		}
