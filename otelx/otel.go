@@ -42,7 +42,7 @@ func (t *Tracer) setup(name string) error {
 		}
 
 		t.tracer = tracer
-		t.l.Infof("Jaeger tracer configured!")
+		t.l.Infof("Jaeger tracer configured! Sending spans to %s", t.Config.Providers.Jaeger.LocalAgentAddress)
 	case "":
 		t.l.Infof("No tracer configured - skipping tracing setup")
 	default:
