@@ -7,11 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ory/x/logrusx"
 	"github.com/phayes/freeport"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/ory/x/logrusx"
 )
 
 func TestJaegerTracer(t *testing.T) {

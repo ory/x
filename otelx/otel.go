@@ -1,9 +1,10 @@
 package otelx
 
 import (
+	"go.opentelemetry.io/otel/trace"
+
 	"github.com/ory/x/logrusx"
 	"github.com/ory/x/stringsx"
-	"go.opentelemetry.io/otel/trace"
 )
 
 type Tracer struct {
