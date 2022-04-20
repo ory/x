@@ -8,9 +8,9 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/ory/x/logrusx"
+	"github.com/ory/x/otelx"
 	"github.com/ory/x/popx"
 	"github.com/ory/x/sqlcon"
-	"github.com/ory/x/tracing"
 )
 
 // Migrations of the network manager. Apply by merging with your local migrations using
@@ -21,13 +21,13 @@ var Migrations embed.FS
 type Manager struct {
 	c *pop.Connection
 	l *logrusx.Logger
-	t *tracing.Tracer
+	t *otelx.Tracer
 }
 
 func NewManager(
 	c *pop.Connection,
 	l *logrusx.Logger,
-	t *tracing.Tracer,
+	t *otelx.Tracer,
 ) *Manager {
 	return &Manager{
 		c: c,

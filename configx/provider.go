@@ -13,16 +13,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/uber/jaeger-client-go"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/sirupsen/logrus"
 
 	"github.com/ory/x/logrusx"
+	"github.com/ory/x/otelx"
 
 	"github.com/ory/x/jsonschemax"
-
-	"github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/log"
 
 	"github.com/ory/jsonschema/v3"
 	"github.com/ory/x/watcherx"
@@ -30,9 +30,6 @@ import (
 	"github.com/inhies/go-bytesize"
 	"github.com/knadh/koanf/providers/posflag"
 	"github.com/spf13/pflag"
-
-	"github.com/ory/x/stringsx"
-	"github.com/ory/x/tracing"
 
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/json"
@@ -44,6 +41,8 @@ type tuple struct {
 	Key   string
 	Value interface{}
 }
+
+const tracingComponent = "github.com/ory/x/configx"
 
 type Provider struct {
 	l sync.RWMutex
@@ -59,7 +58,7 @@ type Provider struct {
 	onChanges                []func(watcherx.Event, error)
 	onValidationError        func(k *koanf.Koanf, err error)
 	excludeFieldsFromTracing []string
-	tracer                   *tracing.Tracer
+	tracer                   *otelx.Tracer
 
 	forcedValues []tuple
 	baseValues   []tuple
@@ -224,8 +223,8 @@ func (p *Provider) validate(k *koanf.Koanf) error {
 // - https://github.com/knadh/koanf/issues/77
 // - https://github.com/knadh/koanf/pull/47
 func (p *Provider) newKoanf() (*koanf.Koanf, error) {
-	span, ctx := p.startSpan(p.originalContext, LoadSpanOpName)
-	defer span.Finish()
+	ctx, span := p.startSpan(p.originalContext, LoadSpanOpName)
+	defer span.End()
 
 	k := koanf.New(Delimiter)
 
@@ -255,26 +254,26 @@ func (p *Provider) newKoanf() (*koanf.Koanf, error) {
 }
 
 // SetTracer sets the tracer.
-func (p *Provider) SetTracer(ctx context.Context, t *tracing.Tracer) {
+func (p *Provider) SetTracer(ctx context.Context, t *otelx.Tracer) {
 	p.tracer = t
 	p.traceConfig(ctx, p.Koanf, SnapshotSpanOpName)
 }
 
-func (p *Provider) startSpan(ctx context.Context, opName string) (opentracing.Span, context.Context) {
-	tracer := opentracing.GlobalTracer()
+func (p *Provider) startSpan(ctx context.Context, opName string) (context.Context, trace.Span) {
+	tracer := otel.Tracer("github.com/ory/x/configx")
 	if p.tracer != nil && p.tracer.Tracer() != nil {
 		tracer = p.tracer.Tracer()
 	}
-	return opentracing.StartSpanFromContextWithTracer(ctx, tracer, opName)
+	return tracer.Start(ctx, opName)
 }
 
 func (p *Provider) traceConfig(ctx context.Context, k *koanf.Koanf, opName string) {
-	span, ctx := p.startSpan(ctx, opName)
-	defer span.Finish()
+	ctx, span := p.startSpan(ctx, opName)
+	defer span.End()
 
-	span.SetTag("component", "github.com/ory/x/configx")
+	span.SetAttributes(attribute.String("component", tracingComponent))
 
-	fields := make([]log.Field, 0, len(k.Keys()))
+	fields := make([]attribute.KeyValue, 0, len(k.Keys()))
 	for _, key := range k.Keys() {
 		var redact bool
 		for _, e := range p.excludeFieldsFromTracing {
@@ -284,13 +283,16 @@ func (p *Provider) traceConfig(ctx context.Context, k *koanf.Koanf, opName strin
 		}
 
 		if redact {
-			fields = append(fields, log.Object(key, "[redacted]"))
+			fields = append(fields, attribute.String(key, "[redacted]"))
 		} else {
-			fields = append(fields, log.Object(key, k.Get(key)))
+			// XXX: The issue here is, we can't guess what attribute type to
+			// use without trying every type supported in Koanf and checking for
+			// a zero value. Is fmt.Sprint the best way?
+			fields = append(fields, attribute.String(key, fmt.Sprint(k.Get(key))))
 		}
 	}
 
-	span.LogFields(fields...)
+	span.AddEvent("event.log", trace.WithAttributes(fields...))
 }
 
 func (p *Provider) runOnChanges(e watcherx.Event, err error) {
@@ -476,26 +478,16 @@ func (p *Provider) CORS(prefix string, defaults cors.Options) (cors.Options, boo
 	}, p.Bool(prefix + "cors.enabled")
 }
 
-func (p *Provider) TracingConfig(serviceName string) *tracing.Config {
-	return &tracing.Config{
+func (p *Provider) TracingConfig(serviceName string) *otelx.Config {
+	return &otelx.Config{
 		ServiceName: p.StringF("tracing.service_name", serviceName),
 		Provider:    p.String("tracing.provider"),
-		Providers: &tracing.ProvidersConfig{
-			Jaeger: &tracing.JaegerConfig{
-				Sampling: &tracing.JaegerSampling{
-					Type:      p.StringF("tracing.providers.jaeger.sampling.type", "const"),
-					Value:     p.Float64F("tracing.providers.jaeger.sampling.value", float64(1)),
+		Providers: otelx.ProvidersConfig{
+			Jaeger: otelx.JaegerConfig{
+				Sampling: otelx.JaegerSampling{
 					ServerURL: p.String("tracing.providers.jaeger.sampling.server_url"),
 				},
 				LocalAgentAddress: p.String("tracing.providers.jaeger.local_agent_address"),
-				MaxTagValueLength: p.IntF("tracing.providers.jaeger.max_tag_value_length", jaeger.DefaultMaxTagValueLength),
-				Propagation: stringsx.Coalesce(
-					os.Getenv("JAEGER_PROPAGATION"),
-					p.String("tracing.providers.jaeger.propagation"),
-				),
-			},
-			Zipkin: &tracing.ZipkinConfig{
-				ServerURL: p.String("tracing.providers.zipkin.server_url"),
 			},
 		},
 	}

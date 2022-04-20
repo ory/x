@@ -1,4 +1,4 @@
-package tracing
+package otelx
 
 import (
 	"bytes"
@@ -30,24 +30,17 @@ func TestConfigSchema(t *testing.T) {
 		conf := Config{
 			ServiceName: "Ory X",
 			Provider:    "jaeger",
-			Providers: &ProvidersConfig{
-				Jaeger: &JaegerConfig{
-					LocalAgentAddress: "jaeger:6831",
-					Sampling: &JaegerSampling{
-						Type:      "const",
-						Value:     1,
-						ServerURL: "https://localhost:5778/sampling",
+			Providers: ProvidersConfig{
+				Jaeger: JaegerConfig{
+					LocalAgentAddress: "localhost:6831",
+					Sampling: JaegerSampling{
+						ServerURL: "http://localhost:5778/sampling",
 					},
-					Propagation:       "jaeger",
-					MaxTagValueLength: 100,
-				},
-				Zipkin: &ZipkinConfig{
-					ServerURL: "https://example.com",
 				},
 			},
 		}
 
-		rawConfig, err := sjson.Set("{}", "tracing", &conf)
+		rawConfig, err := sjson.Set("{}", "otelx", &conf)
 		require.NoError(t, err)
 
 		require.NoError(t, c.AddResource("config", bytes.NewBufferString(fmt.Sprintf(rootSchema, ConfigSchemaID))))

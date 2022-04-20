@@ -123,11 +123,9 @@
     "provider": "jaeger",
     "providers": {
       "jaeger": {
-        "local_agent_address": "jaeger:6832",
+        "local_agent_address": "jaeger:6831",
         "sampling": {
-          "server_url": "http://jaeger:5778/sampling",
-          "type": "const",
-          "value": 1
+          "server_url": "http://jaeger:5778/sampling"
         }
       }
     }

@@ -6,6 +6,7 @@ import (
 	"net/http/httputil"
 
 	"github.com/rs/cors"
+	"go.opentelemetry.io/otel"
 )
 
 type (
@@ -62,6 +63,10 @@ const (
 // director is a custom internal function for altering a http.Request
 func director(o *options) func(*http.Request) {
 	return func(r *http.Request) {
+		ctx := r.Context()
+		ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "x.proxy")
+		defer span.End()
+
 		c, err := o.getHostConfig(r)
 		if err != nil {
 			o.onReqError(r, err)
@@ -81,6 +86,7 @@ func director(o *options) func(*http.Request) {
 			c.originalHost = r.Host
 		}
 
+		*r = *r.WithContext(context.WithValue(ctx, hostConfigKey, c))
 		headerRequestRewrite(r, c)
 
 		var body []byte

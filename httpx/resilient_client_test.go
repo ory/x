@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/opentracing/opentracing-go/mocktracer"
+	"go.opentelemetry.io/otel"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -47,7 +47,7 @@ func TestClientWithTracer(t *testing.T) {
 	}))
 	t.Cleanup(ts.Close)
 
-	tracer := mocktracer.New()
+	tracer := otel.Tracer("github.com/ory/x/httpx test")
 	c := NewResilientClient(
 		ResilientClientWithTracer(tracer),
 	)
