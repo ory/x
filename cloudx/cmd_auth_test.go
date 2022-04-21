@@ -70,6 +70,17 @@ func TestAuthenticator(t *testing.T) {
 			expectSignInSuccess(t)
 		})
 
+		t.Run("forced to reauthenticate on session expiration", func(t *testing.T) {
+			cmd := configAwareCmd(configDir)
+			expectSignInSuccess(t)
+			changeAccessToken(t, configDir)
+			var r bytes.Buffer
+			r.WriteString("n\n") // Your CLI session has expired. Do you wish to login again with <email>?
+			_, stderr, err := cmd.ExecDebug(t, &r, "list", "projects")
+			require.Error(t, err)
+			assert.Contains(t, stderr, "Your CLI session has expired. Do you wish to log in again with")
+		})
+
 		t.Run("set up 2fa", func(t *testing.T) {
 			expectSignInSuccess(t)
 			ac := readConfig(t, configDir)
