@@ -232,6 +232,27 @@ func (h *SnakeCharmer) EnsureContext() (*AuthContext, error) {
 
 	if len(c.SessionToken) > 0 {
 		_, _ = fmt.Fprintf(h.verboseErrWriter, "You are authenticated as: %s\n", c.IdentityTraits.Email)
+		client, err := newKratosClient()
+		if err != nil {
+			return nil, err
+		}
+		_, resp, err := client.V0alpha2Api.ToSession(h.ctx).XSessionToken(c.SessionToken).Execute()
+		if resp.StatusCode == http.StatusUnauthorized || err != nil {
+			ok, err := cmdx.AskScannerForConfirmation(fmt.Sprintf("Your CLI session has expired. Do you wish to log in again with \"%s\"?", c.IdentityTraits.Email), h.stdin, h.verboseErrWriter)
+			if err != nil {
+				return nil, err
+			}
+			if ok {
+				if err := h.SignOut(); err != nil {
+					return nil, err
+				}
+				c, err := h.Authenticate()
+				if err != nil {
+					return nil, err
+				}
+				return c, nil
+			}
+		}
 		return c, nil
 	}
 
@@ -243,7 +264,6 @@ func (h *SnakeCharmer) EnsureContext() (*AuthContext, error) {
 	if len(c.SessionToken) == 0 {
 		return nil, errors.Errorf("unable to authenticate")
 	}
-
 	return c, nil
 }
 
@@ -480,7 +500,6 @@ func (h *SnakeCharmer) ListProjects() ([]cloud.Project, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	c, err := newCloudClient(ac.SessionToken)
 	if err != nil {
 		return nil, err
@@ -488,6 +507,7 @@ func (h *SnakeCharmer) ListProjects() ([]cloud.Project, error) {
 
 	projects, res, err := c.V0alpha2Api.ListProjects(h.ctx).Execute()
 	if err != nil {
+
 		return nil, handleError("unable to list projects", res, err)
 	}
 
@@ -535,7 +555,6 @@ func (h *SnakeCharmer) CreateProject(name string) (*cloud.Project, error) {
 
 	return project, nil
 }
-
 func handleError(message string, res *http.Response, err error) error {
 	if e, ok := err.(*cloud.GenericOpenAPIError); ok {
 		return errors.Wrapf(err, "%s: %s", message, e.Body())
