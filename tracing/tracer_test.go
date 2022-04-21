@@ -315,6 +315,7 @@ func TestInstanaTracer(t *testing.T) {
 }
 
 func TestOtlpTracer(t *testing.T) {
+	t.Skip("Skip as otelx is available")
 	done := make(chan struct{})
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
