@@ -238,7 +238,7 @@ func (h *SnakeCharmer) EnsureContext() (*AuthContext, error) {
 		}
 		_, resp, err := client.V0alpha2Api.ToSession(h.ctx).XSessionToken(c.SessionToken).Execute()
 		if resp.StatusCode == http.StatusUnauthorized || err != nil {
-			ok, err := cmdx.AskScannerForConfirmation(fmt.Sprintf("Your CLI session has expired. Do you wish to log in again with \"%s\"?", c.IdentityTraits.Email), h.stdin, h.verboseErrWriter)
+			ok, err := cmdx.AskScannerForConfirmation(fmt.Sprintf("Your CLI session has expired. Do you wish to log in again as \"%s\"?", c.IdentityTraits.Email), h.stdin, h.verboseErrWriter)
 			if err != nil {
 				return nil, err
 			}
