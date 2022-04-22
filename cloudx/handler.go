@@ -49,7 +49,7 @@ func RegisterConfigFlag(f *pflag.FlagSet) {
 }
 
 func RegisterYesFlag(f *pflag.FlagSet) {
-	f.BoolP(yesFlag, yesFlag[:1], false, "Confirm all dialogues with yes.")
+	f.BoolP(yesFlag, yesFlag[:1], false, "Confirm all dialogs with yes.")
 }
 
 type AuthContext struct {
