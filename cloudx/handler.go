@@ -231,7 +231,6 @@ func (h *SnakeCharmer) EnsureContext() (*AuthContext, error) {
 	}
 
 	if len(c.SessionToken) > 0 {
-		_, _ = fmt.Fprintf(h.verboseErrWriter, "You are authenticated as: %s\n", c.IdentityTraits.Email)
 		client, err := newKratosClient()
 		if err != nil {
 			return nil, err
@@ -253,6 +252,7 @@ func (h *SnakeCharmer) EnsureContext() (*AuthContext, error) {
 				return c, nil
 			}
 		}
+		_, _ = fmt.Fprintf(h.verboseErrWriter, "You are authenticated as: %s\n", c.IdentityTraits.Email)
 		return c, nil
 	}
 
