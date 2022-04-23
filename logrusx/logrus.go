@@ -218,7 +218,13 @@ func (l *Logger) UseConfig(c configurator) {
 }
 
 func (l *Logger) ReportError(r *http.Request, code int, err error, args ...interface{}) {
-	l.WithError(err).WithRequest(r).WithField("http_response", map[string]interface{}{
+	logger := l.WithError(err).WithRequest(r).WithField("http_response", map[string]interface{}{
 		"status_code": code,
-	}).Error(args...)
+	})
+	switch {
+	case 400 <= code && code < 500:
+		logger.Warn(args...)
+	default:
+		logger.Error(args...)
+	}
 }
