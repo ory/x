@@ -560,6 +560,7 @@ func (h *SnakeCharmer) CreateProject(name string) (*cloud.Project, error) {
 
 	return project, nil
 }
+
 func handleError(message string, res *http.Response, err error) error {
 	if e, ok := err.(*cloud.GenericOpenAPIError); ok {
 		return errors.Wrapf(err, "%s: %s", message, e.Body())
