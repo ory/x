@@ -512,7 +512,6 @@ func (h *SnakeCharmer) ListProjects() ([]cloud.Project, error) {
 
 	projects, res, err := c.V0alpha2Api.ListProjects(h.ctx).Execute()
 	if err != nil {
-
 		return nil, handleError("unable to list projects", res, err)
 	}
 
