@@ -237,6 +237,9 @@ func (h *SnakeCharmer) EnsureContext() (*AuthContext, error) {
 		}
 		_, resp, err := client.V0alpha2Api.ToSession(h.ctx).XSessionToken(c.SessionToken).Execute()
 		if resp.StatusCode == http.StatusUnauthorized || err != nil {
+			if h.isQuiet {
+				return nil, errors.New("can not sign in or sign up when flag --quiet is set")
+			}
 			ok, err := cmdx.AskScannerForConfirmation(fmt.Sprintf("Your CLI session has expired. Do you wish to log in again as \"%s\"?", c.IdentityTraits.Email), h.stdin, h.verboseErrWriter)
 			if err != nil {
 				return nil, err
@@ -264,6 +267,7 @@ func (h *SnakeCharmer) EnsureContext() (*AuthContext, error) {
 	if len(c.SessionToken) == 0 {
 		return nil, errors.Errorf("unable to authenticate")
 	}
+
 	return c, nil
 }
 
@@ -500,6 +504,7 @@ func (h *SnakeCharmer) ListProjects() ([]cloud.Project, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	c, err := newCloudClient(ac.SessionToken)
 	if err != nil {
 		return nil, err
