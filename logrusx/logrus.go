@@ -222,8 +222,8 @@ func (l *Logger) ReportError(r *http.Request, code int, err error, args ...inter
 		"status_code": code,
 	})
 	switch {
-	case 400 <= code && code < 500:
-		logger.Warn(args...)
+	case code < 500:
+		logger.Info(args...)
 	default:
 		logger.Error(args...)
 	}
