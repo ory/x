@@ -59,6 +59,15 @@ func MustGetStringArray(cmd *cobra.Command, name string) []string {
 	return ss
 }
 
+// MustGetStringToStringMap returns a map[string]string flag or fatals if an error occurs.
+func MustGetStringToStringMap(cmd *cobra.Command, name string) map[string]string {
+	ss, err := cmd.Flags().GetStringToString(name)
+	if err != nil {
+		cmdx.Fatalf(err.Error())
+	}
+	return ss
+}
+
 // MustGetInt returns a int flag or fatals if an error occurs.
 func MustGetInt(cmd *cobra.Command, name string) int {
 	ss, err := cmd.Flags().GetInt(name)
