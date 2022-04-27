@@ -108,9 +108,7 @@ func changeAccessToken(t *testing.T, configDir string) {
 	ac.SessionToken = "12341234"
 	data, err := json.Marshal(ac)
 	require.NoError(t, err)
-	err = os.WriteFile(configDir, data, 0644)
-	require.NoError(t, err)
-
+	require.NoError(t, os.WriteFile(configDir, data, 0644))
 }
 
 func registerAccount(t *testing.T, configDir string) (email, password string) {
