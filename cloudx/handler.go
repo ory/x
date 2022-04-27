@@ -238,7 +238,7 @@ func (h *SnakeCharmer) EnsureContext() (*AuthContext, error) {
 		_, resp, err := client.V0alpha2Api.ToSession(h.ctx).XSessionToken(c.SessionToken).Execute()
 		if resp.StatusCode == http.StatusUnauthorized || err != nil {
 			if h.isQuiet {
-				return nil, errors.New("can not sign in or sign up when flag --quiet is set")
+				return nil, errors.New("your session expired and you can not reauthenticate when flag --quiet is set")
 			}
 			ok, err := cmdx.AskScannerForConfirmation(fmt.Sprintf("Your CLI session has expired. Do you wish to log in again as \"%s\"?", c.IdentityTraits.Email), h.stdin, h.verboseErrWriter)
 			if err != nil {
@@ -254,6 +254,7 @@ func (h *SnakeCharmer) EnsureContext() (*AuthContext, error) {
 				}
 				return c, nil
 			}
+			return nil, errors.New("your session expired")
 		}
 		_, _ = fmt.Fprintf(h.verboseErrWriter, "You are authenticated as: %s\n", c.IdentityTraits.Email)
 		return c, nil
