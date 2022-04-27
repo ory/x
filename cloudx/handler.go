@@ -235,8 +235,8 @@ func (h *SnakeCharmer) EnsureContext() (*AuthContext, error) {
 		if err != nil {
 			return nil, err
 		}
-		_, resp, err := client.V0alpha2Api.ToSession(h.ctx).XSessionToken(c.SessionToken).Execute()
-		if resp.StatusCode == http.StatusUnauthorized || err != nil {
+		sess, _, err := client.V0alpha2Api.ToSession(h.ctx).XSessionToken(c.SessionToken).Execute()
+		if sess == nil || err != nil {
 			if h.isQuiet {
 				return nil, errors.New("your session expired and you can not reauthenticate when flag --quiet is set")
 			}
