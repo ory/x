@@ -231,6 +231,31 @@ func (h *SnakeCharmer) EnsureContext() (*AuthContext, error) {
 	}
 
 	if len(c.SessionToken) > 0 {
+		client, err := newKratosClient()
+		if err != nil {
+			return nil, err
+		}
+		sess, _, err := client.V0alpha2Api.ToSession(h.ctx).XSessionToken(c.SessionToken).Execute()
+		if sess == nil || err != nil {
+			if h.isQuiet {
+				return nil, errors.New("Your session has expired and you cannot reauthenticate when the --quiet flag is set")
+			}
+			ok, err := cmdx.AskScannerForConfirmation(fmt.Sprintf("Your CLI session has expired. Do you wish to log in again as \"%s\"?", c.IdentityTraits.Email), h.stdin, h.verboseErrWriter)
+			if err != nil {
+				return nil, err
+			}
+			if ok {
+				if err := h.SignOut(); err != nil {
+					return nil, err
+				}
+				c, err := h.Authenticate()
+				if err != nil {
+					return nil, err
+				}
+				return c, nil
+			}
+			return nil, errors.New("Your session has expired")
+		}
 		_, _ = fmt.Fprintf(h.verboseErrWriter, "You are authenticated as: %s\n", c.IdentityTraits.Email)
 		return c, nil
 	}

@@ -103,6 +103,14 @@ func configPasswordAwareCmd(configDir, password string) *cmdx.CommandExecuter {
 	}
 }
 
+func changeAccessToken(t *testing.T, configDir string) {
+	ac := readConfig(t, configDir)
+	ac.SessionToken = "12341234"
+	data, err := json.Marshal(ac)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(configDir, data, 0644))
+}
+
 func registerAccount(t *testing.T, configDir string) (email, password string) {
 	password = fakePassword()
 	email = fakeEmail()

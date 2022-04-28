@@ -70,6 +70,39 @@ func TestAuthenticator(t *testing.T) {
 			expectSignInSuccess(t)
 		})
 
+		t.Run("forced to reauthenticate on session expiration", func(t *testing.T) {
+			cmd := configAwareCmd(configDir)
+			expectSignInSuccess(t)
+			changeAccessToken(t, configDir)
+			var r bytes.Buffer
+			r.WriteString("n\n") // Your CLI session has expired. Do you wish to login again as <email>?
+			_, stderr, err := cmd.ExecDebug(t, &r, "list", "projects")
+			require.Error(t, err)
+			assert.Contains(t, stderr, "Your CLI session has expired. Do you wish to log in again as")
+		})
+
+		t.Run("user is able to reauthenticate on session expiration", func(t *testing.T) {
+			cmd := configAwareCmd(configDir)
+			expectSignInSuccess(t)
+			changeAccessToken(t, configDir)
+			var r bytes.Buffer
+			r.WriteString("y\n") // Your CLI session has expired. Do you wish to login again as <email>?
+			_, stderr, err := cmd.ExecDebug(t, &r, "list", "projects")
+			require.Error(t, err)
+			assert.Contains(t, stderr, "Your CLI session has expired. Do you wish to log in again as")
+			expectSignInSuccess(t)
+		})
+
+		t.Run("expired session with quiet flag returns error", func(t *testing.T) {
+			cmd := configAwareCmd(configDir)
+			expectSignInSuccess(t)
+			changeAccessToken(t, configDir)
+			_, stderr, err := cmd.ExecDebug(t, nil, "list", "projects", "-q")
+			require.Error(t, err)
+			assert.Equal(t, "Your session has expired and you cannot reauthenticate when the --quiet flag is set", err.Error())
+			assert.NotContains(t, stderr, "Your CLI session has expired. Do you wish to log in again as")
+		})
+
 		t.Run("set up 2fa", func(t *testing.T) {
 			expectSignInSuccess(t)
 			ac := readConfig(t, configDir)
