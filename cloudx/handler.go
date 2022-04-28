@@ -565,6 +565,11 @@ func handleError(message string, res *http.Response, err error) error {
 	if e, ok := err.(*cloud.GenericOpenAPIError); ok {
 		return errors.Wrapf(err, "%s: %s", message, e.Body())
 	}
+
+	if res == nil {
+		return errors.Wrapf(err, "%s", message)
+	}
+
 	body, _ := ioutil.ReadAll(res.Body)
 	return errors.Wrapf(err, "%s: %s", message, body)
 }
