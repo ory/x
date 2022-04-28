@@ -254,7 +254,7 @@ func (h *SnakeCharmer) EnsureContext() (*AuthContext, error) {
 				}
 				return c, nil
 			}
-			return nil, errors.New("your session expired")
+			return nil, errors.New("Your session has expired")
 		}
 		_, _ = fmt.Fprintf(h.verboseErrWriter, "You are authenticated as: %s\n", c.IdentityTraits.Email)
 		return c, nil
