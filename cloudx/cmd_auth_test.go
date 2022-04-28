@@ -99,7 +99,7 @@ func TestAuthenticator(t *testing.T) {
 			changeAccessToken(t, configDir)
 			_, stderr, err := cmd.ExecDebug(t, nil, "list", "projects", "-q")
 			require.Error(t, err)
-			assert.Equal(t, "your session expired and you can not reauthenticate when flag --quiet is set", err.Error())
+			assert.Equal(t, "Your session has expired and you cannot reauthenticate when the --quiet flag is set", err.Error())
 			assert.NotContains(t, stderr, "Your CLI session has expired. Do you wish to log in again as")
 		})
 
