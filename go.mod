@@ -37,6 +37,7 @@ require (
 	github.com/imdario/mergo v0.3.12
 	github.com/inhies/go-bytesize v0.0.0-20210819104631-275770b98743
 	github.com/instana/go-sensor v1.41.1
+	github.com/instana/testify v1.6.2-0.20200721153833-94b1851f4d65
 	github.com/jackc/pgconn v1.10.1
 	github.com/jackc/pgx/v4 v4.14.0
 	github.com/jandelgado/gcov2lcov v1.0.5
@@ -86,12 +87,13 @@ require (
 	go.opentelemetry.io/contrib/propagators/b3 v1.4.0
 	go.opentelemetry.io/contrib/propagators/jaeger v1.4.0
 	go.opentelemetry.io/contrib/samplers/jaegerremote v0.0.0-20220314184135-32895002a444
-	go.opentelemetry.io/otel v1.6.3
+	go.opentelemetry.io/otel v1.7.0
 	go.opentelemetry.io/otel/bridge/opentracing v1.6.3
 	go.opentelemetry.io/otel/exporters/jaeger v1.5.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.6.3
-	go.opentelemetry.io/otel/sdk v1.6.3
-	go.opentelemetry.io/otel/trace v1.6.3
+	go.opentelemetry.io/otel/exporters/zipkin v1.7.0
+	go.opentelemetry.io/otel/sdk v1.7.0
+	go.opentelemetry.io/otel/trace v1.7.0
 	go.opentelemetry.io/proto/otlp v0.15.0
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 	golang.org/x/mod v0.5.1

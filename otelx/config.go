@@ -11,12 +11,22 @@ type JaegerConfig struct {
 	Sampling          JaegerSampling `json:"sampling"`
 }
 
+type ZipkinConfig struct {
+	ServerURL string         `json:"server_url"`
+	Sampling  ZipkinSampling `json:"sampling"`
+}
+
 type JaegerSampling struct {
 	ServerURL string `json:"server_url"`
 }
 
+type ZipkinSampling struct {
+	SamplingRatio float64 `json:"sampling_ratio"`
+}
+
 type ProvidersConfig struct {
 	Jaeger JaegerConfig `json:"jaeger"`
+	Zipkin ZipkinConfig `json:"zipkin"`
 }
 
 type Config struct {
