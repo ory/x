@@ -2,11 +2,16 @@ package otelx
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/instana/testify/assert"
 	"github.com/phayes/freeport"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/attribute"
@@ -14,6 +19,8 @@ import (
 
 	"github.com/ory/x/logrusx"
 )
+
+const testTracingComponent = "github.com/ory/x/otelx"
 
 func TestJaegerTracer(t *testing.T) {
 	done := make(chan struct{})
@@ -54,7 +61,7 @@ func TestJaegerTracer(t *testing.T) {
 		return nil
 	})
 
-	ot, err := New("github.com/ory/x/otelx", logrusx.New("ory/x", "1"), &Config{
+	ot, err := New(testTracingComponent, logrusx.New("ory/x", "1"), &Config{
 		ServiceName: "Ory X",
 		Provider:    "jaeger",
 		Providers: ProvidersConfig{
@@ -77,4 +84,63 @@ func TestJaegerTracer(t *testing.T) {
 		t.Fail()
 	}
 	require.NoError(t, errs.Wait())
+}
+
+type zipkinSpanRequest struct {
+	Id            string
+	TraceId       string
+	Timestamp     uint64
+	Name          string
+	LocalEndpoint struct {
+		ServiceName string
+	}
+	Tags map[string]string
+}
+
+func TestZipkinTracer(t *testing.T) {
+	done := make(chan struct{})
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer close(done)
+
+		body, err := io.ReadAll(r.Body)
+		assert.NoError(t, err)
+
+		var spans []zipkinSpanRequest
+		err = json.Unmarshal(body, &spans)
+
+		assert.NoError(t, err)
+
+		assert.NotEmpty(t, spans[0].Id)
+		assert.NotEmpty(t, spans[0].TraceId)
+		assert.Equal(t, "testspan", spans[0].Name)
+		assert.Equal(t, "ory x", spans[0].LocalEndpoint.ServiceName)
+		assert.NotNil(t, spans[0].Tags["testTag"])
+		assert.Equal(t, "true", spans[0].Tags["testTag"])
+	}))
+	defer ts.Close()
+
+	zt, err := New(testTracingComponent, logrusx.New("ory/x", "1"), &Config{
+		ServiceName: "Ory X",
+		Provider:    "zipkin",
+		Providers: ProvidersConfig{
+			Zipkin: ZipkinConfig{
+				ServerURL: ts.URL,
+				Sampling: ZipkinSampling{
+					SamplingRatio: 1,
+				},
+			},
+		},
+	})
+	assert.NoError(t, err)
+
+	trc := zt.Tracer()
+	_, span := trc.Start(context.Background(), "testspan")
+	span.SetAttributes(attribute.Bool("testTag", true))
+	span.End()
+
+	select {
+	case <-done:
+	case <-time.After(15 * time.Second):
+		t.Fatalf("Test server did not receive spans")
+	}
 }

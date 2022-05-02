@@ -44,11 +44,20 @@ func (t *Tracer) setup(name string) error {
 
 		t.tracer = tracer
 		t.l.Infof("Jaeger tracer configured! Sending spans to %s", t.Config.Providers.Jaeger.LocalAgentAddress)
+	case f.AddCase("zipkin"):
+		tracer, err := SetupZipkin(t, name)
+		if err != nil {
+			return err
+		}
+
+		t.tracer = tracer
+		t.l.Infof("Zipkin tracer configured! Sending spans to %s", t.Config.Providers.Zipkin.ServerURL)
 	case f.AddCase(""):
 		t.l.Infof("No tracer configured - skipping tracing setup")
 	default:
 		return f.ToUnknownCaseErr()
 	}
+
 	return nil
 }
 

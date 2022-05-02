@@ -9,7 +9,8 @@
       "type": "string",
       "description": "Set this to the tracing backend you wish to use. Supports Jaeger.",
       "enum": [
-        "jaeger"
+        "jaeger",
+        "zipkin"
       ],
       "examples": [
         "jaeger"
@@ -70,6 +71,36 @@
                   "format": "uri",
                   "examples": [
                     "http://localhost:5778/sampling"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "zipkin": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Configures the zipkin tracing backend.",
+          "properties": {
+            "server_url": {
+              "type": "string",
+              "description": "The address of the Zipkin server where spans should be sent to.",
+              "format": "uri"
+            },
+            "sampling": {
+              "type": "object",
+              "propertyNames": {
+                "enum": [
+                  "sampling_ratio"
+                ]
+              },
+              "additionalProperties": false,
+              "properties": {
+                "sampling_ratio": {
+                  "type": "integer",
+                  "description": "Sampling ratio for spans.",
+                  "examples": [
+                    "0.4"
                   ]
                 }
               }
