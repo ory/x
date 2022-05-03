@@ -16,6 +16,12 @@ type ZipkinConfig struct {
 	Sampling  ZipkinSampling `json:"sampling"`
 }
 
+type OTLPConfig struct {
+	ServerURL string       `json:"server_url"`
+	Insecure  bool         `json:"insecure"`
+	Sampling  OTLPSampling `json:"sampling"`
+}
+
 type JaegerSampling struct {
 	ServerURL string `json:"server_url"`
 }
@@ -24,9 +30,14 @@ type ZipkinSampling struct {
 	SamplingRatio float64 `json:"sampling_ratio"`
 }
 
+type OTLPSampling struct {
+	SamplingRatio float64 `json:"sampling_ratio"`
+}
+
 type ProvidersConfig struct {
 	Jaeger JaegerConfig `json:"jaeger"`
 	Zipkin ZipkinConfig `json:"zipkin"`
+	OTLP   OTLPConfig   `json:"otlp"`
 }
 
 type Config struct {

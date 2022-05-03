@@ -1,13 +1,17 @@
 package otelx
 
 import (
+	"compress/gzip"
+	"compress/zlib"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
@@ -16,11 +20,50 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/protobuf/proto"
+
+	tracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 
 	"github.com/ory/x/logrusx"
 )
 
 const testTracingComponent = "github.com/ory/x/otelx"
+
+func decodeResponseBody(t *testing.T, r *http.Request) []byte {
+	var reader io.ReadCloser
+	switch r.Header.Get("Content-Encoding") {
+	case "gzip":
+		var err error
+		reader, err = gzip.NewReader(r.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+	case "deflate":
+		var err error
+		reader, err = zlib.NewReader(r.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+	default:
+		reader = r.Body
+	}
+	respBody, err := ioutil.ReadAll(reader)
+	require.NoError(t, err)
+	require.NoError(t, reader.Close())
+	return respBody
+}
+
+type zipkinSpanRequest struct {
+	Id            string
+	TraceId       string
+	Timestamp     uint64
+	Name          string
+	LocalEndpoint struct {
+		ServiceName string
+	}
+	Tags map[string]string
+}
 
 func TestJaegerTracer(t *testing.T) {
 	done := make(chan struct{})
@@ -61,7 +104,7 @@ func TestJaegerTracer(t *testing.T) {
 		return nil
 	})
 
-	ot, err := New(testTracingComponent, logrusx.New("ory/x", "1"), &Config{
+	jt, err := New(testTracingComponent, logrusx.New("ory/x", "1"), &Config{
 		ServiceName: "Ory X",
 		Provider:    "jaeger",
 		Providers: ProvidersConfig{
@@ -72,7 +115,7 @@ func TestJaegerTracer(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	trc := ot.Tracer()
+	trc := jt.Tracer()
 	_, span := trc.Start(context.Background(), "testSpan")
 	span.SetAttributes(attribute.Bool("testAttribute", true))
 	span.End()
@@ -80,21 +123,9 @@ func TestJaegerTracer(t *testing.T) {
 	select {
 	case <-done:
 	case <-time.After(15 * time.Second):
-		t.Log("expected to receive span, but did not receive any")
-		t.Fail()
+		t.Fatalf("Test server did not receive spans")
 	}
 	require.NoError(t, errs.Wait())
-}
-
-type zipkinSpanRequest struct {
-	Id            string
-	TraceId       string
-	Timestamp     uint64
-	Name          string
-	LocalEndpoint struct {
-		ServiceName string
-	}
-	Tags map[string]string
 }
 
 func TestZipkinTracer(t *testing.T) {
@@ -136,6 +167,59 @@ func TestZipkinTracer(t *testing.T) {
 	trc := zt.Tracer()
 	_, span := trc.Start(context.Background(), "testspan")
 	span.SetAttributes(attribute.Bool("testTag", true))
+	span.End()
+
+	select {
+	case <-done:
+	case <-time.After(15 * time.Second):
+		t.Fatalf("Test server did not receive spans")
+	}
+}
+
+func TestOTLPTracer(t *testing.T) {
+	done := make(chan struct{})
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body := decodeResponseBody(t, r)
+
+		var res tracepb.ExportTraceServiceRequest
+		err := proto.Unmarshal(body, &res)
+		require.NoError(t, err, "must be able to unmarshal traces")
+
+		resourceSpans := res.GetResourceSpans()
+		spans := resourceSpans[0].GetScopeSpans()[0].GetSpans()
+		assert.Equal(t, len(spans), 1)
+
+		assert.NotEmpty(t, spans[0].GetSpanId())
+		assert.NotEmpty(t, spans[0].GetTraceId())
+		assert.Equal(t, "testSpan", spans[0].GetName())
+		assert.Equal(t, "testAttribute", spans[0].Attributes[0].Key)
+
+		close(done)
+	}))
+	defer ts.Close()
+
+	tsu, err := url.Parse(ts.URL)
+	require.NoError(t, err)
+
+	ot, err := New(testTracingComponent, logrusx.New("ory/x", "1"), &Config{
+		ServiceName: "ORY X",
+		Provider:    "otel",
+		Providers: ProvidersConfig{
+			OTLP: OTLPConfig{
+				ServerURL: tsu.Host,
+				Insecure:  true,
+				Sampling: OTLPSampling{
+					SamplingRatio: 1,
+				},
+			},
+		},
+	})
+	assert.NoError(t, err)
+
+	trc := ot.Tracer()
+	_, span := trc.Start(context.Background(), "testSpan")
+	span.SetAttributes(attribute.Bool("testAttribute", true))
 	span.End()
 
 	select {
