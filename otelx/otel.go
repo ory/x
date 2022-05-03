@@ -52,6 +52,14 @@ func (t *Tracer) setup(name string) error {
 
 		t.tracer = tracer
 		t.l.Infof("Zipkin tracer configured! Sending spans to %s", t.Config.Providers.Zipkin.ServerURL)
+	case f.AddCase("otel"):
+		tracer, err := SetupOTLP(t, name)
+		if err != nil {
+			return err
+		}
+
+		t.tracer = tracer
+		t.l.Infof("OTLP tracer configured! Sending spans to %s", t.Config.Providers.OTLP.ServerURL)
 	case f.AddCase(""):
 		t.l.Infof("No tracer configured - skipping tracing setup")
 	default:
