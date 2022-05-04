@@ -102,10 +102,10 @@
               "additionalProperties": false,
               "properties": {
                 "sampling_ratio": {
-                  "type": "integer",
+                  "type": "number",
                   "description": "Sampling ratio for spans.",
                   "examples": [
-                    "0.4"
+                    0.4
                   ]
                 }
               }
@@ -154,10 +154,10 @@
               "additionalProperties": false,
               "properties": {
                 "sampling_ratio": {
-                  "type": "integer",
+                  "type": "number",
                   "description": "Sampling ratio for spans.",
                   "examples": [
-                    "0.4"
+                    0.4
                   ]
                 }
               }
