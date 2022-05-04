@@ -1,4 +1,7 @@
 {
+  "foo": {
+    "other": "fdsa"
+  },
   "nested": {
     "nested": {
       "arr": [

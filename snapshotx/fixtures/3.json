@@ -1,5 +1,5 @@
 {
-  "ignore": [
+  "ignore_nested": [
     "created_at"
   ],
   "content": {

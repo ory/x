@@ -38,11 +38,12 @@ func TestDeleteMatches(t *testing.T) {
 	for k, f := range files {
 		t.Run(fmt.Sprintf("file=%s/fn", k), func(t *testing.T) {
 			var tc struct {
-				Content json.RawMessage `json:"content"`
-				Ignore  []string        `json:"ignore"`
+				Content      json.RawMessage `json:"content"`
+				IgnoreNested []string        `json:"ignore_nested"`
+				IgnoreExact  []string        `json:"ignore_exact"`
 			}
 			require.NoError(t, json.Unmarshal(f, &tc))
-			SnapshotTExceptMatchingKeys(t, tc.Content, tc.Ignore)
+			SnapshotT(t, tc.Content, ExceptNestedKeys(tc.IgnoreNested), ExceptPaths(tc.IgnoreExact))
 		})
 	}
 }
