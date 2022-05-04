@@ -15,6 +15,54 @@ import (
 	"github.com/tidwall/sjson"
 )
 
+type (
+	ExceptOpt interface {
+		apply(t *testing.T, raw []byte) []byte
+	}
+	exceptPaths      []string
+	exceptNestedKeys []string
+)
+
+func (e exceptPaths) apply(t *testing.T, raw []byte) []byte {
+	for _, ee := range e {
+		var err error
+		raw, err = sjson.DeleteBytes(raw, ee)
+		require.NoError(t, err)
+	}
+	return raw
+}
+
+func (e exceptNestedKeys) apply(t *testing.T, raw []byte) []byte {
+	parsed := gjson.ParseBytes(raw)
+	require.True(t, parsed.IsObject() || parsed.IsArray())
+	return deleteMatches(t, "", parsed, e, []string{}, raw)
+}
+
+func ExceptPaths(keys ...string) ExceptOpt {
+	return exceptPaths(keys)
+}
+
+func ExceptNestedKeys(nestedKeys ...string) ExceptOpt {
+	return exceptNestedKeys(nestedKeys)
+}
+
+func SnapshotT(t *testing.T, actual interface{}, except ...ExceptOpt) {
+	compare, err := json.MarshalIndent(actual, "", "  ")
+	require.NoError(t, err, "%+v", actual)
+	for _, e := range except {
+		compare = e.apply(t, compare)
+	}
+
+	cupaloy.New(
+		cupaloy.CreateNewAutomatically(true),
+		cupaloy.FailOnUpdate(true),
+		cupaloy.SnapshotFileExtension(".json"),
+	).SnapshotT(t, compare)
+}
+
+// SnapshotTExcept
+//
+// DEPRECATED: please use SnapshotT instead
 func SnapshotTExcept(t *testing.T, actual interface{}, except []string) {
 	compare, err := json.MarshalIndent(actual, "", "  ")
 	require.NoError(t, err, "%+v", actual)
@@ -63,6 +111,8 @@ func deleteMatches(t *testing.T, key string, result gjson.Result, matches []stri
 //
 // So instead of having deeply nested keys like `foo.bar.baz.0.key_to_delete` you can have `key_to_delete` and
 // all occurences of `key_to_delete` will be removed.
+//
+// DEPRECATED: please use SnapshotT instead
 func SnapshotTExceptMatchingKeys(t *testing.T, actual interface{}, matches []string) {
 	compare, err := json.MarshalIndent(actual, "", "  ")
 	require.NoError(t, err, "%+v", actual)
