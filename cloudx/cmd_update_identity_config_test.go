@@ -36,14 +36,14 @@ func TestProjectIdentityConfig(t *testing.T) {
 			"courier.smtp.from_name",
 		})
 
-		snapshotx.SnapshotTExcept(t, json.RawMessage(stdout), []string{
+		snapshotx.SnapshotT(t, json.RawMessage(stdout), snapshotx.ExceptPaths(
 			"serve.public.base_url",
 			"serve.admin.base_url",
 			"session.cookie.domain",
 			"session.cookie.name",
 			"cookies.domain",
 			"courier.smtp.from_name",
-		})
+		))
 	})
 
 	t.Run("prints good error messages for failing schemas", func(t *testing.T) {
@@ -51,7 +51,7 @@ func TestProjectIdentityConfig(t *testing.T) {
 		require.ErrorIs(t, err, cmdx.ErrNoPrintButFail)
 
 		t.Run("stdout", func(t *testing.T) {
-			snapshotx.SnapshotTExcept(t, stdout, nil)
+			snapshotx.SnapshotT(t, stdout)
 		})
 
 		t.Run("stderr", func(t *testing.T) {

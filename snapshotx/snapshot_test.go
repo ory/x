@@ -43,7 +43,7 @@ func TestDeleteMatches(t *testing.T) {
 				IgnoreExact  []string        `json:"ignore_exact"`
 			}
 			require.NoError(t, json.Unmarshal(f, &tc))
-			SnapshotT(t, tc.Content, ExceptNestedKeys(tc.IgnoreNested), ExceptPaths(tc.IgnoreExact))
+			SnapshotT(t, tc.Content, ExceptNestedKeys(tc.IgnoreNested...), ExceptPaths(tc.IgnoreExact...))
 		})
 	}
 }

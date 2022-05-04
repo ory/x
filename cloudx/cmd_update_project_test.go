@@ -40,7 +40,7 @@ func TestUpdateProject(t *testing.T) {
 			"services.identity.config.session.cookie",
 		})
 
-		snapshotx.SnapshotTExcept(t, json.RawMessage(stdout), []string{
+		snapshotx.SnapshotT(t, json.RawMessage(stdout), snapshotx.ExceptPaths(
 			"id",
 			"revision_id",
 			"slug",
@@ -49,7 +49,7 @@ func TestUpdateProject(t *testing.T) {
 			"services.identity.config.session.cookie.domain",
 			"services.identity.config.session.cookie.name",
 			"services.identity.config.cookies.domain",
-		})
+		))
 	})
 	t.Run("is able to update a projects name", func(t *testing.T) {
 		name := fakeName()
@@ -64,7 +64,7 @@ func TestUpdateProject(t *testing.T) {
 		require.ErrorIs(t, err, cmdx.ErrNoPrintButFail)
 
 		t.Run("stdout", func(t *testing.T) {
-			snapshotx.SnapshotTExcept(t, stdout, nil)
+			snapshotx.SnapshotT(t, stdout)
 		})
 		t.Run("stderr", func(t *testing.T) {
 			assert.Contains(t, stderr, "oneOf failed")

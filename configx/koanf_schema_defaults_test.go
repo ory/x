@@ -33,5 +33,5 @@ func TestKoanfSchemaDefaults(t *testing.T) {
 
 	require.NoError(t, k.Load(def, nil))
 
-	snapshotx.SnapshotTExcept(t, k.All(), nil)
+	snapshotx.SnapshotT(t, k.All())
 }
