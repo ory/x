@@ -117,7 +117,7 @@ func TestListPathsWithRecursion(t *testing.T) {
 			actual, err := ListPathsWithRecursion(context.Background(), "test.json", c, tc.recursion)
 			require.NoError(t, err)
 
-			snapshotx.SnapshotTExcept(t, actual, nil)
+			snapshotx.SnapshotT(t, actual)
 		})
 	}
 }
@@ -296,7 +296,7 @@ func TestListPaths(t *testing.T) {
 			}
 			require.NoError(t, err)
 
-			snapshotx.SnapshotTExcept(t, actual, nil)
+			snapshotx.SnapshotT(t, actual)
 		})
 	}
 }

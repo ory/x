@@ -35,7 +35,7 @@ func TestEmbedSources(t *testing.T) {
 				))
 				require.NoError(t, err)
 
-				snapshotx.SnapshotTExcept(t, actual, nil)
+				snapshotx.SnapshotT(t, actual)
 			})
 
 			return nil
@@ -48,7 +48,7 @@ func TestEmbedSources(t *testing.T) {
 		))
 		require.NoError(t, err)
 
-		snapshotx.SnapshotTExcept(t, actual, nil)
+		snapshotx.SnapshotT(t, actual)
 	})
 
 	t.Run("fails on invalid source", func(t *testing.T) {
