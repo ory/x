@@ -1,6 +1,8 @@
 package tlsx
 
 import (
+	"context"
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/rand"
@@ -13,15 +15,19 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"path/filepath"
+	"sync/atomic"
 	"time"
 
 	"github.com/pkg/errors"
+
+	"github.com/ory/x/watcherx"
 )
 
 // ErrNoCertificatesConfigured is returned when no TLS configuration was found.
 var ErrNoCertificatesConfigured = errors.New("no tls configuration was found")
 
-// ErrInvalidCertificateConfiguration is returned when an invaloid TLS configuration was found.
+// ErrInvalidCertificateConfiguration is returned when an invalid TLS configuration was found.
 var ErrInvalidCertificateConfiguration = errors.New("tls configuration is invalid")
 
 // HTTPSCertificate returns loads a HTTP over TLS Certificate by looking at environment variables.
@@ -54,7 +60,7 @@ func CertificateHelpMessage(prefix string) string {
 `
 }
 
-// Certificate returns loads a TLS Certificate by looking at environment variables.
+// Certificate returns a TLS Certificate by looking at environment variables.
 func Certificate(
 	certString, keyString string,
 	certPath, keyPath string,
@@ -89,8 +95,76 @@ func Certificate(
 	return nil, errors.WithStack(ErrInvalidCertificateConfiguration)
 }
 
-// PublicKey returns the public key for a given key or nul.
-func PublicKey(key interface{}) interface{} {
+// GetCertificate returns a function for use with
+// "net/tls".Config.GetCertificate.
+//
+// The certificate and private key are read from the specified filesystem paths.
+// The certificate directory (!) is watched for changes, upon which the cert+key
+// are reloaded in the background. Errors during reloading are deduplicated and
+// reported through the errs channel if it is not nil. Background reloading
+// stops when the provided context is canceled.
+//
+// The returned function always yields the latest successfully loaded
+// certificate; ClientHelloInfo is unused.
+func GetCertificate(
+	ctx context.Context,
+	certPath, keyPath string,
+	errs chan<- error,
+) (func(*tls.ClientHelloInfo) (*tls.Certificate, error), error) {
+	if certPath == "" || keyPath == "" {
+		return nil, errors.WithStack(ErrNoCertificatesConfigured)
+	}
+	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
+	if err != nil {
+		return nil, errors.WithStack(fmt.Errorf("unable to load X509 key pair from files: %v", err))
+	}
+	var store atomic.Value
+	store.Store(&cert)
+
+	events := make(chan watcherx.Event)
+	// The cert could change without the key changing, but not the other way around.
+	// Hence, we watch the cert directory only.
+	_, err = watcherx.WatchDirectory(ctx, filepath.Dir(certPath), events)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	go func() {
+		var lastReportedError string
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-events:
+				cert, err := tls.LoadX509KeyPair(certPath, keyPath)
+				if err == nil {
+					store.Store(&cert)
+					lastReportedError = ""
+					continue
+				}
+				err = fmt.Errorf("unable to load X509 key pair from files: %v", err)
+				if err.Error() == lastReportedError { // same message as before: don't spam the error channel
+					continue
+				}
+				// fresh error
+				select {
+				case errs <- errors.WithStack(err):
+					lastReportedError = err.Error()
+				case <-time.After(500 * time.Millisecond):
+				}
+			}
+		}
+	}()
+
+	return func(_ *tls.ClientHelloInfo) (*tls.Certificate, error) {
+		if cert, ok := store.Load().(*tls.Certificate); ok {
+			return cert, nil
+		}
+		return nil, errors.WithStack(ErrNoCertificatesConfigured)
+	}, nil
+}
+
+// PublicKey returns the public key for a given private key, or nil.
+func PublicKey(key crypto.PrivateKey) interface{ Equal(x crypto.PublicKey) bool } {
 	switch k := key.(type) {
 	case *rsa.PrivateKey:
 		return &k.PublicKey
