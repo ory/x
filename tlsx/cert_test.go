@@ -5,7 +5,6 @@ import (
 	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -106,9 +105,9 @@ YgKmGaECgYA0Zkwy9z1Ws4ANjG+YlaUxpKLcJFdyCHKdFr65WYsmGqNkJfGSGeB6
 RHMZNMoDTRhmhQhj8M7N+FMtZAUOMddZ/1cvREtFW7+66w+XZvj9CQ/uectp/qb+
 6dnObrdmLiZ+U/NzGLKmFgJTc9X7fwm11PSliZK0WrdnXKnzkh9OhQ==
 -----END RSA PRIVATE KEY-----`
-	tmpCertFile, _ := ioutil.TempFile("", "test-cert")
+	tmpCertFile, _ := os.CreateTemp("", "test-cert")
 	tmpCert := tmpCertFile.Name()
-	tmpKeyFile, _ := ioutil.TempFile("", "test-key")
+	tmpKeyFile, _ := os.CreateTemp("", "test-key")
 	tmpKey := tmpKeyFile.Name()
 	defer func() {
 		_ = os.Remove(tmpCert)
@@ -118,8 +117,8 @@ RHMZNMoDTRhmhQhj8M7N+FMtZAUOMddZ/1cvREtFW7+66w+XZvj9CQ/uectp/qb+
 		os.Setenv("HTTPS_TLS_KEY", "")
 		os.Setenv("HTTPS_TLS_CERT", "")
 	}()
-	_ = ioutil.WriteFile(tmpCert, []byte(certFileContent), 0600)
-	_ = ioutil.WriteFile(tmpKey, []byte(keyFileContent), 0600)
+	_ = os.WriteFile(tmpCert, []byte(certFileContent), 0o600)
+	_ = os.WriteFile(tmpKey, []byte(keyFileContent), 0o600)
 
 	// 1. no TLS
 	require.NoError(t, os.Setenv("HTTPS_TLS_KEY_PATH", ""))
