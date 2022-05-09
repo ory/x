@@ -22,16 +22,16 @@ const (
 
 // TracedBCrypt implements the Hasher interface.
 type TracedBCrypt struct {
-	WorkFactor int
+	GetWorkFactor func(context.Context) int
 }
 
 // Hash returns the hashed string or an error.
 func (b *TracedBCrypt) Hash(ctx context.Context, data []byte) ([]byte, error) {
 	span, _ := opentracing.StartSpanFromContext(ctx, BCryptHashOpName)
 	defer span.Finish()
-	span.SetTag(BCryptWorkFactorTagName, b.WorkFactor)
+	span.SetTag(BCryptWorkFactorTagName, b.GetWorkFactor(ctx))
 
-	s, err := bcrypt.GenerateFromPassword(data, b.WorkFactor)
+	s, err := bcrypt.GenerateFromPassword(data, b.GetWorkFactor(ctx))
 	if err != nil {
 		ext.Error.Set(span, true)
 		return nil, errors.WithStack(err)
@@ -43,7 +43,7 @@ func (b *TracedBCrypt) Hash(ctx context.Context, data []byte) ([]byte, error) {
 func (b *TracedBCrypt) Compare(ctx context.Context, hash, data []byte) error {
 	span, _ := opentracing.StartSpanFromContext(ctx, BCryptCompareOpName)
 	defer span.Finish()
-	span.SetTag(BCryptWorkFactorTagName, b.WorkFactor)
+	span.SetTag(BCryptWorkFactorTagName, b.GetWorkFactor(ctx))
 
 	if err := bcrypt.CompareHashAndPassword(hash, data); err != nil {
 		ext.Error.Set(span, true)
