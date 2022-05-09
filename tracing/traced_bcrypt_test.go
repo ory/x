@@ -12,7 +12,9 @@ import (
 func TestCompare(t *testing.T) {
 	workfactor := 10
 	hasher := &tracing.TracedBCrypt{
-		WorkFactor: workfactor,
+		GetWorkFactor: func(ctx context.Context) int {
+			return workfactor
+		},
 	}
 
 	expectedPassword := "hello world"
@@ -112,7 +114,9 @@ func TestHashCreatesSpanWithCorrectTags(t *testing.T) {
 		t.Run(test.testDescription, func(t *testing.T) {
 			mockedTracer.Reset()
 			hasher := &tracing.TracedBCrypt{
-				WorkFactor: test.workFactor,
+				GetWorkFactor: func(context.Context) int {
+					return test.workFactor
+				},
 			}
 
 			_, err := hasher.Hash(context.TODO(), password)
