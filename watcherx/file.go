@@ -47,7 +47,10 @@ func WatchFile(ctx context.Context, file string, c EventChannel) (Watcher, error
 // streamFileEvents watches for file changes and supports symlinks which requires several workarounds due to limitations of fsnotify.
 // Argument `resolvedFile` is the resolved symlink path of the file, or it is the watchedFile name itself. If `resolvedFile` is empty, then the watchedFile does not exist.
 func streamFileEvents(ctx context.Context, watcher *fsnotify.Watcher, c EventChannel, sendNow <-chan struct{}, sendNowDone chan<- int, watchedFile, resolvedFile string) {
-	defer close(c)
+	defer func() {
+		close(c)
+		_ = watcher.Close()
+	}()
 	eventSource := source(watchedFile)
 	removeDirectFileWatcher := func() {
 		_ = watcher.Remove(watchedFile)
@@ -67,7 +70,6 @@ func streamFileEvents(ctx context.Context, watcher *fsnotify.Watcher, c EventCha
 	for {
 		select {
 		case <-ctx.Done():
-			_ = watcher.Close()
 			return
 		case <-sendNow:
 			if resolvedFile == "" {

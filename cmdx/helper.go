@@ -157,12 +157,16 @@ func Exec(t testing.TB, cmd *cobra.Command, stdIn io.Reader, args ...string) (st
 
 func ExecCtx(ctx context.Context, cmd *cobra.Command, stdIn io.Reader, args ...string) (string, string, error) {
 	stdOut, stdErr := &bytes.Buffer{}, &bytes.Buffer{}
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	err := ExecBackgroundCtx(ctx, cmd, stdIn, stdOut, stdErr, args...).Wait()
 	return stdOut.String(), stdErr.String(), err
 }
 
 func ExecDebugCtx(ctx context.Context, t *testing.T, cmd *cobra.Command, stdIn io.Reader, args ...string) (string, string, error) {
 	stdOut, stdErr := &bytes.Buffer{}, &bytes.Buffer{}
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	err := ExecBackgroundCtx(ctx, cmd, stdIn, io.MultiWriter(os.Stdout, stdOut), io.MultiWriter(os.Stderr, stdErr), args...).Wait()
 	return stdOut.String(), stdErr.String(), err
 }
