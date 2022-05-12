@@ -62,6 +62,7 @@ func (t *Tracer) setup(name string) error {
 		t.l.Infof("OTLP tracer configured! Sending spans to %s", t.Config.Providers.OTLP.ServerURL)
 	case f.AddCase(""):
 		t.l.Infof("No tracer configured - skipping tracing setup")
+		t.tracer = trace.NewNoopTracerProvider().Tracer(name)
 	default:
 		return f.ToUnknownCaseErr()
 	}
