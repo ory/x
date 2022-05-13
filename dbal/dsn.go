@@ -49,5 +49,11 @@ func NewSharedUniqueInMemorySQLiteDatabase() (string, error) {
 func NewSQLiteTestDatabase(t interface {
 	TempDir() string
 }) string {
-	return fmt.Sprintf("sqlite://file:%s?_fk=true&mode=memory&cache=shared", t.TempDir())
+	return NewSQLiteInMemoryDatabase(t.TempDir())
+}
+
+// NewSQLiteInMemoryDatabase creates a new unique SQLite database
+// which is shared amongst all callers and identified by an individual file name.
+func NewSQLiteInMemoryDatabase(name string) string {
+	return fmt.Sprintf("sqlite://file:%s?_fk=true&mode=memory&cache=shared", name)
 }
