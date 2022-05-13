@@ -18,7 +18,7 @@ To improve this file please make your change against the appropriate "./cmd/*.go
 A sample text
 subChild1
 
-&lt;[some argument]&gt;
+<[some argument]>
 
 
 ```
