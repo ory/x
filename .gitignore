@@ -2,3 +2,5 @@ vendor
 .idea
 coverage.txt
 node_modules/
+**/*.pprof
+**/memstats.*.txt
