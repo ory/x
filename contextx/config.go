@@ -2,8 +2,10 @@ package contextx
 
 import (
 	"context"
-	"github.com/ory/x/configx"
+
 	"github.com/pkg/errors"
+
+	"github.com/ory/x/configx"
 )
 
 // contextKey is a value for use with context.WithValue.
