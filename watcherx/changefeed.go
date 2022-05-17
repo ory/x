@@ -18,7 +18,7 @@ import (
 )
 
 type row struct {
-	key   string
+	key   sql.NullString
 	value string
 }
 
@@ -61,6 +61,8 @@ func NewChangeFeedConnection(ctx context.Context, l *logrusx.Logger, dsn string)
 	return cx, nil
 }
 
+const heartBeatInterval = time.Second
+
 // WatchChangeFeed sends changed rows on the channel. To cancel the execution, cancel the context!
 //
 // Watcher.DispatchNow() does not have an effect in this method.
@@ -69,13 +71,13 @@ func NewChangeFeedConnection(ctx context.Context, l *logrusx.Logger, dsn string)
 func WatchChangeFeed(ctx context.Context, cx *sqlx.DB, tableName string, c EventChannel, cursor time.Time) (_ Watcher, err error) {
 	var rows *sql.Rows
 	if cursor.IsZero() {
-		rows, err = cx.QueryContext(ctx, fmt.Sprintf("EXPERIMENTAL CHANGEFEED FOR %s", tableName))
+		rows, err = cx.QueryContext(ctx, fmt.Sprintf("EXPERIMENTAL CHANGEFEED FOR %s RESOLVED = $1", tableName), heartBeatInterval.String())
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 	} else {
 		var err error
-		rows, err = cx.QueryContext(ctx, fmt.Sprintf("EXPERIMENTAL CHANGEFEED FOR %s WITH CURSOR = $1", tableName), fmt.Sprintf("%d", cursor.UnixNano()))
+		rows, err = cx.QueryContext(ctx, fmt.Sprintf("EXPERIMENTAL CHANGEFEED FOR %s WITH CURSOR = $1, RESOLVED = $2", tableName), fmt.Sprintf("%d", cursor.UnixNano()), heartBeatInterval.String())
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
@@ -104,7 +106,7 @@ func WatchChangeFeed(ctx context.Context, cx *sqlx.DB, tableName string, c Event
 
 		for rows.Next() {
 			var r row
-			var table string
+			var table sql.NullString
 
 			if err := errors.WithStack(rows.Scan(&table, &r.key, &r.value)); err != nil {
 				c <- &ErrorEvent{
@@ -113,7 +115,7 @@ func WatchChangeFeed(ctx context.Context, cx *sqlx.DB, tableName string, c Event
 				continue
 			}
 
-			keys := gjson.Parse(r.key)
+			keys := gjson.Parse(r.key.String)
 			eventSource := keys.Raw
 
 			// For some reason this is an array - maybe because of composite primary keys?
@@ -125,6 +127,11 @@ func WatchChangeFeed(ctx context.Context, cx *sqlx.DB, tableName string, c Event
 				}
 
 				eventSource = strings.Join(ids, "/")
+			}
+
+			if gjson.Get(r.value, "resolved").Exists() {
+				// Heartbeat
+				continue
 			}
 
 			after := gjson.Get(r.value, "after")
@@ -142,11 +149,26 @@ func WatchChangeFeed(ctx context.Context, cx *sqlx.DB, tableName string, c Event
 	}()
 
 	go func() {
+		didTimeout := false
 		// naive attempt at context cancellation
 		select {
 		case <-ctx.Done():
+		case <-time.After(heartBeatInterval * 10):
+			// We wait for done and close it as `rows.Next()` will exit once we close the rows.
+			didTimeout = true
+			go func() {
+				<-done
+				close(done)
+			}()
 		case <-done:
 			close(done)
+		}
+
+		if err := rows.Err(); err != nil {
+			c <- &ErrorEvent{
+				error: err,
+			}
+			return
 		}
 
 		if err := rows.Close(); err != nil {
@@ -161,6 +183,12 @@ func WatchChangeFeed(ctx context.Context, cx *sqlx.DB, tableName string, c Event
 				error: err,
 			}
 			return
+		}
+
+		if didTimeout {
+			c <- &ErrorEvent{
+				error: errors.New("unable to detect changefeed heartbeat in time"),
+			}
 		}
 		// end close
 	}()
