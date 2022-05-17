@@ -24,7 +24,7 @@ func TestGoMigrations(t *testing.T) {
 			Direction: "up",
 			Type:      "go",
 			DBType:    "all",
-			Runner: func(migration popx.Migration, _ *pop.Connection, tx *pop.Tx) error {
+			Runner: func(popx.Migration, *pop.Connection, *pop.Tx) error {
 				called[0] = time.Now()
 				return nil
 			},
@@ -36,7 +36,7 @@ func TestGoMigrations(t *testing.T) {
 			Direction: "down",
 			Type:      "go",
 			DBType:    "all",
-			Runner: func(migration popx.Migration, _ *pop.Connection, tx *pop.Tx) error {
+			Runner: func(_ popx.Migration, _ *pop.Connection, _ *pop.Tx) error {
 				called[1] = time.Now()
 				return nil
 			},
@@ -48,7 +48,7 @@ func TestGoMigrations(t *testing.T) {
 			Direction: "up",
 			Type:      "go",
 			DBType:    "all",
-			Runner: func(migration popx.Migration, _ *pop.Connection, tx *pop.Tx) error {
+			Runner: func(_ popx.Migration, _ *pop.Connection, _ *pop.Tx) error {
 				called[2] = time.Now()
 				return nil
 			},
@@ -60,33 +60,47 @@ func TestGoMigrations(t *testing.T) {
 			Direction: "down",
 			Type:      "go",
 			DBType:    "all",
-			Runner: func(migration popx.Migration, _ *pop.Connection, tx *pop.Tx) error {
+			Runner: func(_ popx.Migration, _ *pop.Connection, _ *pop.Tx) error {
 				called[3] = time.Now()
 				return nil
 			},
 		},
 	}
 
-	called = make([]time.Time, len(goMigrations))
+	t.Run("tc=calls_all_migrations", func(t *testing.T) {
+		called = make([]time.Time, len(goMigrations))
 
-	c, err := pop.NewConnection(&pop.ConnectionDetails{
-		URL: "sqlite://file::memory:?_fk=true",
+		c, err := pop.NewConnection(&pop.ConnectionDetails{
+			URL: "sqlite://file::memory:?_fk=true",
+		})
+		require.NoError(t, err)
+		require.NoError(t, c.Open())
+
+		mb, err := popx.NewMigrationBox(transactionalMigrations, popx.NewMigrator(c, logrusx.New("", ""), nil, 0), popx.WithGoMigrations(goMigrations))
+		require.NoError(t, err)
+		require.NoError(t, mb.Up(context.Background()))
+
+		assert.Zero(t, called[1])
+		assert.Zero(t, called[3])
+		assert.NotZero(t, called[0])
+		assert.NotZero(t, called[2])
+		assert.True(t, called[0].Before(called[2]))
+
+		require.NoError(t, mb.Down(context.Background(), -1))
+		assert.NotZero(t, called[1])
+		assert.NotZero(t, called[3])
+		assert.True(t, called[3].Before(called[1]))
 	})
-	require.NoError(t, err)
-	require.NoError(t, c.Open())
 
-	mb, err := popx.NewMigrationBox(transactionalMigrations, popx.NewMigrator(c, logrusx.New("", ""), nil, 0), popx.WithGoMigrations(goMigrations))
-	require.NoError(t, err)
-	require.NoError(t, mb.Up(context.Background()))
+	t.Run("tc=errs_on_missing_down_migration", func(t *testing.T) {
+		c, err := pop.NewConnection(&pop.ConnectionDetails{
+			URL: "sqlite://file::memory:?_fk=true",
+		})
+		require.NoError(t, err)
+		require.NoError(t, c.Open())
 
-	assert.Zero(t, called[1])
-	assert.Zero(t, called[3])
-	assert.NotZero(t, called[0])
-	assert.NotZero(t, called[2])
-	assert.True(t, called[0].Before(called[2]))
+		_, err = popx.NewMigrationBox(transactionalMigrations, popx.NewMigrator(c, logrusx.New("", ""), nil, 0), popx.WithGoMigrations(goMigrations[:1]))
+		require.Error(t, err)
+	})
 
-	require.NoError(t, mb.Down(context.Background(), -1))
-	assert.NotZero(t, called[1])
-	assert.NotZero(t, called[3])
-	assert.True(t, called[3].Before(called[1]))
 }

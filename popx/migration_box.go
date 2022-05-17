@@ -3,11 +3,14 @@ package popx
 import (
 	"io"
 	"io/fs"
+	"regexp"
 	"sort"
 	"strings"
+	"testing"
 
 	"github.com/gobuffalo/pop/v6"
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/require"
 
 	"github.com/ory/x/logrusx"
 )
@@ -53,6 +56,57 @@ func WithGoMigrations(migrations Migrations) func(*MigrationBox) *MigrationBox {
 	}
 }
 
+// WithTestdata
+func WithTestdata(t *testing.T, testdata fs.FS) func(*MigrationBox) *MigrationBox {
+	testdataPattern := regexp.MustCompile(`^(\d+)_testdata.sql`)
+	return func(m *MigrationBox) *MigrationBox {
+		require.NoError(t, fs.WalkDir(testdata, ".", func(path string, info fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if info.IsDir() {
+				return nil
+			}
+			match := testdataPattern.FindStringSubmatch(info.Name())
+			if len(match) != 2 {
+				return nil
+			}
+			version := match[1]
+			m.Migrations["up"] = append(m.Migrations["up"], Migration{
+				Version:   version + "9", // run testdata after version
+				Path:      path,
+				Name:      "testdata",
+				DBType:    "all",
+				Direction: "up",
+				Type:      "sql",
+				Runner: func(m Migration, _ *pop.Connection, tx *pop.Tx) error {
+					b, err := fs.ReadFile(testdata, m.Path)
+					if err != nil {
+						return err
+					}
+					_, err = tx.Exec(string(b))
+					return err
+				},
+			})
+			m.Migrations["down"] = append(m.Migrations["down"], Migration{
+				Version:   version + "9", // run testdata after version
+				Path:      path,
+				Name:      "testdata",
+				DBType:    "all",
+				Direction: "down",
+				Type:      "sql",
+				Runner: func(m Migration, _ *pop.Connection, tx *pop.Tx) error {
+					return nil
+				},
+			})
+
+			return nil
+		}))
+
+		return m
+	}
+}
+
 // NewMigrationBox creates a new migration box.
 func NewMigrationBox(dir fs.FS, m *Migrator, opts ...func(*MigrationBox) *MigrationBox) (*MigrationBox, error) {
 	mb := &MigrationBox{
@@ -92,6 +146,9 @@ func NewMigrationBox(dir fs.FS, m *Migrator, opts ...func(*MigrationBox) *Migrat
 		mb.Migrations[migration.Direction] = append(mb.Migrations[migration.Direction], migration)
 	}
 
+	if err := mb.check(); err != nil {
+		return nil, err
+	}
 	return mb, nil
 }
 
@@ -145,4 +202,25 @@ func (fm *MigrationBox) findMigrations(runner func([]byte) func(mf Migration, c 
 		sort.Sort(mod)
 		return nil
 	})
+}
+
+// hasDownMigrationWithVersion checks if there is a migration with the given
+// version.
+func (fm *MigrationBox) hasDownMigrationWithVersion(version string) bool {
+	for _, down := range fm.Migrations["down"] {
+		if version == down.Version {
+			return true
+		}
+	}
+	return false
+}
+
+// check checks that every "up" migration has a corresponding "down" migration.
+func (fm *MigrationBox) check() error {
+	for _, up := range fm.Migrations["up"] {
+		if !fm.hasDownMigrationWithVersion(up.Version) {
+			return errors.Errorf("migration %s has no corresponding down migration", up.Version)
+		}
+	}
+	return nil
 }
