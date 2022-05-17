@@ -10,8 +10,10 @@ import (
 // TestContextualizer is a mock implementation of the Contextualizer interface.
 type TestContextualizer struct{}
 
+type contextKeyFake int
+
 // fakeNIDContext is a test key for NID.
-const fakeNIDContext = "fake nid context"
+const fakeNIDContext contextKeyFake = 1
 
 // SetNIDContext sets the nid for the given context.
 func SetNIDContext(ctx context.Context, nid uuid.UUID) context.Context {
