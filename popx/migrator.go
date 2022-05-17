@@ -92,7 +92,7 @@ func (m *Migrator) UpTo(ctx context.Context, step int) (applied int, err error) 
 
 	c := m.Connection.WithContext(ctx)
 	err = m.exec(ctx, func() error {
-		mtn := m.migrationTableName(ctx, c)
+		mtn := m.sanitizedMigrationTableName(c)
 		mfs := m.Migrations["up"].SortAndFilter(c.Dialect.Name())
 		for _, mi := range mfs {
 			exists, err := c.Where("version = ?", mi.Version).Exists(mtn)
@@ -175,7 +175,7 @@ func (m *Migrator) Down(ctx context.Context, step int) error {
 
 	c := m.Connection.WithContext(ctx)
 	return m.exec(ctx, func() error {
-		mtn := m.migrationTableName(ctx, c)
+		mtn := m.sanitizedMigrationTableName(c)
 		count, err := c.Count(mtn)
 		if err != nil {
 			return errors.Wrap(err, "migration down: unable count existing migration")
@@ -242,8 +242,8 @@ func (m *Migrator) Reset(ctx context.Context) error {
 }
 
 func (m *Migrator) createTransactionalMigrationTable(ctx context.Context, c *pop.Connection, l *logrusx.Logger) error {
-	mtn := m.migrationTableName(ctx, c)
-	unprefixedMtn := m.migrationTableName(ctx, c)
+	mtn := m.sanitizedMigrationTableName(c)
+	unprefixedMtn := m.sanitizedMigrationTableName(c)
 
 	if err := m.execMigrationTransaction(ctx, c, []string{
 		fmt.Sprintf(`CREATE TABLE %s (version VARCHAR (48) NOT NULL, version_self INT NOT NULL DEFAULT 0)`, mtn),
@@ -260,8 +260,8 @@ func (m *Migrator) createTransactionalMigrationTable(ctx context.Context, c *pop
 
 func (m *Migrator) migrateToTransactionalMigrationTable(ctx context.Context, c *pop.Connection, l *logrusx.Logger) error {
 	// This means the new pop migrator has also not yet been applied, do that now.
-	mtn := m.migrationTableName(ctx, c)
-	unprefixedMtn := m.migrationTableName(ctx, c)
+	mtn := m.sanitizedMigrationTableName(c)
+	unprefixedMtn := m.sanitizedMigrationTableName(c)
 
 	withOn := fmt.Sprintf(" ON %s", mtn)
 	if c.Dialect.Name() != "mysql" {
@@ -352,7 +352,7 @@ func (m *Migrator) CreateSchemaMigrations(ctx context.Context) error {
 
 	c := m.Connection.WithContext(ctx)
 
-	mtn := m.migrationTableName(ctx, c)
+	mtn := m.sanitizedMigrationTableName(c)
 	m.l.WithField("migration_table", mtn).Debug("Checking if legacy migration table exists.")
 	_, err := c.Store.Exec(fmt.Sprintf("select version from %s", mtn))
 	if err != nil {
@@ -431,8 +431,8 @@ func (m MigrationStatuses) HasPending() bool {
 	return false
 }
 
-func (m *Migrator) migrationTableName(ctx context.Context, con *pop.Connection) string {
-	return con.MigrationTableName()
+func (m *Migrator) sanitizedMigrationTableName(con *pop.Connection) string {
+	return regexp.MustCompile(`\W`).ReplaceAllString(con.MigrationTableName(), "")
 }
 
 func errIsTableNotFound(err error) bool {
@@ -462,7 +462,7 @@ func (m *Migrator) Status(ctx context.Context) (MigrationStatuses, error) {
 			Name:    mf.Name,
 		}
 
-		exists, err := con.Where("version = ?", mf.Version).Exists(con.MigrationTableName())
+		exists, err := con.Where("version = ?", mf.Version).Exists(m.sanitizedMigrationTableName(con))
 		if err != nil {
 			if errIsTableNotFound(err) {
 				continue
@@ -474,7 +474,7 @@ func (m *Migrator) Status(ctx context.Context) (MigrationStatuses, error) {
 		if exists {
 			statuses[k].State = Applied
 		} else if len(mf.Version) > 14 {
-			mtn := m.migrationTableName(ctx, con)
+			mtn := m.sanitizedMigrationTableName(con)
 			legacyVersion := mf.Version[:14]
 			exists, err = con.Where("version = ?", legacyVersion).Exists(mtn)
 			if err != nil {
