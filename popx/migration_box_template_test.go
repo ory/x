@@ -29,11 +29,14 @@ func TestMigrationBoxTemplating(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, c.Open())
 
-	_, err = NewMigrationBox(templatingMigrations, NewMigrator(c, logrusx.New("", ""), nil, 0), WithTemplateValues(templateVals), WithMigrationContentMiddleware(func(content string, err error) (string, error) {
-		require.NoError(t, err)
-		assert.Equal(t, string(expectedMigration), content)
-
-		return content, err
-	}))
+	_, err = NewMigrationBox(
+		templatingMigrations,
+		NewMigrator(c, logrusx.New("", ""), nil, 0),
+		WithTemplateValues(templateVals),
+		WithMigrationContentMiddleware(func(content string, err error) (string, error) {
+			require.NoError(t, err)
+			assert.Equal(t, string(expectedMigration), content)
+			return content, err
+		}))
 	require.NoError(t, err)
 }
