@@ -170,3 +170,32 @@ func TestMigratorUpgradingFromStart(t *testing.T) {
 
 	require.NoError(t, transactional.Down(ctx, -1))
 }
+
+func TestMigratorSanitizeMigrationTableName(t *testing.T) {
+	litedb, err := ioutil.TempFile(os.TempDir(), "sqlite-*")
+	require.NoError(t, err)
+	require.NoError(t, litedb.Close())
+
+	ctx := context.Background()
+
+	c, err := pop.NewConnection(&pop.ConnectionDetails{
+		URL: `sqlite://file::memory:?_fk=true&migration_table_name=injection--`,
+	})
+	require.NoError(t, err)
+	require.NoError(t, c.Open())
+
+	l := logrusx.New("", "", logrusx.ForceLevel(logrus.DebugLevel))
+	transactional, err := NewMigrationBox(transactionalMigrations, NewMigrator(c, l, nil, 0))
+	require.NoError(t, err)
+	status, err := transactional.Status(ctx)
+	require.NoError(t, err)
+	require.True(t, status.HasPending())
+
+	require.NoError(t, transactional.Up(ctx))
+
+	status, err = transactional.Status(ctx)
+	require.NoError(t, err)
+	require.False(t, status.HasPending())
+
+	require.NoError(t, transactional.Down(ctx, -1))
+}
