@@ -26,7 +26,16 @@ var (
 	ErrNilDependency = errors.New("a dependency was expected to be defined but is nil. Please open an issue with the stack trace")
 	// ErrNoPrintButFail is returned to detect a failure state that was already reported to the user in some way
 	ErrNoPrintButFail = errors.New("this error should never be printed")
+
+	debugStdout, debugStderr = io.Discard, io.Discard
 )
+
+func init() {
+	if os.Getenv("DEBUG") != "" {
+		debugStdout = os.Stdout
+		debugStderr = os.Stderr
+	}
+}
 
 // FailSilently is supposed to be used within a commands RunE function.
 // It silences cobras error handling and returns the ErrNoPrintButFail error.
@@ -129,8 +138,8 @@ var _ io.Writer = (*CallbackWriter)(nil)
 // ExecBackgroundCtx runs the cobra command in the background.
 func ExecBackgroundCtx(ctx context.Context, cmd *cobra.Command, stdIn io.Reader, stdOut, stdErr io.Writer, args ...string) *errgroup.Group {
 	cmd.SetIn(stdIn)
-	cmd.SetOut(stdOut)
-	cmd.SetErr(stdErr)
+	cmd.SetOut(io.MultiWriter(stdOut, debugStdout))
+	cmd.SetErr(io.MultiWriter(stdErr, debugStderr))
 
 	if args == nil {
 		args = []string{}
@@ -158,12 +167,6 @@ func Exec(t testing.TB, cmd *cobra.Command, stdIn io.Reader, args ...string) (st
 func ExecCtx(ctx context.Context, cmd *cobra.Command, stdIn io.Reader, args ...string) (string, string, error) {
 	stdOut, stdErr := &bytes.Buffer{}, &bytes.Buffer{}
 	err := ExecBackgroundCtx(ctx, cmd, stdIn, stdOut, stdErr, args...).Wait()
-	return stdOut.String(), stdErr.String(), err
-}
-
-func ExecDebugCtx(ctx context.Context, t *testing.T, cmd *cobra.Command, stdIn io.Reader, args ...string) (string, string, error) {
-	stdOut, stdErr := &bytes.Buffer{}, &bytes.Buffer{}
-	err := ExecBackgroundCtx(ctx, cmd, stdIn, io.MultiWriter(os.Stdout, stdOut), io.MultiWriter(os.Stderr, stdErr), args...).Wait()
 	return stdOut.String(), stdErr.String(), err
 }
 
@@ -207,10 +210,6 @@ type CommandExecuter struct {
 
 func (c *CommandExecuter) Exec(stdin io.Reader, args ...string) (string, string, error) {
 	return ExecCtx(c.Ctx, c.New(), stdin, append(c.PersistentArgs, args...)...)
-}
-
-func (c *CommandExecuter) ExecDebug(t *testing.T, stdin io.Reader, args ...string) (string, string, error) {
-	return ExecDebugCtx(c.Ctx, t, c.New(), stdin, append(c.PersistentArgs, args...)...)
 }
 
 func (c *CommandExecuter) ExecBackground(stdin io.Reader, stdOut, stdErr io.Writer, args ...string) *errgroup.Group {
