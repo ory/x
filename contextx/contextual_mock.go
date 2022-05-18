@@ -2,6 +2,7 @@ package contextx
 
 import (
 	"context"
+
 	"github.com/ory/x/configx"
 
 	"github.com/gofrs/uuid"

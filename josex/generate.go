@@ -25,6 +25,7 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
+
 	"gopkg.in/square/go-jose.v2"
 )
 
