@@ -79,17 +79,18 @@ func NewHandler(
 
 type router interface {
 	GET(path string, handle httprouter.Handle)
+	Handler(method, path string, handler http.Handler)
 }
 
 // SetHealthRoutes registers this handler's routes for health checking.
-func (h *Handler) SetHealthRoutes(r router, shareErrors bool) {
-	r.GET(AliveCheckPath, h.Alive)
-	r.GET(ReadyCheckPath, h.Ready(shareErrors))
+func (h *Handler) SetHealthRoutes(r router, shareErrors bool, middleware func(http.Handler) http.Handler) {
+	r.Handler("GET", AliveCheckPath, middleware(h.Alive()))
+	r.Handler("GET", ReadyCheckPath, middleware(h.Ready(shareErrors)))
 }
 
-// SetHealthRoutes registers this handler's routes for health checking.
-func (h *Handler) SetVersionRoutes(r router) {
-	r.GET(VersionPath, h.Version)
+// SetVersionRoutes registers this handler's routes for health checking.
+func (h *Handler) SetVersionRoutes(r router, middleware func(http.Handler) http.Handler) {
+	r.Handler("GET", VersionPath, middleware(h.Version()))
 }
 
 // Alive returns an ok status if the instance is ready to handle HTTP requests.
@@ -113,9 +114,11 @@ func (h *Handler) SetVersionRoutes(r router) {
 //     Responses:
 //       200: healthStatus
 //       500: genericError
-func (h *Handler) Alive(rw http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	h.H.Write(rw, r, &swaggerHealthStatus{
-		Status: "ok",
+func (h *Handler) Alive() http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		h.H.Write(rw, r, &swaggerHealthStatus{
+			Status: "ok",
+		})
 	})
 }
 
@@ -140,8 +143,8 @@ func (h *Handler) Alive(rw http.ResponseWriter, r *http.Request, _ httprouter.Pa
 //     Responses:
 //       200: healthStatus
 //       503: healthNotReadyStatus
-func (h *Handler) Ready(shareErrors bool) httprouter.Handle {
-	return func(rw http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (h *Handler) Ready(shareErrors bool) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		var notReady = swaggerNotReadyStatus{
 			Errors: map[string]string{},
 		}
@@ -164,7 +167,7 @@ func (h *Handler) Ready(shareErrors bool) httprouter.Handle {
 		h.H.Write(rw, r, &swaggerHealthStatus{
 			Status: "ok",
 		})
-	}
+	})
 }
 
 // Version returns this service's versions.
@@ -186,8 +189,10 @@ func (h *Handler) Ready(shareErrors bool) httprouter.Handle {
 //
 //	   Responses:
 // 			200: version
-func (h *Handler) Version(rw http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	h.H.Write(rw, r, &swaggerVersion{
-		Version: h.VersionString,
+func (h *Handler) Version() http.HandlerFunc {
+	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		h.H.Write(rw, r, &swaggerVersion{
+			Version: h.VersionString,
+		})
 	})
 }

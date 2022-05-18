@@ -24,10 +24,12 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/stretchr/testify/assert"
@@ -35,6 +37,22 @@ import (
 
 	"github.com/ory/herodot"
 )
+
+// mockLogger is a example logger for the below tests
+type mockLogger struct {
+	handler http.Handler
+}
+
+func (l *mockLogger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	l.handler.ServeHTTP(w, r)
+	log.Printf("%s %s %v", r.Method, r.URL.Path, time.Since(start))
+}
+
+func loggerMiddleware(n http.Handler) http.Handler {
+	logger := &mockLogger{handler: n}
+	return logger
+}
 
 func TestHealth(t *testing.T) {
 	alive := errors.New("not alive")
@@ -47,9 +65,10 @@ func TestHealth(t *testing.T) {
 			},
 		},
 	}
+
 	router := httprouter.New()
-	handler.SetHealthRoutes(router, true)
-	handler.SetVersionRoutes(router)
+	handler.SetHealthRoutes(router, true, loggerMiddleware)
+	handler.SetVersionRoutes(router, loggerMiddleware)
 	ts := httptest.NewServer(router)
 	c := http.DefaultClient
 
