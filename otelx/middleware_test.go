@@ -23,6 +23,10 @@ func TestShouldNotTraceHealthEndpoint(t *testing.T) {
 			testDescription: "health",
 		},
 		{
+			path:            "admin/alive",
+			testDescription: "adminHealth",
+		},
+		{
 			path:            "foo/bar",
 			testDescription: "notHealth",
 		},
