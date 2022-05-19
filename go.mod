@@ -10,6 +10,8 @@ replace github.com/gobuffalo/packr => github.com/gobuffalo/packr v1.30.1
 
 replace github.com/mattn/go-sqlite3 => github.com/mattn/go-sqlite3 v1.14.10
 
+replace github.com/gobuffalo/pop/v6 => github.com/zepatrik/pop/v6 v6.0.0-20220519141323-ce05da9328cd
+
 require (
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/bradleyjkemp/cupaloy/v2 v2.6.0
@@ -27,7 +29,7 @@ require (
 	github.com/gobuffalo/httptest v1.0.2
 	github.com/gobuffalo/pop/v6 v6.0.1
 	github.com/goccy/go-yaml v1.9.5
-	github.com/gofrs/uuid v4.1.0+incompatible
+	github.com/gofrs/uuid v4.2.0+incompatible
 	github.com/golang/mock v1.6.0
 	github.com/google/go-jsonnet v0.17.0
 	github.com/google/uuid v1.3.0
@@ -36,13 +38,13 @@ require (
 	github.com/inhies/go-bytesize v0.0.0-20210819104631-275770b98743
 	github.com/instana/go-sensor v1.41.1
 	github.com/instana/testify v1.6.2-0.20200721153833-94b1851f4d65
-	github.com/jackc/pgconn v1.10.1
-	github.com/jackc/pgx/v4 v4.14.0
+	github.com/jackc/pgconn v1.12.1
+	github.com/jackc/pgx/v4 v4.16.1
 	github.com/jandelgado/gcov2lcov v1.0.5
-	github.com/jmoiron/sqlx v1.3.4
+	github.com/jmoiron/sqlx v1.3.5
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/knadh/koanf v1.4.0
-	github.com/lib/pq v1.10.4
+	github.com/lib/pq v1.10.5
 	github.com/luna-duclos/instrumentedsql v1.1.3
 	github.com/markbates/pkger v0.17.1
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
@@ -143,12 +145,12 @@ require (
 	github.com/go-pdf/fpdf v0.5.0 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/gobuffalo/envy v1.10.1 // indirect
-	github.com/gobuffalo/flect v0.2.4 // indirect
+	github.com/gobuffalo/flect v0.2.5 // indirect
 	github.com/gobuffalo/github_flavored_markdown v1.1.1 // indirect
 	github.com/gobuffalo/helpers v0.6.4 // indirect
 	github.com/gobuffalo/here v0.6.0 // indirect
 	github.com/gobuffalo/nulls v0.4.1 // indirect
-	github.com/gobuffalo/plush/v4 v4.1.9 // indirect
+	github.com/gobuffalo/plush/v4 v4.1.11 // indirect
 	github.com/gobuffalo/tags/v3 v3.1.2 // indirect
 	github.com/gobuffalo/validate/v3 v3.3.1 // indirect
 	github.com/gofrs/flock v0.8.1 // indirect
@@ -166,9 +168,9 @@ require (
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgio v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
-	github.com/jackc/pgproto3/v2 v2.2.0 // indirect
+	github.com/jackc/pgproto3/v2 v2.3.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b // indirect
-	github.com/jackc/pgtype v1.9.0 // indirect
+	github.com/jackc/pgtype v1.11.0 // indirect
 	github.com/jcchavezs/porto v0.1.0 // indirect
 	github.com/joeshaw/multierror v0.0.0-20140124173710-69b34d4ec901 // indirect
 	github.com/joho/godotenv v1.4.0 // indirect
