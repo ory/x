@@ -24,12 +24,10 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/stretchr/testify/assert"
@@ -38,20 +36,25 @@ import (
 	"github.com/ory/herodot"
 )
 
-// mockLogger is a example logger for the below tests
-type mockLogger struct {
+const mockHeaderKey = "middleware-header"
+const mockHeaderValue = "test-header-value"
+
+// MiddlewareHeader is a example logger for the below tests
+type MiddlewareHeader struct {
 	handler http.Handler
+	t       *testing.T
 }
 
-func (l *mockLogger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	start := time.Now()
+func (l *MiddlewareHeader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add(mockHeaderKey, mockHeaderValue)
 	l.handler.ServeHTTP(w, r)
-	log.Printf("%s %s %v", r.Method, r.URL.Path, time.Since(start))
 }
 
-func loggerMiddleware(n http.Handler) http.Handler {
-	logger := &mockLogger{handler: n}
-	return logger
+func loggerMiddleware(t *testing.T) func(n http.Handler) http.Handler {
+	return func(n http.Handler) http.Handler {
+		logger := &MiddlewareHeader{handler: n, t: t}
+		return logger
+	}
 }
 
 func TestHealth(t *testing.T) {
@@ -67,8 +70,8 @@ func TestHealth(t *testing.T) {
 	}
 
 	router := httprouter.New()
-	handler.SetHealthRoutes(router, true, loggerMiddleware)
-	handler.SetVersionRoutes(router, loggerMiddleware)
+	handler.SetHealthRoutes(router, true, loggerMiddleware(t))
+	handler.SetVersionRoutes(router, loggerMiddleware(t))
 	ts := httptest.NewServer(router)
 	c := http.DefaultClient
 
@@ -78,6 +81,7 @@ func TestHealth(t *testing.T) {
 	require.EqualValues(t, http.StatusOK, response.StatusCode)
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&healthBody))
 	assert.EqualValues(t, "ok", healthBody.Status)
+	assert.EqualValues(t, mockHeaderValue, response.Header.Get(mockHeaderKey))
 
 	var versionBody swaggerVersion
 	response, err = c.Get(ts.URL + VersionPath)
@@ -85,6 +89,7 @@ func TestHealth(t *testing.T) {
 	require.EqualValues(t, http.StatusOK, response.StatusCode)
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&versionBody))
 	require.EqualValues(t, versionBody.Version, handler.VersionString)
+	assert.EqualValues(t, mockHeaderValue, response.Header.Get(mockHeaderKey))
 
 	response, err = c.Get(ts.URL + ReadyCheckPath)
 	require.NoError(t, err)
@@ -93,6 +98,7 @@ func TestHealth(t *testing.T) {
 	require.NoError(t, err)
 	assert.EqualValues(t, "ok", healthBody.Status)
 	assert.Equal(t, `{"errors":{"test":"not alive"}}`, strings.TrimSpace(string(out)))
+	assert.EqualValues(t, mockHeaderValue, response.Header.Get(mockHeaderKey))
 
 	alive = nil
 	response, err = c.Get(ts.URL + ReadyCheckPath)
@@ -100,4 +106,5 @@ func TestHealth(t *testing.T) {
 	require.EqualValues(t, http.StatusOK, response.StatusCode)
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&versionBody))
 	require.EqualValues(t, versionBody.Version, handler.VersionString)
+	assert.EqualValues(t, mockHeaderValue, response.Header.Get(mockHeaderKey))
 }

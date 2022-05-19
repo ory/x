@@ -23,8 +23,6 @@ package healthx
 import (
 	"net/http"
 
-	"github.com/julienschmidt/httprouter"
-
 	"github.com/ory/herodot"
 )
 
@@ -78,19 +76,32 @@ func NewHandler(
 }
 
 type router interface {
-	GET(path string, handle httprouter.Handle)
 	Handler(method, path string, handler http.Handler)
 }
 
+type Middleware func(http.Handler) http.Handler
+
 // SetHealthRoutes registers this handler's routes for health checking.
-func (h *Handler) SetHealthRoutes(r router, shareErrors bool, middleware func(http.Handler) http.Handler) {
-	r.Handler("GET", AliveCheckPath, middleware(h.Alive()))
-	r.Handler("GET", ReadyCheckPath, middleware(h.Ready(shareErrors)))
+func (h *Handler) SetHealthRoutes(r router, shareErrors bool, opts ...Middleware) {
+	aliveHandler := h.Alive()
+	readyHandler := h.Ready(shareErrors)
+
+	for _, opt := range opts {
+		aliveHandler = opt(aliveHandler)
+		readyHandler = opt(readyHandler)
+	}
+
+	r.Handler("GET", AliveCheckPath, aliveHandler)
+	r.Handler("GET", ReadyCheckPath, readyHandler)
 }
 
 // SetVersionRoutes registers this handler's routes for health checking.
-func (h *Handler) SetVersionRoutes(r router, middleware func(http.Handler) http.Handler) {
-	r.Handler("GET", VersionPath, middleware(h.Version()))
+func (h *Handler) SetVersionRoutes(r router, opts ...Middleware) {
+	versionHandler := h.Version()
+	for _, opt := range opts {
+		versionHandler = opt(versionHandler)
+	}
+	r.Handler("GET", VersionPath, versionHandler)
 }
 
 // Alive returns an ok status if the instance is ready to handle HTTP requests.
@@ -189,7 +200,7 @@ func (h *Handler) Ready(shareErrors bool) http.Handler {
 //
 //	   Responses:
 // 			200: version
-func (h *Handler) Version() http.HandlerFunc {
+func (h *Handler) Version() http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		h.H.Write(rw, r, &swaggerVersion{
 			Version: h.VersionString,
