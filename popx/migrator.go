@@ -116,7 +116,7 @@ func (m *Migrator) UpTo(ctx context.Context, step int) (applied int, err error) 
 
 				if exists {
 					m.l.WithField("version", mi.Version).WithField("legacy_version", legacyVersion).WithField("migration_table", mtn).Debug("Migration has already been applied in a legacy migration run. Updating version in migration table.")
-					if err := m.isolatedTransaction(ctx, "init-migrate", func(tx *pop.Tx) error {
+					if err := m.isolatedTransaction(ctx, "init-migrate", func(conn *pop.Connection) error {
 						// We do not want to remove the legacy migration version or subsequent migrations might be applied twice.
 						//
 						// Do not activate the following - it is just for reference.
@@ -126,7 +126,7 @@ func (m *Migrator) UpTo(ctx context.Context, step int) (applied int, err error) 
 						// }
 
 						// #nosec G201 - mtn is a system-wide const
-						_, err := tx.Exec(tx.Rebind(fmt.Sprintf("INSERT INTO %s (version) VALUES (?)", mtn)), mi.Version)
+						err := conn.RawQuery(fmt.Sprintf("INSERT INTO %s (version) VALUES (?)", mtn), mi.Version).Exec()
 						return errors.Wrapf(err, "problem inserting migration version %s", mi.Version)
 					}); err != nil {
 						return err
@@ -137,13 +137,13 @@ func (m *Migrator) UpTo(ctx context.Context, step int) (applied int, err error) 
 
 			m.l.WithField("version", mi.Version).Debug("Migration has not yet been applied, running migration.")
 
-			if err = m.isolatedTransaction(ctx, "up", func(tx *pop.Tx) error {
-				if err := mi.Run(c, tx); err != nil {
+			if err = m.isolatedTransaction(ctx, "up", func(conn *pop.Connection) error {
+				if err := mi.Run(conn, conn.TX); err != nil {
 					return err
 				}
 
 				// #nosec G201 - mtn is a system-wide const
-				if _, err = tx.Exec(fmt.Sprintf("INSERT INTO %s (version) VALUES ('%s')", mtn, mi.Version)); err != nil {
+				if _, err = conn.TX.Exec(fmt.Sprintf("INSERT INTO %s (version) VALUES ('%s')", mtn, mi.Version)); err != nil {
 					return errors.Wrapf(err, "problem inserting migration version %s", mi.Version)
 				}
 				return nil
@@ -209,14 +209,14 @@ func (m *Migrator) Down(ctx context.Context, step int) error {
 				return errors.Errorf("migration version %s does not exist", mi.Version)
 			}
 
-			err = m.isolatedTransaction(ctx, "down", func(tx *pop.Tx) error {
-				err := mi.Run(c, tx)
+			err = m.isolatedTransaction(ctx, "down", func(conn *pop.Connection) error {
+				err := mi.Run(conn, conn.TX)
 				if err != nil {
 					return err
 				}
 
 				// #nosec G201 - mtn is a system-wide const
-				if _, err = tx.Exec(tx.Rebind(fmt.Sprintf("DELETE FROM %s WHERE version = ?", mtn)), mi.Version); err != nil {
+				if err = conn.RawQuery(fmt.Sprintf("DELETE FROM %s WHERE version = ?", mtn), mi.Version).Exec(); err != nil {
 					return errors.Wrapf(err, "problem deleting migration version %s", mi.Version)
 				}
 
@@ -245,7 +245,7 @@ func (m *Migrator) createTransactionalMigrationTable(ctx context.Context, c *pop
 	mtn := m.sanitizedMigrationTableName(c)
 	unprefixedMtn := m.sanitizedMigrationTableName(c)
 
-	if err := m.execMigrationTransaction(ctx, c, []string{
+	if err := m.execMigrationTransaction(ctx, []string{
 		fmt.Sprintf(`CREATE TABLE %s (version VARCHAR (48) NOT NULL, version_self INT NOT NULL DEFAULT 0)`, mtn),
 		fmt.Sprintf(`CREATE UNIQUE INDEX %s_version_idx ON %s (version)`, unprefixedMtn, mtn),
 		fmt.Sprintf(`CREATE INDEX %s_version_self_idx ON %s (version_self)`, unprefixedMtn, mtn),
@@ -284,7 +284,7 @@ func (m *Migrator) migrateToTransactionalMigrationTable(ctx context.Context, c *
 		},
 	}
 
-	if err := m.execMigrationTransaction(ctx, c, workload...); err != nil {
+	if err := m.execMigrationTransaction(ctx, workload...); err != nil {
 		return err
 	}
 
@@ -293,7 +293,7 @@ func (m *Migrator) migrateToTransactionalMigrationTable(ctx context.Context, c *
 	return nil
 }
 
-func (m *Migrator) isolatedTransaction(ctx context.Context, direction string, fn func(tx *pop.Tx) error) error {
+func (m *Migrator) isolatedTransaction(ctx context.Context, direction string, fn func(c *pop.Connection) error) error {
 	span, ctx := m.startSpan(ctx, MigrationRunTransactionOpName)
 	defer span.End()
 	span.SetAttributes(attribute.String("migration_direction", direction))
@@ -304,8 +304,7 @@ func (m *Migrator) isolatedTransaction(ctx context.Context, direction string, fn
 		defer cancel()
 	}
 
-	c := m.Connection.WithContext(ctx)
-	tx, dberr := c.Store.TransactionContextOptions(ctx, &sql.TxOptions{
+	conn, dberr := m.Connection.NewTransactionContextOptions(ctx, &sql.TxOptions{
 		Isolation: sql.LevelSerializable,
 		ReadOnly:  false,
 	})
@@ -313,11 +312,11 @@ func (m *Migrator) isolatedTransaction(ctx context.Context, direction string, fn
 		return dberr
 	}
 
-	err := fn(tx)
+	err := fn(conn)
 	if err != nil {
-		dberr = tx.Rollback()
+		dberr = conn.TX.Rollback()
 	} else {
-		dberr = tx.Commit()
+		dberr = conn.TX.Commit()
 	}
 
 	if dberr != nil {
@@ -327,11 +326,11 @@ func (m *Migrator) isolatedTransaction(ctx context.Context, direction string, fn
 	return err
 }
 
-func (m *Migrator) execMigrationTransaction(ctx context.Context, c *pop.Connection, transactions ...[]string) error {
+func (m *Migrator) execMigrationTransaction(ctx context.Context, transactions ...[]string) error {
 	for _, statements := range transactions {
-		if err := m.isolatedTransaction(ctx, "init", func(tx *pop.Tx) error {
+		if err := m.isolatedTransaction(ctx, "init", func(conn *pop.Connection) error {
 			for _, statement := range statements {
-				if _, err := tx.ExecContext(ctx, statement); err != nil {
+				if _, err := conn.TX.ExecContext(ctx, statement); err != nil {
 					return errors.Wrapf(err, "unable to execute statement: %s", statement)
 				}
 			}

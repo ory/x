@@ -2,8 +2,11 @@ package popx_test
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/gobuffalo/pop/v6"
 	"github.com/stretchr/testify/assert"
@@ -103,4 +106,54 @@ func TestGoMigrations(t *testing.T) {
 		require.Error(t, err)
 	})
 
+	t.Run("tc=runs everything in one transaction", func(t *testing.T) {
+		c, err := pop.NewConnection(&pop.ConnectionDetails{
+			URL: "sqlite://file::memory:?_fk=true",
+		})
+		require.NoError(t, err)
+		require.NoError(t, c.Open())
+
+		require.NoError(t, c.RawQuery("CREATE TABLE tests (i INTEGER)").Exec())
+
+		errSecondStatement := errors.New("second statement failed as expected")
+		mb, err := popx.NewMigrationBox(empty, popx.NewMigrator(c, logrusx.New("", ""), nil, 0), popx.WithGoMigrations(
+			popx.Migrations{
+				{
+					Path:      "gomigration_1",
+					Version:   "20220215110652",
+					Name:      "gomigration_1",
+					Direction: "up",
+					Type:      "go",
+					DBType:    "all",
+					Runner: func(_ popx.Migration, c *pop.Connection, _ *pop.Tx) error {
+						if err := c.RawQuery("INSERT INTO tests (i) VALUES (1)").Exec(); err != nil {
+							return errors.WithStack(err)
+						}
+						if err := c.RawQuery("INSERT INTO unknown_table (data) VALUES ('foo')").Exec(); err != nil {
+							return errSecondStatement
+						}
+						return errors.New("this should not be reached")
+					},
+				},
+				{
+					Path:      "gomigration_1",
+					Version:   "20220215110652",
+					Name:      "gomigration_1",
+					Direction: "down",
+					Type:      "go",
+					DBType:    "all",
+					Runner: func(_ popx.Migration, c *pop.Connection, _ *pop.Tx) error {
+						return nil
+					},
+				},
+			},
+		))
+		require.NoError(t, err)
+		require.ErrorIs(t, mb.Up(context.Background()), errSecondStatement)
+		type test struct {
+			I int `db:"i"`
+		}
+		tt := &test{}
+		assert.ErrorIs(t, c.Where("i=1").First(tt), sql.ErrNoRows, "%+v", tt)
+	})
 }
