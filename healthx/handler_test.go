@@ -39,130 +39,102 @@ import (
 const mockHeaderKey = "middleware-header"
 const mockHeaderValue = "test-header-value"
 
-func TestHealth(t *testing.T) {
-	t.Run("case:without middleware", func(t *testing.T) {
-		// separate set of `handler` and `alive` as the `alive` would need to be reset after the last test in the above
-		alive := errors.New("not alive")
-		handler := &Handler{
-			H:             herodot.NewJSONWriter(nil),
-			VersionString: "test version",
-			ReadyChecks: map[string]ReadyChecker{
-				"test": func(r *http.Request) error {
-					return alive
-				},
+func coreHealthTests(t *testing.T, withMiddleware bool) {
+	alive := errors.New("not alive")
+
+	handler := &Handler{
+		H:             herodot.NewJSONWriter(nil),
+		VersionString: "test version",
+		ReadyChecks: map[string]ReadyChecker{
+			"test": func(r *http.Request) error {
+				return alive
 			},
+		},
+	}
+
+	// middlware to run an assert function on the requested handler
+	testMiddleware := func(t *testing.T, assertFunc func(*testing.T, http.ResponseWriter, *http.Request)) func(next http.Handler) http.Handler {
+		return func(h http.Handler) http.Handler {
+			return http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
+				writer.Header().Add(mockHeaderKey, mockHeaderValue)
+				assertFunc(t, writer, req)
+				h.ServeHTTP(writer, req)
+			})
 		}
+	}
 
-		router := httprouter.New()
+	// helper to run the same assertion on various responses that are with the middleware,
+	// avoid having to write the same if condition and assertion again
+	assertMockHeader := func(t *testing.T, res *http.Response, withMiddleware bool) {
+		if withMiddleware == false {
+			return
+		}
+		assert.EqualValues(t, mockHeaderValue, res.Header.Get(mockHeaderKey))
+	}
 
+	router := httprouter.New()
+
+	if withMiddleware {
+		handler.SetHealthRoutes(router, true, WithMiddleware(
+			testMiddleware(t, func(t *testing.T, rw http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, "GET", r.Method)
+			}),
+		))
+
+		handler.SetVersionRoutes(router, WithMiddleware(
+			testMiddleware(t, func(t *testing.T, rw http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, "GET", r.Method)
+			}),
+		))
+	} else {
 		handler.SetHealthRoutes(router, true)
 		handler.SetVersionRoutes(router)
+	}
 
-		ts := httptest.NewServer(router)
+	ts := httptest.NewServer(router)
 
-		c := http.DefaultClient
+	c := http.DefaultClient
 
-		var healthBody swaggerHealthStatus
-		response, err := c.Get(ts.URL + AliveCheckPath)
-		require.NoError(t, err)
-		require.EqualValues(t, http.StatusOK, response.StatusCode)
-		require.NoError(t, json.NewDecoder(response.Body).Decode(&healthBody))
-		assert.EqualValues(t, "ok", healthBody.Status)
+	var healthBody swaggerHealthStatus
+	response, err := c.Get(ts.URL + AliveCheckPath)
+	require.NoError(t, err)
+	require.EqualValues(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&healthBody))
+	assert.EqualValues(t, "ok", healthBody.Status)
+	assertMockHeader(t, response, withMiddleware)
 
-		var versionBody swaggerVersion
-		response, err = c.Get(ts.URL + VersionPath)
-		require.NoError(t, err)
-		require.EqualValues(t, http.StatusOK, response.StatusCode)
-		require.NoError(t, json.NewDecoder(response.Body).Decode(&versionBody))
-		require.EqualValues(t, versionBody.Version, handler.VersionString)
+	var versionBody swaggerVersion
+	response, err = c.Get(ts.URL + VersionPath)
+	require.NoError(t, err)
+	require.EqualValues(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&versionBody))
+	require.EqualValues(t, versionBody.Version, handler.VersionString)
+	assertMockHeader(t, response, withMiddleware)
 
-		response, err = c.Get(ts.URL + ReadyCheckPath)
-		require.NoError(t, err)
-		require.EqualValues(t, http.StatusServiceUnavailable, response.StatusCode)
-		out, err := ioutil.ReadAll(response.Body)
-		require.NoError(t, err)
-		assert.EqualValues(t, "ok", healthBody.Status)
-		assert.Equal(t, `{"errors":{"test":"not alive"}}`, strings.TrimSpace(string(out)))
+	response, err = c.Get(ts.URL + ReadyCheckPath)
+	require.NoError(t, err)
+	require.EqualValues(t, http.StatusServiceUnavailable, response.StatusCode)
+	out, err := ioutil.ReadAll(response.Body)
+	require.NoError(t, err)
+	assert.EqualValues(t, "ok", healthBody.Status)
+	assert.Equal(t, `{"errors":{"test":"not alive"}}`, strings.TrimSpace(string(out)))
+	assertMockHeader(t, response, withMiddleware)
 
-		alive = nil
-		response, err = c.Get(ts.URL + ReadyCheckPath)
-		require.NoError(t, err)
-		require.EqualValues(t, http.StatusOK, response.StatusCode)
-		require.NoError(t, json.NewDecoder(response.Body).Decode(&versionBody))
-		require.EqualValues(t, versionBody.Version, handler.VersionString)
+	alive = nil
+	response, err = c.Get(ts.URL + ReadyCheckPath)
+	require.NoError(t, err)
+	require.EqualValues(t, http.StatusOK, response.StatusCode)
+	require.NoError(t, json.NewDecoder(response.Body).Decode(&versionBody))
+	require.EqualValues(t, versionBody.Version, handler.VersionString)
+	assertMockHeader(t, response, withMiddleware)
+}
 
+func TestHealth(t *testing.T) {
+	t.Run("case:without middleware", func(t *testing.T) {
+		coreHealthTests(t, false)
 	})
 
 	t.Run("case:with middleware", func(t *testing.T) {
-		// separate set of `handler` and `alive` as the `alive` would need to be reset after the last test in the above
-		alive := errors.New("not alive")
-		handler := &Handler{
-			H:             herodot.NewJSONWriter(nil),
-			VersionString: "test version",
-			ReadyChecks: map[string]ReadyChecker{
-				"test": func(r *http.Request) error {
-					return alive
-				},
-			},
-		}
-
-		// middleware to assert and test before the request is completed
-		testMiddleware := func(t *testing.T, assertFunc func(*testing.T, http.ResponseWriter, *http.Request)) func(next http.Handler) http.Handler {
-			return func(h http.Handler) http.Handler {
-				return http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
-					writer.Header().Add(mockHeaderKey, mockHeaderValue)
-					assertFunc(t, writer, req)
-					h.ServeHTTP(writer, req)
-				})
-			}
-		}
-
-		router := httprouter.New()
-
-		handler.SetHealthRoutes(router, true,
-			WithMiddleware(testMiddleware(t, func(t *testing.T, rw http.ResponseWriter, r *http.Request) {
-				assert.Equal(t, "GET", r.Method)
-			})),
-		)
-
-		handler.SetVersionRoutes(router, WithMiddleware(testMiddleware(t, func(t *testing.T, rw http.ResponseWriter, r *http.Request) {
-			assert.Equal(t, "GET", r.Method)
-		})))
-
-		ts := httptest.NewServer(router)
-		c := http.DefaultClient
-
-		var healthBody swaggerHealthStatus
-		response, err := c.Get(ts.URL + AliveCheckPath)
-		require.NoError(t, err)
-		require.EqualValues(t, http.StatusOK, response.StatusCode)
-		require.NoError(t, json.NewDecoder(response.Body).Decode(&healthBody))
-		assert.EqualValues(t, "ok", healthBody.Status)
-		assert.EqualValues(t, mockHeaderValue, response.Header.Get(mockHeaderKey))
-
-		var versionBody swaggerVersion
-		response, err = c.Get(ts.URL + VersionPath)
-		require.NoError(t, err)
-		require.EqualValues(t, http.StatusOK, response.StatusCode)
-		require.NoError(t, json.NewDecoder(response.Body).Decode(&versionBody))
-		require.EqualValues(t, versionBody.Version, handler.VersionString)
-		assert.EqualValues(t, mockHeaderValue, response.Header.Get(mockHeaderKey))
-
-		response, err = c.Get(ts.URL + ReadyCheckPath)
-		require.NoError(t, err)
-		require.EqualValues(t, http.StatusServiceUnavailable, response.StatusCode)
-		out, err := ioutil.ReadAll(response.Body)
-		require.NoError(t, err)
-		assert.EqualValues(t, "ok", healthBody.Status)
-		assert.Equal(t, `{"errors":{"test":"not alive"}}`, strings.TrimSpace(string(out)))
-		assert.EqualValues(t, mockHeaderValue, response.Header.Get(mockHeaderKey))
-
-		alive = nil
-		response, err = c.Get(ts.URL + ReadyCheckPath)
-		require.NoError(t, err)
-		require.EqualValues(t, http.StatusOK, response.StatusCode)
-		require.NoError(t, json.NewDecoder(response.Body).Decode(&versionBody))
-		require.EqualValues(t, versionBody.Version, handler.VersionString)
-		assert.EqualValues(t, mockHeaderValue, response.Header.Get(mockHeaderKey))
+		coreHealthTests(t, true)
 	})
 }
