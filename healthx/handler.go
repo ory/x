@@ -62,9 +62,11 @@ type Handler struct {
 	ReadyChecks   ReadyCheckers
 }
 
-type Options struct {
-	Middleware func(http.Handler) http.Handler
+type options struct {
+	middleware func(http.Handler) http.Handler
 }
+
+type Options func(*options)
 
 // NewHandler instantiates a handler.
 func NewHandler(
@@ -84,26 +86,26 @@ type router interface {
 }
 
 // SetHealthRoutes registers this handler's routes for health checking.
-func (h *Handler) SetHealthRoutes(r router, shareErrors bool, opts ...func(*Options)) {
-	o := &Options{}
+func (h *Handler) SetHealthRoutes(r router, shareErrors bool, opts ...Options) {
+	o := &options{}
 
 	for _, opt := range opts {
 		opt(o)
 	}
 
-	r.Handler("GET", AliveCheckPath, o.Middleware(h.Alive()))
-	r.Handler("GET", ReadyCheckPath, o.Middleware(h.Ready(shareErrors)))
+	r.Handler("GET", AliveCheckPath, o.middleware(h.Alive()))
+	r.Handler("GET", ReadyCheckPath, o.middleware(h.Ready(shareErrors)))
 }
 
 // SetVersionRoutes registers this handler's routes for health checking.
-func (h *Handler) SetVersionRoutes(r router, opts ...func(*Options)) {
-	o := &Options{}
+func (h *Handler) SetVersionRoutes(r router, opts ...Options) {
+	o := &options{}
 
 	for _, opt := range opts {
 		opt(o)
 	}
 
-	r.Handler("GET", VersionPath, o.Middleware(h.Version()))
+	r.Handler("GET", VersionPath, o.middleware(h.Version()))
 }
 
 // Alive returns an ok status if the instance is ready to handle HTTP requests.
@@ -208,4 +210,12 @@ func (h *Handler) Version() http.Handler {
 			Version: h.VersionString,
 		})
 	})
+}
+
+// WithMiddleware accepts a http.Handler to be run on the
+// route handlers
+func WithMiddleware(h func(http.Handler) http.Handler) Options {
+	return func(o *options) {
+		o.middleware = h
+	}
 }

@@ -39,12 +39,6 @@ import (
 const mockHeaderKey = "middleware-header"
 const mockHeaderValue = "test-header-value"
 
-func WithMiddleware(h func(http.Handler) http.Handler) func(*Options) {
-	return func(o *Options) {
-		o.Middleware = h
-	}
-}
-
 func TestHealth(t *testing.T) {
 	alive := errors.New("not alive")
 	handler := &Handler{
