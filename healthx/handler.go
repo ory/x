@@ -88,24 +88,36 @@ type router interface {
 // SetHealthRoutes registers this handler's routes for health checking.
 func (h *Handler) SetHealthRoutes(r router, shareErrors bool, opts ...Options) {
 	o := &options{}
+	aliveHandler := h.Alive()
+	readyHandler := h.Ready(shareErrors)
 
 	for _, opt := range opts {
 		opt(o)
 	}
 
-	r.Handler("GET", AliveCheckPath, o.middleware(h.Alive()))
-	r.Handler("GET", ReadyCheckPath, o.middleware(h.Ready(shareErrors)))
+	if o.middleware != nil {
+		aliveHandler = o.middleware(aliveHandler)
+		readyHandler = o.middleware(readyHandler)
+	}
+
+	r.Handler("GET", AliveCheckPath, aliveHandler)
+	r.Handler("GET", ReadyCheckPath, readyHandler)
 }
 
 // SetVersionRoutes registers this handler's routes for health checking.
 func (h *Handler) SetVersionRoutes(r router, opts ...Options) {
 	o := &options{}
+	versionHandler := h.Version()
 
 	for _, opt := range opts {
 		opt(o)
 	}
 
-	r.Handler("GET", VersionPath, o.middleware(h.Version()))
+	if o.middleware != nil {
+		versionHandler = o.middleware(versionHandler)
+	}
+
+	r.Handler("GET", VersionPath, versionHandler)
 }
 
 // Alive returns an ok status if the instance is ready to handle HTTP requests.
