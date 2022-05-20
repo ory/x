@@ -39,21 +39,9 @@ import (
 const mockHeaderKey = "middleware-header"
 const mockHeaderValue = "test-header-value"
 
-// MiddlewareHeader is a example logger for the below tests
-type MiddlewareHeader struct {
-	handler http.Handler
-	t       *testing.T
-}
-
-func (l *MiddlewareHeader) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add(mockHeaderKey, mockHeaderValue)
-	l.handler.ServeHTTP(w, r)
-}
-
-func loggerMiddleware(t *testing.T) func(n http.Handler) http.Handler {
-	return func(n http.Handler) http.Handler {
-		logger := &MiddlewareHeader{handler: n, t: t}
-		return logger
+func WithMiddleware(h func(http.Handler) http.Handler) func(*Options) {
+	return func(o *Options) {
+		o.Middleware = h
 	}
 }
 
@@ -69,9 +57,29 @@ func TestHealth(t *testing.T) {
 		},
 	}
 
+	// middleware to assert and test before the request is completed
+	testMiddleware := func(t *testing.T, assertFunc func(*testing.T, http.ResponseWriter, *http.Request)) func(next http.Handler) http.Handler {
+		return func(h http.Handler) http.Handler {
+			return http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
+				writer.Header().Add(mockHeaderKey, mockHeaderValue)
+				assertFunc(t, writer, req)
+				h.ServeHTTP(writer, req)
+			})
+		}
+	}
+
 	router := httprouter.New()
-	handler.SetHealthRoutes(router, true, loggerMiddleware(t))
-	handler.SetVersionRoutes(router, loggerMiddleware(t))
+
+	handler.SetHealthRoutes(router, true,
+		WithMiddleware(testMiddleware(t, func(t *testing.T, rw http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "GET", r.Method)
+		})),
+	)
+
+	handler.SetVersionRoutes(router, WithMiddleware(testMiddleware(t, func(t *testing.T, rw http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "GET", r.Method)
+	})))
+
 	ts := httptest.NewServer(router)
 	c := http.DefaultClient
 

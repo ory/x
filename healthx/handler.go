@@ -62,6 +62,10 @@ type Handler struct {
 	ReadyChecks   ReadyCheckers
 }
 
+type Options struct {
+	Middleware func(http.Handler) http.Handler
+}
+
 // NewHandler instantiates a handler.
 func NewHandler(
 	h herodot.Writer,
@@ -79,29 +83,27 @@ type router interface {
 	Handler(method, path string, handler http.Handler)
 }
 
-type Middleware func(http.Handler) http.Handler
-
 // SetHealthRoutes registers this handler's routes for health checking.
-func (h *Handler) SetHealthRoutes(r router, shareErrors bool, opts ...Middleware) {
-	aliveHandler := h.Alive()
-	readyHandler := h.Ready(shareErrors)
+func (h *Handler) SetHealthRoutes(r router, shareErrors bool, opts ...func(*Options)) {
+	o := &Options{}
 
 	for _, opt := range opts {
-		aliveHandler = opt(aliveHandler)
-		readyHandler = opt(readyHandler)
+		opt(o)
 	}
 
-	r.Handler("GET", AliveCheckPath, aliveHandler)
-	r.Handler("GET", ReadyCheckPath, readyHandler)
+	r.Handler("GET", AliveCheckPath, o.Middleware(h.Alive()))
+	r.Handler("GET", ReadyCheckPath, o.Middleware(h.Ready(shareErrors)))
 }
 
 // SetVersionRoutes registers this handler's routes for health checking.
-func (h *Handler) SetVersionRoutes(r router, opts ...Middleware) {
-	versionHandler := h.Version()
+func (h *Handler) SetVersionRoutes(r router, opts ...func(*Options)) {
+	o := &Options{}
+
 	for _, opt := range opts {
-		versionHandler = opt(versionHandler)
+		opt(o)
 	}
-	r.Handler("GET", VersionPath, versionHandler)
+
+	r.Handler("GET", VersionPath, o.Middleware(h.Version()))
 }
 
 // Alive returns an ok status if the instance is ready to handle HTTP requests.
