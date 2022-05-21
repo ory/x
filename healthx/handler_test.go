@@ -39,28 +39,14 @@ import (
 const mockHeaderKey = "middleware-header"
 const mockHeaderValue = "test-header-value"
 
-func coreHealthTests(t *testing.T, withMiddleware bool) {
+func coreHealthTests(t *testing.T, handler *Handler, router *httprouter.Router, withMiddleware bool) {
+
 	alive := errors.New("not alive")
 
-	handler := &Handler{
-		H:             herodot.NewJSONWriter(nil),
-		VersionString: "test version",
-		ReadyChecks: map[string]ReadyChecker{
-			"test": func(r *http.Request) error {
-				return alive
-			},
+	handler.ReadyChecks = map[string]ReadyChecker{
+		"test": func(r *http.Request) error {
+			return alive
 		},
-	}
-
-	// middlware to run an assert function on the requested handler
-	testMiddleware := func(t *testing.T, assertFunc func(*testing.T, http.ResponseWriter, *http.Request)) func(next http.Handler) http.Handler {
-		return func(h http.Handler) http.Handler {
-			return http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
-				writer.Header().Add(mockHeaderKey, mockHeaderValue)
-				assertFunc(t, writer, req)
-				h.ServeHTTP(writer, req)
-			})
-		}
 	}
 
 	// helper to run the same assertion on various responses that are with the middleware,
@@ -70,25 +56,6 @@ func coreHealthTests(t *testing.T, withMiddleware bool) {
 			return
 		}
 		assert.EqualValues(t, mockHeaderValue, res.Header.Get(mockHeaderKey))
-	}
-
-	router := httprouter.New()
-
-	if withMiddleware {
-		handler.SetHealthRoutes(router, true, WithMiddleware(
-			testMiddleware(t, func(t *testing.T, rw http.ResponseWriter, r *http.Request) {
-				assert.Equal(t, "GET", r.Method)
-			}),
-		))
-
-		handler.SetVersionRoutes(router, WithMiddleware(
-			testMiddleware(t, func(t *testing.T, rw http.ResponseWriter, r *http.Request) {
-				assert.Equal(t, "GET", r.Method)
-			}),
-		))
-	} else {
-		handler.SetHealthRoutes(router, true)
-		handler.SetVersionRoutes(router)
 	}
 
 	ts := httptest.NewServer(router)
@@ -127,14 +94,51 @@ func coreHealthTests(t *testing.T, withMiddleware bool) {
 	require.NoError(t, json.NewDecoder(response.Body).Decode(&versionBody))
 	require.EqualValues(t, versionBody.Version, handler.VersionString)
 	assertMockHeader(t, response, withMiddleware)
+
 }
 
 func TestHealth(t *testing.T) {
+
+	handler := &Handler{
+		H:             herodot.NewJSONWriter(nil),
+		VersionString: "test version",
+	}
+
+	// middlware to run an assert function on the requested handler
+	testMiddleware := func(t *testing.T, assertFunc func(*testing.T, http.ResponseWriter, *http.Request)) func(next http.Handler) http.Handler {
+		return func(h http.Handler) http.Handler {
+			return http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
+				writer.Header().Add(mockHeaderKey, mockHeaderValue)
+				assertFunc(t, writer, req)
+				h.ServeHTTP(writer, req)
+			})
+		}
+	}
+
 	t.Run("case:without middleware", func(t *testing.T) {
-		coreHealthTests(t, false)
+		router := httprouter.New()
+
+		handler.SetHealthRoutes(router, true)
+		handler.SetVersionRoutes(router)
+
+		coreHealthTests(t, handler, router, false)
 	})
 
 	t.Run("case:with middleware", func(t *testing.T) {
-		coreHealthTests(t, true)
+		router := httprouter.New()
+
+		handler.SetHealthRoutes(router, true, WithMiddleware(
+			testMiddleware(t, func(t *testing.T, rw http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, "GET", r.Method)
+			}),
+		))
+
+		handler.SetVersionRoutes(router, WithMiddleware(
+			testMiddleware(t, func(t *testing.T, rw http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, "GET", r.Method)
+			}),
+		))
+
+		coreHealthTests(t, handler, router, true)
 	})
 }
