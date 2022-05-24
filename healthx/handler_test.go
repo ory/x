@@ -91,11 +91,6 @@ func TestHealth(t *testing.T) {
 	}
 
 	assertReadyCheck := func(t *testing.T, endpoint string, handler *Handler) *http.Response {
-		handler.ReadyChecks = map[string]ReadyChecker{
-			"test": func(r *http.Request) error {
-				return nil
-			},
-		}
 		var healthCheck swaggerHealthStatus
 		c := http.DefaultClient
 		response, err := c.Get(endpoint)
@@ -200,6 +195,11 @@ func TestHealth(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run("case="+tc.description, func(t *testing.T) {
+				handler.ReadyChecks = map[string]ReadyChecker{
+					"test": func(r *http.Request) error {
+						return nil
+					},
+				}
 				response := tc.test(t, tc.url(ts.URL), handler)
 				assert.EqualValues(t, mockHeaderValue, response.Header.Get(mockHeaderKey))
 			})
