@@ -1,6 +1,7 @@
 package popx
 
 import (
+	"fmt"
 	"io"
 	"io/fs"
 	"regexp"
@@ -58,7 +59,7 @@ func WithGoMigrations(migrations Migrations) func(*MigrationBox) *MigrationBox {
 
 // WithTestdata
 func WithTestdata(t *testing.T, testdata fs.FS) func(*MigrationBox) *MigrationBox {
-	testdataPattern := regexp.MustCompile(`^(\d+)_testdata.sql`)
+	testdataPattern := regexp.MustCompile(`^(\d+)_testdata(|\.\w+).sql`)
 	return func(m *MigrationBox) *MigrationBox {
 		require.NoError(t, fs.WalkDir(testdata, ".", func(path string, info fs.DirEntry, err error) error {
 			if err != nil {
@@ -68,15 +69,26 @@ func WithTestdata(t *testing.T, testdata fs.FS) func(*MigrationBox) *MigrationBo
 				return nil
 			}
 			match := testdataPattern.FindStringSubmatch(info.Name())
-			if len(match) != 2 {
+			if len(match) != 2 && len(match) != 3 {
+				fmt.Printf(`WARNING! Found a test migration which does not match the test data pattern: %s`, info.Name())
 				return nil
 			}
 			version := match[1]
+			flavor := "all"
+			if len(match[2]) > 0 {
+				flavor = strings.TrimPrefix(match[2], ".")
+			}
+			fmt.Printf(`
+
+found pattern: %+v
+found falvor: %s
+
+`, match, flavor)
 			m.Migrations["up"] = append(m.Migrations["up"], Migration{
 				Version:   version + "9", // run testdata after version
 				Path:      path,
 				Name:      "testdata",
-				DBType:    "all",
+				DBType:    flavor,
 				Direction: "up",
 				Type:      "sql",
 				Runner: func(m Migration, _ *pop.Connection, tx *pop.Tx) error {
@@ -93,7 +105,7 @@ func WithTestdata(t *testing.T, testdata fs.FS) func(*MigrationBox) *MigrationBo
 				Path:      path,
 				Name:      "testdata",
 				DBType:    "all",
-				Direction: "down",
+				Direction: flavor,
 				Type:      "sql",
 				Runner: func(m Migration, _ *pop.Connection, tx *pop.Tx) error {
 					return nil
