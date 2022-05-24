@@ -3,7 +3,6 @@ package tlsx
 import (
 	"context"
 	"crypto/tls"
-	"path"
 	"sync"
 	"time"
 
@@ -114,15 +113,8 @@ func (p *provider) setWatcher(certPath, keyPath string) {
 
 	p.deleteWatchersNoLock()
 
-	certPath = path.Dir(certPath)
-	keyPath = path.Dir(keyPath)
-
 	if err := p.addWatcher(certPath); err != nil {
 		p.logger.WithError(err).Fatalf("Could not create watcher with path: " + certPath)
-	}
-
-	if certPath == keyPath {
-		return
 	}
 
 	if err := p.addWatcher(keyPath); err != nil {
@@ -133,7 +125,7 @@ func (p *provider) setWatcher(certPath, keyPath string) {
 
 func (p *provider) addWatcher(fsPath string) error {
 	ctx, cancel := context.WithCancel(p.ctx)
-	_, err := watcherx.WatchDirectory(ctx, fsPath, p.fsEvent)
+	_, err := watcherx.WatchFile(ctx, fsPath, p.fsEvent)
 	if err != nil {
 		cancel()
 		return err
@@ -164,9 +156,14 @@ func (p *provider) watchCertificatesChanges() {
 			select {
 			case <-p.ctx.Done():
 				return
-			case _, ok := <-p.fsEvent:
+			case e, ok := <-p.fsEvent:
 				if !ok {
 					return
+				}
+
+				if err, isErr := e.(*watcherx.ErrorEvent); isErr {
+					p.logger.WithError(err).Warningf("Error watching: %s", e.Source())
+					continue
 				}
 
 				p.waitForAllFilesChanges()
