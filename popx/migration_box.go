@@ -68,20 +68,23 @@ func WithTestdata(t *testing.T, testdata fs.FS) func(*MigrationBox) *MigrationBo
 			if info.IsDir() {
 				return nil
 			}
+
 			match := testdataPattern.FindStringSubmatch(info.Name())
 			if len(match) != 2 && len(match) != 3 {
 				fmt.Printf(`WARNING! Found a test migration which does not match the test data pattern: %s`, info.Name())
 				return nil
 			}
+
 			version := match[1]
 			flavor := "all"
 			if len(match[2]) > 0 {
 				flavor = strings.TrimPrefix(match[2], ".")
 			}
+
 			m.Migrations["up"] = append(m.Migrations["up"], Migration{
 				Version:   version + "9", // run testdata after version
 				Path:      path,
-				Name:      "testdata",
+				Name:      info.Name(),
 				DBType:    flavor,
 				Direction: "up",
 				Type:      "sql",
@@ -97,9 +100,9 @@ func WithTestdata(t *testing.T, testdata fs.FS) func(*MigrationBox) *MigrationBo
 			m.Migrations["down"] = append(m.Migrations["down"], Migration{
 				Version:   version + "9", // run testdata after version
 				Path:      path,
-				Name:      "testdata",
-				DBType:    "all",
-				Direction: flavor,
+				Name:      info.Name(),
+				DBType:    flavor,
+				Direction: "down",
 				Type:      "sql",
 				Runner: func(m Migration, _ *pop.Connection, tx *pop.Tx) error {
 					return nil
