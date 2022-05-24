@@ -1,7 +1,6 @@
 package popx
 
 import (
-	"fmt"
 	"io"
 	"io/fs"
 	"regexp"
@@ -71,15 +70,16 @@ func WithTestdata(t *testing.T, testdata fs.FS) func(*MigrationBox) *MigrationBo
 
 			match := testdataPattern.FindStringSubmatch(info.Name())
 			if len(match) != 2 && len(match) != 3 {
-				fmt.Printf(`WARNING! Found a test migration which does not match the test data pattern: %s`, info.Name())
+				t.Logf(`WARNING! Found a test migration which does not match the test data pattern: %s`, info.Name())
 				return nil
 			}
 
 			version := match[1]
 			flavor := "all"
-			if len(match[2]) > 0 {
+			if len(match) == 3 {
 				flavor = strings.TrimPrefix(match[2], ".")
 			}
+			t.Logf("Found test migration \"%s\" (%s, %+v)", flavor, match, err)
 
 			m.Migrations["up"] = append(m.Migrations["up"], Migration{
 				Version:   version + "9", // run testdata after version
@@ -89,11 +89,13 @@ func WithTestdata(t *testing.T, testdata fs.FS) func(*MigrationBox) *MigrationBo
 				Direction: "up",
 				Type:      "sql",
 				Runner: func(m Migration, _ *pop.Connection, tx *pop.Tx) error {
+					match := match
 					b, err := fs.ReadFile(testdata, m.Path)
 					if err != nil {
 						return err
 					}
 					_, err = tx.Exec(string(b))
+					t.Logf("Ran test migration \"%s\" (%s, %+v) with error \"%v\" and content:\n %s", m.Path, m.DBType, match, err, string(b))
 					return err
 				},
 			})
