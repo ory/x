@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"sync"
-	"time"
 
 	"github.com/ory/x/logrusx"
 	"github.com/ory/x/watcherx"
@@ -166,32 +165,14 @@ func (p *provider) watchCertificatesChanges() {
 					continue
 				}
 
-				p.waitForAllFilesChanges()
-
-				p.logger.Infof("TLS certificates changed, updating")
-				if err := p.LoadCertificates("", "", p.certPath, p.keyPath); err != nil {
-					p.logger.WithError(err).Errorf("Error in the new tls certificates")
-					return
+				if _, isChange := e.(*watcherx.ChangeEvent); isChange {
+					p.logger.Infof("TLS certificates changed, updating")
+					if err := p.LoadCertificates("", "", p.certPath, p.keyPath); err != nil {
+						p.logger.WithError(err).Errorf("Error in the new tls certificates")
+						return
+					}
 				}
 			}
 		}
 	}()
-}
-
-func (p *provider) waitForAllFilesChanges() {
-	flushUntil := time.After(2 * time.Second)
-	p.logger.Infof("TLS certificates files changed, waiting for changes to finish")
-	stop := false
-	for {
-		select {
-		case <-flushUntil:
-			stop = true
-		case <-p.fsEvent:
-			continue
-		}
-
-		if stop {
-			break
-		}
-	}
 }
