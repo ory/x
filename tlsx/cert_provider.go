@@ -14,6 +14,7 @@ import (
 
 type (
 	Provider interface {
+		SetCertificatesGenerator(CertificateGenerator) Provider
 		GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certificate, error)
 		LoadCertificates(certString, keyString string, certPath, keyPath string) error
 	}
@@ -22,6 +23,7 @@ type (
 		ctx    context.Context
 		logger *logrusx.Logger
 
+		certGen           CertificateGenerator
 		certPath, keyPath string
 
 		crts    []tls.Certificate
@@ -31,6 +33,8 @@ type (
 		fsEvent        watcherx.EventChannel
 		watchersLck    sync.Mutex
 	}
+
+	CertificateGenerator func() []tls.Certificate
 )
 
 // NewProvider creates a tls.Certificate provider
@@ -44,6 +48,11 @@ func NewProvider(ctx context.Context, l *logrusx.Logger) Provider {
 
 	go p.watchCertificatesChanges()
 
+	return p
+}
+
+func (p *provider) SetCertificatesGenerator(c CertificateGenerator) Provider {
+	p.certGen = c
 	return p
 }
 
@@ -71,7 +80,10 @@ func (p *provider) LoadCertificates(
 ) error {
 	fromFiles := certPath != "" && keyPath != ""
 	crts, err := Certificate(certString, keyString, certPath, keyPath)
-	if err != nil {
+	if err != nil && errors.Is(err, ErrNoCertificatesConfigured) && p.certGen != nil {
+		crts = p.certGen()
+		fromFiles = false
+	} else if err != nil {
 		return err
 	}
 
