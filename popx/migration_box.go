@@ -78,12 +78,6 @@ func WithTestdata(t *testing.T, testdata fs.FS) func(*MigrationBox) *MigrationBo
 			if len(match[2]) > 0 {
 				flavor = strings.TrimPrefix(match[2], ".")
 			}
-			fmt.Printf(`
-
-found pattern: %+v
-found falvor: %s
-
-`, match, flavor)
 			m.Migrations["up"] = append(m.Migrations["up"], Migration{
 				Version:   version + "9", // run testdata after version
 				Path:      path,
