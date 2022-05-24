@@ -23,8 +23,6 @@ package healthx
 import (
 	"net/http"
 
-	"github.com/julienschmidt/httprouter"
-
 	"github.com/ory/herodot"
 )
 
@@ -64,6 +62,12 @@ type Handler struct {
 	ReadyChecks   ReadyCheckers
 }
 
+type options struct {
+	middleware func(http.Handler) http.Handler
+}
+
+type Options func(*options)
+
 // NewHandler instantiates a handler.
 func NewHandler(
 	h herodot.Writer,
@@ -78,18 +82,42 @@ func NewHandler(
 }
 
 type router interface {
-	GET(path string, handle httprouter.Handle)
+	Handler(method, path string, handler http.Handler)
 }
 
 // SetHealthRoutes registers this handler's routes for health checking.
-func (h *Handler) SetHealthRoutes(r router, shareErrors bool) {
-	r.GET(AliveCheckPath, h.Alive)
-	r.GET(ReadyCheckPath, h.Ready(shareErrors))
+func (h *Handler) SetHealthRoutes(r router, shareErrors bool, opts ...Options) {
+	o := &options{}
+	aliveHandler := h.Alive()
+	readyHandler := h.Ready(shareErrors)
+
+	for _, opt := range opts {
+		opt(o)
+	}
+
+	if o.middleware != nil {
+		aliveHandler = o.middleware(aliveHandler)
+		readyHandler = o.middleware(readyHandler)
+	}
+
+	r.Handler("GET", AliveCheckPath, aliveHandler)
+	r.Handler("GET", ReadyCheckPath, readyHandler)
 }
 
-// SetHealthRoutes registers this handler's routes for health checking.
-func (h *Handler) SetVersionRoutes(r router) {
-	r.GET(VersionPath, h.Version)
+// SetVersionRoutes registers this handler's routes for health checking.
+func (h *Handler) SetVersionRoutes(r router, opts ...Options) {
+	o := &options{}
+	versionHandler := h.Version()
+
+	for _, opt := range opts {
+		opt(o)
+	}
+
+	if o.middleware != nil {
+		versionHandler = o.middleware(versionHandler)
+	}
+
+	r.Handler("GET", VersionPath, versionHandler)
 }
 
 // Alive returns an ok status if the instance is ready to handle HTTP requests.
@@ -113,9 +141,11 @@ func (h *Handler) SetVersionRoutes(r router) {
 //     Responses:
 //       200: healthStatus
 //       500: genericError
-func (h *Handler) Alive(rw http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	h.H.Write(rw, r, &swaggerHealthStatus{
-		Status: "ok",
+func (h *Handler) Alive() http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		h.H.Write(rw, r, &swaggerHealthStatus{
+			Status: "ok",
+		})
 	})
 }
 
@@ -140,8 +170,8 @@ func (h *Handler) Alive(rw http.ResponseWriter, r *http.Request, _ httprouter.Pa
 //     Responses:
 //       200: healthStatus
 //       503: healthNotReadyStatus
-func (h *Handler) Ready(shareErrors bool) httprouter.Handle {
-	return func(rw http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (h *Handler) Ready(shareErrors bool) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		var notReady = swaggerNotReadyStatus{
 			Errors: map[string]string{},
 		}
@@ -164,7 +194,7 @@ func (h *Handler) Ready(shareErrors bool) httprouter.Handle {
 		h.H.Write(rw, r, &swaggerHealthStatus{
 			Status: "ok",
 		})
-	}
+	})
 }
 
 // Version returns this service's versions.
@@ -186,8 +216,18 @@ func (h *Handler) Ready(shareErrors bool) httprouter.Handle {
 //
 //	   Responses:
 // 			200: version
-func (h *Handler) Version(rw http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	h.H.Write(rw, r, &swaggerVersion{
-		Version: h.VersionString,
+func (h *Handler) Version() http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		h.H.Write(rw, r, &swaggerVersion{
+			Version: h.VersionString,
+		})
 	})
+}
+
+// WithMiddleware accepts a http.Handler to be run on the
+// route handlers
+func WithMiddleware(h func(http.Handler) http.Handler) Options {
+	return func(o *options) {
+		o.middleware = h
+	}
 }
