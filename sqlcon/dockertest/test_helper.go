@@ -125,7 +125,7 @@ func connect(dialect, driver, dsn string) (db *sqlx.DB, err error) {
 	return db, nil
 }
 
-func connectPop(t require.TestingT, url string) (c *pop.Connection) {
+func ConnectPop(t require.TestingT, url string) (c *pop.Connection) {
 	require.NoError(t, resilience.Retry(logrusx.New("", ""), time.Second*5, time.Minute*5, func() error {
 		var err error
 		c, err = pop.NewConnection(&pop.ConnectionDetails{
@@ -212,7 +212,7 @@ func ConnectToTestPostgreSQL() (*sqlx.DB, error) {
 // at the end of the test.
 func ConnectToTestPostgreSQLPop(t testing.TB) *pop.Connection {
 	url := RunTestPostgreSQL(t)
-	return connectPop(t, url)
+	return ConnectPop(t, url)
 }
 
 // ## MySQL ##
@@ -289,7 +289,7 @@ func ConnectToTestMySQL() (*sqlx.DB, error) {
 
 func ConnectToTestMySQLPop(t testing.TB) *pop.Connection {
 	url := RunTestMySQL(t)
-	return connectPop(t, url)
+	return ConnectPop(t, url)
 }
 
 // ## CockroachDB
@@ -381,7 +381,7 @@ func ConnectToTestCockroachDB() (*sqlx.DB, error) {
 // at the end of the test.
 func ConnectToTestCockroachDBPop(t testing.TB) *pop.Connection {
 	url := RunTestCockroachDB(t)
-	return connectPop(t, url)
+	return ConnectPop(t, url)
 }
 
 func bootstrap(u, port, d string, pool dockerPool, resource *dockertest.Resource) (db *sqlx.DB) {
