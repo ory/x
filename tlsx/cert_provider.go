@@ -113,11 +113,11 @@ func (p *provider) setWatcher(certPath, keyPath string) {
 	p.deleteWatchersNoLock()
 
 	if err := p.addWatcher(certPath); err != nil {
-		p.logger.WithError(err).Fatalf("Could not create watcher with path: " + certPath)
+		p.logger.WithError(err).Fatalf("Could not create watcher with path: %s", certPath)
 	}
 
 	if err := p.addWatcher(keyPath); err != nil {
-		p.logger.WithError(err).Fatalf("Could not create watcher with path: " + keyPath)
+		p.logger.WithError(err).Fatalf("Could not create watcher with path: %s", keyPath)
 	}
 
 }
