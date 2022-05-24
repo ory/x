@@ -223,14 +223,15 @@ func startMySQL() (*dockertest.Resource, error) {
 		return nil, errors.Wrap(err, "Could not connect to docker")
 	}
 
-	resource, err := pool.Run(
-		"mysql",
-		"8.0",
-		[]string{
+	resource, err := pool.RunWithOptions(&dockertest.RunOptions{
+		Platform:   "linux/amd64",
+		Repository: "mysql",
+		Tag:        "8.0",
+		Env: []string{
 			"MYSQL_ROOT_PASSWORD=secret",
 			"MYSQL_ROOT_HOST=%",
 		},
-	)
+	})
 	if err != nil {
 		return nil, err
 	}
