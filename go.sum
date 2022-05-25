@@ -610,6 +610,8 @@ github.com/gobuffalo/packr/v2 v2.2.0/go.mod h1:CaAwI0GPIAv+5wKLtv8Afwl+Cm78K/I/V
 github.com/gobuffalo/plush/v4 v4.1.9/go.mod h1:9OOII9uAM5pZnhWu1OkQnboXJjaWMQ7kcTl3zNcxvTM=
 github.com/gobuffalo/plush/v4 v4.1.11 h1:IOLBE07W0VkiraJf36x547l3q5Ek3osP9vHzN48wAh0=
 github.com/gobuffalo/plush/v4 v4.1.11/go.mod h1:9OOII9uAM5pZnhWu1OkQnboXJjaWMQ7kcTl3zNcxvTM=
+github.com/gobuffalo/pop/v6 v6.0.4-0.20220524160009-195240e4a669 h1:IVk9uuVEVLRo1VrNsj/A6eBMDs3xdAdZNPUhJqFybck=
+github.com/gobuffalo/pop/v6 v6.0.4-0.20220524160009-195240e4a669/go.mod h1:dFcrMNPOwk+sl1Oa0lOb/jGbmjv+JV+5CZjMWNYR3KI=
 github.com/gobuffalo/syncx v0.0.0-20190224160051-33c29581e754/go.mod h1:HhnNqWY95UYwwW3uSASeV7vtgYkT2t16hJgV3AEPUpw=
 github.com/gobuffalo/tags/v3 v3.1.2 h1:68sHcwFFDstXyfbk5ovbGcQFDsupgVLs+lw1XZinHJw=
 github.com/gobuffalo/tags/v3 v3.1.2/go.mod h1:o3ldUfKv50jxWAC8eZHXMm8dnKW3YvyZUMr0xqUcZTI=
@@ -1010,7 +1012,6 @@ github.com/lib/pq v1.1.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
 github.com/lib/pq v1.2.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
 github.com/lib/pq v1.3.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
 github.com/lib/pq v1.10.2/go.mod h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=
-github.com/lib/pq v1.10.5/go.mod h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=
 github.com/lib/pq v1.10.6 h1:jbk+ZieJ0D7EVGJYpL9QTz7/YW6UHbmdnZWYyK5cdBs=
 github.com/lib/pq v1.10.6/go.mod h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=
 github.com/looplab/fsm v0.1.0 h1:Qte7Zdn/5hBNbXzP7yxVU4OIFHWXBovyTT2LaBTyC20=
@@ -1499,8 +1500,6 @@ github.com/yvasiyarov/gorelic v0.0.0-20141212073537-a9bba5b9ab50/go.mod h1:NUSPS
 github.com/yvasiyarov/newrelic_platform_go v0.0.0-20140908184405-b21fdbd4370f/go.mod h1:GlGEuHIJweS1mbCqG+7vt2nvWLzLLnRHbXz5JKd/Qbg=
 github.com/zenazn/goji v0.9.0/go.mod h1:7S9M489iMyHBNxwZnk9/EHS098H4/F6TATF2mIxtB1Q=
 github.com/zenazn/goji v1.0.1/go.mod h1:7S9M489iMyHBNxwZnk9/EHS098H4/F6TATF2mIxtB1Q=
-github.com/zepatrik/pop/v6 v6.0.0-20220519141323-ce05da9328cd h1:c+k3U9b3Nh/LdnvSoG5e1/ixdkrnNBd1JkCs9Ufsr6U=
-github.com/zepatrik/pop/v6 v6.0.0-20220519141323-ce05da9328cd/go.mod h1:UJ3ESOX8rKr2leurHKaIFPK61MtUraFqUe+N6t4sftc=
 go.elastic.co/apm v1.15.0 h1:uPk2g/whK7c7XiZyz/YCUnAUBNPiyNeE3ARX3G6Gx7Q=
 go.elastic.co/apm v1.15.0/go.mod h1:dylGv2HKR0tiCV+wliJz1KHtDyuD8SPe69oV7VyK6WY=
 go.elastic.co/apm/module/apmhttp v1.15.0 h1:Le/DhI0Cqpr9wG/NIGOkbz7+rOMqJrfE4MRG6q/+leU=
