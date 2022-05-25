@@ -90,12 +90,12 @@ func WithTestdata(t *testing.T, testdata fs.FS) func(*MigrationBox) *MigrationBo
 				Direction: "up",
 				Type:      "sql",
 				Runner: func(m Migration, _ *pop.Connection, tx *pop.Tx) error {
-					match := match
 					b, err := fs.ReadFile(testdata, m.Path)
 					if err != nil {
 						return err
 					}
 					_, err = tx.Exec(string(b))
+					//match := match
 					//t.Logf("Ran test migration \"%s\" (%s, %+v) with error \"%v\" and content:\n %s", m.Path, m.DBType, match, err, string(b))
 					return err
 				},
