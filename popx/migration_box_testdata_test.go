@@ -40,7 +40,7 @@ func TestMigrationBoxWithTestdata(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Len(t, mb.Migrations["up"], 2)
-	assert.Equal(t, "testdata", mb.Migrations["up"][1].Name)
+	assert.Equal(t, "20220513_testdata.sql", mb.Migrations["up"][1].Name)
 
 	require.NoError(t, mb.Up(context.Background()))
 	pop.Debug = true
