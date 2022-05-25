@@ -10,7 +10,7 @@ replace github.com/gobuffalo/packr => github.com/gobuffalo/packr v1.30.1
 
 replace github.com/mattn/go-sqlite3 => github.com/mattn/go-sqlite3 v1.14.10
 
-replace github.com/gobuffalo/pop/v6 => github.com/zepatrik/pop/v6 v6.0.0-20220519141323-ce05da9328cd
+replace github.com/gobuffalo/pop/v6 => github.com/gobuffalo/pop/v6 v6.0.4-0.20220524160009-195240e4a669
 
 require (
 	github.com/bmatcuk/doublestar/v2 v2.0.4

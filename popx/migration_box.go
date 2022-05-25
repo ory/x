@@ -58,7 +58,7 @@ func WithGoMigrations(migrations Migrations) func(*MigrationBox) *MigrationBox {
 
 // WithTestdata
 func WithTestdata(t *testing.T, testdata fs.FS) func(*MigrationBox) *MigrationBox {
-	testdataPattern := regexp.MustCompile(`^(\d+)_testdata(|\.\w+).sql`)
+	testdataPattern := regexp.MustCompile(`^(\d+)_testdata(|\.[a-zA-Z0-9]+).sql$`)
 	return func(m *MigrationBox) *MigrationBox {
 		require.NoError(t, fs.WalkDir(testdata, ".", func(path string, info fs.DirEntry, err error) error {
 			if err != nil {
@@ -76,10 +76,11 @@ func WithTestdata(t *testing.T, testdata fs.FS) func(*MigrationBox) *MigrationBo
 
 			version := match[1]
 			flavor := "all"
-			if len(match) == 3 {
-				flavor = strings.TrimPrefix(match[2], ".")
+			if len(match) == 3 && len(match[2]) > 0 {
+				flavor = pop.NormalizeSynonyms(strings.TrimPrefix(match[2], "."))
 			}
-			t.Logf("Found test migration \"%s\" (%s, %+v)", flavor, match, err)
+
+			//t.Logf("Found test migration \"%s\" (%s, %+v): %s", flavor, match, err, info.Name())
 
 			m.Migrations["up"] = append(m.Migrations["up"], Migration{
 				Version:   version + "9", // run testdata after version
@@ -95,10 +96,11 @@ func WithTestdata(t *testing.T, testdata fs.FS) func(*MigrationBox) *MigrationBo
 						return err
 					}
 					_, err = tx.Exec(string(b))
-					t.Logf("Ran test migration \"%s\" (%s, %+v) with error \"%v\" and content:\n %s", m.Path, m.DBType, match, err, string(b))
+					//t.Logf("Ran test migration \"%s\" (%s, %+v) with error \"%v\" and content:\n %s", m.Path, m.DBType, match, err, string(b))
 					return err
 				},
 			})
+
 			m.Migrations["down"] = append(m.Migrations["down"], Migration{
 				Version:   version + "9", // run testdata after version
 				Path:      path,
@@ -111,9 +113,10 @@ func WithTestdata(t *testing.T, testdata fs.FS) func(*MigrationBox) *MigrationBo
 				},
 			})
 
+			sort.Sort(sortIdent(m.Migrations["up"]))
+			sort.Sort(sort.Reverse(sortIdent(m.Migrations["down"])))
 			return nil
 		}))
-
 		return m
 	}
 }
