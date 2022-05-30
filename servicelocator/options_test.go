@@ -2,12 +2,14 @@ package servicelocator
 
 import (
 	"context"
-	"github.com/ory/x/contextx"
-	"github.com/ory/x/logrusx"
-	"github.com/urfave/negroni"
-	"google.golang.org/grpc"
 	"net/http"
 	"testing"
+
+	"github.com/urfave/negroni"
+	"google.golang.org/grpc"
+
+	"github.com/ory/x/contextx"
+	"github.com/ory/x/logrusx"
 
 	"github.com/stretchr/testify/assert"
 )
