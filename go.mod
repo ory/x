@@ -10,8 +10,6 @@ replace github.com/gobuffalo/packr => github.com/gobuffalo/packr v1.30.1
 
 replace github.com/mattn/go-sqlite3 => github.com/mattn/go-sqlite3 v1.14.10
 
-replace github.com/gobuffalo/pop/v6 => github.com/gobuffalo/pop/v6 v6.0.4-0.20220524160009-195240e4a669
-
 require (
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/bradleyjkemp/cupaloy/v2 v2.6.0
@@ -27,7 +25,7 @@ require (
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/gobuffalo/fizz v1.14.0
 	github.com/gobuffalo/httptest v1.0.2
-	github.com/gobuffalo/pop/v6 v6.0.1
+	github.com/gobuffalo/pop/v6 v6.0.4-0.20220524160009-195240e4a669
 	github.com/goccy/go-yaml v1.9.5
 	github.com/gofrs/uuid v4.2.0+incompatible
 	github.com/golang/mock v1.6.0
