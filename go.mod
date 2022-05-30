@@ -13,6 +13,7 @@ replace github.com/mattn/go-sqlite3 => github.com/mattn/go-sqlite3 v1.14.10
 replace github.com/gobuffalo/pop/v6 => github.com/gobuffalo/pop/v6 v6.0.4-0.20220524160009-195240e4a669
 
 require (
+	github.com/avast/retry-go/v4 v4.0.5
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/bradleyjkemp/cupaloy/v2 v2.6.0
 	github.com/cockroachdb/cockroach-go/v2 v2.2.10
