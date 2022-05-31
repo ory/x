@@ -97,7 +97,7 @@ func (p *provider) LoadCertificates(
 	} else {
 		p.certPath = ""
 		p.keyPath = ""
-		p.deleteWatcher()
+		p.deleteWatchers()
 	}
 
 	return nil
@@ -138,7 +138,7 @@ func (p *provider) addWatcher(fsPath string) error {
 	return nil
 }
 
-func (p *provider) deleteWatcher() {
+func (p *provider) deleteWatchers() {
 	p.watchersLck.Lock()
 	defer p.watchersLck.Unlock()
 
