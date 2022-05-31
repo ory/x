@@ -32,7 +32,7 @@ type (
 		watchersLck    sync.Mutex
 	}
 
-	CertificateGenerator func() []tls.Certificate
+	CertificateGenerator func() ([]tls.Certificate, error)
 )
 
 // NewProvider creates a tls.Certificate provider
@@ -79,7 +79,10 @@ func (p *provider) LoadCertificates(
 	fromFiles := certPath != "" && keyPath != ""
 	crts, err := Certificate(certString, keyString, certPath, keyPath)
 	if err != nil && errors.Is(err, ErrNoCertificatesConfigured) && p.certGen != nil {
-		crts = p.certGen()
+		crts, err = p.certGen()
+		if err != nil {
+			return err
+		}
 		fromFiles = false
 	} else if err != nil {
 		return err
