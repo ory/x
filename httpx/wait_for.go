@@ -13,13 +13,18 @@ import (
 
 // WaitForEndpoint waits for the endpoint to be available.
 func WaitForEndpoint(ctx context.Context, endpoint string, opts ...retry.Option) error {
+	return WaitForEndpointWithClient(ctx, http.DefaultClient, endpoint, opts...)
+}
+
+// WaitForEndpointWithClient waits for the endpoint to be available while using the given http.Client.
+func WaitForEndpointWithClient(ctx context.Context, client *http.Client, endpoint string, opts ...retry.Option) error {
 	return retry.Do(func() error {
 		req, err := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
 		if err != nil {
 			return err
 		}
 
-		res, err := http.DefaultClient.Do(req)
+		res, err := client.Do(req)
 		if err != nil {
 			return err
 		}
