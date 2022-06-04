@@ -32,6 +32,14 @@ func NewTransportWithHost(host string) *TransportWithHost {
 	}
 }
 
+// WrapRoundTripperWithHost wraps a http.RoundTripper that always uses the given host.
+func WrapRoundTripperWithHost(parent http.RoundTripper, host string) *TransportWithHost {
+	return &TransportWithHost{
+		RoundTripper: parent,
+		host:         host,
+	}
+}
+
 // TransportWithHost is an http.RoundTripper that always uses the given host.
 type TransportWithHost struct {
 	http.RoundTripper
