@@ -163,19 +163,21 @@ func (p *provider) watchCertificatesChanges() {
 					return
 				}
 
-				if err, isErr := e.(*watcherx.ErrorEvent); isErr {
-					p.logger.WithError(err).Warningf("Error watching: %s", e.Source())
-					continue
-				}
-
-				if _, isChange := e.(*watcherx.ChangeEvent); isChange {
-					p.logger.Infof("TLS certificates changed, updating")
-					if err := p.LoadCertificates("", "", p.certPath, p.keyPath); err != nil {
-						p.logger.WithError(err).Errorf("Error in the new tls certificates")
-						return
-					}
-				}
+				p.handleEvent(e)
 			}
 		}
 	}()
+}
+
+func (p *provider) handleEvent(e watcherx.Event) {
+	switch ev := e.(type) {
+	case *watcherx.ErrorEvent:
+		p.logger.WithError(ev).Warningf("Error watching: %s", e.Source())
+
+	case *watcherx.ChangeEvent:
+		p.logger.Infof("TLS certificates changed, updating")
+		if err := p.LoadCertificates("", "", p.certPath, p.keyPath); err != nil {
+			p.logger.WithError(err).Errorf("Error in the new tls certificates")
+		}
+	}
 }
