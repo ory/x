@@ -148,7 +148,6 @@ d/hJs+A=
 		p := NewProvider(ctx, ev)
 
 		require.NoError(t, p.LoadCertificates("", "", crtPath, keyPath))
-		require.NoError(t, p.LoadCertificates("", "", crtPath, keyPath)) // Loading twice to test watcher change
 
 		c, err := p.GetCertificate(nil)
 		require.NoError(t, err)
@@ -180,7 +179,6 @@ d/hJs+A=
 		p := NewProvider(ctx, ev)
 
 		require.NoError(t, p.LoadCertificates("", "", crtPath, keyPath))
-		require.NoError(t, p.LoadCertificates("", "", crtPath, keyPath)) // Loading twice to test watcher change
 
 		c, err := p.GetCertificate(nil)
 		require.NoError(t, err)
@@ -212,7 +210,7 @@ d/hJs+A=
 		assert.Equal(t, 0, len(ev))
 	})
 
-	t.Run("case=load certificate from files then base64 then files", func(t *testing.T) {
+	t.Run("case=load certificate from files then base64 then files and check watcher", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		ev := make(EventChannel, 1)
@@ -237,11 +235,20 @@ d/hJs+A=
 		assert.NotEqual(t, nil, c2)
 		assert.NotEqual(t, 0, bytes.Compare(c.Certificate[0], c2.Certificate[0]))
 
+		// Using another temp dir to ensure watcher is working on change
+		dir, err = os.MkdirTemp(t.TempDir(), "test")
+		require.NoError(t, err)
+
+		crtPath, keyPath = writeKeyToDisk(t, k1crt, k1priv, dir)
+
 		require.NoError(t, p.LoadCertificates("", "", crtPath, keyPath))
 
 		c3, err := p.GetCertificate(nil)
 		require.NoError(t, err)
 		assert.NotEqual(t, nil, c3)
 		assert.Equal(t, 0, bytes.Compare(c.Certificate[0], c3.Certificate[0]))
+
+		writeKeyToDisk(t, k2crt, k2priv, dir)
+		assert.Equal(t, &ChangeEvent{}, <-ev)
 	})
 }
