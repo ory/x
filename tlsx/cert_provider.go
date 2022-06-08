@@ -3,7 +3,6 @@ package tlsx
 import (
 	"context"
 	"crypto/tls"
-	"path/filepath"
 	"sync"
 
 	"github.com/ory/x/watcherx"
@@ -28,6 +27,7 @@ type (
 
 		watchersCancel []func()
 		fsEvent        watcherx.EventChannel
+		fsEvent2       watcherx.EventChannel
 		watchersLck    sync.Mutex
 
 		ev EventChannel
@@ -60,9 +60,7 @@ func (e *ChangeEvent) String() string {
 func NewProvider(ctx context.Context, ev EventChannel) Provider {
 	p := &provider{
 		ctx: ctx,
-
-		fsEvent: make(watcherx.EventChannel, 1),
-		ev:      ev,
+		ev:  ev,
 	}
 
 	go p.watchCertificatesChanges()
@@ -152,39 +150,23 @@ func (p *provider) setWatcher(certPath, keyPath string) error {
 
 	p.deleteWatchersNoLock()
 
-	root := filepath.Dir(certPath)
-	if root == filepath.Dir(keyPath) {
-		if err := p.addDirectoryWatcher(root); err != nil && p.ev != nil {
-			return err
-		}
-	} else {
-		if err := p.addFileWatcher(certPath); err != nil && p.ev != nil {
-			return err
-		}
-
-		if err := p.addFileWatcher(keyPath); err != nil && p.ev != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (p *provider) addDirectoryWatcher(fsPath string) error {
-	ctx, cancel := context.WithCancel(p.ctx)
-	_, err := watcherx.WatchDirectory(ctx, fsPath, p.fsEvent)
-	if err != nil {
-		cancel()
+	if err := p.addFileWatcher(certPath, &p.fsEvent); err != nil && p.ev != nil {
 		return err
 	}
 
-	p.watchersCancel = append(p.watchersCancel, cancel)
+	if err := p.addFileWatcher(keyPath, &p.fsEvent2); err != nil && p.ev != nil {
+		return err
+	}
 
 	return nil
 }
 
-func (p *provider) addFileWatcher(fsPath string) error {
+func (p *provider) addFileWatcher(fsPath string, fsEvent *watcherx.EventChannel) error {
 	ctx, cancel := context.WithCancel(p.ctx)
-	_, err := watcherx.WatchFile(ctx, fsPath, p.fsEvent)
+
+	*fsEvent = make(watcherx.EventChannel, 1)
+
+	_, err := watcherx.WatchFile(ctx, fsPath, *fsEvent)
 	if err != nil {
 		cancel()
 		return err
