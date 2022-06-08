@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -185,7 +184,6 @@ d/hJs+A=
 		assert.NotEqual(t, nil, c)
 
 		writeKeyToDiskDirs(t, k2crt, k2priv, dir1, dir2)
-		time.Sleep(2 * time.Second)
 		assert.Equal(t, &ChangeEvent{}, <-ev)
 
 		c2, err := p.GetCertificate(nil)
