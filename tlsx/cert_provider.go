@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"sync"
+	"time"
 
 	"github.com/ory/x/watcherx"
 	"github.com/pkg/errors"
@@ -26,8 +27,9 @@ type (
 		crtsLck sync.RWMutex
 
 		watchersCancel []func()
-		fsEvent        watcherx.EventChannel
-		fsEvent2       watcherx.EventChannel
+		certEvent      watcherx.EventChannel
+		keyEvent       watcherx.EventChannel
+		reload         chan struct{}
 		watchersLck    sync.Mutex
 
 		ev EventChannel
@@ -61,6 +63,8 @@ func NewProvider(ctx context.Context, ev EventChannel) Provider {
 	p := &provider{
 		ctx: ctx,
 		ev:  ev,
+
+		reload: make(chan struct{}, 1),
 	}
 
 	go p.watchCertificatesChanges()
@@ -108,11 +112,11 @@ func (p *provider) LoadCertificates(
 		p.certPath = certPath
 		p.keyPath = keyPath
 		return p.setWatcher(certPath, keyPath)
-	} else {
-		p.certPath = ""
-		p.keyPath = ""
-		p.deleteWatchers()
 	}
+
+	p.certPath = ""
+	p.keyPath = ""
+	p.deleteWatchers()
 
 	return nil
 }
@@ -150,11 +154,11 @@ func (p *provider) setWatcher(certPath, keyPath string) error {
 
 	p.deleteWatchersNoLock()
 
-	if err := p.addFileWatcher(certPath, &p.fsEvent); err != nil && p.ev != nil {
+	if err := p.addFileWatcher(certPath, &p.certEvent); err != nil && p.ev != nil {
 		return err
 	}
 
-	if err := p.addFileWatcher(keyPath, &p.fsEvent2); err != nil && p.ev != nil {
+	if err := p.addFileWatcher(keyPath, &p.keyEvent); err != nil && p.ev != nil {
 		return err
 	}
 
@@ -164,13 +168,24 @@ func (p *provider) setWatcher(certPath, keyPath string) error {
 func (p *provider) addFileWatcher(fsPath string, fsEvent *watcherx.EventChannel) error {
 	ctx, cancel := context.WithCancel(p.ctx)
 
-	*fsEvent = make(watcherx.EventChannel, 1)
+	c := make(watcherx.EventChannel, 1)
 
-	_, err := watcherx.WatchFile(ctx, fsPath, *fsEvent)
+	w, err := watcherx.WatchFile(ctx, fsPath, c)
 	if err != nil {
 		cancel()
 		return err
 	}
+
+	done, err := w.DispatchNow()
+	if err != nil {
+		cancel()
+		return err
+	}
+	<-done
+	<-c
+
+	*fsEvent = c
+	p.reload <- struct{}{} // We need to reload as nil chan are blocking forever
 
 	p.watchersCancel = append(p.watchersCancel, cancel)
 
@@ -185,6 +200,10 @@ func (p *provider) deleteWatchers() {
 }
 
 func (p *provider) deleteWatchersNoLock() {
+	if len(p.watchersCancel) > 0 {
+		p.certEvent = nil
+		p.keyEvent = nil
+	}
 	for _, cancel := range p.watchersCancel {
 		cancel()
 	}
@@ -192,36 +211,84 @@ func (p *provider) deleteWatchersNoLock() {
 }
 
 func (p *provider) watchCertificatesChanges() {
-	go func() {
-		for {
-			select {
-			case <-p.ctx.Done():
-				close(p.ev)
-				return
-			case e, ok := <-p.fsEvent:
-				if !ok {
-					return
-				}
 
-				p.handleEvent(e)
+	go func() {
+		loadCert := time.NewTimer(0)
+		<-loadCert.C
+		var certChange, keyChange bool
+
+		for {
+			if p.handleChan(loadCert, &certChange, &keyChange) {
+				return
 			}
 		}
 	}()
 }
 
-func (p *provider) handleEvent(e watcherx.Event) {
+func (p *provider) handleChan(loadCert *time.Timer, certChange, keyChange *bool) (stop bool) {
+	delay := 2 * time.Second // Time to avoid double call
+
+	select {
+	case <-p.ctx.Done():
+		close(p.ev)
+		return true
+
+	case e, ok := <-p.certEvent:
+		if p.handleEvent(e, ok) {
+			*certChange = true
+
+			if *keyChange {
+				loadCert.Reset(0)
+			} else {
+				loadCert.Reset(delay)
+			}
+		}
+
+	case e, ok := <-p.keyEvent:
+		if p.handleEvent(e, ok) {
+			*keyChange = true
+
+			if *certChange {
+				loadCert.Reset(0)
+			} else {
+				loadCert.Reset(delay)
+			}
+		}
+
+	case <-loadCert.C:
+		loadCert.Stop()
+		*certChange = false
+		*keyChange = false
+		if _, err := p.loadCertificates("", "", p.certPath, p.keyPath); p.ev != nil {
+			if err != nil {
+				p.ev <- &ErrorEvent{error: err}
+			} else {
+				p.ev <- &ChangeEvent{}
+			}
+		}
+
+	case <-p.reload:
+
+	}
+
+	return
+}
+
+func (p *provider) handleEvent(e watcherx.Event, ok bool) (change bool) {
+	if !ok {
+		return
+	}
+
 	switch ev := e.(type) {
 	case *watcherx.ErrorEvent:
 		if p.ev != nil {
 			p.ev <- &ErrorEvent{error: ev}
 		}
+		return
 
 	case *watcherx.ChangeEvent:
-		if p.ev != nil {
-			p.ev <- &ChangeEvent{}
-		}
-		if _, err := p.loadCertificates("", "", p.certPath, p.keyPath); err != nil && p.ev != nil {
-			p.ev <- &ErrorEvent{error: err}
-		}
+		return true
 	}
+
+	return
 }

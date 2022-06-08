@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -147,13 +148,13 @@ d/hJs+A=
 		p := NewProvider(ctx, ev)
 
 		require.NoError(t, p.LoadCertificates("", "", crtPath, keyPath))
+		require.NoError(t, p.LoadCertificates("", "", crtPath, keyPath)) // Loading twice to test watcher change
 
 		c, err := p.GetCertificate(nil)
 		require.NoError(t, err)
 		assert.NotEqual(t, nil, c)
 
-		crtPath, keyPath = writeKeyToDisk(t, k2crt, k2priv, dir)
-		assert.Equal(t, &ChangeEvent{}, <-ev)
+		writeKeyToDisk(t, k2crt, k2priv, dir)
 		assert.Equal(t, &ChangeEvent{}, <-ev)
 
 		c2, err := p.GetCertificate(nil)
@@ -179,13 +180,14 @@ d/hJs+A=
 		p := NewProvider(ctx, ev)
 
 		require.NoError(t, p.LoadCertificates("", "", crtPath, keyPath))
+		require.NoError(t, p.LoadCertificates("", "", crtPath, keyPath)) // Loading twice to test watcher change
 
 		c, err := p.GetCertificate(nil)
 		require.NoError(t, err)
 		assert.NotEqual(t, nil, c)
 
-		crtPath, keyPath = writeKeyToDiskDirs(t, k2crt, k2priv, dir1, dir2)
-		assert.Equal(t, &ChangeEvent{}, <-ev)
+		writeKeyToDiskDirs(t, k2crt, k2priv, dir1, dir2)
+		time.Sleep(2 * time.Second)
 		assert.Equal(t, &ChangeEvent{}, <-ev)
 
 		c2, err := p.GetCertificate(nil)
