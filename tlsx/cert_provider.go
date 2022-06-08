@@ -3,9 +3,9 @@ package tlsx
 import (
 	"context"
 	"crypto/tls"
+	"path/filepath"
 	"sync"
 
-	"github.com/ory/x/logrusx"
 	"github.com/ory/x/watcherx"
 	"github.com/pkg/errors"
 )
@@ -18,8 +18,7 @@ type (
 	}
 
 	provider struct {
-		ctx    context.Context
-		logger *logrusx.Logger
+		ctx context.Context
 
 		certGen           CertificateGenerator
 		certPath, keyPath string
@@ -30,23 +29,49 @@ type (
 		watchersCancel []func()
 		fsEvent        watcherx.EventChannel
 		watchersLck    sync.Mutex
+
+		ev EventChannel
 	}
 
 	CertificateGenerator func() ([]tls.Certificate, error)
+
+	EventChannel chan Event
+
+	Event interface {
+		String() string
+	}
+
+	ErrorEvent struct {
+		error
+	}
+
+	ChangeEvent struct{}
 )
 
+func (e *ErrorEvent) String() string {
+	return e.Error()
+}
+
+func (e *ChangeEvent) String() string {
+	return "TLS Certificates changed, updating"
+}
+
 // NewProvider creates a tls.Certificate provider
-func NewProvider(ctx context.Context, l *logrusx.Logger) Provider {
+func NewProvider(ctx context.Context, ev EventChannel) Provider {
 	p := &provider{
-		ctx:    ctx,
-		logger: l,
+		ctx: ctx,
 
 		fsEvent: make(watcherx.EventChannel, 1),
+		ev:      ev,
 	}
 
 	go p.watchCertificatesChanges()
 
 	return p
+}
+
+func (p *provider) Event() EventChannel {
+	return p.ev
 }
 
 func (p *provider) SetCertificatesGenerator(c CertificateGenerator) Provider {
@@ -76,19 +101,10 @@ func (p *provider) LoadCertificates(
 	certString, keyString string,
 	certPath, keyPath string,
 ) error {
-	fromFiles := certPath != "" && keyPath != ""
-	crts, err := Certificate(certString, keyString, certPath, keyPath)
-	if err != nil && errors.Is(err, ErrNoCertificatesConfigured) && p.certGen != nil {
-		crts, err = p.certGen()
-		if err != nil {
-			return err
-		}
-		fromFiles = false
-	} else if err != nil {
+	fromFiles, err := p.loadCertificates(certString, keyString, certPath, keyPath)
+	if err != nil {
 		return err
 	}
-
-	p.setCertificates(crts)
 
 	if fromFiles {
 		p.certPath = certPath
@@ -103,6 +119,27 @@ func (p *provider) LoadCertificates(
 	return nil
 }
 
+func (p *provider) loadCertificates(
+	certString, keyString string,
+	certPath, keyPath string,
+) (fromFiles bool, err error) {
+	fromFiles = certPath != "" && keyPath != ""
+	crts, err := Certificate(certString, keyString, certPath, keyPath)
+	if err != nil && errors.Is(err, ErrNoCertificatesConfigured) && p.certGen != nil {
+		crts, err = p.certGen()
+		if err != nil {
+			return false, err
+		}
+		fromFiles = false
+	} else if err != nil {
+		return false, err
+	}
+
+	p.setCertificates(crts)
+
+	return
+}
+
 func (p *provider) setCertificates(crts []tls.Certificate) {
 	p.crtsLck.Lock()
 	p.crts = crts
@@ -115,17 +152,36 @@ func (p *provider) setWatcher(certPath, keyPath string) {
 
 	p.deleteWatchersNoLock()
 
-	if err := p.addWatcher(certPath); err != nil {
-		p.logger.WithError(err).Fatalf("Could not create watcher with path: %s", certPath)
-	}
+	root := filepath.Dir(certPath)
+	if root == filepath.Dir(keyPath) {
+		if err := p.addDirectoryWatcher(root); err != nil && p.ev != nil {
+			p.ev <- &ErrorEvent{error: err}
+		}
+	} else {
+		if err := p.addFileWatcher(certPath); err != nil && p.ev != nil {
+			p.ev <- &ErrorEvent{error: err}
+		}
 
-	if err := p.addWatcher(keyPath); err != nil {
-		p.logger.WithError(err).Fatalf("Could not create watcher with path: %s", keyPath)
+		if err := p.addFileWatcher(keyPath); err != nil && p.ev != nil {
+			p.ev <- &ErrorEvent{error: err}
+		}
 	}
-
 }
 
-func (p *provider) addWatcher(fsPath string) error {
+func (p *provider) addDirectoryWatcher(fsPath string) error {
+	ctx, cancel := context.WithCancel(p.ctx)
+	_, err := watcherx.WatchDirectory(ctx, fsPath, p.fsEvent)
+	if err != nil {
+		cancel()
+		return err
+	}
+
+	p.watchersCancel = append(p.watchersCancel, cancel)
+
+	return nil
+}
+
+func (p *provider) addFileWatcher(fsPath string) error {
 	ctx, cancel := context.WithCancel(p.ctx)
 	_, err := watcherx.WatchFile(ctx, fsPath, p.fsEvent)
 	if err != nil {
@@ -157,6 +213,7 @@ func (p *provider) watchCertificatesChanges() {
 		for {
 			select {
 			case <-p.ctx.Done():
+				close(p.ev)
 				return
 			case e, ok := <-p.fsEvent:
 				if !ok {
@@ -172,12 +229,16 @@ func (p *provider) watchCertificatesChanges() {
 func (p *provider) handleEvent(e watcherx.Event) {
 	switch ev := e.(type) {
 	case *watcherx.ErrorEvent:
-		p.logger.WithError(ev).Warningf("Error watching: %s", e.Source())
+		if p.ev != nil {
+			p.ev <- &ErrorEvent{error: ev}
+		}
 
 	case *watcherx.ChangeEvent:
-		p.logger.Infof("TLS certificates changed, updating")
-		if err := p.LoadCertificates("", "", p.certPath, p.keyPath); err != nil {
-			p.logger.WithError(err).Errorf("Error in the new tls certificates")
+		if p.ev != nil {
+			p.ev <- &ChangeEvent{}
+		}
+		if _, err := p.loadCertificates("", "", p.certPath, p.keyPath); err != nil && p.ev != nil {
+			p.ev <- &ErrorEvent{error: err}
 		}
 	}
 }
