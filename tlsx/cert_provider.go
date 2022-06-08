@@ -109,7 +109,7 @@ func (p *provider) LoadCertificates(
 	if fromFiles {
 		p.certPath = certPath
 		p.keyPath = keyPath
-		p.setWatcher(certPath, keyPath)
+		return p.setWatcher(certPath, keyPath)
 	} else {
 		p.certPath = ""
 		p.keyPath = ""
@@ -146,7 +146,7 @@ func (p *provider) setCertificates(crts []tls.Certificate) {
 	p.crtsLck.Unlock()
 }
 
-func (p *provider) setWatcher(certPath, keyPath string) {
+func (p *provider) setWatcher(certPath, keyPath string) error {
 	p.watchersLck.Lock()
 	defer p.watchersLck.Unlock()
 
@@ -155,17 +155,18 @@ func (p *provider) setWatcher(certPath, keyPath string) {
 	root := filepath.Dir(certPath)
 	if root == filepath.Dir(keyPath) {
 		if err := p.addDirectoryWatcher(root); err != nil && p.ev != nil {
-			p.ev <- &ErrorEvent{error: err}
+			return err
 		}
 	} else {
 		if err := p.addFileWatcher(certPath); err != nil && p.ev != nil {
-			p.ev <- &ErrorEvent{error: err}
+			return err
 		}
 
 		if err := p.addFileWatcher(keyPath); err != nil && p.ev != nil {
-			p.ev <- &ErrorEvent{error: err}
+			return err
 		}
 	}
+	return nil
 }
 
 func (p *provider) addDirectoryWatcher(fsPath string) error {
