@@ -2,9 +2,10 @@
 package testingx
 
 import (
-	"github.com/stretchr/testify/require"
 	"io"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 // ReadAll reads all bytes from the reader and returns them as a byte slice.
