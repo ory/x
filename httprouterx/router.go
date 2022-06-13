@@ -56,12 +56,12 @@ func (r *RouterPublic) Handler(method, path string, handler http.Handler) {
 	r.Router.Handler(method, path, NoCacheHandler(handler))
 }
 
-type baseUrlProvider func(ctx context.Context) *url.URL
+type baseURLProvider func(ctx context.Context) *url.URL
 
 type RouterAdmin struct {
 	*httprouter.Router
 	prefix          string
-	baseUrlProvider baseUrlProvider
+	baseURLProvider baseURLProvider
 }
 
 func NewRouterAdmin() *RouterAdmin {
@@ -70,14 +70,14 @@ func NewRouterAdmin() *RouterAdmin {
 	}
 }
 
-func NewRouterAdminWithPrefix(prefix string, baseUrlProvider baseUrlProvider) *RouterAdmin {
+func NewRouterAdminWithPrefix(prefix string, baseURLProvider baseURLProvider) *RouterAdmin {
 	if prefix != "" {
 		prefix = "/" + strings.TrimPrefix(strings.TrimSuffix(prefix, "/"), "/")
 	}
 	return &RouterAdmin{
 		Router:          httprouter.New(),
 		prefix:          prefix,
-		baseUrlProvider: baseUrlProvider,
+		baseURLProvider: baseURLProvider,
 	}
 }
 
@@ -143,7 +143,7 @@ func (r *RouterAdmin) handleNative(method string, route string, handle http.Hand
 
 func (r *RouterAdmin) handleRedirect() http.HandlerFunc {
 	return func(w http.ResponseWriter, rr *http.Request) {
-		baseURL := r.baseUrlProvider(rr.Context())
+		baseURL := r.baseURLProvider(rr.Context())
 
 		dest := *rr.URL
 		dest.Host = baseURL.Host
