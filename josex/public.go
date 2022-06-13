@@ -14,9 +14,14 @@ func ToPublicKey(k *jose.JSONWebKey) jose.JSONWebKey {
 
 	// HSM workaround - jose does not understand crypto.Signer / HSM so we need to manually
 	// extract the public key.
-	if pub, ok := k.Key.(crypto.Signer); ok {
+	switch key := k.Key.(type) {
+	case crypto.Signer:
 		newKey := *k
-		newKey.Key = pub.Public()
+		newKey.Key = key.Public()
+		return newKey
+	case jose.OpaqueSigner:
+		newKey := *k
+		newKey.Key = key.Public()
 		return newKey
 	}
 
