@@ -21,7 +21,7 @@ func ToPublicKey(k *jose.JSONWebKey) jose.JSONWebKey {
 		return newKey
 	case jose.OpaqueSigner:
 		newKey := *k
-		newKey.Key = key.Public()
+		newKey.Key = key.Public().Key
 		return newKey
 	}
 
