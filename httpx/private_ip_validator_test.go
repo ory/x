@@ -29,4 +29,5 @@ func TestIsAssociatedIPAllowed(t *testing.T) {
 func TestDisallowLocalIPAddressesWhenSet(t *testing.T) {
 	require.NoError(t, DisallowIPPrivateAddresses(""))
 	require.Error(t, DisallowIPPrivateAddresses("127.0.0.1"))
+	require.ErrorAs(t, DisallowIPPrivateAddresses("127.0.0.1"), new(ErrPrivateIPAddressDisallowed))
 }
