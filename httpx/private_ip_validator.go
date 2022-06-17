@@ -11,6 +11,9 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ErrPrivateIPAddressDisallowed is returned when a private IP address is disallowed.
+type ErrPrivateIPAddressDisallowed error
+
 // DisallowPrivateIPAddressesWhenSet is a wrapper for DisallowIPPrivateAddresses which returns valid
 // when ipOrHostnameOrURL is empty.
 func DisallowPrivateIPAddressesWhenSet(ipOrHostnameOrURL string) error {
@@ -77,7 +80,7 @@ func DisallowIPPrivateAddresses(ipOrHostnameOrURL string) error {
 
 		for _, ip := range ips {
 			if cidr.Contains(ip) {
-				return fmt.Errorf("ip %s is in the %s range", ip, disabled)
+				return ErrPrivateIPAddressDisallowed(fmt.Errorf("ip %s is in the %s range", ip, disabled))
 			}
 		}
 	}

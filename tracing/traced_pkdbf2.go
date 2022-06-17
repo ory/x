@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"crypto/subtle"
+
 	"golang.org/x/crypto/pbkdf2"
 
 	opentracing "github.com/opentracing/opentracing-go"
