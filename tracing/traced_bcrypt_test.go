@@ -9,7 +9,7 @@ import (
 	"github.com/ory/x/tracing"
 )
 
-func TestCompare(t *testing.T) {
+func TestCompareBCrypt(t *testing.T) {
 	workfactor := 10
 	hasher := &tracing.TracedBCrypt{
 		GetWorkFactor: func(ctx context.Context) int {
