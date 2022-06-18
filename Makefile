@@ -57,6 +57,6 @@ migrations-render-replace: .bin/ory
 
 .PHONY: mocks
 mocks: .bin/mockgen
-		mockgen -package hashersx_test -destination hashersx/mocks_argon2_test.go github.com/ory/x/hashersx Argon2Configurator
-		mockgen -package hashersx_test -destination hashersx/mocks_bcrypt_test.go github.com/ory/x/hashersx BCryptConfigurator
-		mockgen -package hashersx_test -destination hashersx/mocks_pkdbf2_test.go github.com/ory/x/hashersx PKBDF2Configurator
+		mockgen -package hasherx_test -destination hasherx/mocks_argon2_test.go github.com/ory/x/hasherx Argon2Configurator
+		mockgen -package hasherx_test -destination hasherx/mocks_bcrypt_test.go github.com/ory/x/hasherx BCryptConfigurator
+		mockgen -package hasherx_test -destination hasherx/mocks_pkdbf2_test.go github.com/ory/x/hasherx PBKDF2Configurator
