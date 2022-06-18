@@ -1,4 +1,4 @@
-package hashersx
+package hasherx
 
 import (
 	"bytes"
@@ -19,13 +19,13 @@ import (
 )
 
 type (
-	// PKBDF2 is a PBKDF2 hasher.
-	PKBDF2 struct {
-		c PKBDF2Configurator
+	// PBKDF2 is a PBKDF2 hasher.
+	PBKDF2 struct {
+		c PBKDF2Configurator
 	}
 
-	// PKBDF2Config is the configuration for a PBKDF2 hasher.
-	PKBDF2Config struct {
+	// PBKDF2Config is the configuration for a PBKDF2 hasher.
+	PBKDF2Config struct {
 		// Algorithm can be one of sha1, sha224, sha256, sha384, sha512
 		Algorithm string
 		// Iterations is the number of iterations to use.
@@ -36,23 +36,23 @@ type (
 		KeyLength uint32
 	}
 
-	// PKBDF2Configurator is a configurator for a PBKDF2 hasher.
-	PKBDF2Configurator interface {
-		HasherPKBDF2Config(ctx context.Context) *PKBDF2Config
+	// PBKDF2Configurator is a configurator for a PBKDF2 hasher.
+	PBKDF2Configurator interface {
+		HasherPBKDF2Config(ctx context.Context) *PBKDF2Config
 	}
 )
 
-// NewHasherPKBDF2 creates a new PBKDF2 hasher.
-func NewHasherPKBDF2(c PKBDF2Configurator) *PKBDF2 {
-	return &PKBDF2{c: c}
+// NewHasherPBKDF2 creates a new PBKDF2 hasher.
+func NewHasherPBKDF2(c PBKDF2Configurator) *PBKDF2 {
+	return &PBKDF2{c: c}
 }
 
 // Generate generates a hash for the given password.
-func (h *PKBDF2) Generate(ctx context.Context, password []byte) ([]byte, error) {
-	_, span := otel.GetTracerProvider().Tracer("").Start(ctx, "hash.PKBDF2.Generate")
+func (h *PBKDF2) Generate(ctx context.Context, password []byte) ([]byte, error) {
+	_, span := otel.GetTracerProvider().Tracer("").Start(ctx, "hash.PBKDF2.Generate")
 	defer span.End()
 
-	conf := h.c.HasherPKBDF2Config(ctx)
+	conf := h.c.HasherPBKDF2Config(ctx)
 	salt := make([]byte, conf.SaltLength)
 	if _, err := rand.Read(salt); err != nil {
 		return nil, err
@@ -79,7 +79,7 @@ func (h *PKBDF2) Generate(ctx context.Context, password []byte) ([]byte, error) 
 }
 
 // Understands checks if the given hash is in the correct format.
-func (h *PKBDF2) Understands(hash []byte) bool {
+func (h *PBKDF2) Understands(hash []byte) bool {
 	return IsPbkdf2Hash(hash)
 }
 

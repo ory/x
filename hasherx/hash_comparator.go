@@ -1,4 +1,4 @@
-package hashersx
+package hasherx
 
 import (
 	"context"
@@ -166,13 +166,13 @@ func decodeArgon2idHash(encodedHash string) (p *Argon2Config, salt, hash []byte,
 
 // decodePbkdf2Hash decodes PBKDF2 encoded password hash.
 // format: $pbkdf2-<digest>$i=<iterations>,l=<length>$<salt>$<hash>
-func decodePbkdf2Hash(encodedHash string) (p *PKBDF2Config, salt, hash []byte, err error) {
+func decodePbkdf2Hash(encodedHash string) (p *PBKDF2Config, salt, hash []byte, err error) {
 	parts := strings.Split(encodedHash, "$")
 	if len(parts) != 5 {
 		return nil, nil, nil, ErrInvalidHash
 	}
 
-	p = new(PKBDF2Config)
+	p = new(PBKDF2Config)
 	digestParts := strings.SplitN(parts[1], "-", 2)
 	if len(digestParts) != 2 {
 		return nil, nil, nil, ErrInvalidHash
