@@ -2,6 +2,7 @@ package hashersx
 
 import (
 	"context"
+
 	"github.com/pkg/errors"
 
 	"go.opentelemetry.io/otel"

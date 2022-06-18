@@ -4,12 +4,14 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"testing"
+
 	"github.com/golang/mock/gomock"
 	"github.com/inhies/go-bytesize"
-	"github.com/ory/x/hashersx"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
+
+	"github.com/ory/x/hashersx"
 )
 
 func mkpw(t *testing.T, length int) []byte {
