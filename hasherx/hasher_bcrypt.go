@@ -1,4 +1,4 @@
-package hashersx
+package hasherx
 
 import (
 	"context"

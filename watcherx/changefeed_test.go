@@ -141,3 +141,85 @@ func TestChangeFeed(t *testing.T) {
 		assert.Equal(t, expectedPk, deleted.Source(), expectedMessage)
 	}
 }
+
+func send(ctx context.Context, ev chan<- Event, events []Event) {
+	for _, e := range events {
+		select {
+		case <-ctx.Done():
+			break
+		case ev <- e:
+		}
+	}
+	close(ev)
+}
+
+func recv(ctx context.Context, ev <-chan Event) (events []Event) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case e, ok := <-ev:
+			if !ok {
+				return
+			}
+			events = append(events, e)
+		}
+	}
+}
+
+func Test_deduplicate(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	events := []Event{}
+	for i := 0; i < 100; i++ {
+		events = append(events, &ErrorEvent{
+			source: source(fmt.Sprintf("Event %d", i)),
+		})
+	}
+
+	t.Run("case=proxies", func(t *testing.T) {
+		childCtx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		eventCh := make(EventChannel)
+		deduplicatedEvents := make(EventChannel)
+
+		deduplicate(eventCh, deduplicatedEvents, 100)
+		go send(childCtx, eventCh, events)
+		received := recv(ctx, deduplicatedEvents)
+
+		assert.Equal(t, events, received)
+	})
+
+	t.Run("case=deduplicates", func(t *testing.T) {
+		childCtx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		eventCh := make(EventChannel)
+		deduplicatedEvents := make(EventChannel)
+
+		duplicateEvents := append(events, events...)
+
+		deduplicate(eventCh, deduplicatedEvents, 100)
+		go send(childCtx, eventCh, duplicateEvents)
+		received := recv(ctx, deduplicatedEvents)
+
+		assert.Equal(t, events, received)
+	})
+
+	t.Run("case=does not deduplicate past capacity", func(t *testing.T) {
+		childCtx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		eventCh := make(EventChannel)
+		deduplicatedEvents := make(EventChannel)
+
+		duplicateEvents := append([]Event{events[0]}, events...)
+		duplicateEvents = append(duplicateEvents, events[0])
+		expectedEvents := append(events, events[0])
+
+		deduplicate(eventCh, deduplicatedEvents, 99)
+		go send(childCtx, eventCh, duplicateEvents)
+		received := recv(ctx, deduplicatedEvents)
+
+		assert.Equal(t, expectedEvents, received)
+	})
+}

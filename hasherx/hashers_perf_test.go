@@ -1,4 +1,4 @@
-package hashersx_test
+package hasherx_test
 
 import (
 	"context"
@@ -8,25 +8,25 @@ import (
 
 	"github.com/golang/mock/gomock"
 
-	"github.com/ory/x/hashersx"
+	"github.com/ory/x/hasherx"
 	"github.com/ory/x/randx"
 )
 
-func TestPKBDF2Performance(t *testing.T) {
+func TestPBKDF2Performance(t *testing.T) {
 	for _, iters := range []uint32{
 		100, 1000, 10000, 25000, 100000, 1000000,
 	} {
 		t.Run(fmt.Sprintf("%d", iters), func(t *testing.T) {
-			runPKDBF2(t, iters, 100)
+			runPBKDF2(t, iters, 100)
 		})
 	}
 }
 
-func runPKDBF2(t *testing.T, iterations uint32, hashCount uint32) {
+func runPBKDF2(t *testing.T, iterations uint32, hashCount uint32) {
 	c := gomock.NewController(t)
 	t.Cleanup(c.Finish)
-	reg := NewMockPKBDF2Configurator(c)
-	reg.EXPECT().HasherPKBDF2Config(gomock.Any()).Return(&hashersx.PKBDF2Config{
+	reg := NewMockPBKDF2Configurator(c)
+	reg.EXPECT().HasherPBKDF2Config(gomock.Any()).Return(&hasherx.PBKDF2Config{
 		Algorithm:  "sha256",
 		Iterations: iterations,
 		SaltLength: 32,
@@ -34,7 +34,7 @@ func runPKDBF2(t *testing.T, iterations uint32, hashCount uint32) {
 	}).AnyTimes()
 
 	pw := randx.MustString(16, randx.AlphaLower)
-	hasher := hashersx.NewHasherPKBDF2(reg)
+	hasher := hasherx.NewHasherPBKDF2(reg)
 	ctx := context.Background()
 
 	var err error
