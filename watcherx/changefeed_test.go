@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cockroachdb/cockroach-go/v2/testserver"
 	"github.com/google/uuid"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/stretchr/testify/assert"
@@ -15,6 +14,7 @@ import (
 	"github.com/tidwall/gjson"
 
 	"github.com/ory/x/logrusx"
+	"github.com/ory/x/sqlcon/dockertest"
 )
 
 // Run this test with
@@ -28,35 +28,27 @@ func TestChangeFeed(t *testing.T) {
 	var watcherCount = 1
 	var itemCount int = 5
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	t.Cleanup(cancel)
 	l := logrusx.New("", "")
-	db, err := testserver.NewTestServer()
-	require.NoError(t, err)
 
-	dsnp := db.PGURL()
-	dsnp.Scheme = "cockroach"
-	dsn := dsnp.String()
+	dsn := dockertest.NewLocalTestCRDBServer(t)
 
 	cx, err := NewChangeFeedConnection(ctx, l, dsn)
 	require.NoError(t, err)
+	t.Cleanup(func() { cx.Close() })
 
 	_, err = cx.Exec("CREATE TABLE IF NOT EXISTS " + tableName + " (id UUID PRIMARY KEY, value VARCHAR(64))")
 	require.NoError(t, err)
 
-	time.Sleep(time.Second)
 	start := time.Now()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
-
-	ctx, cancel = context.WithTimeout(ctx, time.Second*60)
-	t.Cleanup(cancel)
-
-	events := make(EventChannel)
+	events := make(EventChannel, 1)
 
 	worker := func() {
 		c, err := NewChangeFeedConnection(ctx, l, dsn)
 		require.NoError(t, err)
+		t.Cleanup(func() { c.Close() })
 
 		_, err = WatchChangeFeed(ctx, c, tableName, events, time.Now().Add(time.Minute))
 		require.Error(t, err, "not able to watch changes from the future")
@@ -81,31 +73,35 @@ func TestChangeFeed(t *testing.T) {
 			c.value = c.id[:8]
 
 			rowsToCreate[k] = c
-			time.Sleep(time.Millisecond * 200)
+			time.Sleep(time.Millisecond * 100)
 
 			_, err := cx.Exec("INSERT INTO "+tableName+" (id, value) VALUES ($1, $2)", c.id, c.id)
 			require.NoError(t, err)
-			time.Sleep(time.Millisecond * 200)
+			time.Sleep(time.Millisecond * 100)
 
 			_, err = cx.Exec("UPDATE "+tableName+" SET value = $1 WHERE id = $2", c.value, c.id)
 			require.NoError(t, err)
-			time.Sleep(time.Millisecond * 200)
+			time.Sleep(time.Millisecond * 100)
 
 			_, err = cx.Exec("DELETE FROM "+tableName+" WHERE id = $1", c.id)
 			require.NoError(t, err)
 		}
+		time.Sleep(500 * time.Millisecond)
+		cancel()
 	}()
 
 	expectedEventCount := watcherCount * itemCount * 3 // 3 operations: insert, update, delete
+
 	var received []Event
-	done := false
-	for !done {
+
+loop:
+	for {
 		select {
 		case <-time.After(time.Second*time.Duration(expectedEventCount) + time.Second*5):
-			done = true
+			cancel()
 		case row, ok := <-events:
 			if !ok {
-				done = true
+				break loop
 			} else {
 				t.Logf("%+v", row)
 				received = append(received, row)
@@ -140,6 +136,7 @@ func TestChangeFeed(t *testing.T) {
 		assert.IsType(t, &RemoveEvent{}, deleted, expectedMessage, expectedMessage)
 		assert.Equal(t, expectedPk, deleted.Source(), expectedMessage)
 	}
+
 }
 
 func send(ctx context.Context, ev chan<- Event, events []Event) {
