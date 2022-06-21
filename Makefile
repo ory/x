@@ -54,3 +54,9 @@ migrations-render: .bin/ory
 .PHONY: migrations-render-replace
 migrations-render-replace: .bin/ory
 		ory dev pop migration render -r networkx/migrations/templates networkx/migrations/sql
+
+.PHONY: mocks
+mocks: .bin/mockgen
+		mockgen -package hashersx_test -destination hashersx/mocks_argon2_test.go github.com/ory/x/hashersx Argon2Configurator
+		mockgen -package hashersx_test -destination hashersx/mocks_bcrypt_test.go github.com/ory/x/hashersx BCryptConfigurator
+		mockgen -package hashersx_test -destination hashersx/mocks_pkdbf2_test.go github.com/ory/x/hashersx PKBDF2Configurator
