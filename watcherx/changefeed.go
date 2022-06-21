@@ -2,6 +2,7 @@ package watcherx
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
 	"fmt"
 	"strings"
@@ -68,7 +69,10 @@ const heartBeatInterval = time.Second
 // Watcher.DispatchNow() does not have an effect in this method.
 //
 // This watcher is blocking to allow proper context cancellation and clean up.
-func WatchChangeFeed(ctx context.Context, cx *sqlx.DB, tableName string, c EventChannel, cursor time.Time) (_ Watcher, err error) {
+func WatchChangeFeed(ctx context.Context, cx *sqlx.DB, tableName string, out EventChannel, cursor time.Time) (_ Watcher, err error) {
+	c := make(EventChannel)
+	deduplicate(c, out, 100)
+
 	var rows *sql.Rows
 	if cursor.IsZero() {
 		rows, err = cx.QueryContext(ctx, fmt.Sprintf("EXPERIMENTAL CHANGEFEED FOR %s RESOLVED = $1", tableName), heartBeatInterval.String())
@@ -198,4 +202,77 @@ func WatchChangeFeed(ctx context.Context, cx *sqlx.DB, tableName string, c Event
 	}
 
 	return d, nil
+}
+
+// deduplicate sents events from `events` to the `deduplicated` channel, but
+// deduplicates events that are sent multiple times. This is necessary, because
+// the CochroachDB changefeed has a atleast-once guarantee for change events,
+// meaning that events could be sent multiple times.
+//
+// For deduplication, the last x `pastEvents` are considered.
+func deduplicate(in <-chan Event, out chan<- Event, pastEvents int) {
+	go func() {
+		defer close(out)
+		previous := newRingBuffer(pastEvents)
+
+		for {
+			e, ok := <-in
+			if !ok {
+				return
+			}
+			if previous.Contains(e) {
+				// Ignore event
+				continue
+			} else {
+				previous.Add(e)
+				out <- e
+			}
+		}
+	}()
+}
+
+type ringBufferKey [sha256.Size]byte
+
+var emptyKey ringBufferKey
+
+// ringBuffer is a data structure for constant-time set membership (through
+// `Contains`) while maintaining constant memory usage by keeping at most
+// `capacity` elements.
+//
+// ringBuffer is not safe for concurrent use.
+type ringBuffer struct {
+	capacity int
+	seen     map[ringBufferKey]struct{} // map for efficient Contains().
+	keys     []ringBufferKey            // ring buffer so we can evict events on FIFO basis.
+	keyIdx   int                        // index of the next key to be added.
+}
+
+func newRingBuffer(capacity int) *ringBuffer {
+	return &ringBuffer{
+		capacity: capacity,
+		seen:     make(map[ringBufferKey]struct{}, capacity),
+		keys:     make([]ringBufferKey, capacity, capacity),
+	}
+}
+
+func (r *ringBuffer) key(el fmt.Stringer) ringBufferKey {
+	return sha256.Sum256([]byte(el.String()))
+}
+
+func (r *ringBuffer) Contains(el fmt.Stringer) bool {
+	_, ok := r.seen[r.key(el)]
+	return ok
+}
+
+func (r *ringBuffer) Add(el fmt.Stringer) {
+	// Evict the oldest key.
+	if oldestKey := r.keys[r.keyIdx%r.capacity]; oldestKey != emptyKey {
+		delete(r.seen, oldestKey)
+	}
+
+	key := r.key(el)
+	r.seen[key] = struct{}{}
+	r.keys[r.keyIdx%r.capacity] = key
+
+	r.keyIdx++
 }

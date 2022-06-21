@@ -5,7 +5,6 @@ import (
 	"compress/zlib"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
@@ -16,7 +15,6 @@ import (
 	"time"
 
 	"github.com/instana/testify/assert"
-	"github.com/phayes/freeport"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/sync/errgroup"
@@ -67,23 +65,18 @@ type zipkinSpanRequest struct {
 
 func TestJaegerTracer(t *testing.T) {
 	done := make(chan struct{})
-	port, err := freeport.GetFreePort()
+	addr := "127.0.0.1:0"
+
+	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	require.NoError(t, err)
-	addr := fmt.Sprintf("127.0.0.1:%d", port)
+
+	srv, err := net.ListenUDP("udp", udpAddr)
+	require.NoError(t, err)
 
 	errs := errgroup.Group{}
+
 	errs.Go(func() error {
-		udpAddr, err := net.ResolveUDPAddr("udp", addr)
-		if err != nil {
-			return err
-		}
-
-		t.Logf("Starting test UDP server for Jaeger spans on %s", udpAddr.String())
-
-		srv, err := net.ListenUDP("udp", udpAddr)
-		if err != nil {
-			return err
-		}
+		t.Logf("Starting test UDP server for Jaeger spans on %s", srv.LocalAddr().String())
 
 		for {
 			buf := make([]byte, 2048)
@@ -109,7 +102,7 @@ func TestJaegerTracer(t *testing.T) {
 		Provider:    "jaeger",
 		Providers: ProvidersConfig{
 			Jaeger: JaegerConfig{
-				LocalAgentAddress: addr,
+				LocalAgentAddress: srv.LocalAddr().String(),
 			},
 		},
 	})

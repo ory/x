@@ -83,10 +83,12 @@ func snapshotFile(t *testing.T, path ...string) (assertNoChange func(t *testing.
 	}
 }
 
-func TestGenerate(t *testing.T) {
+func init() {
 	child1.AddCommand(subChild1)
 	root.AddCommand(child1, child2)
+}
 
+func TestGenerate(t *testing.T) {
 	assertNoChange := snapshotDir(t, "testdata")
 	require.NoError(t, Generate(root, []string{"testdata"}))
 	assertNoChange(t)
