@@ -55,7 +55,7 @@ func NewMetrics(app, metricsPrefix, version, hash, date string) *Metrics {
 			Name:        metricsPrefix + "requests_duration_seconds",
 			Help:        "duration of a requests in seconds",
 			ConstLabels: labels,
-		}, []string{"code", "method"}),
+		}, []string{"code", "method", "endpoint"}),
 		responseSize: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Name:        metricsPrefix + "response_size_bytes",
 			Help:        "size of the responses in bytes",
@@ -136,7 +136,7 @@ func (h Metrics) Instrument(rw http.ResponseWriter, next http.HandlerFunc, endpo
 	}
 	wrapped := promhttp.InstrumentHandlerResponseSize(h.responseSize.MustCurryWith(labels), next)
 	wrapped = promhttp.InstrumentHandlerCounter(h.totalRequests.MustCurryWith(labelsWithEndpoint), wrapped)
-	wrapped = promhttp.InstrumentHandlerDuration(h.duration.MustCurryWith(labels), wrapped)
+	wrapped = promhttp.InstrumentHandlerDuration(h.duration.MustCurryWith(labelsWithEndpoint), wrapped)
 	wrapped = promhttp.InstrumentHandlerDuration(h.responseTime.MustCurryWith(prometheus.Labels{"endpoint": endpoint}), wrapped)
 	wrapped = promhttp.InstrumentHandlerRequestSize(h.requestSize.MustCurryWith(labels), wrapped)
 	wrapped = h.instrumentHandlerStatusBucket(wrapped)
