@@ -54,10 +54,12 @@ func TestMetrics(t *testing.T) {
 
 	require.EqualValues(t, "http_requests_total", *text["http_requests_total"].Name)
 	require.EqualValues(t, "400", getLabelValue("code", text["http_requests_total"].Metric))
+	require.EqualValues(t, testPath, getLabelValue("endpoint", text["http_requests_total"].Metric))
 	require.EqualValues(t, testApp, getLabelValue("app", text["http_requests_total"].Metric))
 
 	require.EqualValues(t, "http_requests_duration_seconds", *text["http_requests_duration_seconds"].Name)
 	require.EqualValues(t, "400", getLabelValue("code", text["http_requests_duration_seconds"].Metric))
+	require.EqualValues(t, testPath, getLabelValue("endpoint", text["http_requests_duration_seconds"].Metric))
 	require.EqualValues(t, testApp, getLabelValue("app", text["http_requests_duration_seconds"].Metric))
 
 	require.EqualValues(t, "http_response_size_bytes", *text["http_response_size_bytes"].Name)
