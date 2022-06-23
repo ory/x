@@ -9,6 +9,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+
 	hasherx "github.com/ory/x/hasherx"
 )
 

@@ -121,6 +121,12 @@ func WithTestdata(t *testing.T, testdata fs.FS) func(*MigrationBox) *MigrationBo
 	}
 }
 
+var emptySQLReplace = regexp.MustCompile("(?m)^(\\s*--.*|\\s*)$")
+
+func isMigrationEmpty(content string) bool {
+	return len(strings.ReplaceAll(emptySQLReplace.ReplaceAllString(content, ""), "\n", "")) == 0
+}
+
 // NewMigrationBox creates a new migration box.
 func NewMigrationBox(dir fs.FS, m *Migrator, opts ...func(*MigrationBox) *MigrationBox) (*MigrationBox, error) {
 	mb := &MigrationBox{
@@ -140,7 +146,7 @@ func NewMigrationBox(dir fs.FS, m *Migrator, opts ...func(*MigrationBox) *Migrat
 			if err != nil {
 				return errors.Wrapf(err, "error processing %s", mf.Path)
 			}
-			if content == "" {
+			if isMigrationEmpty(content) {
 				m.l.WithField("migration", mf.Path).Trace("This is usually ok - ignoring migration because content is empty. This is ok!")
 				return nil
 			}
