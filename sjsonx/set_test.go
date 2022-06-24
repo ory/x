@@ -2,8 +2,9 @@ package sjsonx
 
 import (
 	"encoding/json"
-	"github.com/ory/x/assertx"
 	"testing"
+
+	"github.com/ory/x/assertx"
 
 	"github.com/stretchr/testify/require"
 )
