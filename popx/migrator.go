@@ -138,7 +138,7 @@ func (m *Migrator) UpTo(ctx context.Context, step int) (applied int, err error) 
 			m.l.WithField("version", mi.Version).Debug("Migration has not yet been applied, running migration.")
 
 			if err = m.isolatedTransaction(ctx, "up", func(conn *pop.Connection) error {
-				if err := mi.Run(conn, conn.TX); err != nil {
+				if err := mi.Run(c, conn.TX); err != nil {
 					return err
 				}
 
