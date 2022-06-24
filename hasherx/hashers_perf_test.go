@@ -45,5 +45,6 @@ func runPBKDF2(t *testing.T, iterations uint32, hashCount uint32) {
 		}
 	}
 	end := time.Now()
-	t.Logf("%d hashes in %s with %d iterations", hashCount, end.Sub(start).Round(time.Millisecond), iterations)
+	diff := end.Sub(start).Round(time.Millisecond)
+	t.Logf("%d hashes in %s with %d iterations, %dms per hash", hashCount, diff, iterations, diff.Milliseconds()/int64(hashCount))
 }
