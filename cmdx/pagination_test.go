@@ -20,3 +20,15 @@ func TestPagination(t *testing.T) {
 	_, _, err = ParsePaginationArgs(cmd, "abcd", "")
 	require.Error(t, err)
 }
+
+func TestTokenPagination(t *testing.T) {
+	cmd := &cobra.Command{}
+	cmd.SetErr(io.Discard)
+	page, perPage, err := ParseTokenPaginationArgs(cmd, "1", "2")
+	require.NoError(t, err)
+	assert.EqualValues(t, "1", page)
+	assert.EqualValues(t, 2, perPage)
+
+	_, _, err = ParseTokenPaginationArgs(cmd, "abcd", "")
+	require.Error(t, err)
+}
