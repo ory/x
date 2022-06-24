@@ -1,6 +1,7 @@
 package cmdx
 
 import (
+	"bytes"
 	"io"
 	"testing"
 
@@ -22,13 +23,15 @@ func TestPagination(t *testing.T) {
 }
 
 func TestTokenPagination(t *testing.T) {
+	var stderr bytes.Buffer
 	cmd := &cobra.Command{}
-	cmd.SetErr(io.Discard)
-	page, perPage, err := ParseTokenPaginationArgs(cmd, "1", "2")
-	require.NoError(t, err)
+	cmd.SetErr(&stderr)
+	RegisterTokenPaginationFlags(cmd)
+	require.NoError(t, cmd.Flags().Set(FlagPageToken, "1"))
+	require.NoError(t, cmd.Flags().Set(FlagPageSize, "2"))
+
+	page, perPage, err := ParseTokenPaginationArgs(cmd)
+	require.NoError(t, err, stderr.String())
 	assert.EqualValues(t, "1", page)
 	assert.EqualValues(t, 2, perPage)
-
-	_, _, err = ParseTokenPaginationArgs(cmd, "abcd", "")
-	require.Error(t, err)
 }
