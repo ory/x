@@ -1,5 +1,7 @@
 package cmdx
 
+import "strconv"
+
 type (
 	// OutputIder outputs an ID
 	OutputIder string
@@ -40,3 +42,40 @@ func (c OutputIderCollection) Interface() interface{} {
 func (c OutputIderCollection) Len() int {
 	return len(c.Items)
 }
+
+type PaginatedList struct {
+	Collection interface {
+		Table
+		IDs() []string
+	} `json:"-"`
+	Items         []interface{} `json:"items"`
+	NextPageToken string        `json:"next_page_token"`
+	IsLastPage    bool          `json:"is_last_page"`
+}
+
+func (r *PaginatedList) Header() []string {
+	return r.Collection.Header()
+}
+
+func (r *PaginatedList) Table() [][]string {
+	return append(
+		r.Collection.Table(),
+		[]string{},
+		[]string{"NEXT PAGE TOKEN", r.NextPageToken},
+		[]string{"IS LAST PAGE", strconv.FormatBool(r.IsLastPage)},
+	)
+}
+
+func (r *PaginatedList) Interface() interface{} {
+	return r
+}
+
+func (r *PaginatedList) Len() int {
+	return r.Collection.Len() + 3
+}
+
+func (r *PaginatedList) IDs() []string {
+	return r.Collection.IDs()
+}
+
+var _ Table = (*PaginatedList)(nil)
