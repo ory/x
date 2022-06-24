@@ -21,7 +21,7 @@ func Canonicalize(database string) string {
 	switch database {
 	case "mysql":
 		return DriverMySQL
-	case "pgx", "pq", "postgres":
+	case "pgx", "pq", "postgres", "postgresql":
 		return DriverPostgreSQL
 	case "cockroach":
 		return DriverCockroachDB
