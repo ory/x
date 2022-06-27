@@ -40,6 +40,7 @@ Use -w or --write to write output back to files instead of stdout.
 					fmt.Printf("Processing file: %s\n", file)
 				}
 
+				//#nosec G304 -- false positive
 				content, err := ioutil.ReadFile(file)
 				cmdx.Must(err, `Unable to read file "%s" because: %s`, file, err)
 

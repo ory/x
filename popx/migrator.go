@@ -493,13 +493,13 @@ func (m *Migrator) Status(ctx context.Context) (MigrationStatuses, error) {
 func (m *Migrator) DumpMigrationSchema(ctx context.Context) error {
 	c := m.Connection.WithContext(ctx)
 	schema := "schema.sql"
-	f, err := os.Create(schema)
+	f, err := os.Create(schema) //#nosec:G304) //#nosec:G304
 	if err != nil {
 		return err
 	}
 	err = c.Dialect.DumpSchema(f)
 	if err != nil {
-		os.RemoveAll(schema)
+		_ = os.RemoveAll(schema)
 		return err
 	}
 	return nil

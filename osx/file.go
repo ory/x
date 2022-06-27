@@ -153,6 +153,7 @@ func readFile(source string, o *options) (bytes []byte, err error) {
 			return nil, errors.New("file loader disabled")
 		}
 
+		//#nosec G304 -- false positive
 		bytes, err = os.ReadFile(source)
 		if err != nil {
 			return nil, errors.Wrap(err, "unable to read the file")
@@ -162,6 +163,7 @@ func readFile(source string, o *options) (bytes []byte, err error) {
 			return nil, errors.New("file loader disabled")
 		}
 
+		//#nosec G304 -- false positive
 		bytes, err = os.ReadFile(parsed.Host + parsed.Path)
 		if err != nil {
 			return nil, errors.Wrap(err, "unable to read the file")

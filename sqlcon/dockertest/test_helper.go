@@ -189,7 +189,7 @@ func runPosgreSQLCleanup() (string, func(), error) {
 	}
 
 	return fmt.Sprintf("postgres://postgres:secret@127.0.0.1:%s/postgres?sslmode=disable", resource.GetPort("5432/tcp")),
-		func() { pool.Purge(resource) }, nil
+		func() { _ = pool.Purge(resource) }, nil
 }
 
 // ConnectToTestPostgreSQL connects to a PostgreSQL database.
@@ -252,7 +252,7 @@ func runMySQLCleanup() (string, func(), error) {
 	}
 
 	return fmt.Sprintf("mysql://root:secret@(localhost:%s)/mysql?parseTime=true&multiStatements=true", resource.GetPort("3306/tcp")),
-		func() { pool.Purge(resource) }, nil
+		func() { _ = pool.Purge(resource) }, nil
 }
 
 // RunTestMySQL runs a MySQL database and returns the URL to it.
@@ -333,7 +333,7 @@ func runCockroachDBWithVersionCleanup(version string) (string, func(), error) {
 	}
 
 	return fmt.Sprintf("cockroach://root@localhost:%s/defaultdb?sslmode=disable", resource.GetPort("26257/tcp")),
-		func() { pool.Purge(resource) },
+		func() { _ = pool.Purge(resource) },
 		nil
 }
 

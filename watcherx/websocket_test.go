@@ -30,7 +30,7 @@ func TestWatchWebsocket(t *testing.T) {
 		l := logrusx.New("", "", logrusx.WithHook(hook))
 
 		fn := filepath.Join(dir, "some.file")
-		f, err := os.Create(fn)
+		f, err := os.Create(fn) //#nosec:G304
 		require.NoError(t, err)
 
 		url, err := urlx.Parse("file://" + fn)
@@ -137,7 +137,7 @@ func TestWatchWebsocket(t *testing.T) {
 		_, err = WatchWebsocket(ctxClient2, u, c2)
 		require.NoError(t, err)
 
-		f, err := os.Create(fn)
+		f, err := os.Create(fn) //#nosec:G304
 		require.NoError(t, err)
 		require.NoError(t, f.Close())
 
@@ -172,7 +172,7 @@ func TestWatchWebsocket(t *testing.T) {
 		_, err = WatchWebsocket(ctxClient2, u, c2)
 		require.NoError(t, err)
 
-		f, err := os.Create(fn)
+		f, err := os.Create(fn) //#nosec:G304
 		require.NoError(t, err)
 		require.NoError(t, f.Close())
 

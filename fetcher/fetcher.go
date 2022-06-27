@@ -82,11 +82,13 @@ func (f *Fetcher) fetchRemote(source string) (*bytes.Buffer, error) {
 }
 
 func (f *Fetcher) fetchFile(source string) (*bytes.Buffer, error) {
-	fp, err := os.Open(source)
+	fp, err := os.Open(source) //#nosec:G304
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to fetch from source: %s", source)
 	}
-	defer fp.Close()
+	defer func() {
+		_ = fp.Close()
+	}()
 
 	return f.decode(fp)
 }

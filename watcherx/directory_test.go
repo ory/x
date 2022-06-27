@@ -22,7 +22,7 @@ func TestWatchDirectory(t *testing.T) {
 		_, err := WatchDirectory(ctx, dir, c)
 		require.NoError(t, err)
 		fileName := filepath.Join(dir, "example")
-		f, err := os.Create(fileName)
+		f, err := os.Create(fileName) //#nosec:G304
 		require.NoError(t, err)
 		require.NoError(t, f.Close())
 
@@ -34,7 +34,7 @@ func TestWatchDirectory(t *testing.T) {
 		defer cancel()
 
 		fileName := filepath.Join(dir, "example")
-		f, err := os.Create(fileName)
+		f, err := os.Create(fileName) //#nosec:G304
 		require.NoError(t, err)
 		_, err = WatchDirectory(ctx, dir, c)
 		require.NoError(t, err)
@@ -50,7 +50,7 @@ func TestWatchDirectory(t *testing.T) {
 		defer cancel()
 
 		fileName := filepath.Join(dir, "example")
-		f, err := os.Create(fileName)
+		f, err := os.Create(fileName) //#nosec:G304
 		require.NoError(t, err)
 		require.NoError(t, f.Close())
 
@@ -72,7 +72,7 @@ func TestWatchDirectory(t *testing.T) {
 		require.NoError(t, err)
 
 		fileName := filepath.Join(childDir, "example")
-		f, err := os.Create(fileName)
+		f, err := os.Create(fileName) //#nosec:G304
 		require.NoError(t, err)
 		require.NoError(t, f.Close())
 
@@ -91,7 +91,7 @@ func TestWatchDirectory(t *testing.T) {
 		fileName := filepath.Join(childDir, "example")
 		// there's not much we can do about this timeout as it takes some time until the new watcher is created
 		time.Sleep(time.Millisecond)
-		f, err := os.Create(fileName)
+		f, err := os.Create(fileName) //#nosec:G304
 		require.NoError(t, err)
 		require.NoError(t, f.Close())
 
@@ -131,11 +131,11 @@ func TestWatchDirectory(t *testing.T) {
 		subChildDir := filepath.Join(childDir, "subchild")
 		require.NoError(t, os.MkdirAll(subChildDir, 0777))
 		f1 := filepath.Join(subChildDir, "f1")
-		f, err := os.Create(f1)
+		f, err := os.Create(f1) //#nosec:G304
 		require.NoError(t, err)
 		require.NoError(t, f.Close())
 		f2 := filepath.Join(childDir, "f2")
-		f, err = os.Create(f2)
+		f, err = os.Create(f2) //#nosec:G304
 		require.NoError(t, err)
 		require.NoError(t, f.Close())
 

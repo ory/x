@@ -40,7 +40,7 @@ func TestFileWatcher(t *testing.T) {
 		defer cancel()
 
 		exampleFile := filepath.Join(dir, "example.file")
-		f, err := os.Create(exampleFile)
+		f, err := os.Create(exampleFile) //#nosec:G304
 		require.NoError(t, err)
 
 		_, err = WatchFile(ctx, exampleFile, c)
@@ -61,7 +61,7 @@ func TestFileWatcher(t *testing.T) {
 		_, err := WatchFile(ctx, exampleFile, c)
 		require.NoError(t, err)
 
-		f, err := os.Create(exampleFile)
+		f, err := os.Create(exampleFile) //#nosec:G304
 		require.NoError(t, err)
 		require.NoError(t, f.Close())
 
@@ -73,7 +73,7 @@ func TestFileWatcher(t *testing.T) {
 		defer cancel()
 
 		exampleFile := filepath.Join(dir, "example.file")
-		f, err := os.Create(exampleFile)
+		f, err := os.Create(exampleFile) //#nosec:G304
 		require.NoError(t, err)
 		require.NoError(t, f.Close())
 
@@ -84,7 +84,7 @@ func TestFileWatcher(t *testing.T) {
 
 		assertRemove(t, <-c, exampleFile)
 
-		f, err = os.Create(exampleFile)
+		f, err = os.Create(exampleFile) //#nosec:G304
 		require.NoError(t, err)
 		require.NoError(t, f.Close())
 
@@ -102,7 +102,7 @@ func TestFileWatcher(t *testing.T) {
 		otherDir, err := ioutil.TempDir("", "*")
 		require.NoError(t, err)
 		origFileName := filepath.Join(otherDir, "original")
-		f, err := os.Create(origFileName)
+		f, err := os.Create(origFileName) //#nosec:G304
 		require.NoError(t, err)
 
 		linkFileName := filepath.Join(dir, "slink")
@@ -130,10 +130,10 @@ func TestFileWatcher(t *testing.T) {
 		require.NoError(t, err)
 		fileOne := filepath.Join(otherDir, "fileOne")
 		fileTwo := filepath.Join(otherDir, "fileTwo")
-		f1, err := os.Create(fileOne)
+		f1, err := os.Create(fileOne) //#nosec:G304
 		require.NoError(t, err)
 		require.NoError(t, f1.Close())
-		f2, err := os.Create(fileTwo)
+		f2, err := os.Create(fileTwo) //#nosec:G304
 		require.NoError(t, err)
 		_, err = fmt.Fprintf(f2, "file two")
 		require.NoError(t, err)
@@ -162,7 +162,7 @@ func TestFileWatcher(t *testing.T) {
 		_, err := WatchFile(ctx, fileName, c)
 		require.NoError(t, err)
 
-		f, err := os.Create(fileName)
+		f, err := os.Create(fileName) //#nosec:G304
 		require.NoError(t, err)
 		require.NoError(t, f.Close())
 

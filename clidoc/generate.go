@@ -38,16 +38,16 @@ func generate(cmd *cobra.Command, dir string) error {
 	}
 
 	basename := strings.Replace(cmd.CommandPath(), " ", "-", -1)
-	if err := os.MkdirAll(filepath.Join(dir), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(dir), 0750); err != nil {
 		return err
 	}
 
 	filename := filepath.Join(dir, basename) + ".md"
-	f, err := os.Create(filename)
+	f, err := os.Create(filename) //#nosec:G304
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer (func() { _ = f.Close() })()
 
 	if _, err := io.WriteString(f, fmt.Sprintf(`---
 id: %s

@@ -126,7 +126,7 @@ func PrintTable(cmd *cobra.Command, table Table) {
 			fmt.Fprintln(w, strings.Join(row, "\t")+"\t")
 		}
 
-		w.Flush()
+		_ = w.Flush()
 	}
 }
 

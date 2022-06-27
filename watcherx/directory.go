@@ -79,6 +79,8 @@ func handleEvent(e fsnotify.Event, w *fsnotify.Watcher, c EventChannel) {
 			}
 			return
 		}
+
+		//#nosec G304 -- false positive
 		data, err := ioutil.ReadFile(e.Name)
 		if err != nil {
 			c <- &ErrorEvent{
@@ -110,6 +112,7 @@ func streamDirectoryEvents(ctx context.Context, w *fsnotify.Watcher, c EventChan
 					return err
 				}
 				if !info.IsDir() {
+					//#nosec G304 -- false positive
 					data, err := ioutil.ReadFile(path)
 					if err != nil {
 						c <- &ErrorEvent{

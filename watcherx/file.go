@@ -75,6 +75,7 @@ func streamFileEvents(ctx context.Context, watcher *fsnotify.Watcher, c EventCha
 				c <- &RemoveEvent{eventSource}
 			} else {
 				// The file does exist. Announce the current content by sending a ChangeEvent.
+				//#nosec G304 -- false positive
 				data, err := ioutil.ReadFile(watchedFile)
 				if err != nil {
 					c <- &ErrorEvent{
@@ -126,6 +127,7 @@ func streamFileEvents(ctx context.Context, watcher *fsnotify.Watcher, c EventCha
 					// we fallthrough because we also want to read the file in this case
 					fallthrough
 				case e.Op&(fsnotify.Write|fsnotify.Create) != 0:
+					//#nosec G304 -- false positive
 					data, err := ioutil.ReadFile(watchedFile)
 					if err != nil {
 						c <- &ErrorEvent{
