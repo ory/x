@@ -107,7 +107,7 @@ func NewClient(cmd *cobra.Command) (*http.Client, *url.URL, error) {
 	rt := httpx.NewTransportWithHeader(header)
 	rt.RoundTripper = &http.Transport{
 		TLSClientConfig: &tls.Config{
-			/* #nosec G402 - we want to support dev environments, hence tls trickery */
+			//#nosec G402 -- we want to support dev environments, hence tls trickery
 			InsecureSkipVerify: skipVerify,
 		},
 	}
