@@ -24,7 +24,7 @@ format:
 		goimports -w -local github.com/ory .
 
 .bin/golangci-lint: Makefile
-		bash <(curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh) -d -b .bin v1.44.2
+		bash <(curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh) -d -b .bin v1.46.2
 
 .PHONY: test
 test:
