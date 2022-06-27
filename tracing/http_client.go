@@ -33,7 +33,7 @@ func RoundTripper(tracer opentracing.Tracer, delegate http.RoundTripper) http.Ro
 			})
 		defer span.Finish()
 		carrier := opentracing.HTTPHeadersCarrier(req.Header)
-		span.Tracer().Inject(span.Context(), opentracing.HTTPHeaders, carrier)
+		_ = span.Tracer().Inject(span.Context(), opentracing.HTTPHeaders, carrier)
 
 		if delegate == nil {
 			delegate = http.DefaultTransport

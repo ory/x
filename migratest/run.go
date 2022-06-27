@@ -22,8 +22,10 @@ func ContainsExpectedIds(t *testing.T, path string, ids []string) {
 		}
 	}
 }
+
 func CompareWithFixture(t *testing.T, actual interface{}, prefix string, id string) {
 	location := filepath.Join("fixtures", prefix, id+".json")
+	//#nosec G304 -- false positive
 	expected, err := ioutil.ReadFile(location)
 	WriteFixtureOnError(t, err, actual, location)
 

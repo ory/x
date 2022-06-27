@@ -137,11 +137,11 @@ func GenMarkdownTreeCustom(cmd *cobra.Command, dir string, filePrepender, linkHa
 
 	basename := strings.Replace(cmd.CommandPath(), " ", "_", -1) + ".md"
 	filename := filepath.Join(dir, basename)
-	f, err := os.Create(filename)
+	f, err := os.Create(filename) //#nosec:G304) //#nosec:G304
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer (func() { _ = f.Close() })()
 
 	if _, err := io.WriteString(f, filePrepender(filename)); err != nil {
 		return err

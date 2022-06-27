@@ -39,6 +39,7 @@ var LintCommand = &cobra.Command{
 					fmt.Printf("Processing file: %s\n", file)
 				}
 
+				//#nosec G304 -- false positive
 				content, err := ioutil.ReadFile(file)
 				cmdx.Must(err, `Unable to read file "%s" because: %s`, file, err)
 
