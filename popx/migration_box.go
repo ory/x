@@ -200,6 +200,7 @@ func (fm *MigrationBox) findMigrations(runner func([]byte) func(mf Migration, c 
 		if err != nil {
 			return errors.WithStack(err)
 		}
+		defer f.Close()
 		content, err := io.ReadAll(f)
 		if err != nil {
 			return errors.WithStack(err)
