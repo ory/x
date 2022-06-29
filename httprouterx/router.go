@@ -1,4 +1,4 @@
-package x
+package httprouterx
 
 import (
 	"context"
@@ -10,10 +10,12 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+// RouterPublic wraps httprouter.Router
 type RouterPublic struct {
 	*httprouter.Router
 }
 
+// NewRouterPublic returns a public router.
 func NewRouterPublic() *RouterPublic {
 	return &RouterPublic{
 		Router: httprouter.New(),
@@ -58,22 +60,35 @@ func (r *RouterPublic) Handler(method, path string, handler http.Handler) {
 
 type baseURLProvider func(ctx context.Context) *url.URL
 
+// RouterAdmin is a router able to prefix routes
 type RouterAdmin struct {
 	*httprouter.Router
 	prefix          string
 	baseURLProvider baseURLProvider
 }
 
+// NewRouterAdmin creates a new admin router.
 func NewRouterAdmin() *RouterAdmin {
 	return &RouterAdmin{
 		Router: httprouter.New(),
 	}
 }
 
+// NewRouterAdminWithPrefixAndRouter wraps NewRouterAdminWithPrefix and additionally sets the base router.
+func NewRouterAdminWithPrefixAndRouter(root *httprouter.Router, prefix string, baseURLProvider baseURLProvider) *RouterAdmin {
+	router := NewRouterAdminWithPrefix(prefix, baseURLProvider)
+	router.Router = root
+	return router
+}
+
+// NewRouterAdminWithPrefix creates a new router with is prefixed.
+//
+//  NewRouterAdminWithPrefix("/admin", func(context.Context) *url.URL { return &url.URL{/*...*/} })
 func NewRouterAdminWithPrefix(prefix string, baseURLProvider baseURLProvider) *RouterAdmin {
 	if prefix != "" {
 		prefix = "/" + strings.TrimPrefix(strings.TrimSuffix(prefix, "/"), "/")
 	}
+
 	return &RouterAdmin{
 		Router:          httprouter.New(),
 		prefix:          prefix,
