@@ -77,7 +77,7 @@ func WithTestdata(t *testing.T, testdata fs.FS) func(*MigrationBox) *MigrationBo
 			version := match[1]
 			flavor := "all"
 			if len(match) == 3 && len(match[2]) > 0 {
-				flavor = pop.NormalizeSynonyms(strings.TrimPrefix(match[2], "."))
+				flavor = pop.CanonicalDialect(strings.TrimPrefix(match[2], "."))
 			}
 
 			//t.Logf("Found test migration \"%s\" (%s, %+v): %s", flavor, match, err, info.Name())
