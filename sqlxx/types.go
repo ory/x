@@ -393,3 +393,49 @@ func JSONValue(src interface{}) (driver.Value, error) {
 	}
 	return b.String(), nil
 }
+
+// NullInt64 represents an int64 that may be null.
+type NullInt64 struct {
+	Int   int64
+	Valid bool // Valid is true if Bool is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullInt64) Scan(value interface{}) error {
+	var d = sql.NullInt64{}
+	if err := d.Scan(value); err != nil {
+		return err
+	}
+
+	ns.Int = d.Int64
+	ns.Valid = d.Valid
+	return nil
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullInt64) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return ns.Int, nil
+}
+
+// MarshalJSON returns m as the JSON encoding of m.
+func (ns NullInt64) MarshalJSON() ([]byte, error) {
+	if !ns.Valid {
+		return []byte("null"), nil
+	}
+	return json.Marshal(ns.Int)
+}
+
+// UnmarshalJSON sets *m to a copy of data.
+func (ns *NullInt64) UnmarshalJSON(data []byte) error {
+	if ns == nil {
+		return errors.New("json.RawMessage: UnmarshalJSON on nil pointer")
+	}
+	if len(data) == 0 || string(data) == "null" {
+		return nil
+	}
+	ns.Valid = true
+	return errors.WithStack(json.Unmarshal(data, &ns.Int))
+}
