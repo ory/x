@@ -114,6 +114,7 @@ func valueStringSlice(delimiter rune, value []string) string {
 // NullBool represents a bool that may be null.
 // NullBool implements the Scanner interface so
 // swagger:type bool
+// swagger:model nullBool
 type NullBool struct {
 	Bool  bool
 	Valid bool // Valid is true if Bool is not NULL
@@ -160,6 +161,7 @@ func (ns *NullBool) UnmarshalJSON(data []byte) error {
 }
 
 // swagger:type string
+// swagger:model nullString
 type NullString string
 
 // MarshalJSON returns m as the JSON encoding of m.
@@ -395,6 +397,7 @@ func JSONValue(src interface{}) (driver.Value, error) {
 }
 
 // NullInt64 represents an int64 that may be null.
+// swagger:model nullInt64
 type NullInt64 struct {
 	Int   int64
 	Valid bool // Valid is true if Bool is not NULL
