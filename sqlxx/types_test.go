@@ -51,6 +51,28 @@ func TestNullBoolMarshalJSON(t *testing.T) {
 	}
 }
 
+func TestNullInt64MarshalJSON(t *testing.T) {
+	type outer struct {
+		Bool *NullInt64 `json:"null_int,omitempty"`
+	}
+
+	for k, tc := range []struct {
+		in       *outer
+		expected string
+	}{
+		{in: &outer{&NullInt64{Valid: false, Int: 1}}, expected: "{\"null_int\":null}"},
+		{in: &outer{&NullInt64{Valid: true, Int: 2}}, expected: "{\"null_int\":2}"},
+		{in: &outer{&NullInt64{Valid: true, Int: 3}}, expected: "{\"null_int\":3}"},
+		{in: &outer{}, expected: "{}"},
+	} {
+		t.Run(fmt.Sprintf("case=%d", k), func(t *testing.T) {
+			out, err := json.Marshal(tc.in)
+			require.NoError(t, err)
+			assert.EqualValues(t, tc.expected, string(out))
+		})
+	}
+}
+
 func TestNullBoolUnMarshalJSONNoPointer(t *testing.T) {
 	type outer struct {
 		Bool NullBool `json:"null_bool,omitempty"`
