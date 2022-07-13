@@ -47,13 +47,23 @@ func TestNullBoolMarshalJSON(t *testing.T) {
 			out, err := json.Marshal(tc.in)
 			require.NoError(t, err)
 			assert.EqualValues(t, tc.expected, string(out))
+
+			var actual outer
+			require.NoError(t, json.Unmarshal(out, &actual))
+			if tc.in.Bool == nil || !tc.in.Bool.Valid {
+				assert.Nil(t, actual.Bool)
+				return
+			}
+
+			assert.EqualValues(t, tc.in.Bool.Bool, actual.Bool.Bool)
+			assert.EqualValues(t, tc.in.Bool.Valid, actual.Bool.Valid)
 		})
 	}
 }
 
 func TestNullInt64MarshalJSON(t *testing.T) {
 	type outer struct {
-		Bool *NullInt64 `json:"null_int,omitempty"`
+		Int64 *NullInt64 `json:"null_int,omitempty"`
 	}
 
 	for k, tc := range []struct {
@@ -69,6 +79,48 @@ func TestNullInt64MarshalJSON(t *testing.T) {
 			out, err := json.Marshal(tc.in)
 			require.NoError(t, err)
 			assert.EqualValues(t, tc.expected, string(out))
+
+			var actual outer
+			require.NoError(t, json.Unmarshal(out, &actual))
+			if tc.in.Int64 == nil || !tc.in.Int64.Valid {
+				assert.Nil(t, actual.Int64)
+				return
+			}
+
+			assert.EqualValues(t, tc.in.Int64.Int, actual.Int64.Int)
+			assert.EqualValues(t, tc.in.Int64.Valid, actual.Int64.Valid)
+		})
+	}
+}
+
+func TestNullDurationMarshalJSON(t *testing.T) {
+	type outer struct {
+		Duration *NullDuration `json:"null_duration,omitempty"`
+	}
+
+	for k, tc := range []struct {
+		in       *outer
+		expected string
+	}{
+		{in: &outer{&NullDuration{Valid: false, Duration: 1}}, expected: "{\"null_duration\":null}"},
+		{in: &outer{&NullDuration{Valid: true, Duration: 2}}, expected: "{\"null_duration\":\"2ns\"}"},
+		{in: &outer{&NullDuration{Valid: true, Duration: 3}}, expected: "{\"null_duration\":\"3ns\"}"},
+		{in: &outer{}, expected: "{}"},
+	} {
+		t.Run(fmt.Sprintf("case=%d", k), func(t *testing.T) {
+			out, err := json.Marshal(tc.in)
+			require.NoError(t, err)
+			assert.EqualValues(t, tc.expected, string(out))
+
+			var actual outer
+			require.NoError(t, json.Unmarshal(out, &actual))
+			if tc.in.Duration == nil || !tc.in.Duration.Valid {
+				assert.Nil(t, actual.Duration)
+				return
+			}
+
+			assert.EqualValues(t, tc.in.Duration.Duration, actual.Duration.Duration)
+			assert.EqualValues(t, tc.in.Duration.Valid, actual.Duration.Valid)
 		})
 	}
 }
