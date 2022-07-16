@@ -86,7 +86,7 @@ func TestHealth(t *testing.T) {
 		require.EqualValues(t, http.StatusServiceUnavailable, response.StatusCode)
 		out, err := ioutil.ReadAll(response.Body)
 		require.NoError(t, err)
-		assert.Equal(t, `{"errors":{"test":"not alive"}}`, strings.TrimSpace(string(out)))
+		assert.Equal(t, "{\"error\":{\"code\":500,\"status\":\"Internal Server Error\",\"message\":\"not alive\"}}", strings.TrimSpace(string(out)))
 		return response
 	}
 

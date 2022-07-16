@@ -187,7 +187,7 @@ func (h *Handler) Ready(shareErrors bool) http.Handler {
 		}
 
 		if len(notReady.Errors) > 0 {
-			h.H.WriteCode(rw, r, http.StatusServiceUnavailable, notReady)
+			h.H.WriteErrorCode(rw, r, http.StatusServiceUnavailable, &notReady)
 			return
 		}
 
