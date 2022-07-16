@@ -21,6 +21,8 @@
 // Package healthx providers helpers for returning health status information via HTTP.
 package healthx
 
+import "strings"
+
 // swagger:model healthStatus
 type swaggerHealthStatus struct {
 	// Status always contains "ok".
@@ -31,6 +33,14 @@ type swaggerHealthStatus struct {
 type swaggerNotReadyStatus struct {
 	// Errors contains a list of errors that caused the not ready status.
 	Errors map[string]string `json:"errors"`
+}
+
+func (s swaggerNotReadyStatus) Error() string {
+	var errs []string
+	for _, err := range s.Errors {
+		errs = append(errs, err)
+	}
+	return strings.Join(errs, "; ")
 }
 
 // swagger:model version
