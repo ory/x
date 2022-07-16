@@ -1,6 +1,6 @@
 package openapix
 
-// swagger:model paginationHeaders
+// swagger:model tokenPaginationHeaders
 type TokenPaginationHeaders struct {
 	// The link header contains pagination links.
 	//
@@ -15,7 +15,7 @@ type TokenPaginationHeaders struct {
 	XTotalCount string `json:"x-total-count"`
 }
 
-// swagger:model pagination
+// swagger:model tokenPagination
 type TokenPaginationParams struct {
 	// Items per page
 	//
