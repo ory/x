@@ -320,7 +320,7 @@ func (m *Migrator) isolatedTransaction(ctx context.Context, direction string, fn
 	}
 
 	if dberr != nil {
-		return errors.Wrapf(dberr, "error committing or rolling back transaction: %v", dberr)
+		return errors.Wrapf(err, "error committing or rolling back transaction: %v", dberr)
 	}
 
 	return err
