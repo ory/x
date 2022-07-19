@@ -12,15 +12,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gobuffalo/pop/v6"
+
+	"github.com/ory/dockertest/v3"
+
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
-	"github.com/gobuffalo/pop/v6"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ory/dockertest/v3"
 	dc "github.com/ory/dockertest/v3/docker"
 	"github.com/ory/x/logrusx"
 	"github.com/ory/x/resilience"
@@ -147,13 +149,13 @@ func ConnectPop(t require.TestingT, url string) (c *pop.Connection) {
 
 // ## PostgreSQL ##
 
-func startPostgreSQL() (*dockertest.Resource, error) {
+func startPostgreSQL(version string) (*dockertest.Resource, error) {
 	pool, err := getPool()
 	if err != nil {
 		return nil, errors.Wrap(err, "Could not connect to docker")
 	}
 
-	resource, err := pool.Run("postgres", "11.8", []string{"POSTGRES_PASSWORD=secret", "POSTGRES_DB=postgres"})
+	resource, err := pool.Run("postgres", stringsx.Coalesce(version, "11.8"), []string{"POSTGRES_PASSWORD=secret", "POSTGRES_DB=postgres"})
 	if err == nil {
 		resources = append(resources, resource)
 	}
@@ -169,7 +171,7 @@ func RunTestPostgreSQL(t testing.TB) string {
 		return dsn
 	}
 
-	u, cleanup, err := runPosgreSQLCleanup()
+	u, cleanup, err := runPosgreSQLCleanup("")
 	require.NoError(t, err)
 	t.Cleanup(cleanup)
 
@@ -178,12 +180,12 @@ func RunTestPostgreSQL(t testing.TB) string {
 
 // RunPostgreSQL runs a PostgreSQL database and returns the URL to it.
 func RunPostgreSQL() (string, error) {
-	dsn, _, err := runPosgreSQLCleanup()
+	dsn, _, err := runPosgreSQLCleanup("")
 	return dsn, err
 }
 
-func runPosgreSQLCleanup() (string, func(), error) {
-	resource, err := startPostgreSQL()
+func runPosgreSQLCleanup(version string) (string, func(), error) {
+	resource, err := startPostgreSQL(version)
 	if err != nil {
 		return "", func() {}, err
 	}
@@ -198,13 +200,24 @@ func ConnectToTestPostgreSQL() (*sqlx.DB, error) {
 		return connect("pgx", "postgres", dsn)
 	}
 
-	resource, err := startPostgreSQL()
+	resource, err := startPostgreSQL("")
 	if err != nil {
 		return nil, errors.Wrap(err, "Could not start resource")
 	}
 
 	db := bootstrap("postgres://postgres:secret@localhost:%s/postgres?sslmode=disable", "5432/tcp", "pgx", pool, resource)
 	return db, nil
+}
+
+// RunTestPostgreSQLWithVersion connects to a PostgreSQL database .
+func RunTestPostgreSQLWithVersion(t testing.TB, version string) string {
+	if dsn := os.Getenv("TEST_DATABASE_POSTGRESQL"); dsn != "" {
+		return dsn
+	}
+
+	resource, err := startPostgreSQL("")
+	require.NoError(t, err)
+	return fmt.Sprintf("postgres://postgres:secret@127.0.0.1:%s/postgres?sslmode=disable", resource.GetPort("5432/tcp"))
 }
 
 // ConnectToTestPostgreSQLPop connects to a test PostgreSQL database.
@@ -217,7 +230,7 @@ func ConnectToTestPostgreSQLPop(t testing.TB) *pop.Connection {
 
 // ## MySQL ##
 
-func startMySQL() (*dockertest.Resource, error) {
+func startMySQL(version string) (*dockertest.Resource, error) {
 	pool, err := getPool()
 	if err != nil {
 		return nil, errors.Wrap(err, "Could not connect to docker")
@@ -226,7 +239,7 @@ func startMySQL() (*dockertest.Resource, error) {
 	resource, err := pool.RunWithOptions(&dockertest.RunOptions{
 		Platform:   "linux/amd64",
 		Repository: "mysql",
-		Tag:        "8.0",
+		Tag:        stringsx.Coalesce(version, "8.0.26"),
 		Env: []string{
 			"MYSQL_ROOT_PASSWORD=secret",
 			"MYSQL_ROOT_HOST=%",
@@ -241,12 +254,12 @@ func startMySQL() (*dockertest.Resource, error) {
 
 // RunMySQL runs a RunMySQL database and returns the URL to it.
 func RunMySQL() (string, error) {
-	dsn, _, err := runMySQLCleanup()
+	dsn, _, err := runMySQLCleanup("")
 	return dsn, err
 }
 
-func runMySQLCleanup() (string, func(), error) {
-	resource, err := startMySQL()
+func runMySQLCleanup(version string) (string, func(), error) {
+	resource, err := startMySQL(version)
 	if err != nil {
 		return "", func() {}, err
 	}
@@ -264,7 +277,23 @@ func RunTestMySQL(t testing.TB) string {
 		return dsn
 	}
 
-	u, cleanup, err := runMySQLCleanup()
+	u, cleanup, err := runMySQLCleanup("")
+	require.NoError(t, err)
+	t.Cleanup(cleanup)
+
+	return u
+}
+
+// RunTestMySQLWithVersion runs a MySQL database in the specified version and returns the URL to it.
+// If a docker container is started for the database, the container be removed
+// at the end of the test.
+func RunTestMySQLWithVersion(t testing.TB, version string) string {
+	if dsn := os.Getenv("TEST_DATABASE_MYSQL"); dsn != "" {
+		t.Logf("Skipping Docker setup because environment variable TEST_DATABASE_MYSQL is set to: %s", dsn)
+		return dsn
+	}
+
+	u, cleanup, err := runMySQLCleanup(version)
 	require.NoError(t, err)
 	t.Cleanup(cleanup)
 
@@ -278,7 +307,7 @@ func ConnectToTestMySQL() (*sqlx.DB, error) {
 		return connect("mysql", "mysql", dsn)
 	}
 
-	resource, err := startMySQL()
+	resource, err := startMySQL("")
 	if err != nil {
 		return nil, errors.Wrap(err, "Could not start resource")
 	}
