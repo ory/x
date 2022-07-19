@@ -1,8 +1,6 @@
 package popx
 
 import (
-	"context"
-	"database/sql"
 	"io"
 	"io/fs"
 	"strings"
@@ -105,23 +103,6 @@ func NewTestMigrator(t *testing.T, c *pop.Connection, migrations, testData fs.FS
 			return errors.WithStack(err)
 		}
 
-		// Workaround for https://github.com/cockroachdb/cockroach/issues/42643#issuecomment-611475836
-		// This is not a problem as the test should fail anyway if there occurs any error
-		// (either within a transaction or on it's own).
-		if c.Dialect.Name() == "cockroach" && tx != nil {
-			if err := tx.Commit(); err != nil {
-				return errors.WithStack(err)
-			}
-			newTx, err := c.Store.TransactionContextOptions(context.Background(), &sql.TxOptions{
-				Isolation: sql.LevelSerializable,
-				ReadOnly:  false,
-			})
-			if err != nil {
-				return errors.WithStack(err)
-			}
-			*tx = *newTx
-		}
-
 		data, err := io.ReadAll(f)
 		if err != nil {
 			return errors.WithStack(err)
@@ -134,19 +115,6 @@ func NewTestMigrator(t *testing.T, c *pop.Connection, migrations, testData fs.FS
 		if len(strings.TrimSpace(string(data))) == 0 {
 			t.Logf("data is empty for: %s", fi.Name())
 			return nil
-		}
-
-		// FIXME https://github.com/gobuffalo/pop/issues/567
-		for _, statement := range strings.Split(string(data), ";\n") {
-			t.Logf("Executing %s query from %s: %s", c.Dialect.Name(), fi.Name(), statement)
-			if strings.TrimSpace(statement) == "" {
-				t.Logf("Skipping %s query from %s because empty: \"%s\"", c.Dialect.Name(), fi.Name(), statement)
-				continue
-			}
-			if _, err := tx.Exec(statement); err != nil {
-				t.Logf("Unable to execute %s: %s", mf.Version, err)
-				return errors.WithStack(err)
-			}
 		}
 
 		return nil
