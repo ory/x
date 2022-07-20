@@ -39,8 +39,9 @@ func TestMigrationBoxWithTestdata(t *testing.T) {
 		popx.WithTestdata(t, testData))
 
 	require.NoError(t, err)
-	assert.Len(t, mb.Migrations["up"], 2)
+	assert.Len(t, mb.Migrations["up"], 3)
 	assert.Equal(t, "20220513_testdata.sql", mb.Migrations["up"][1].Name)
+	assert.Equal(t, "20220514_testdata.sql", mb.Migrations["up"][2].Name)
 
 	require.NoError(t, mb.Up(context.Background()))
 	pop.Debug = true

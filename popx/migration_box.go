@@ -94,6 +94,9 @@ func WithTestdata(t *testing.T, testdata fs.FS) func(*MigrationBox) *MigrationBo
 					if err != nil {
 						return err
 					}
+					if isMigrationEmpty(string(b)) {
+						return nil
+					}
 					_, err = tx.Exec(string(b))
 					//match := match
 					//t.Logf("Ran test migration \"%s\" (%s, %+v) with error \"%v\" and content:\n %s", m.Path, m.DBType, match, err, string(b))
