@@ -113,4 +113,31 @@ func TestApplyJSONPatch(t *testing.T) {
 		require.NoError(t, ApplyJSONPatch(rawPatch, &obj, "/Field1"))
 		require.Equal(t, expected, obj)
 	})
+
+	t.Run("suite=invalid patches", func(t *testing.T) {
+		cases := []struct {
+			name  string
+			patch []byte
+		}{{
+			name:  "test",
+			patch: []byte(`[{"op": "test", "path": "/"}]`),
+		}, {
+			name:  "add",
+			patch: []byte(`[{"op": "add", "path": "/"}]`),
+		}, {
+			name:  "remove",
+			patch: []byte(`[{"op": "add", "path": "/"}]`),
+		}, {
+			name:  "replace",
+			patch: []byte(`[{"op": "add", "path": "/"}]`),
+		}}
+
+		for _, tc := range cases {
+			t.Run(tc.name, func(_ *testing.T) {
+				obj := &TestType{}
+				ApplyJSONPatch(tc.patch, &obj)
+			})
+		}
+	})
+
 }

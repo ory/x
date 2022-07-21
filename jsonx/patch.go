@@ -7,6 +7,12 @@ import (
 	jsonpatch "github.com/evanphx/json-patch"
 )
 
+var opAllowList = map[string]struct{}{
+	"add":     {},
+	"remove":  {},
+	"replace": {},
+}
+
 func ApplyJSONPatch(p json.RawMessage, object interface{}, denyPaths ...string) error {
 	patch, err := jsonpatch.DecodePatch(p)
 	if err != nil {
@@ -19,6 +25,11 @@ func ApplyJSONPatch(p json.RawMessage, object interface{}, denyPaths ...string) 
 	}
 
 	for _, op := range patch {
+		// Some operations are buggy, see https://github.com/evanphx/json-patch/pull/158
+		if _, ok := opAllowList[op.Kind()]; !ok {
+			return fmt.Errorf("unsupported operation: %s", op.Kind())
+		}
+
 		path, err := op.Path()
 		if err != nil {
 			return fmt.Errorf("error parsing patch operations: %v", err)
