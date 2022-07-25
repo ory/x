@@ -27,6 +27,7 @@ import (
 	"go.opentelemetry.io/otel"
 	otelOpentracing "go.opentelemetry.io/otel/bridge/opentracing"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	otelSdkTrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
@@ -201,6 +202,11 @@ func (t *Tracer) setup() error {
 		)
 
 		otel.SetTracerProvider(tp)
+
+		otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
+			propagation.TraceContext{},
+			propagation.Baggage{},
+		))
 
 		bridge := otelOpentracing.NewBridgeTracer()
 		bridge.SetOpenTelemetryTracer(otel.Tracer(""))
