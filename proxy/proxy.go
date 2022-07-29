@@ -2,8 +2,11 @@ package proxy
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"net/http/httputil"
+
+	"github.com/pkg/errors"
 
 	"github.com/rs/cors"
 	"go.opentelemetry.io/otel"
@@ -20,6 +23,7 @@ type (
 		respMiddlewares []RespMiddleware
 		reqMiddlewares  []ReqMiddleware
 		transport       http.RoundTripper
+		errHandler      func(http.ResponseWriter, *http.Request, error)
 	}
 	HostConfig struct {
 		// CorsEnabled is a flag to enable or disable CORS
@@ -184,6 +188,12 @@ func WithTransport(t http.RoundTripper) Options {
 	}
 }
 
+func WithErrorHandler(eh func(w http.ResponseWriter, r *http.Request, err error)) Options {
+	return func(o *options) {
+		o.errHandler = eh
+	}
+}
+
 func (o *options) getHostConfig(r *http.Request) (*HostConfig, error) {
 	if cached, ok := r.Context().Value(hostConfigKey).(*HostConfig); ok && cached != nil {
 		return cached, nil
@@ -216,6 +226,13 @@ func (o *options) beforeProxyMiddleware(h http.Handler) http.Handler {
 	})
 }
 
+func defaultErrorHandler(w http.ResponseWriter, r *http.Request, err error) {
+	if !errors.Is(err, context.Canceled) {
+		log.Printf("http: proxy error: %v", err)
+	}
+	w.WriteHeader(http.StatusBadGateway)
+}
+
 // New creates a new Proxy
 // A Proxy sets up a middleware with custom request and response modification handlers
 func New(hostMapper HostMapper, opts ...Options) http.Handler {
@@ -224,6 +241,7 @@ func New(hostMapper HostMapper, opts ...Options) http.Handler {
 		onReqError: func(*http.Request, error) {},
 		onResError: func(_ *http.Response, err error) error { return err },
 		transport:  http.DefaultTransport,
+		errHandler: defaultErrorHandler,
 	}
 
 	for _, op := range opts {
@@ -234,6 +252,7 @@ func New(hostMapper HostMapper, opts ...Options) http.Handler {
 		Director:       director(o),
 		ModifyResponse: modifyResponse(o),
 		Transport:      o.transport,
+		ErrorHandler:   o.errHandler,
 	}
 
 	return o.beforeProxyMiddleware(rp)
