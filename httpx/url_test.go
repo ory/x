@@ -2,9 +2,10 @@ package httpx_test
 
 import (
 	"crypto/tls"
-	"github.com/ory/x/httpx"
 	"net/http"
 	"testing"
+
+	"github.com/ory/x/httpx"
 
 	"github.com/stretchr/testify/assert"
 
