@@ -6,10 +6,6 @@ replace github.com/dgrijalva/jwt-go => github.com/form3tech-oss/jwt-go v3.2.1+in
 
 replace github.com/oleiade/reflections => github.com/oleiade/reflections v1.0.1
 
-replace github.com/gobuffalo/packr => github.com/gobuffalo/packr v1.30.1
-
-replace github.com/mattn/go-sqlite3 => github.com/mattn/go-sqlite3 v1.14.10
-
 require (
 	github.com/avast/retry-go/v4 v4.0.5
 	github.com/bmatcuk/doublestar/v2 v2.0.4
@@ -24,9 +20,9 @@ require (
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/go-openapi/runtime v0.20.0
 	github.com/go-sql-driver/mysql v1.6.0
-	github.com/gobuffalo/fizz v1.14.0
+	github.com/gobuffalo/fizz v1.14.2
 	github.com/gobuffalo/httptest v1.0.2
-	github.com/gobuffalo/pop/v6 v6.0.4-0.20220707121509-feb0eed33d86
+	github.com/gobuffalo/pop/v6 v6.0.6
 	github.com/goccy/go-yaml v1.9.5
 	github.com/gofrs/uuid v4.2.0+incompatible
 	github.com/golang/mock v1.6.0
@@ -92,7 +88,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.7.0
 	go.opentelemetry.io/proto/otlp v0.15.0
 	golang.org/x/crypto v0.0.0-20220517005047-85d78b3ac167
-	golang.org/x/mod v0.5.1
+	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
 	gonum.org/v1/plot v0.10.0
 	google.golang.org/grpc v1.45.0
@@ -145,12 +141,12 @@ require (
 	github.com/gobuffalo/envy v1.10.1 // indirect
 	github.com/gobuffalo/flect v0.2.5 // indirect
 	github.com/gobuffalo/github_flavored_markdown v1.1.1 // indirect
-	github.com/gobuffalo/helpers v0.6.4 // indirect
+	github.com/gobuffalo/helpers v0.6.5 // indirect
 	github.com/gobuffalo/here v0.6.0 // indirect
 	github.com/gobuffalo/nulls v0.4.1 // indirect
-	github.com/gobuffalo/plush/v4 v4.1.12 // indirect
-	github.com/gobuffalo/tags/v3 v3.1.2 // indirect
-	github.com/gobuffalo/validate/v3 v3.3.1 // indirect
+	github.com/gobuffalo/plush/v4 v4.1.13 // indirect
+	github.com/gobuffalo/tags/v3 v3.1.3 // indirect
+	github.com/gobuffalo/validate/v3 v3.3.2 // indirect
 	github.com/gofrs/flock v0.8.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
@@ -227,7 +223,7 @@ require (
 	golang.org/x/sys v0.0.0-20220513210249-45d2b4557a2a // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11 // indirect
-	golang.org/x/tools v0.1.7 // indirect
+	golang.org/x/tools v0.1.11 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/genproto v0.0.0-20211208223120-3a66f561d7aa // indirect
 	gopkg.in/ini.v1 v1.62.0 // indirect
