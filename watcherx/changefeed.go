@@ -70,10 +70,8 @@ const heartBeatInterval = time.Second
 //
 // This watcher is blocking to allow proper context cancellation and clean up.
 func WatchChangeFeed(ctx context.Context, cx *sqlx.DB, tableName string, out EventChannel, cursor time.Time) (_ Watcher, err error) {
-	c := make(EventChannel)
-	deduplicate(c, out, 100)
-
 	var rows *sql.Rows
+
 	if cursor.IsZero() {
 		rows, err = cx.QueryContext(ctx, fmt.Sprintf("EXPERIMENTAL CHANGEFEED FOR %s RESOLVED = $1", tableName), heartBeatInterval.String())
 		if err != nil {
@@ -86,7 +84,12 @@ func WatchChangeFeed(ctx context.Context, cx *sqlx.DB, tableName string, out Eve
 			return nil, errors.WithStack(err)
 		}
 	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
 
+	c := make(EventChannel)
+	deduplicate(c, out, 100)
 	d := newDispatcher()
 
 	go func() {
@@ -102,11 +105,47 @@ func WatchChangeFeed(ctx context.Context, cx *sqlx.DB, tableName string, out Eve
 
 	// basically run the watcher in a go routine which gets canceled either by the connection being closed
 	// or by calling `"CANCEL QUERY"` below.
-	done := make(chan struct{})
-	go func() {
+	worker := func() {
+		events := eventsFromRows(rows)
+
+		defer close(c)
 		defer func() {
-			done <- struct{}{}
+			if err := cx.Close(); err != nil {
+				c <- &ErrorEvent{
+					error: err,
+				}
+			}
 		}()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+
+			case <-time.After(heartBeatInterval * 10):
+				c <- &ErrorEvent{
+					error: errors.New("unable to detect changefeed heartbeat in time"),
+				}
+				return
+
+			case e, ok := <-events:
+				if !ok {
+					return
+				}
+				c <- e
+			}
+		}
+	}
+
+	go worker()
+
+	return d, nil
+}
+
+func eventsFromRows(rows *sql.Rows) <-chan Event {
+	c := make(EventChannel, 1)
+	go func() {
+		defer close(c)
 
 		for rows.Next() {
 			var r row
@@ -150,23 +189,6 @@ func WatchChangeFeed(ctx context.Context, cx *sqlx.DB, tableName string, out Eve
 				}
 			}
 		}
-	}()
-
-	go func() {
-		didTimeout := false
-		// naive attempt at context cancellation
-		select {
-		case <-ctx.Done():
-		case <-time.After(heartBeatInterval * 10):
-			// We wait for done and close it as `rows.Next()` will exit once we close the rows.
-			didTimeout = true
-			go func() {
-				<-done
-				close(done)
-			}()
-		case <-done:
-			close(done)
-		}
 
 		if err := rows.Err(); err != nil {
 			c <- &ErrorEvent{
@@ -182,26 +204,8 @@ func WatchChangeFeed(ctx context.Context, cx *sqlx.DB, tableName string, out Eve
 			return
 		}
 
-		if err := cx.Close(); err != nil {
-			c <- &ErrorEvent{
-				error: err,
-			}
-			return
-		}
-
-		if didTimeout {
-			c <- &ErrorEvent{
-				error: errors.New("unable to detect changefeed heartbeat in time"),
-			}
-		}
-		// end close
 	}()
-
-	if rows.Err() != nil {
-		return nil, rows.Err()
-	}
-
-	return d, nil
+	return c
 }
 
 // deduplicate sents events from `events` to the `deduplicated` channel, but
