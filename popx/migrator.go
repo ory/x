@@ -12,6 +12,8 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/gobuffalo/pop/v6"
+
 	"github.com/cockroachdb/cockroach-go/v2/crdb"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -19,8 +21,6 @@ import (
 
 	"github.com/ory/x/cmdx"
 	"github.com/ory/x/otelx"
-
-	"github.com/gobuffalo/pop/v6"
 
 	"github.com/ory/x/logrusx"
 
@@ -34,6 +34,11 @@ const (
 )
 
 var mrx = regexp.MustCompile(`^(\d+)_([^.]+)(\.[a-z0-9]+)?\.(up|down)\.(sql|fizz)$`)
+
+type migrationRow struct {
+	Version     string `db:"version"`
+	VersionSelf int    `db:"version_self"`
+}
 
 // NewMigrator returns a new "blank" migrator. It is recommended
 // to use something like MigrationBox or FileMigrator. A "blank"
@@ -435,8 +440,8 @@ func (m *Migrator) sanitizedMigrationTableName(con *pop.Connection) string {
 }
 
 func errIsTableNotFound(err error) bool {
-	return strings.HasPrefix(err.Error(), "no such table:") || // sqlite
-		strings.HasPrefix(err.Error(), "Error 1146:") || // MySQL
+	return strings.Contains(err.Error(), "no such table:") || // sqlite
+		strings.Contains(err.Error(), "Error 1146:") || // MySQL
 		strings.Contains(err.Error(), "SQLSTATE 42P01") // PostgreSQL / CockroachDB
 }
 
@@ -452,6 +457,20 @@ func (m *Migrator) Status(ctx context.Context) (MigrationStatuses, error) {
 	if len(migrations) == 0 {
 		return nil, errors.Errorf("unable to find any migrations for dialect: %s", con.Dialect.Name())
 	}
+	m.sanitizedMigrationTableName(con)
+
+	var migrationRows []migrationRow
+	err := con.RawQuery(fmt.Sprintf("SELECT * FROM %s", m.sanitizedMigrationTableName(con))).All(&migrationRows)
+	if err != nil {
+		if errIsTableNotFound(err) {
+			// This means that no migrations have been applied and we need to apply all of them first!
+			//
+			// It also means that we can ignore this state and act as if no migrations have been applied yet.
+		} else {
+			// On any other error, we fail.
+			return nil, errors.Wrapf(err, "problem with migration")
+		}
+	}
 
 	statuses := make(MigrationStatuses, len(migrations))
 	for k, mf := range migrations {
@@ -461,27 +480,14 @@ func (m *Migrator) Status(ctx context.Context) (MigrationStatuses, error) {
 			Name:    mf.Name,
 		}
 
-		exists, err := con.Where("version = ?", mf.Version).Exists(m.sanitizedMigrationTableName(con))
-		if err != nil {
-			if errIsTableNotFound(err) {
-				continue
-			} else {
-				return nil, errors.Wrapf(err, "problem with migration")
-			}
-		}
-
-		if exists {
-			statuses[k].State = Applied
-		} else if len(mf.Version) > 14 {
-			mtn := m.sanitizedMigrationTableName(con)
-			legacyVersion := mf.Version[:14]
-			exists, err = con.Where("version = ?", legacyVersion).Exists(mtn)
-			if err != nil {
-				return nil, errors.Wrapf(err, "problem checking for migration version %s", legacyVersion)
-			}
-
-			if exists {
+		for _, mr := range migrationRows {
+			if mr.Version == mf.Version {
 				statuses[k].State = Applied
+				break
+			} else if len(mf.Version) > 14 {
+				if mr.Version == mf.Version[:14] {
+					statuses[k].State = Applied
+				}
 			}
 		}
 	}
