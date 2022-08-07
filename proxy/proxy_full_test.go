@@ -32,60 +32,9 @@ import (
 // It does not have to cover **all** edge cases included in the rewrite
 // unit test, but should use all features like path prefix, ...
 
-const statusTestFailure = 555
-
-type (
-	remoteT struct {
-		w      http.ResponseWriter
-		r      *http.Request
-		t      *testing.T
-		failed bool
-	}
-	testingRoundTripper struct {
-		t  *testing.T
-		rt http.RoundTripper
-	}
-)
-
-func (t *remoteT) Errorf(format string, args ...interface{}) {
-	t.failed = true
-	t.w.WriteHeader(statusTestFailure)
-	t.t.Errorf(format, args...)
-}
-
-func (t *remoteT) Header() http.Header {
-	return t.w.Header()
-}
-
-func (t *remoteT) Write(i []byte) (int, error) {
-	if t.failed {
-		return 0, nil
-	}
-	return t.w.Write(i)
-}
-
-func (t *remoteT) WriteHeader(statusCode int) {
-	if t.failed {
-		return
-	}
-	t.w.WriteHeader(statusCode)
-}
-
-func (rt *testingRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	resp, err := rt.rt.RoundTrip(req)
-	require.NoError(rt.t, err)
-
-	if resp.StatusCode == statusTestFailure {
-		rt.t.Error("got test failure from the server, see output above")
-		rt.t.FailNow()
-	}
-
-	return resp, err
-}
-
 func TestFullIntegration(t *testing.T) {
-	upstream, upstreamHandler := httpx.NewChanHandler(0)
-	upstreamServer := httptest.NewTLSServer(upstream)
+	upstream, upstreamHandler := httpx.NewTestChanHandler(0)
+	upstreamServer := httpx.NewTestServer(t, upstream, httpx.WithTLS(true))
 	defer upstreamServer.Close()
 
 	// create the proxy
@@ -133,7 +82,6 @@ func TestFullIntegration(t *testing.T) {
 		})))
 
 	cl := proxy.Client()
-	cl.Transport = &testingRoundTripper{t, cl.Transport}
 	cl.CheckRedirect = func(*http.Request, []*http.Request) error {
 		return http.ErrUseLastResponse
 	}
@@ -141,7 +89,7 @@ func TestFullIntegration(t *testing.T) {
 	for _, tc := range []struct {
 		desc           string
 		hostMapper     func(host string) (*HostConfig, error)
-		handler        func(assert *assert.Assertions, w http.ResponseWriter, r *http.Request)
+		handler        func(t require.TestingT, w http.ResponseWriter, r *http.Request)
 		request        func(t *testing.T) *http.Request
 		assertResponse func(t *testing.T, r *http.Response)
 		reqMiddleware  ReqMiddleware
@@ -160,13 +108,13 @@ func TestFullIntegration(t *testing.T) {
 					PathPrefix:   "/foo",
 				}, nil
 			},
-			handler: func(assert *assert.Assertions, w http.ResponseWriter, r *http.Request) {
+			handler: func(t require.TestingT, w http.ResponseWriter, r *http.Request) {
 				body, err := io.ReadAll(r.Body)
-				assert.NoError(err)
-				assert.Equal(fmt.Sprintf("some random content containing the request URL and path prefix %s/bar but also other stuff", upstreamServer.URL), string(body))
+				require.NoError(t, err)
+				assert.Equal(t, fmt.Sprintf("some random content containing the request URL and path prefix %s/bar but also other stuff", upstreamServer.URL), string(body))
 
 				_, err = w.Write([]byte(fmt.Sprintf("just responding with my own URL: %s/baz and some path of course", upstreamServer.URL)))
-				assert.NoError(err)
+				require.NoError(t, err)
 			},
 			request: func(t *testing.T) *http.Request {
 				req, err := http.NewRequest(http.MethodPost, proxy.URL+"/foo", bytes.NewBufferString(fmt.Sprintf("some random content containing the request URL and path prefix %s/bar but also other stuff", upstreamServer.URL)))
@@ -192,7 +140,7 @@ func TestFullIntegration(t *testing.T) {
 					CookieDomain: "redirect.me",
 				}, nil
 			},
-			handler: func(_ *assert.Assertions, w http.ResponseWriter, r *http.Request) {
+			handler: func(_ require.TestingT, w http.ResponseWriter, r *http.Request) {
 				http.Redirect(w, r, upstreamServer.URL+"/redirection/target", http.StatusSeeOther)
 			},
 			request: func(t *testing.T) *http.Request {
@@ -216,14 +164,14 @@ func TestFullIntegration(t *testing.T) {
 					CookieDomain: "cookie.love",
 				}, nil
 			},
-			handler: func(assert *assert.Assertions, w http.ResponseWriter, r *http.Request) {
+			handler: func(t require.TestingT, w http.ResponseWriter, r *http.Request) {
 				http.SetCookie(w, &http.Cookie{
 					Name:   "auth",
 					Value:  "my random cookie",
 					Domain: urlx.ParseOrPanic(upstreamServer.URL).Hostname(),
 				})
 				_, err := w.Write([]byte("OK"))
-				assert.NoError(err)
+				require.NoError(t, err)
 			},
 			request: func(t *testing.T) *http.Request {
 				req, err := http.NewRequest(http.MethodGet, proxy.URL, nil)
@@ -245,14 +193,14 @@ func TestFullIntegration(t *testing.T) {
 			hostMapper: func(host string) (*HostConfig, error) {
 				return &HostConfig{}, nil
 			},
-			handler: func(assert *assert.Assertions, w http.ResponseWriter, r *http.Request) {
-				assert.Equal("noauth.example.com", r.Host)
+			handler: func(t require.TestingT, w http.ResponseWriter, r *http.Request) {
+				require.Equal(t, "noauth.example.com", r.Host)
 				b, err := ioutil.ReadAll(r.Body)
-				assert.NoError(err)
-				assert.Equal("this is a new body", string(b))
+				require.NoError(t, err)
+				assert.Equal(t, "this is a new body", string(b))
 
 				_, err = w.Write([]byte("OK"))
-				assert.NoError(err)
+				require.NoError(t, err)
 			},
 			request: func(t *testing.T) *http.Request {
 				req, err := http.NewRequest(http.MethodPost, proxy.URL, bytes.NewReader([]byte("body")))
@@ -281,9 +229,9 @@ func TestFullIntegration(t *testing.T) {
 			hostMapper: func(host string) (*HostConfig, error) {
 				return &HostConfig{}, errors.New("some host mapper error occurred")
 			},
-			handler: func(assert *assert.Assertions, w http.ResponseWriter, r *http.Request) {
+			handler: func(t require.TestingT, w http.ResponseWriter, _ *http.Request) {
 				_, err := w.Write([]byte("OK"))
-				assert.NoError(err)
+				require.NoError(t, err)
 			},
 			request: func(t *testing.T) *http.Request {
 				req, err := http.NewRequest(http.MethodPost, proxy.URL, bytes.NewReader([]byte("body")))
@@ -304,9 +252,9 @@ func TestFullIntegration(t *testing.T) {
 			hostMapper: func(host string) (*HostConfig, error) {
 				return &HostConfig{}, nil
 			},
-			handler: func(assert *assert.Assertions, w http.ResponseWriter, r *http.Request) {
+			handler: func(t require.TestingT, w http.ResponseWriter, _ *http.Request) {
 				_, err := w.Write([]byte("OK"))
-				assert.NoError(err)
+				require.NoError(t, err)
 			},
 			request: func(t *testing.T) *http.Request {
 				req, err := http.NewRequest(http.MethodPost, proxy.URL, bytes.NewReader([]byte("body")))
@@ -343,7 +291,7 @@ func TestFullIntegration(t *testing.T) {
 					PathPrefix:   "/foo",
 				}, nil
 			},
-			handler: func(assert *assert.Assertions, w http.ResponseWriter, r *http.Request) {
+			handler: func(_ require.TestingT, w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusOK)
 			},
 			request: func(t *testing.T) *http.Request {
@@ -377,7 +325,7 @@ func TestFullIntegration(t *testing.T) {
 					PathPrefix:   "/foo",
 				}, nil
 			},
-			handler: func(assert *assert.Assertions, w http.ResponseWriter, r *http.Request) {
+			handler: func(_ require.TestingT, w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusOK)
 			},
 			request: func(t *testing.T) *http.Request {
@@ -411,7 +359,7 @@ func TestFullIntegration(t *testing.T) {
 					PathPrefix:   "/foo",
 				}, nil
 			},
-			handler: func(assert *assert.Assertions, w http.ResponseWriter, r *http.Request) {
+			handler: func(_ require.TestingT, w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusOK)
 			},
 			request: func(t *testing.T) *http.Request {
@@ -444,7 +392,7 @@ func TestFullIntegration(t *testing.T) {
 					PathPrefix:   "/foo",
 				}, nil
 			},
-			handler: func(assert *assert.Assertions, w http.ResponseWriter, r *http.Request) {
+			handler: func(_ require.TestingT, w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusOK)
 			},
 			request: func(t *testing.T) *http.Request {
@@ -477,7 +425,7 @@ func TestFullIntegration(t *testing.T) {
 					PathPrefix:   "/foo",
 				}, nil
 			},
-			handler: func(assert *assert.Assertions, w http.ResponseWriter, r *http.Request) {
+			handler: func(_ require.TestingT, w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusOK)
 			},
 			request: func(t *testing.T) *http.Request {
@@ -508,10 +456,7 @@ func TestFullIntegration(t *testing.T) {
 					return hc, err
 				}
 				reqMiddleware <- tc.reqMiddleware
-				upstreamHandler <- func(w http.ResponseWriter, r *http.Request) {
-					t := &remoteT{t: t, w: w, r: r}
-					tc.handler(assert.New(t), t, r)
-				}
+				upstreamHandler <- tc.handler
 				respMiddleware <- tc.respMiddleware
 			}()
 
@@ -563,7 +508,7 @@ func TestBetweenReverseProxies(t *testing.T) {
 	t.Run("case=replaces body", func(t *testing.T) {
 		const pattern = "Hello, I am available under http://%s!"
 		c <- func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprintf(w, pattern, targetHost)
+			_, _ = fmt.Fprintf(w, pattern, targetHost)
 		}
 
 		host := "example.com"
