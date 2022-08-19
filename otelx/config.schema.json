@@ -10,6 +10,7 @@
       "description": "Set this to the tracing backend you wish to use. Supports Jaeger.",
       "enum": [
         "jaeger",
+        "otel",
         "zipkin"
       ],
       "examples": [
