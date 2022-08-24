@@ -78,20 +78,20 @@ require (
 	go.opentelemetry.io/contrib/propagators/b3 v1.4.0
 	go.opentelemetry.io/contrib/propagators/jaeger v1.4.0
 	go.opentelemetry.io/contrib/samplers/jaegerremote v0.0.0-20220314184135-32895002a444
-	go.opentelemetry.io/otel v1.7.0
-	go.opentelemetry.io/otel/bridge/opentracing v1.6.3
-	go.opentelemetry.io/otel/exporters/jaeger v1.5.0
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.6.3
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.6.3
-	go.opentelemetry.io/otel/exporters/zipkin v1.7.0
-	go.opentelemetry.io/otel/sdk v1.7.0
-	go.opentelemetry.io/otel/trace v1.7.0
-	go.opentelemetry.io/proto/otlp v0.15.0
+	go.opentelemetry.io/otel v1.9.0
+	go.opentelemetry.io/otel/bridge/opentracing v1.9.0
+	go.opentelemetry.io/otel/exporters/jaeger v1.9.0
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.9.0
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.9.0
+	go.opentelemetry.io/otel/exporters/zipkin v1.9.0
+	go.opentelemetry.io/otel/sdk v1.9.0
+	go.opentelemetry.io/otel/trace v1.9.0
+	go.opentelemetry.io/proto/otlp v0.18.0
 	golang.org/x/crypto v0.0.0-20220517005047-85d78b3ac167
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
 	gonum.org/v1/plot v0.10.0
-	google.golang.org/grpc v1.45.0
+	google.golang.org/grpc v1.46.2
 	google.golang.org/protobuf v1.28.0
 	gopkg.in/DataDog/dd-trace-go.v1 v1.39.0
 	gopkg.in/square/go-jose.v2 v2.6.0
@@ -213,7 +213,7 @@ require (
 	go.elastic.co/apm/module/apmhttp v1.15.0 // indirect
 	go.elastic.co/fastjson v1.1.0 // indirect
 	go.mongodb.org/mongo-driver v1.5.1 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.6.3 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.9.0 // indirect
 	go.opentelemetry.io/otel/internal/metric v0.27.0 // indirect
 	go.opentelemetry.io/otel/metric v0.27.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
