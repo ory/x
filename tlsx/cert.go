@@ -2,6 +2,7 @@ package tlsx
 
 import (
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
@@ -95,6 +96,8 @@ func PublicKey(key interface{}) interface{} {
 		return &k.PublicKey
 	case *ecdsa.PrivateKey:
 		return &k.PublicKey
+	case ed25519.PrivateKey:
+		return k.Public().(ed25519.PublicKey)
 	default:
 		return nil
 	}
@@ -164,16 +167,9 @@ func CreateSelfSignedCertificate(key interface{}) (cert *x509.Certificate, err e
 
 // PEMBlockForKey returns a PEM-encoded block for key.
 func PEMBlockForKey(key interface{}) (*pem.Block, error) {
-	switch k := key.(type) {
-	case *rsa.PrivateKey:
-		return &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(k)}, nil
-	case *ecdsa.PrivateKey:
-		b, err := x509.MarshalECPrivateKey(k)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		return &pem.Block{Type: "EC PRIVATE KEY", Bytes: b}, nil
-	default:
-		return nil, errors.New("Invalid key type")
+	b, err := x509.MarshalPKCS8PrivateKey(key)
+	if err != nil {
+		return nil, errors.WithStack(err)
 	}
+	return &pem.Block{Type: "PRIVATE KEY", Bytes: b}, nil
 }
