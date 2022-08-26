@@ -7,9 +7,10 @@
   "properties": {
     "provider": {
       "type": "string",
-      "description": "Set this to the tracing backend you wish to use. Supports Jaeger.",
+      "description": "Set this to the tracing backend you wish to use. Supports Jaeger, Zipkin, and OTEL.",
       "enum": [
         "jaeger",
+        "otel",
         "zipkin"
       ],
       "examples": [
