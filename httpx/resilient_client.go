@@ -16,14 +16,15 @@ import (
 )
 
 type resilientOptions struct {
-	ctx           context.Context
-	c             *http.Client
-	l             interface{}
-	retryWaitMin  time.Duration
-	retryWaitMax  time.Duration
-	retryMax      int
-	noInternalIPs bool
-	tracer        trace.Tracer
+	ctx                  context.Context
+	c                    *http.Client
+	l                    interface{}
+	retryWaitMin         time.Duration
+	retryWaitMax         time.Duration
+	retryMax             int
+	noInternalIPs        bool
+	internalIPExceptions []string
+	tracer               trace.Tracer
 }
 
 func newResilientOptions() *resilientOptions {
@@ -96,6 +97,14 @@ func ResilientClientDisallowInternalIPs() ResilientOptions {
 	}
 }
 
+// ResilientClientAllowInternalIPRequestsTo allows requests to the exact matching URLs even
+// if they are internal IPs.
+func ResilientClientAllowInternalIPRequestsTo(urls ...string) ResilientOptions {
+	return func(o *resilientOptions) {
+		o.internalIPExceptions = urls
+	}
+}
+
 // NewResilientClient creates a new ResilientClient.
 func NewResilientClient(opts ...ResilientOptions) *retryablehttp.Client {
 	o := newResilientOptions()
@@ -104,7 +113,10 @@ func NewResilientClient(opts ...ResilientOptions) *retryablehttp.Client {
 	}
 
 	if o.noInternalIPs == true {
-		o.c.Transport = &NoInternalIPRoundTripper{RoundTripper: o.c.Transport}
+		o.c.Transport = &NoInternalIPRoundTripper{
+			RoundTripper:         o.c.Transport,
+			internalIPExceptions: o.internalIPExceptions,
+		}
 	}
 
 	if o.tracer != nil {

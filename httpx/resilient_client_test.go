@@ -18,9 +18,6 @@ func TestNoPrivateIPs(t *testing.T) {
 		_, _ = w.Write([]byte("Hello, world!"))
 	}))
 	t.Cleanup(ts.Close)
-	c := NewResilientClient(
-		ResilientClientWithMaxRetry(1),
-		ResilientClientDisallowInternalIPs())
 
 	target, err := url.ParseRequestURI(ts.URL)
 	require.NoError(t, err)
@@ -28,16 +25,28 @@ func TestNoPrivateIPs(t *testing.T) {
 	_, port, err := net.SplitHostPort(target.Host)
 	require.NoError(t, err)
 
-	for _, host := range []string{
-		"127.0.0.1",
-		"localhost",
-		"192.168.178.5",
+	allowed := "http://localhost:" + port + "/foobar"
+
+	c := NewResilientClient(
+		ResilientClientWithMaxRetry(1),
+		ResilientClientDisallowInternalIPs(),
+		ResilientClientAllowInternalIPRequestsTo(allowed),
+	)
+
+	for destination, passes := range map[string]bool{
+		"http://127.0.0.1:" + port:             false,
+		"http://localhost:" + port:             false,
+		"http://192.168.178.5:" + port:         false,
+		allowed:                                true,
+		"http://localhost:" + port + "/FOOBAR": false,
 	} {
-		target.Host = host + ":" + port
-		t.Logf("%s", target.String())
-		_, err := c.Get(target.String())
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "is in the")
+		_, err := c.Get(destination)
+		if !passes {
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "is in the")
+		} else {
+			require.NoError(t, err)
+		}
 	}
 }
 
