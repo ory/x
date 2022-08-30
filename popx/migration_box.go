@@ -25,18 +25,19 @@ type (
 		migrationContent MigrationContent
 		goMigrations     Migrations
 	}
-	MigrationContent func(mf Migration, c *pop.Connection, r []byte, usingTemplate bool) (string, error)
-	GoMigration      func(c *pop.Tx) error
+	MigrationContent   func(mf Migration, c *pop.Connection, r []byte, usingTemplate bool) (string, error)
+	GoMigration        func(c *pop.Tx) error
+	MigrationBoxOption func(*MigrationBox) *MigrationBox
 )
 
-func WithTemplateValues(v map[string]interface{}) func(*MigrationBox) *MigrationBox {
+func WithTemplateValues(v map[string]interface{}) MigrationBoxOption {
 	return func(m *MigrationBox) *MigrationBox {
 		m.migrationContent = ParameterizedMigrationContent(v)
 		return m
 	}
 }
 
-func WithMigrationContentMiddleware(middleware func(content string, err error) (string, error)) func(*MigrationBox) *MigrationBox {
+func WithMigrationContentMiddleware(middleware func(content string, err error) (string, error)) MigrationBoxOption {
 	return func(m *MigrationBox) *MigrationBox {
 		prev := m.migrationContent
 		m.migrationContent = func(mf Migration, c *pop.Connection, r []byte, usingTemplate bool) (string, error) {
@@ -49,15 +50,15 @@ func WithMigrationContentMiddleware(middleware func(content string, err error) (
 // WithGoMigrations adds migrations that have a custom migration runner.
 // TEST THEM THOROUGHLY!
 // It will be very hard to fix a buggy migration.
-func WithGoMigrations(migrations Migrations) func(*MigrationBox) *MigrationBox {
+func WithGoMigrations(migrations Migrations) MigrationBoxOption {
 	return func(m *MigrationBox) *MigrationBox {
 		m.goMigrations = migrations
 		return m
 	}
 }
 
-// WithTestdata
-func WithTestdata(t *testing.T, testdata fs.FS) func(*MigrationBox) *MigrationBox {
+// WithTestdata adds testdata to the migration box.
+func WithTestdata(t *testing.T, testdata fs.FS) MigrationBoxOption {
 	testdataPattern := regexp.MustCompile(`^(\d+)_testdata(|\.[a-zA-Z0-9]+).sql$`)
 	return func(m *MigrationBox) *MigrationBox {
 		require.NoError(t, fs.WalkDir(testdata, ".", func(path string, info fs.DirEntry, err error) error {
@@ -116,8 +117,8 @@ func WithTestdata(t *testing.T, testdata fs.FS) func(*MigrationBox) *MigrationBo
 				},
 			})
 
-			sort.Sort(sortIdent(m.Migrations["up"]))
-			sort.Sort(sort.Reverse(sortIdent(m.Migrations["down"])))
+			sort.Sort(m.Migrations["up"])
+			sort.Sort(sort.Reverse(m.Migrations["down"]))
 			return nil
 		}))
 		return m
@@ -131,7 +132,7 @@ func isMigrationEmpty(content string) bool {
 }
 
 // NewMigrationBox creates a new migration box.
-func NewMigrationBox(dir fs.FS, m *Migrator, opts ...func(*MigrationBox) *MigrationBox) (*MigrationBox, error) {
+func NewMigrationBox(dir fs.FS, m *Migrator, opts ...MigrationBoxOption) (*MigrationBox, error) {
 	mb := &MigrationBox{
 		Migrator:         m,
 		Dir:              dir,
@@ -219,7 +220,7 @@ func (fm *MigrationBox) findMigrations(runner func([]byte) func(mf Migration, c 
 			Runner:    runner(content),
 		}
 		fm.Migrations[mf.Direction] = append(fm.Migrations[mf.Direction], mf)
-		mod := sortIdent(fm.Migrations[mf.Direction])
+		mod := sort.Interface(fm.Migrations[mf.Direction])
 		if mf.Direction == "down" {
 			mod = sort.Reverse(mod)
 		}
