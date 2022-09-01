@@ -1,7 +1,5 @@
 # pagination
 
-[![CircleCI](https://circleci.com/gh/ory/pagination.svg?style=shield)](https://circleci.com/gh/ory/pagination)
-
 A simple helper for dealing with pagination.
 
 ```
