@@ -214,5 +214,4 @@ func TestRealClock_Since(t *testing.T) {
 	since := rc.Since(now)
 
 	assert.True(t, since >= napDuration)
-	assert.True(t, since < napDuration+6*time.Millisecond)
 }
