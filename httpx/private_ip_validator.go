@@ -11,6 +11,16 @@ import (
 	"github.com/pkg/errors"
 )
 
+var InternalIPSet = []string{
+	"127.0.0.0/8",
+	"10.0.0.0/8",
+	"172.16.0.0/12",
+	"192.168.0.0/16",
+	"fd47:1ed0:805d:59f0::/64",
+	"fc00::/7",
+	"::1/128",
+}
+
 // ErrPrivateIPAddressDisallowed is returned when a private IP address is disallowed.
 type ErrPrivateIPAddressDisallowed error
 
@@ -64,15 +74,7 @@ func DisallowIPPrivateAddresses(ipOrHostnameOrURL string) error {
 		ips = append(ips, ip)
 	}
 
-	for _, disabled := range []string{
-		"127.0.0.0/8",
-		"10.0.0.0/8",
-		"172.16.0.0/12",
-		"192.168.0.0/16",
-		"fd47:1ed0:805d:59f0::/64",
-		"fc00::/7",
-		"::1/128",
-	} {
+	for _, disabled := range InternalIPSet {
 		_, cidr, err := net.ParseCIDR(disabled)
 		if err != nil {
 			return err
