@@ -91,6 +91,9 @@ func ReplaceCookieDomainAndSecure(resp *http.Response, original, replacement str
 		if strings.EqualFold(co.Domain, original) {
 			co.Domain = replacement
 			co.Secure = secure
+			if !secure {
+				co.SameSite = http.SameSiteLaxMode
+			}
 		}
 		resp.Header.Add("Set-Cookie", co.String())
 	}
