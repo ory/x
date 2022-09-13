@@ -138,6 +138,8 @@ func TestRewrites(t *testing.T) {
 
 			for _, co := range resp.Cookies() {
 				assert.Equal(t, c.CookieDomain, co.Domain)
+				assert.Equal(t, false, co.Secure)
+				assert.Equal(t, http.SameSiteLaxMode, co.SameSite)
 			}
 		})
 
