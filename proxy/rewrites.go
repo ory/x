@@ -88,13 +88,14 @@ func ReplaceCookieDomainAndSecure(resp *http.Response, original, replacement str
 	cookies := resp.Cookies()
 	resp.Header.Del("Set-Cookie")
 	for _, co := range cookies {
-		if strings.EqualFold(co.Domain, original) {
+		if strings.EqualFold(co.Domain, original) || len(co.Domain) == 0 {
 			co.Domain = replacement
 			co.Secure = secure
 			if !secure {
 				co.SameSite = http.SameSiteLaxMode
 			}
 		}
+
 		resp.Header.Add("Set-Cookie", co.String())
 	}
 }
