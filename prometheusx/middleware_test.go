@@ -1,6 +1,7 @@
 package prometheus
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -12,6 +13,9 @@ import (
 
 func EmptyHandle(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	// do nothing
+}
+func voidHTTPHandlerFunc(rw http.ResponseWriter, r *http.Request) {
+	// Do nothing
 }
 
 func TestMetricsManagerGetLabelForPath(t *testing.T) {
@@ -86,4 +90,19 @@ func TestEndpointsReconstruction(t *testing.T) {
 			},
 		}))
 	})
+}
+
+func TestMetricsManager_ConcurrentRegisterAndServeHTTP(t *testing.T) {
+	mm := NewMetricsManager("", "", "", "")
+	for i := 0; i < 10; i++ {
+		i := i
+		go func() {
+			path := fmt.Sprintf("/test/%d", i)
+			router := httprouter.New()
+			router.GET(path, EmptyHandle)
+			mm.RegisterRouter(router)
+			req := httptest.NewRequest("GET", path, strings.NewReader(""))
+			mm.ServeHTTP(httptest.NewRecorder(), req, voidHTTPHandlerFunc)
+		}()
+	}
 }
