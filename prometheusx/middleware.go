@@ -3,13 +3,19 @@ package prometheus
 import (
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/julienschmidt/httprouter"
 )
 
 type MetricsManager struct {
 	prometheusMetrics *Metrics
-	routers           []*httprouter.Router
+	//routers           []*httprouter.Router
+	//routersLock       sync.Mutex
+	routers struct {
+		data []*httprouter.Router
+		sync.Mutex
+	}
 }
 
 func NewMetricsManager(app, version, hash, buildTime string) *MetricsManager {
@@ -31,12 +37,16 @@ func (pmm *MetricsManager) ServeHTTP(rw http.ResponseWriter, r *http.Request, ne
 }
 
 func (pmm *MetricsManager) RegisterRouter(router *httprouter.Router) {
-	pmm.routers = append(pmm.routers, router)
+	pmm.routers.Lock()
+	defer pmm.routers.Unlock()
+	pmm.routers.data = append(pmm.routers.data, router)
 }
 
 func (pmm *MetricsManager) getLabelForPath(r *http.Request) string {
 	// looking for a match in one of registered routers
-	for _, router := range pmm.routers {
+	pmm.routers.Lock()
+	defer pmm.routers.Unlock()
+	for _, router := range pmm.routers.data {
 		handler, params, _ := router.Lookup(r.Method, r.URL.Path)
 		if handler != nil {
 			return reconstructEndpoint(r.URL.Path, params)
