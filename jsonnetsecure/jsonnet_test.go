@@ -27,4 +27,12 @@ func TestSecureVM(t *testing.T) {
 			snapshotx.SnapshotT(t, result)
 		})
 	}
+
+	t.Run("case=importbin", func(t *testing.T) {
+		// importbin does not exist in the current version, but is already merged on the main branch:
+		// https://github.com/google/go-jsonnet/commit/856bd58872418eee1cede0badea5b7b462c429eb
+		vm := MakeSecureVM()
+		result, err := vm.EvaluateAnonymousSnippet("test", "local contents = importbin 'stub/import.jsonnet'; { contents: contents }")
+		require.Error(t, err, "%s", result)
+	})
 }
