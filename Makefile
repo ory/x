@@ -20,8 +20,12 @@ $(call make-lint-dependency)
 		touch -a -m .bin/ory
 
 .PHONY: format
-format:
-		goimports -w -local github.com/ory .
+format: .bin/goimports node_modules
+		.bin/goimports -w -local github.com/ory .
+		npm exec -- prettier --write .
+
+.bin/goimports: Makefile
+	GOBIN=$(shell pwd)/.bin go install golang.org/x/tools/cmd/goimports@latest
 
 .bin/golangci-lint: Makefile
 		bash <(curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh) -d -b .bin v1.46.2
@@ -60,3 +64,7 @@ mocks: .bin/mockgen
 		mockgen -package hasherx_test -destination hasherx/mocks_argon2_test.go github.com/ory/x/hasherx Argon2Configurator
 		mockgen -package hasherx_test -destination hasherx/mocks_bcrypt_test.go github.com/ory/x/hasherx BCryptConfigurator
 		mockgen -package hasherx_test -destination hasherx/mocks_pkdbf2_test.go github.com/ory/x/hasherx PBKDF2Configurator
+
+node_modules: package-lock.json
+	npm ci
+	touch node_modules
