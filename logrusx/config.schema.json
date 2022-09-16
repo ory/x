@@ -10,27 +10,14 @@
       "description": "The level of log entries to show. Debug enables stack traces on errors.",
       "type": "string",
       "default": "info",
-      "enum": [
-        "panic",
-        "fatal",
-        "error",
-        "warn",
-        "info",
-        "debug",
-        "trace"
-      ]
+      "enum": ["panic", "fatal", "error", "warn", "info", "debug", "trace"]
     },
     "format": {
       "title": "Log Format",
       "description": "The output format of log messages.",
       "type": "string",
       "default": "text",
-      "enum": [
-        "json",
-        "json_pretty",
-        "gelf",
-        "text"
-      ]
+      "enum": ["json", "json_pretty", "gelf", "text"]
     },
     "leak_sensitive_values": {
       "type": "boolean",

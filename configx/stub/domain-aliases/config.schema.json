@@ -9,30 +9,20 @@
         {
           "additionalProperties": false,
           "type": "object",
-          "required": [
-            "match_domain",
-            "base_path",
-            "scheme"
-          ],
+          "required": ["match_domain", "base_path", "scheme"],
           "properties": {
             "match_domain": {
               "minLength": 1,
               "title": "Matching Domain",
               "description": "Sets the matching domain. If the domain matches with this entry, the accompanying base_url will be used.",
               "type": "string",
-              "examples": [
-                "localhost",
-                "my-domain.com"
-              ]
+              "examples": ["localhost", "my-domain.com"]
             },
             "scheme": {
               "title": "Scheme",
               "description": "Sets the scheme, for example https or http.",
               "type": "string",
-              "enum": [
-                "http",
-                "https"
-              ]
+              "enum": ["http", "https"]
             },
             "base_path": {
               "minLength": 1,
@@ -41,10 +31,7 @@
               "type": "string",
               "default": "/",
               "pattern": "^/.*$",
-              "examples": [
-                "/",
-                "/.ory/kratos"
-              ]
+              "examples": ["/", "/.ory/kratos"]
             }
           }
         }

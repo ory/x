@@ -22,14 +22,10 @@
                   "type": "string"
                 }
               },
-              "required": [
-                "foo"
-              ]
+              "required": ["foo"]
             }
           },
-          "required": [
-            "tos"
-          ],
+          "required": ["tos"],
           "title": "Consent",
           "type": "object"
         },
@@ -43,16 +39,12 @@
               "maxLength": 30
             }
           },
-          "required": [
-            "tos"
-          ],
+          "required": ["tos"],
           "title": "Consent",
           "type": "object"
         }
       },
-      "required": [
-        "consent"
-      ],
+      "required": ["consent"],
       "type": "object"
     }
   },

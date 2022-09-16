@@ -8,24 +8,13 @@
     "provider": {
       "type": "string",
       "description": "Set this to the tracing backend you wish to use. Supports Jaeger, Zipkin, and OTEL.",
-      "enum": [
-        "jaeger",
-        "otel",
-        "zipkin"
-      ],
-      "examples": [
-        "jaeger"
-      ]
+      "enum": ["jaeger", "otel", "zipkin"],
+      "examples": ["jaeger"]
     },
     "service_name": {
       "type": "string",
       "description": "Specifies the service name to use on the tracer.",
-      "examples": [
-        "Ory Hydra",
-        "Ory Kratos",
-        "Ory Keto",
-        "Ory Oathkeeper"
-      ]
+      "examples": ["Ory Hydra", "Ory Kratos", "Ory Keto", "Ory Oathkeeper"]
     },
     "providers": {
       "type": "object",
@@ -53,16 +42,12 @@
                   "pattern": "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9]):([0-9]*)$"
                 }
               ],
-              "examples": [
-                "127.0.0.1:6831"
-              ]
+              "examples": ["127.0.0.1:6831"]
             },
             "sampling": {
               "type": "object",
               "propertyNames": {
-                "enum": [
-                  "server_url"
-                ]
+                "enum": ["server_url"]
               },
               "additionalProperties": false,
               "properties": {
@@ -70,9 +55,7 @@
                   "type": "string",
                   "description": "The address of jaeger-agent's HTTP sampling server",
                   "format": "uri",
-                  "examples": [
-                    "http://localhost:5778/sampling"
-                  ]
+                  "examples": ["http://localhost:5778/sampling"]
                 }
               }
             }
@@ -96,18 +79,14 @@
             "sampling": {
               "type": "object",
               "propertyNames": {
-                "enum": [
-                  "sampling_ratio"
-                ]
+                "enum": ["sampling_ratio"]
               },
               "additionalProperties": false,
               "properties": {
                 "sampling_ratio": {
                   "type": "number",
                   "description": "Sampling ratio for spans.",
-                  "examples": [
-                    0.4
-                  ]
+                  "examples": [0.4]
                 }
               }
             }
@@ -148,18 +127,14 @@
             "sampling": {
               "type": "object",
               "propertyNames": {
-                "enum": [
-                  "sampling_ratio"
-                ]
+                "enum": ["sampling_ratio"]
               },
               "additionalProperties": false,
               "properties": {
                 "sampling_ratio": {
                   "type": "number",
                   "description": "Sampling ratio for spans.",
-                  "examples": [
-                    0.4
-                  ]
+                  "examples": [0.4]
                 }
               }
             }
