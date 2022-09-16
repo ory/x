@@ -48,7 +48,9 @@ jobs:
           MYSQL_ROOT_PASSWORD: test
     steps:
       - name: Start cockroach
-        run: docker run --name cockroach -p 26257:26257 -d cockroachdb/cockroach:v20.2.5 start-single-node --insecure
+        run:
+          docker run --name cockroach -p 26257:26257 -d
+          cockroachdb/cockroach:v20.2.5 start-single-node --insecure
       - name: Checkout repository
         uses: actions/checkout@v2
       - uses: actions/setup-go@v2
@@ -69,7 +71,9 @@ jobs:
       - name: Run nancy
         uses: sonatype-nexus-community/nancy-github-action@main
       - run: make .bin/go-acc .bin/gcov2lcov
-      - run: COCKROACH_BINARY=cockroach .bin/go-acc -o coverage.out ./... -- -v -failfast -timeout=5m -tags sqlite
+      - run:
+          COCKROACH_BINARY=cockroach .bin/go-acc -o coverage.out ./... -- -v
+          -failfast -timeout=5m -tags sqlite
       - name: Convert coverage report to lcov
         run: .bin/gcov2lcov -infile=coverage.out -outfile=coverage.lcov
       - name: Coveralls
@@ -91,7 +95,9 @@ jobs:
         with:
           node-version: "14"
       - name: Define next tag
-        run: npx semver -- $(git describe --tags `git rev-list --tags --max-count=1`)
+        run:
+          npx semver -- $(git describe --tags `git rev-list --tags
+          --max-count=1`)
       - name: Create git tag
         run: |
           git tag "v$(npx semver -- $(git describe --tags `git rev-list --tags --max-count=1`) --increment=patch)"
