@@ -489,6 +489,19 @@ func (p *Provider) TracingConfig(serviceName string) *otelx.Config {
 				},
 				LocalAgentAddress: p.String("tracing.providers.jaeger.local_agent_address"),
 			},
+			Zipkin: otelx.ZipkinConfig{
+				ServerURL: p.String("tracing.providers.zipkin.server_url"),
+				Sampling: otelx.ZipkinSampling{
+					SamplingRatio: p.Float64("tracing.providers.zipkin.sampling.sampling_ratio"),
+				},
+			},
+			OTLP: otelx.OTLPConfig{
+				ServerURL: p.String("tracing.providers.otlp.server_url"),
+				Insecure:  p.Bool("tracing.providers.otlp.insecure"),
+				Sampling: otelx.OTLPSampling{
+					SamplingRatio: p.Float64("tracing.providers.otlp.sampling.sampling_ratio"),
+				},
+			},
 		},
 	}
 }
