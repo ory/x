@@ -24,9 +24,7 @@
     "level": "debug"
   },
   "secrets": {
-    "cookie": [
-      "PLEASE-CHANGE-ME-I-AM-VERY-INSECURE"
-    ]
+    "cookie": ["PLEASE-CHANGE-ME-I-AM-VERY-INSECURE"]
   },
   "selfservice": {
     "default_browser_return_url": "http://127.0.0.1:4455/",
@@ -89,9 +87,7 @@
         "enabled": true
       }
     },
-    "whitelisted_return_urls": [
-      "http://127.0.0.1:4455"
-    ]
+    "whitelisted_return_urls": ["http://127.0.0.1:4455"]
   },
   "serve": {
     "admin": {
@@ -103,26 +99,12 @@
       "base_url": "http://127.0.0.1:4433/",
       "cors": {
         "allow_credentials": true,
-        "allowed_headers": [
-          "Authorization",
-          "Content-Type",
-          "X-Session-Token"
-        ],
-        "allowed_methods": [
-          "POST",
-          "GET",
-          "PUT",
-          "PATCH",
-          "DELETE"
-        ],
-        "allowed_origins": [
-          "*"
-        ],
+        "allowed_headers": ["Authorization", "Content-Type", "X-Session-Token"],
+        "allowed_methods": ["POST", "GET", "PUT", "PATCH", "DELETE"],
+        "allowed_origins": ["*"],
         "debug": false,
         "enabled": true,
-        "exposed_headers": [
-          "Content-Type"
-        ],
+        "exposed_headers": ["Content-Type"],
         "max_age": 0,
         "options_passthrough": false
       },

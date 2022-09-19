@@ -10,9 +10,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "examples": [
-              "google"
-            ]
+            "examples": ["google"]
           },
           "provider": {
             "title": "Provider",
@@ -26,9 +24,7 @@
               "microsoft",
               "discord"
             ],
-            "examples": [
-              "google"
-            ]
+            "examples": ["google"]
           },
           "client_id": {
             "type": "string"
@@ -39,23 +35,17 @@
           "issuer_url": {
             "type": "string",
             "format": "uri",
-            "examples": [
-              "https://accounts.google.com"
-            ]
+            "examples": ["https://accounts.google.com"]
           },
           "auth_url": {
             "type": "string",
             "format": "uri",
-            "examples": [
-              "https://accounts.google.com/o/oauth2/v2/auth"
-            ]
+            "examples": ["https://accounts.google.com/o/oauth2/v2/auth"]
           },
           "token_url": {
             "type": "string",
             "format": "uri",
-            "examples": [
-              "https://www.googleapis.com/oauth2/v4/token"
-            ]
+            "examples": ["https://www.googleapis.com/oauth2/v4/token"]
           },
           "mapper_url": {
             "title": "Jsonnet Mapper URL",
@@ -72,10 +62,7 @@
             "type": "array",
             "items": {
               "type": "string",
-              "examples": [
-                "offline_access",
-                "profile"
-              ]
+              "examples": ["offline_access", "profile"]
             }
           },
           "tenant": {
@@ -99,23 +86,17 @@
               "const": "microsoft"
             }
           },
-          "required": [
-            "provider"
-          ]
+          "required": ["provider"]
         },
         "then": {
-          "required": [
-            "tenant"
-          ]
+          "required": ["tenant"]
         },
         "else": {
           "not": {
             "properties": {
               "tenant": {}
             },
-            "required": [
-              "tenant"
-            ]
+            "required": ["tenant"]
           }
         }
       }

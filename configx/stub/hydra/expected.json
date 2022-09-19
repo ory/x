@@ -24,19 +24,14 @@
   },
   "oidc": {
     "subject_identifiers": {
-      "enabled": [
-        "pairwise",
-        "public"
-      ],
+      "enabled": ["pairwise", "public"],
       "pairwise": {
         "salt": "youReallyNeedToChangeThis"
       }
     }
   },
   "secrets": {
-    "system": [
-      "youReallyNeedToChangeThis"
-    ]
+    "system": ["youReallyNeedToChangeThis"]
   },
   "serve": {
     "admin": {
@@ -45,25 +40,12 @@
       },
       "cors": {
         "allow_credentials": true,
-        "allowed_headers": [
-          "Authorization",
-          "Content-Type"
-        ],
-        "allowed_methods": [
-          "POST",
-          "GET",
-          "PUT",
-          "PATCH",
-          "DELETE"
-        ],
-        "allowed_origins": [
-          "*"
-        ],
+        "allowed_headers": ["Authorization", "Content-Type"],
+        "allowed_methods": ["POST", "GET", "PUT", "PATCH", "DELETE"],
+        "allowed_origins": ["*"],
         "debug": false,
         "enabled": false,
-        "exposed_headers": [
-          "Content-Type"
-        ],
+        "exposed_headers": ["Content-Type"],
         "max_age": 0,
         "options_passthrough": false
       },
@@ -85,25 +67,12 @@
       },
       "cors": {
         "allow_credentials": true,
-        "allowed_headers": [
-          "Authorization",
-          "Content-Type"
-        ],
-        "allowed_methods": [
-          "POST",
-          "GET",
-          "PUT",
-          "PATCH",
-          "DELETE"
-        ],
-        "allowed_origins": [
-          "*"
-        ],
+        "allowed_headers": ["Authorization", "Content-Type"],
+        "allowed_methods": ["POST", "GET", "PUT", "PATCH", "DELETE"],
+        "allowed_origins": ["*"],
         "debug": false,
         "enabled": false,
-        "exposed_headers": [
-          "Content-Type"
-        ],
+        "exposed_headers": ["Content-Type"],
         "max_age": 0,
         "options_passthrough": false
       },
@@ -147,9 +116,7 @@
   },
   "webfinger": {
     "jwks": {
-      "broadcast_keys": [
-        "hydra.openid.id-token"
-      ]
+      "broadcast_keys": ["hydra.openid.id-token"]
     }
   }
 }

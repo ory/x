@@ -14,9 +14,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "first"
-      ]
+      "required": ["first"]
     },
     "name2": {
       "type": "object",
@@ -28,9 +26,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "first"
-      ]
+      "required": ["first"]
     },
     "age": {
       "type": "integer"
@@ -57,11 +53,5 @@
       "type": "boolean"
     }
   },
-  "required": [
-    "age2",
-    "ratio2",
-    "consent2",
-    "newsletter2",
-    "name2"
-  ]
+  "required": ["age2", "ratio2", "consent2", "newsletter2", "name2"]
 }

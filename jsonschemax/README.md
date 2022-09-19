@@ -4,7 +4,8 @@ This package contains utilities for working with JSON Schemas.
 
 ## Listing all Possible JSON Schema Paths
 
-Using `jsonschemax.ListPaths()` you can get a list of all possible JSON paths in a JSON Schema.
+Using `jsonschemax.ListPaths()` you can get a list of all possible JSON paths in
+a JSON Schema.
 
 ```go
 package main
@@ -26,7 +27,8 @@ func main() {
 }
 ```
 
-All keys are delimited using `.`. Please note that arrays are denoted with `#` when `ListPathsWithArraysIncluded` is used. For example, the JSON Schema
+All keys are delimited using `.`. Please note that arrays are denoted with `#`
+when `ListPathsWithArraysIncluded` is used. For example, the JSON Schema
 
 ```json
 {

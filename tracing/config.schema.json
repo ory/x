@@ -8,26 +8,13 @@
     "provider": {
       "type": "string",
       "description": "Set this to the tracing backend you wish to use. Supports Jaeger, Zipkin DataDog, Elastic APM and Instana. If omitted or empty, tracing will be disabled. Use environment variables to configure DataDog (see https://docs.datadoghq.com/tracing/setup/go/#configuration).",
-      "enum": [
-        "jaeger",
-        "zipkin",
-        "datadog",
-        "elastic-apm",
-        "instana"
-      ],
-      "examples": [
-        "jaeger"
-      ]
+      "enum": ["jaeger", "zipkin", "datadog", "elastic-apm", "instana"],
+      "examples": ["jaeger"]
     },
     "service_name": {
       "type": "string",
       "description": "Specifies the service name to use on the tracer.",
-      "examples": [
-        "Ory Hydra",
-        "Ory Kratos",
-        "Ory Keto",
-        "Ory Oathkeeper"
-      ]
+      "examples": ["Ory Hydra", "Ory Kratos", "Ory Keto", "Ory Oathkeeper"]
     },
     "providers": {
       "type": "object",
@@ -52,16 +39,12 @@
                   "format": "uri"
                 }
               ],
-              "examples": [
-                "127.0.0.1:6831"
-              ]
+              "examples": ["127.0.0.1:6831"]
             },
             "propagation": {
               "type": "string",
               "description": "The tracing header format",
-              "examples": [
-                "jaeger"
-              ]
+              "examples": ["jaeger"]
             },
             "max_tag_value_length": {
               "type": "integer",
@@ -71,11 +54,7 @@
             "sampling": {
               "type": "object",
               "propertyNames": {
-                "enum": [
-                  "type",
-                  "value",
-                  "server_url"
-                ]
+                "enum": ["type", "value", "server_url"]
               },
               "allOf": [
                 {

@@ -15,24 +15,10 @@
       },
       "cors": {
         "enabled": true,
-        "allowed_origins": [
-          "https://example.com",
-          "https://*.example.com"
-        ],
-        "allowed_methods": [
-          "POST",
-          "GET",
-          "PUT",
-          "PATCH",
-          "DELETE"
-        ],
-        "allowed_headers": [
-          "Authorization",
-          "Content-Type"
-        ],
-        "exposed_headers": [
-          "Content-Type"
-        ],
+        "allowed_origins": ["https://example.com", "https://*.example.com"],
+        "allowed_methods": ["POST", "GET", "PUT", "PATCH", "DELETE"],
+        "allowed_headers": ["Authorization", "Content-Type"],
+        "exposed_headers": ["Content-Type"],
         "allow_credentials": true,
         "max_age": 10,
         "debug": true
@@ -53,23 +39,10 @@
       "host": "127.0.0.2",
       "cors": {
         "enabled": true,
-        "allowed_origins": [
-          "https://example.org",
-          "https://*.example.org"
-        ],
-        "allowed_methods": [
-          "GET",
-          "PUT",
-          "PATCH",
-          "DELETE"
-        ],
-        "allowed_headers": [
-          "Authorization",
-          "Content-Type"
-        ],
-        "exposed_headers": [
-          "Content-Type"
-        ],
+        "allowed_origins": ["https://example.org", "https://*.example.org"],
+        "allowed_methods": ["GET", "PUT", "PATCH", "DELETE"],
+        "allowed_headers": ["Authorization", "Content-Type"],
+        "exposed_headers": ["Content-Type"],
         "allow_credentials": true,
         "max_age": 10,
         "debug": true
@@ -95,9 +68,7 @@
     "matching_strategy": "glob"
   },
   "errors": {
-    "fallback": [
-      "json"
-    ],
+    "fallback": ["json"],
     "handlers": {
       "redirect": {
         "enabled": true,
@@ -111,23 +82,13 @@
           "verbose": true,
           "when": [
             {
-              "error": [
-                "unauthorized",
-                "forbidden",
-                "internal_server_error"
-              ],
+              "error": ["unauthorized", "forbidden", "internal_server_error"],
               "request": {
                 "header": {
-                  "content_type": [
-                    "application/json"
-                  ],
-                  "accept": [
-                    "application/json"
-                  ]
+                  "content_type": ["application/json"],
+                  "accept": ["application/json"]
                 },
-                "cidr": [
-                  "127.0.0.0/24"
-                ]
+                "cidr": ["127.0.0.0/24"]
               }
             }
           ]
@@ -146,9 +107,7 @@
       "enabled": true,
       "config": {
         "check_session_url": "https://session-store-host",
-        "only": [
-          "sessionid"
-        ]
+        "only": ["sessionid"]
       }
     },
     "jwt": {
@@ -180,10 +139,7 @@
           "enabled": true,
           "client_id": "some_id",
           "client_secret": "some_secret",
-          "scope": [
-            "foo",
-            "bar"
-          ],
+          "scope": ["foo", "bar"],
           "token_url": "https://my-website.com/oauth2/token"
         }
       }

@@ -12,14 +12,8 @@
     },
     "bar": {
       "type": "string",
-      "enum": [
-        "foo",
-        "bar",
-        "baz"
-      ]
+      "enum": ["foo", "bar", "baz"]
     }
   },
-  "required": [
-    "dsn"
-  ]
+  "required": ["dsn"]
 }

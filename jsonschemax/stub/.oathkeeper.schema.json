@@ -11,9 +11,7 @@
         "path": {
           "title": "Path to PEM-encoded Fle",
           "type": "string",
-          "examples": [
-            "path/to/file.pem"
-          ]
+          "examples": ["path/to/file.pem"]
         },
         "base64": {
           "title": "Base64 Encoded Inline",
@@ -68,9 +66,7 @@
             "type": "string",
             "minLength": 1
           },
-          "default": [
-            "*"
-          ],
+          "default": ["*"],
           "uniqueItems": true,
           "examples": [
             "https://example.com",
@@ -96,13 +92,7 @@
             ]
           },
           "uniqueItems": true,
-          "default": [
-            "GET",
-            "POST",
-            "PUT",
-            "PATCH",
-            "DELETE"
-          ]
+          "default": ["GET", "POST", "PUT", "PATCH", "DELETE"]
         },
         "allowed_headers": {
           "description": "A list of non simple headers the client is allowed to use with cross-domain requests.",
@@ -113,10 +103,7 @@
           },
           "minLength": 1,
           "uniqueItems": true,
-          "default": [
-            "Authorization",
-            "Content-Type"
-          ]
+          "default": ["Authorization", "Content-Type"]
         },
         "exposed_headers": {
           "description": "Indicates which headers are safe to expose to the API of a CORS API specification",
@@ -127,9 +114,7 @@
           },
           "minLength": 1,
           "uniqueItems": true,
-          "default": [
-            "Content-Type"
-          ]
+          "default": ["Content-Type"]
         },
         "allow_credentials": {
           "type": "boolean",
@@ -156,20 +141,13 @@
       "title": "Enabled",
       "type": "boolean",
       "default": false,
-      "examples": [
-        true
-      ],
+      "examples": [true],
       "description": "En-/disables this component."
     },
     "scopeStrategy": {
       "title": "Scope Strategy",
       "type": "string",
-      "enum": [
-        "hierarchic",
-        "exact",
-        "wildcard",
-        "none"
-      ],
+      "enum": ["hierarchic", "exact", "wildcard", "none"],
       "default": "none",
       "description": "Sets the strategy validation algorithm."
     },
@@ -181,12 +159,7 @@
         "subject": {
           "type": "string",
           "title": "Anonymous Subject",
-          "examples": [
-            "guest",
-            "anon",
-            "anonymous",
-            "unknown"
-          ],
+          "examples": ["guest", "anon", "anonymous", "unknown"],
           "default": "anonymous",
           "description": "Sets the anonymous username."
         }
@@ -203,9 +176,7 @@
           "type": "string",
           "format": "uri",
           "description": "The origin to proxy requests to. If the response is a 200 with body `{ \"subject\": \"...\", \"extra\": {} }`. The request will pass the subject through successfully, otherwise it will be marked as unauthorized.\n\n>If this authenticator is enabled, this value is required.",
-          "examples": [
-            "https://session-store-host"
-          ]
+          "examples": ["https://session-store-host"]
         },
         "only": {
           "type": "array",
@@ -217,18 +188,14 @@
           "description": "A list of possible cookies to look for on incoming requests, and will fallthrough to the next authenticator if none of the passed cookies are set on the request."
         }
       },
-      "required": [
-        "check_session_url"
-      ],
+      "required": ["check_session_url"],
       "additionalProperties": false
     },
     "configAuthenticatorsJwt": {
       "type": "object",
       "title": "JWT Authenticator Configuration",
       "description": "This section is optional when the authenticator is disabled.",
-      "required": [
-        "jwks_urls"
-      ],
+      "required": ["jwks_urls"],
       "properties": {
         "required_scope": {
           "type": "array",
@@ -281,9 +248,7 @@
           "oneOf": [
             {
               "type": "object",
-              "required": [
-                "header"
-              ],
+              "required": ["header"],
               "properties": {
                 "header": {
                   "title": "Header",
@@ -294,9 +259,7 @@
             },
             {
               "type": "object",
-              "required": [
-                "query_parameter"
-              ],
+              "required": ["query_parameter"],
               "properties": {
                 "query_parameter": {
                   "title": "Query Parameter",
@@ -319,9 +282,7 @@
           "type": "string",
           "description": "The OAuth 2.0 Token Endpoint that will be used to validate the client credentials.\n\n>If this authenticator is enabled, this value is required.",
           "format": "uri",
-          "examples": [
-            "https://my-website.com/oauth2/token"
-          ]
+          "examples": ["https://my-website.com/oauth2/token"]
         },
         "required_scope": {
           "type": "array",
@@ -332,9 +293,7 @@
           }
         }
       },
-      "required": [
-        "token_url"
-      ],
+      "required": ["token_url"],
       "additionalProperties": false
     },
     "configAuthenticatorsOauth2Introspection": {
@@ -345,9 +304,7 @@
         "introspection_url": {
           "type": "string",
           "format": "uri",
-          "examples": [
-            "https://my-website.com/oauth2/introspection"
-          ],
+          "examples": ["https://my-website.com/oauth2/introspection"],
           "title": "OAuth 2.0 Introspection URL",
           "description": "The OAuth 2.0 Token Introspection endpoint URL.\n\n>If this authenticator is enabled, this value is required."
         },
@@ -359,11 +316,7 @@
           "description": "Enable pre-authorization in cases where the OAuth 2.0 Token Introspection endpoint is protected by OAuth 2.0 Bearer Tokens that can be retrieved using the OAuth 2.0 Client Credentials grant.",
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "client_id",
-            "client_secret",
-            "token_url"
-          ],
+          "required": ["client_id", "client_secret", "token_url"],
           "properties": {
             "enabled": {
               "const": true
@@ -391,11 +344,7 @@
               },
               "title": "OAuth 2.0 Scope",
               "description": "The OAuth 2.0 Scope to be requested during the OAuth 2.0 Client Credentials Grant.",
-              "examples": [
-                [
-                  "[\"foo\", \"bar\"]"
-                ]
-              ]
+              "examples": [["[\"foo\", \"bar\"]"]]
             }
           }
         },
@@ -429,9 +378,7 @@
           "type": "object",
           "oneOf": [
             {
-              "required": [
-                "header"
-              ],
+              "required": ["header"],
               "properties": {
                 "header": {
                   "title": "Header",
@@ -441,9 +388,7 @@
               }
             },
             {
-              "required": [
-                "query_parameter"
-              ],
+              "required": ["query_parameter"],
               "properties": {
                 "query_parameter": {
                   "title": "Query Parameter",
@@ -455,9 +400,7 @@
           ]
         }
       },
-      "required": [
-        "introspection_url"
-      ],
+      "required": ["introspection_url"],
       "additionalProperties": false
     },
     "configAuthorizersKetoEngineAcpOry": {
@@ -470,9 +413,7 @@
           "type": "string",
           "format": "uri",
           "description": "The base URL of ORY Keto.\n\n>If this authorizer is enabled, this value is required.",
-          "examples": [
-            "http://my-keto/"
-          ]
+          "examples": ["http://my-keto/"]
         },
         "required_action": {
           "type": "string",
@@ -489,20 +430,14 @@
           "type": "string"
         }
       },
-      "required": [
-        "base_url",
-        "required_action",
-        "required_resource"
-      ],
+      "required": ["base_url", "required_action", "required_resource"],
       "additionalProperties": false
     },
     "configMutatorsCookie": {
       "type": "object",
       "title": "Cookie Mutator Configuration",
       "description": "This section is optional when the mutator is disabled.",
-      "required": [
-        "cookies"
-      ],
+      "required": ["cookies"],
       "properties": {
         "cookies": {
           "type": "object",
@@ -517,9 +452,7 @@
       "type": "object",
       "title": "Header Mutator Configuration",
       "description": "This section is optional when the mutator is disabled.",
-      "required": [
-        "headers"
-      ],
+      "required": ["headers"],
       "properties": {
         "headers": {
           "type": "object",
@@ -537,9 +470,7 @@
       "properties": {
         "api": {
           "additionalProperties": false,
-          "required": [
-            "url"
-          ],
+          "required": ["url"],
           "type": "object",
           "properties": {
             "url": {
@@ -551,10 +482,7 @@
               "additionalProperties": false,
               "properties": {
                 "basic": {
-                  "required": [
-                    "username",
-                    "password"
-                  ],
+                  "required": ["username", "password"],
                   "type": "object",
                   "additionalProperties": false,
                   "properties": {
@@ -587,19 +515,14 @@
           }
         }
       },
-      "required": [
-        "api"
-      ],
+      "required": ["api"],
       "additionalProperties": false
     },
     "configMutatorsIdToken": {
       "type": "object",
       "title": "ID Token Mutator Configuration",
       "description": "This section is optional when the mutator is disabled.",
-      "required": [
-        "jwks_url",
-        "issuer_url"
-      ],
+      "required": ["jwks_url", "issuer_url"],
       "properties": {
         "claims": {
           "type": "string"
@@ -626,11 +549,7 @@
           "description": "Sets the time-to-live of the JSON Web Token.",
           "pattern": "^[0-9]+(ns|us|ms|s|m|h)$",
           "default": "1m",
-          "examples": [
-            "1h",
-            "1m",
-            "30s"
-          ]
+          "examples": ["1h", "1m", "30s"]
         }
       },
       "additionalProperties": false
@@ -656,10 +575,7 @@
             "host": {
               "type": "string",
               "default": "",
-              "examples": [
-                "localhost",
-                "127.0.0.1"
-              ],
+              "examples": ["localhost", "127.0.0.1"],
               "title": "Host",
               "description": "The network interface to listen on."
             },
@@ -685,10 +601,7 @@
             "host": {
               "type": "string",
               "default": "",
-              "examples": [
-                "localhost",
-                "127.0.0.1"
-              ],
+              "examples": ["localhost", "127.0.0.1"],
               "title": "Host",
               "description": "The network interface to listen on. Leave empty to listen on all interfaces."
             },
@@ -704,11 +617,7 @@
                   "default": "5s",
                   "pattern": "^[0-9]+(ns|us|ms|s|m|h)$",
                   "description": "The maximum duration for reading the entire request, including the body.",
-                  "examples": [
-                    "5s",
-                    "5m",
-                    "5h"
-                  ]
+                  "examples": ["5s", "5m", "5h"]
                 },
                 "write": {
                   "title": "HTTP Write Timeout",
@@ -716,11 +625,7 @@
                   "default": "120s",
                   "pattern": "^[0-9]+(ns|us|ms|s|m|h)$",
                   "description": "The maximum duration before timing out writes of the response. Increase this parameter to prevent unexpected closing a client connection if an upstream request is responding slowly.",
-                  "examples": [
-                    "5s",
-                    "5m",
-                    "5h"
-                  ]
+                  "examples": ["5s", "5m", "5h"]
                 },
                 "idle": {
                   "title": "HTTP Idle Timeout",
@@ -728,11 +633,7 @@
                   "default": "120s",
                   "pattern": "^[0-9]+(ns|us|ms|s|m|h)$",
                   "description": " The maximum amount of time to wait for any action of a request session, reading data or writing the response.",
-                  "examples": [
-                    "5s",
-                    "5m",
-                    "5h"
-                  ]
+                  "examples": ["5s", "5m", "5h"]
                 }
               }
             },
@@ -828,9 +729,7 @@
                   "const": true
                 }
               },
-              "required": [
-                "config"
-              ]
+              "required": ["config"]
             },
             {
               "properties": {
@@ -861,9 +760,7 @@
                   "const": true
                 }
               },
-              "required": [
-                "config"
-              ]
+              "required": ["config"]
             },
             {
               "properties": {
@@ -894,9 +791,7 @@
                   "const": true
                 }
               },
-              "required": [
-                "config"
-              ]
+              "required": ["config"]
             },
             {
               "properties": {
@@ -927,9 +822,7 @@
                   "const": true
                 }
               },
-              "required": [
-                "config"
-              ]
+              "required": ["config"]
             },
             {
               "properties": {
@@ -990,9 +883,7 @@
                   "const": true
                 }
               },
-              "required": [
-                "config"
-              ]
+              "required": ["config"]
             },
             {
               "properties": {
@@ -1042,9 +933,7 @@
                   "const": true
                 }
               },
-              "required": [
-                "config"
-              ]
+              "required": ["config"]
             },
             {
               "properties": {
@@ -1075,9 +964,7 @@
                   "const": true
                 }
               },
-              "required": [
-                "config"
-              ]
+              "required": ["config"]
             },
             {
               "properties": {
@@ -1108,9 +995,7 @@
                   "const": true
                 }
               },
-              "required": [
-                "config"
-              ]
+              "required": ["config"]
             },
             {
               "properties": {
@@ -1141,9 +1026,7 @@
                   "const": true
                 }
               },
-              "required": [
-                "config"
-              ]
+              "required": ["config"]
             },
             {
               "properties": {
@@ -1164,24 +1047,14 @@
         "level": {
           "type": "string",
           "default": "info",
-          "enum": [
-            "panic",
-            "fatal",
-            "error",
-            "warn",
-            "info",
-            "debug"
-          ],
+          "enum": ["panic", "fatal", "error", "warn", "info", "debug"],
           "title": "Level",
           "description": "Debug enables stack traces on errors. Can also be set using environment variable LOG_LEVEL."
         },
         "format": {
           "type": "string",
           "default": "text",
-          "enum": [
-            "text",
-            "json"
-          ],
+          "enum": ["text", "json"],
           "title": "Format",
           "description": "The log format can either be text or JSON."
         }
@@ -1192,10 +1065,7 @@
       "title": "Profiling",
       "description": "Enables CPU or memory profiling if set. For more details on profiling Go programs read [Profiling Go Programs](https://blog.golang.org/profiling-go-programs).",
       "type": "string",
-      "enum": [
-        "cpu",
-        "mem"
-      ]
+      "enum": ["cpu", "mem"]
     }
   },
   "required": [],

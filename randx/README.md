@@ -1,5 +1,5 @@
-`randx.RuneSequence` generates even distributions for the given character set and length. All results are therefore
-also evenly distributed.
+`randx.RuneSequence` generates even distributions for the given character set
+and length. All results are therefore also evenly distributed.
 
 ## AlphaNum
 

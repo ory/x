@@ -3,15 +3,11 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Person",
   "type": "object",
-  "required": [
-    "node"
-  ],
+  "required": ["node"],
   "properties": {
     "node": {
       "type": "object",
-      "required": [
-        "node"
-      ],
+      "required": ["node"],
       "properties": {
         "node": {
           "type": "object",
@@ -23,17 +19,13 @@
                   "type": "string"
                 }
               },
-              "required": [
-                "leaf"
-              ]
+              "required": ["leaf"]
             },
             "leaf": {
               "type": "string"
             }
           },
-          "required": [
-            "leaf"
-          ]
+          "required": ["leaf"]
         },
         "leaf": {
           "type": "string"

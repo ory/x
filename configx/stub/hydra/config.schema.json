@@ -79,9 +79,7 @@
             ]
           },
           "uniqueItems": true,
-          "default": [
-            "*"
-          ],
+          "default": ["*"],
           "examples": [
             [
               "https://example.com",
@@ -93,13 +91,7 @@
         "allowed_methods": {
           "type": "array",
           "description": "A list of HTTP methods the user agent is allowed to use with cross-domain requests.",
-          "default": [
-            "POST",
-            "GET",
-            "PUT",
-            "PATCH",
-            "DELETE"
-          ],
+          "default": ["POST", "GET", "PUT", "PATCH", "DELETE"],
           "items": {
             "type": "string",
             "enum": [
@@ -118,10 +110,7 @@
         "allowed_headers": {
           "type": "array",
           "description": "A list of non simple headers the client is allowed to use with cross-domain requests.",
-          "default": [
-            "Authorization",
-            "Content-Type"
-          ],
+          "default": ["Authorization", "Content-Type"],
           "items": {
             "type": "string"
           }
@@ -129,9 +118,7 @@
         "exposed_headers": {
           "type": "array",
           "description": "Sets which headers are safe to expose to the API of a CORS API specification.",
-          "default": [
-            "Content-Type"
-          ],
+          "default": ["Content-Type"],
           "items": {
             "type": "string"
           }
@@ -167,15 +154,11 @@
             "path": {
               "type": "string",
               "description": "The path to the pem file.",
-              "examples": [
-                "/path/to/file.pem"
-              ]
+              "examples": ["/path/to/file.pem"]
             }
           },
           "additionalProperties": false,
-          "required": [
-            "path"
-          ]
+          "required": ["path"]
         },
         {
           "properties": {
@@ -184,24 +167,18 @@
               "description": "The base64 encoded string (without padding).",
               "contentEncoding": "base64",
               "contentMediaType": "application/x-pem-file",
-              "examples": [
-                "b3J5IGh5ZHJhIGlzIGF3ZXNvbWUK"
-              ]
+              "examples": ["b3J5IGh5ZHJhIGlzIGF3ZXNvbWUK"]
             }
           },
           "additionalProperties": false,
-          "required": [
-            "base64"
-          ]
+          "required": ["base64"]
         }
       ]
     },
     "duration": {
       "type": "string",
       "pattern": "^[0-9]+(ns|us|ms|s|m|h)$",
-      "examples": [
-        "1h"
-      ]
+      "examples": ["1h"]
     }
   },
   "properties": {
@@ -213,15 +190,7 @@
         "level": {
           "type": "string",
           "description": "Sets the log level.",
-          "enum": [
-            "panic",
-            "fatal",
-            "error",
-            "warn",
-            "info",
-            "debug",
-            "trace"
-          ],
+          "enum": ["panic", "fatal", "error", "warn", "info", "debug", "trace"],
           "default": "info"
         },
         "leak_sensitive_values": {
@@ -237,11 +206,7 @@
         "format": {
           "type": "string",
           "description": "Sets the log format.",
-          "enum": [
-            "json",
-            "json_pretty",
-            "text"
-          ],
+          "enum": ["json", "json_pretty", "text"],
           "default": "text"
         }
       }
@@ -268,9 +233,7 @@
               "type": "string",
               "description": "The interface or unix socket ORY Hydra should listen and handle public API requests on. Use the prefix \"unix:\" to specify a path to a unix socket. Leave empty to listen on all interfaces.",
               "default": "",
-              "examples": [
-                "localhost"
-              ]
+              "examples": ["localhost"]
             },
             "cors": {
               "$ref": "#/definitions/cors"
@@ -308,9 +271,7 @@
               "type": "string",
               "description": "The interface or unix socket ORY Hydra should listen and handle administrative API requests on. Use the prefix \"unix:\" to specify a path to a unix socket. Leave empty to listen on all interfaces.",
               "default": "",
-              "examples": [
-                "localhost"
-              ]
+              "examples": ["localhost"]
             },
             "cors": {
               "$ref": "#/definitions/cors"
@@ -366,9 +327,7 @@
                     "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}/([0-9]|[1-2][0-9]|3[0-2])$"
                   }
                 ],
-                "examples": [
-                  "127.0.0.1/32"
-                ]
+                "examples": ["127.0.0.1/32"]
               }
             }
           }
@@ -380,20 +339,14 @@
             "same_site_mode": {
               "type": "string",
               "description": "Specify the SameSite mode that cookies should be sent with.",
-              "enum": [
-                "Strict",
-                "Lax",
-                "None"
-              ],
+              "enum": ["Strict", "Lax", "None"],
               "default": "None"
             },
             "same_site_legacy_workaround": {
               "type": "boolean",
               "description": "Some older browser versions don’t work with SameSite=None. This option enables the workaround defined in https://web.dev/samesite-cookie-recipes/ which essentially stores a second cookie without SameSite as a fallback.",
               "default": false,
-              "examples": [
-                true
-              ]
+              "examples": [true]
             }
           }
         }
@@ -419,12 +372,8 @@
               "items": {
                 "type": "string"
               },
-              "default": [
-                "hydra.openid.id-token"
-              ],
-              "examples": [
-                "hydra.jwt.access-token"
-              ]
+              "default": ["hydra.openid.id-token"],
+              "examples": ["hydra.jwt.access-token"]
             }
           }
         },
@@ -437,33 +386,25 @@
               "type": "string",
               "description": "Overwrites the JWKS URL",
               "format": "uri",
-              "examples": [
-                "https://my-service.com/.well-known/jwks.json"
-              ]
+              "examples": ["https://my-service.com/.well-known/jwks.json"]
             },
             "token_url": {
               "type": "string",
               "description": "Overwrites the OAuth2 Token URL",
               "format": "uri",
-              "examples": [
-                "https://my-service.com/oauth2/token"
-              ]
+              "examples": ["https://my-service.com/oauth2/token"]
             },
             "auth_url": {
               "type": "string",
               "description": "Overwrites the OAuth2 Auth URL",
               "format": "uri",
-              "examples": [
-                "https://my-service.com/oauth2/auth"
-              ]
+              "examples": ["https://my-service.com/oauth2/auth"]
             },
             "client_registration_url": {
               "description": "Sets the OpenID Connect Dynamic Client Registration Endpoint",
               "type": "string",
               "format": "uri",
-              "examples": [
-                "https://my-service.com/clients"
-              ]
+              "examples": ["https://my-service.com/clients"]
             },
             "supported_claims": {
               "type": "array",
@@ -471,12 +412,7 @@
               "items": {
                 "type": "string"
               },
-              "examples": [
-                [
-                  "email",
-                  "username"
-                ]
-              ]
+              "examples": [["email", "username"]]
             },
             "supported_scope": {
               "type": "array",
@@ -484,21 +420,13 @@
               "items": {
                 "type": "string"
               },
-              "examples": [
-                [
-                  "email",
-                  "whatever",
-                  "read.photos"
-                ]
-              ]
+              "examples": [["email", "whatever", "read.photos"]]
             },
             "userinfo_url": {
               "type": "string",
               "description": "A URL of the userinfo endpoint to be advertised at the OpenID Connect Discovery endpoint /.well-known/openid-configuration. Defaults to ORY Hydra's userinfo endpoint at /userinfo. Set this value if you want to handle this endpoint yourself.",
               "format": "uri",
-              "examples": [
-                "https://example.org/my-custom-userinfo-endpoint"
-              ]
+              "examples": ["https://example.org/my-custom-userinfo-endpoint"]
             }
           }
         }
@@ -519,10 +447,7 @@
               "description": "A list of algorithms to enable.",
               "items": {
                 "type": "string",
-                "enum": [
-                  "public",
-                  "pairwise"
-                ]
+                "enum": ["public", "pairwise"]
               }
             },
             "pairwise": {
@@ -534,9 +459,7 @@
                   "type": "string"
                 }
               },
-              "required": [
-                "salt"
-              ]
+              "required": ["salt"]
             }
           },
           "if": {
@@ -549,9 +472,7 @@
             }
           },
           "then": {
-            "required": [
-              "pairwise"
-            ]
+            "required": ["pairwise"]
           },
           "else": {
             "properties": {
@@ -563,10 +484,7 @@
           },
           "examples": [
             {
-              "enabled": [
-                "public",
-                "pairwise"
-              ],
+              "enabled": ["public", "pairwise"],
               "pairwise": {
                 "salt": "some-random-salt"
               }
@@ -584,13 +502,7 @@
               "items": {
                 "type": "string"
               },
-              "examples": [
-                [
-                  "openid",
-                  "offline",
-                  "offline_access"
-                ]
-              ]
+              "examples": [["openid", "offline", "offline_access"]]
             }
           }
         }
@@ -608,17 +520,13 @@
               "type": "string",
               "description": "This value will be used as the \"issuer\" in access and ID tokens. It must be specified and using HTTPS protocol, unless --dangerous-force-http is set. This should typically be equal to the public value.",
               "format": "uri",
-              "examples": [
-                "https://localhost:4444/"
-              ]
+              "examples": ["https://localhost:4444/"]
             },
             "public": {
               "type": "string",
               "description": "This is the base location of the public endpoints of your ORY Hydra installation. This should typically be equal to the issuer value. If left unspecified, it falls back to the issuer value.",
               "format": "uri",
-              "examples": [
-                "https://localhost:4444/"
-              ]
+              "examples": ["https://localhost:4444/"]
             }
           }
         },
@@ -626,41 +534,31 @@
           "type": "string",
           "description": "Sets the login endpoint of the User Login & Consent flow. Defaults to an internal fallback URL showing an error.",
           "format": "uri",
-          "examples": [
-            "https://my-login.app/login"
-          ]
+          "examples": ["https://my-login.app/login"]
         },
         "consent": {
           "type": "string",
           "description": "Sets the consent endpoint of the User Login & Consent flow. Defaults to an internal fallback URL showing an error.",
           "format": "uri",
-          "examples": [
-            "https://my-consent.app/consent"
-          ]
+          "examples": ["https://my-consent.app/consent"]
         },
         "logout": {
           "type": "string",
           "description": "Sets the logout endpoint. Defaults to an internal fallback URL showing an error.",
           "format": "uri",
-          "examples": [
-            "https://my-logout.app/logout"
-          ]
+          "examples": ["https://my-logout.app/logout"]
         },
         "error": {
           "type": "string",
           "description": "Sets the error endpoint. The error ui will be shown when an OAuth2 error occurs that which can not be sent back to the client. Defaults to an internal fallback URL showing an error.",
           "format": "uri",
-          "examples": [
-            "https://my-error.app/error"
-          ]
+          "examples": ["https://my-error.app/error"]
         },
         "post_logout_redirect": {
           "type": "string",
           "description": "When a user agent requests to logout, it will be redirected to this url afterwards per default.",
           "format": "uri",
-          "examples": [
-            "https://my-example.app/logout-successful"
-          ]
+          "examples": ["https://my-example.app/logout-successful"]
         }
       }
     },
@@ -681,10 +579,7 @@
         "access_token": {
           "type": "string",
           "description": "Defines access token type. jwt is a bad idea, see https://www.ory.sh/docs/hydra/advanced#json-web-tokens",
-          "enum": [
-            "opaque",
-            "jwt"
-          ]
+          "enum": ["opaque", "jwt"]
         }
       }
     },
@@ -719,10 +614,7 @@
               "$ref": "#/definitions/duration"
             },
             {
-              "enum": [
-                "-1",
-                -1
-              ]
+              "enum": ["-1", -1]
             }
           ]
         },
@@ -754,9 +646,7 @@
           "type": "boolean",
           "description": "Set this to true if you want to share error debugging information with your OAuth 2.0 clients. Keep in mind that debug information is very valuable when dealing with errors, but might also expose database error codes and similar errors.",
           "default": false,
-          "examples": [
-            true
-          ]
+          "examples": [true]
         },
         "session": {
           "type": "object",
@@ -773,9 +663,7 @@
           "type": "boolean",
           "description": "Set this to true if you want to include the `error_hint` and `error_debug` legacy fields in error responses. We recommend to set this to `false` unless you have clients using these fields.",
           "default": false,
-          "examples": [
-            true
-          ]
+          "examples": [true]
         },
         "hashers": {
           "type": "object",
@@ -805,16 +693,12 @@
             "enforced": {
               "type": "boolean",
               "description": "Sets whether PKCE should be enforced for all clients.",
-              "examples": [
-                true
-              ]
+              "examples": [true]
             },
             "enforced_for_public_clients": {
               "type": "boolean",
               "description": "Sets whether PKCE should be enforced for public clients.",
-              "examples": [
-                true
-              ]
+              "examples": [true]
             }
           }
         },
@@ -825,9 +709,7 @@
             "default_grant_allowed_scope": {
               "type": "boolean",
               "description": "Defines how scopes are added if the request doesn't contains any scope",
-              "examples": [
-                false
-              ]
+              "examples": [false]
             }
           }
         }
@@ -873,13 +755,8 @@
     "profiling": {
       "type": "string",
       "description": "Enables profiling if set. For more details on profiling, head over to: https://blog.golang.org/profiling-go-programs",
-      "enum": [
-        "cpu",
-        "mem"
-      ],
-      "examples": [
-        "cpu"
-      ]
+      "enum": ["cpu", "mem"],
+      "examples": ["cpu"]
     },
     "tracing": {
       "$ref": "ory://tracing-config"
@@ -904,16 +781,12 @@
               "type": "boolean",
               "description": "Set GOMAXPROCS automatically according to cgroups limits",
               "default": false,
-              "examples": [
-                true
-              ]
+              "examples": [true]
             }
           }
         }
       }
     }
   },
-  "required": [
-    "dsn"
-  ]
+  "required": ["dsn"]
 }
