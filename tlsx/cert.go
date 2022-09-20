@@ -60,26 +60,46 @@ func CertificateHelpMessage(prefix string) string {
 `
 }
 
-// Certificate returns a TLS Certificate by looking at environment variables.
+// CertificateFromBase64 loads a TLS certificate from a base64-encoded string of
+// the PEM representations of the cert and key.
+func CertificateFromBase64(certBase64, keyBase64 string) (tls.Certificate, error) {
+	certPEM, err := base64.StdEncoding.DecodeString(certBase64)
+	if err != nil {
+		return tls.Certificate{}, fmt.Errorf("unable to base64 decode the TLS certificate: %v", err)
+	}
+	keyPEM, err := base64.StdEncoding.DecodeString(keyBase64)
+	if err != nil {
+		return tls.Certificate{}, fmt.Errorf("unable to base64 decode the TLS private key: %v", err)
+	}
+	cert, err := tls.X509KeyPair(certPEM, keyPEM)
+	if err != nil {
+		return tls.Certificate{}, fmt.Errorf("unable to load X509 key pair: %v", err)
+	}
+	return cert, nil
+}
+
+// [deprecated] Certificate returns a TLS Certificate by looking at its
+// arguments. If both certPEMBase64 and keyPEMBase64 are not empty and contain
+// base64-encoded PEM representations of a cert and key, respectively, that key
+// pair is returned. Otherwise, if certPath and keyPath point to PEM files, the
+// key pair is loaded from those. Returns ErrNoCertificatesConfigured if all
+// arguments are empty, and ErrInvalidCertificateConfiguration if the arguments
+// are inconsistent.
+//
+// This function is deprecated. Use CertificateFromBase64 or GetCertificate
+// instead.
 func Certificate(
-	certString, keyString string,
+	certPEMBase64, keyPEMBase64 string,
 	certPath, keyPath string,
 ) ([]tls.Certificate, error) {
-	if certString == "" && keyString == "" && certPath == "" && keyPath == "" {
+	if certPEMBase64 == "" && keyPEMBase64 == "" && certPath == "" && keyPath == "" {
 		return nil, errors.WithStack(ErrNoCertificatesConfigured)
-	} else if certString != "" && keyString != "" {
-		tlsCertBytes, err := base64.StdEncoding.DecodeString(certString)
-		if err != nil {
-			return nil, fmt.Errorf("unable to base64 decode the TLS certificate: %v", err)
-		}
-		tlsKeyBytes, err := base64.StdEncoding.DecodeString(keyString)
-		if err != nil {
-			return nil, fmt.Errorf("unable to base64 decode the TLS private key: %v", err)
-		}
+	}
 
-		cert, err := tls.X509KeyPair(tlsCertBytes, tlsKeyBytes)
+	if certPEMBase64 != "" && keyPEMBase64 != "" {
+		cert, err := CertificateFromBase64(certPEMBase64, keyPEMBase64)
 		if err != nil {
-			return nil, fmt.Errorf("unable to load X509 key pair: %v", err)
+			return nil, errors.WithStack(err)
 		}
 		return []tls.Certificate{cert}, nil
 	}
