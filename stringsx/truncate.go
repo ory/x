@@ -2,8 +2,8 @@ package stringsx
 
 import "unicode/utf8"
 
-// TruncateByLength returns string truncated at the end with the length specified
-func TruncateByLength(s string, length int) string {
+// TruncateByteLen returns string truncated at the end with the length specified
+func TruncateByteLen(s string, length int) string {
 	if length > 0 && len(s) > length {
 		res := s[:length]
 
