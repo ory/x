@@ -12,7 +12,6 @@ func TruncateByLength(s string, length int) string {
 			res = res[:len(res)-1]
 		}
 		return res
-	} else {
-		return s
 	}
+	return s
 }
