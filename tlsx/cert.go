@@ -15,7 +15,6 @@ import (
 	"fmt"
 	"math/big"
 	"os"
-	"path/filepath"
 	"sync/atomic"
 	"time"
 
@@ -119,10 +118,10 @@ func Certificate(
 // "net/tls".Config.GetCertificate.
 //
 // The certificate and private key are read from the specified filesystem paths.
-// The certificate directory (!) is watched for changes, upon which the cert+key
-// are reloaded in the background. Errors during reloading are deduplicated and
-// reported through the errs channel if it is not nil. Background reloading
-// stops when the provided context is canceled.
+// The certificate file is watched for changes, upon which the cert+key are
+// reloaded in the background. Errors during reloading are deduplicated and
+// reported through the errs channel if it is not nil. When the provided context
+// is canceled, background reloading stops and the errs channel is closed.
 //
 // The returned function always yields the latest successfully loaded
 // certificate; ClientHelloInfo is unused.
@@ -143,25 +142,40 @@ func GetCertificate(
 
 	events := make(chan watcherx.Event)
 	// The cert could change without the key changing, but not the other way around.
-	// Hence, we watch the cert directory only.
-	_, err = watcherx.WatchDirectory(ctx, filepath.Dir(certPath), events)
+	// Hence, we only watch the cert.
+	_, err = watcherx.WatchFile(ctx, certPath, events)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	go func() {
+		if errs != nil {
+			defer close(errs)
+		}
 		var lastReportedError string
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			case <-events:
-				cert, err := tls.LoadX509KeyPair(certPath, keyPath)
-				if err == nil {
-					store.Store(&cert)
-					lastReportedError = ""
+
+			case event := <-events:
+				var err error
+				switch event := event.(type) {
+				case *watcherx.ChangeEvent:
+					var cert tls.Certificate
+					cert, err = tls.LoadX509KeyPair(certPath, keyPath)
+					if err == nil {
+						store.Store(&cert)
+						lastReportedError = ""
+						continue
+					}
+					err = fmt.Errorf("unable to load X509 key pair from files: %v", err)
+
+				case *watcherx.ErrorEvent:
+					err = fmt.Errorf("file watch: %v", event)
+				default:
 					continue
 				}
-				err = fmt.Errorf("unable to load X509 key pair from files: %v", err)
+
 				if err.Error() == lastReportedError { // same message as before: don't spam the error channel
 					continue
 				}

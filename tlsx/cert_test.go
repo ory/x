@@ -326,7 +326,7 @@ func TestGetCertificate(t *testing.T) {
 	select {
 	case err := <-errs:
 		require.FailNow(t, "Unexpected error reported", err)
-	default: // OK
+	case <-time.After(150 * time.Millisecond): // OK
 	}
 
 	// At this stage, loading the initial cert succeeded.
@@ -392,7 +392,7 @@ func TestGetCertificate(t *testing.T) {
 	// check that an error is reported through the channel
 	select {
 	case err := <-errs:
-		t.Log("Got expected error:", err)
+		require.ErrorContains(t, err, "unable to load X509 key pair from files")
 	case <-time.After(500 * time.Millisecond):
 		t.Fatal("Expected error to be reported when certificate is invalid")
 	}
@@ -402,4 +402,12 @@ func TestGetCertificate(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, prevCert)
 	assert.Equal(t, prevCert, freshCert)
+
+	cancel() // should close the errs channel
+	select {
+	case err, ok := <-errs:
+		require.False(t, ok, "got unexpected error", err)
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("Expected error channel to be closed after context is canceled")
+	}
 }
