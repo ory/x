@@ -70,11 +70,7 @@
               "type": "string",
               "description": "The address of the Zipkin server where spans should be sent to.",
               "format": "uri",
-              "examples": [
-                {
-                  "server_url": "http://localhost:9411/api/v2/spans"
-                }
-              ]
+              "examples": ["http://localhost:9411/api/v2/spans"]
             },
             "sampling": {
               "type": "object",
@@ -114,11 +110,7 @@
                   "pattern": "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9]):([0-9]*)$"
                 }
               ],
-              "examples": [
-                {
-                  "server_url": "localhost:4318"
-                }
-              ]
+              "examples": ["localhost:4318"]
             },
             "insecure": {
               "type": "boolean",
