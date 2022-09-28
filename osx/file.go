@@ -97,7 +97,7 @@ func WithoutResilientBase64Encoding() Option {
 	}
 }
 
-//	WithHTTPClient sets the HTTP client.
+// WithHTTPClient sets the HTTP client.
 func WithHTTPClient(hc *retryablehttp.Client) Option {
 	return func(o *options) {
 		o.hc = hc
@@ -120,7 +120,7 @@ func RestrictedReadFile(source string, opts ...Option) (bytes []byte, err error)
 // Using options, you can disable individual loaders. For example, the following will
 // return an error:
 //
-//		ReadFileFromAllSources("https://foo.bar/baz.txt", WithDisabledHTTPLoader())
+//	ReadFileFromAllSources("https://foo.bar/baz.txt", WithDisabledHTTPLoader())
 //
 // Possible formats are:
 //

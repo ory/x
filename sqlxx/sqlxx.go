@@ -25,12 +25,12 @@ func keys(t interface{}, exclude []string) []string {
 // NamedInsertArguments returns columns and arguments for SQL INSERT statements based on a struct's tags. Does
 // not work with nested structs or maps!
 //
-// 	type st struct {
-// 		Foo string `db:"foo"`
-// 		Bar string `db:"bar,omitempty"`
-// 		Baz string `db:"-"`
-// 		Zab string
-// 	}
+//	type st struct {
+//		Foo string `db:"foo"`
+//		Bar string `db:"bar,omitempty"`
+//		Baz string `db:"-"`
+//		Zab string
+//	}
 //	columns, arguments := NamedInsertArguments(new(st))
 //	query := fmt.Sprintf("INSERT INTO foo (%s) VALUES (%s)", columns, arguments)
 //	// INSERT INTO foo (foo, bar) VALUES (:foo, :bar)
@@ -43,12 +43,12 @@ func NamedInsertArguments(t interface{}, exclude ...string) (columns string, arg
 // NamedUpdateArguments returns columns and arguments for SQL UPDATE statements based on a struct's tags. Does
 // not work with nested structs or maps!
 //
-// 	type st struct {
-// 		Foo string `db:"foo"`
-// 		Bar string `db:"bar,omitempty"`
-// 		Baz string `db:"-"`
-// 		Zab string
-// 	}
+//	type st struct {
+//		Foo string `db:"foo"`
+//		Bar string `db:"bar,omitempty"`
+//		Baz string `db:"-"`
+//		Zab string
+//	}
 //	query := fmt.Sprintf("UPDATE foo SET %s", NamedUpdateArguments(new(st)))
 //	// UPDATE foo SET foo=:foo, bar=:bar
 func NamedUpdateArguments(t interface{}, exclude ...string) string {
