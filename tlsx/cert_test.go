@@ -1,13 +1,18 @@
 package tlsx
 
 import (
+	"context"
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
-	"io/ioutil"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -106,9 +111,9 @@ YgKmGaECgYA0Zkwy9z1Ws4ANjG+YlaUxpKLcJFdyCHKdFr65WYsmGqNkJfGSGeB6
 RHMZNMoDTRhmhQhj8M7N+FMtZAUOMddZ/1cvREtFW7+66w+XZvj9CQ/uectp/qb+
 6dnObrdmLiZ+U/NzGLKmFgJTc9X7fwm11PSliZK0WrdnXKnzkh9OhQ==
 -----END RSA PRIVATE KEY-----`
-	tmpCertFile, _ := ioutil.TempFile("", "test-cert")
+	tmpCertFile, _ := os.CreateTemp("", "test-cert")
 	tmpCert := tmpCertFile.Name()
-	tmpKeyFile, _ := ioutil.TempFile("", "test-key")
+	tmpKeyFile, _ := os.CreateTemp("", "test-key")
 	tmpKey := tmpKeyFile.Name()
 	defer func() {
 		_ = os.Remove(tmpCert)
@@ -118,8 +123,8 @@ RHMZNMoDTRhmhQhj8M7N+FMtZAUOMddZ/1cvREtFW7+66w+XZvj9CQ/uectp/qb+
 		os.Setenv("HTTPS_TLS_KEY", "")
 		os.Setenv("HTTPS_TLS_CERT", "")
 	}()
-	_ = ioutil.WriteFile(tmpCert, []byte(certFileContent), 0600)
-	_ = ioutil.WriteFile(tmpKey, []byte(keyFileContent), 0600)
+	_ = os.WriteFile(tmpCert, []byte(certFileContent), 0o600)
+	_ = os.WriteFile(tmpKey, []byte(keyFileContent), 0o600)
 
 	// 1. no TLS
 	require.NoError(t, os.Setenv("HTTPS_TLS_KEY_PATH", ""))
@@ -268,4 +273,141 @@ func BenchmarkCertificateGeneration(b *testing.B) {
 			}
 		}
 	})
+}
+
+func TestGetCertificate(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// temp files for cert+key
+	certFile, err := os.CreateTemp(tmpDir, "test-cert")
+	require.NoError(t, err)
+	keyFile, err := os.CreateTemp(tmpDir, "test-key")
+	require.NoError(t, err)
+
+	// write initial key to PEM file
+	key, err := rsa.GenerateKey(rand.Reader, 1024)
+	require.NoError(t, err)
+	err = pem.Encode(keyFile, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
+	require.NoError(t, err)
+	require.NoError(t, keyFile.Sync())
+	require.NoError(t, keyFile.Close())
+
+	// write initial cert to PEM file
+	cert, err := CreateSelfSignedCertificate(key)
+	require.NoError(t, err)
+	err = pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
+	require.NoError(t, err)
+	require.NoError(t, certFile.Sync())
+	require.NoError(t, certFile.Close())
+
+	// construct GetCertificate function and check the certificate it yields match the PEM files
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	errs := make(chan error)
+	getCerts, err := GetCertificate(ctx, certFile.Name(), keyFile.Name(), errs)
+	require.NoError(t, err)
+	require.NotNil(t, getCerts)
+
+	// check that the certs from the GetCertificate function match what we wrote to file
+	tlsCert, err := getCerts(nil)
+	require.NoError(t, err)
+	require.NotNil(t, tlsCert)
+	private, ok := tlsCert.PrivateKey.(interface {
+		Public() crypto.PublicKey
+		Equal(x crypto.PrivateKey) bool
+	})
+	require.True(t, ok)
+	require.True(t, private.Equal(key))
+	public, ok := private.Public().(interface{ Equal(x crypto.PublicKey) bool })
+	require.True(t, ok)
+	require.True(t, public.Equal(cert.PublicKey))
+
+	// make sure no error was reported
+	select {
+	case err := <-errs:
+		require.FailNow(t, "Unexpected error reported", err)
+	case <-time.After(150 * time.Millisecond): // OK
+	}
+
+	// At this stage, loading the initial cert succeeded.
+	// Generate new key+cert and overwrite the file.
+	keyFile2, err := os.CreateTemp(tmpDir, "test-key-2")
+	require.NoError(t, err)
+	key, err = rsa.GenerateKey(rand.Reader, 1024)
+	require.NoError(t, err)
+	err = pem.Encode(keyFile2, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
+	require.NoError(t, err)
+	require.NoError(t, keyFile2.Sync())
+	require.NoError(t, keyFile2.Close())
+
+	certFile2, err := os.CreateTemp(tmpDir, "test-cert-2")
+	require.NoError(t, err)
+	cert, err = CreateSelfSignedCertificate(key)
+	require.NoError(t, err)
+	err = pem.Encode(certFile2, &pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
+	require.NoError(t, err)
+	require.NoError(t, certFile2.Sync())
+	require.NoError(t, certFile2.Close())
+
+	// Move the new cert+key files into place. There is a race condition here
+	// because we cannot rename both the cert and the key file at the same time.
+	// Hopefully the rename is so fast this never gets flaky.
+	err = os.Rename(keyFile2.Name(), keyFile.Name())
+	require.NoError(t, err)
+	err = os.Rename(certFile2.Name(), certFile.Name())
+	require.NoError(t, err)
+
+	// wait for successful reload
+	select {
+	case err := <-errs:
+		t.Fatal("unexpected error while reloading certificates", err)
+	case <-time.After(150 * time.Millisecond): // OK
+	}
+
+	// check cert is a new one
+	freshCert, err := getCerts(nil)
+	require.NoError(t, err)
+	require.NotNil(t, freshCert)
+	assert.NotEqual(t, freshCert, tlsCert)
+
+	// check cert matches the second generated one
+	freshPrivate, ok := freshCert.PrivateKey.(interface {
+		Public() crypto.PublicKey
+		Equal(x crypto.PrivateKey) bool
+	})
+	require.True(t, ok)
+	require.True(t, freshPrivate.Equal(key))
+	freshPublic, ok := freshPrivate.Public().(interface{ Equal(x crypto.PublicKey) bool })
+	require.True(t, ok)
+	require.True(t, freshPublic.Equal(cert.PublicKey))
+
+	// overwrite cert file with junk
+	junkCertFile, err := os.OpenFile(certFile.Name(), os.O_WRONLY|os.O_TRUNC, 0)
+	require.NoError(t, err)
+	_, err = junkCertFile.WriteString("junk")
+	require.NoError(t, err)
+	require.NoError(t, junkCertFile.Sync())
+	require.NoError(t, junkCertFile.Close())
+
+	// check that an error is reported through the channel
+	select {
+	case err := <-errs:
+		require.ErrorContains(t, err, "unable to load X509 key pair from files")
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("Expected error to be reported when certificate is invalid")
+	}
+
+	// check we can still retrieve the previous cert after an error reading a new one
+	prevCert, err := getCerts(nil)
+	require.NoError(t, err)
+	require.NotNil(t, prevCert)
+	assert.Equal(t, prevCert, freshCert)
+
+	cancel() // should close the errs channel
+	select {
+	case err, ok := <-errs:
+		require.False(t, ok, "got unexpected error", err)
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("Expected error channel to be closed after context is canceled")
+	}
 }

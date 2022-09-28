@@ -1,6 +1,8 @@
 package tlsx
 
 import (
+	"context"
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/rand"
@@ -13,15 +15,18 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"sync/atomic"
 	"time"
 
 	"github.com/pkg/errors"
+
+	"github.com/ory/x/watcherx"
 )
 
 // ErrNoCertificatesConfigured is returned when no TLS configuration was found.
 var ErrNoCertificatesConfigured = errors.New("no tls configuration was found")
 
-// ErrInvalidCertificateConfiguration is returned when an invaloid TLS configuration was found.
+// ErrInvalidCertificateConfiguration is returned when an invalid TLS configuration was found.
 var ErrInvalidCertificateConfiguration = errors.New("tls configuration is invalid")
 
 // HTTPSCertificate returns loads a HTTP over TLS Certificate by looking at environment variables.
@@ -54,26 +59,46 @@ func CertificateHelpMessage(prefix string) string {
 `
 }
 
-// Certificate returns loads a TLS Certificate by looking at environment variables.
+// CertificateFromBase64 loads a TLS certificate from a base64-encoded string of
+// the PEM representations of the cert and key.
+func CertificateFromBase64(certBase64, keyBase64 string) (tls.Certificate, error) {
+	certPEM, err := base64.StdEncoding.DecodeString(certBase64)
+	if err != nil {
+		return tls.Certificate{}, fmt.Errorf("unable to base64 decode the TLS certificate: %v", err)
+	}
+	keyPEM, err := base64.StdEncoding.DecodeString(keyBase64)
+	if err != nil {
+		return tls.Certificate{}, fmt.Errorf("unable to base64 decode the TLS private key: %v", err)
+	}
+	cert, err := tls.X509KeyPair(certPEM, keyPEM)
+	if err != nil {
+		return tls.Certificate{}, fmt.Errorf("unable to load X509 key pair: %v", err)
+	}
+	return cert, nil
+}
+
+// [deprecated] Certificate returns a TLS Certificate by looking at its
+// arguments. If both certPEMBase64 and keyPEMBase64 are not empty and contain
+// base64-encoded PEM representations of a cert and key, respectively, that key
+// pair is returned. Otherwise, if certPath and keyPath point to PEM files, the
+// key pair is loaded from those. Returns ErrNoCertificatesConfigured if all
+// arguments are empty, and ErrInvalidCertificateConfiguration if the arguments
+// are inconsistent.
+//
+// This function is deprecated. Use CertificateFromBase64 or GetCertificate
+// instead.
 func Certificate(
-	certString, keyString string,
+	certPEMBase64, keyPEMBase64 string,
 	certPath, keyPath string,
 ) ([]tls.Certificate, error) {
-	if certString == "" && keyString == "" && certPath == "" && keyPath == "" {
+	if certPEMBase64 == "" && keyPEMBase64 == "" && certPath == "" && keyPath == "" {
 		return nil, errors.WithStack(ErrNoCertificatesConfigured)
-	} else if certString != "" && keyString != "" {
-		tlsCertBytes, err := base64.StdEncoding.DecodeString(certString)
-		if err != nil {
-			return nil, fmt.Errorf("unable to base64 decode the TLS certificate: %v", err)
-		}
-		tlsKeyBytes, err := base64.StdEncoding.DecodeString(keyString)
-		if err != nil {
-			return nil, fmt.Errorf("unable to base64 decode the TLS private key: %v", err)
-		}
+	}
 
-		cert, err := tls.X509KeyPair(tlsCertBytes, tlsKeyBytes)
+	if certPEMBase64 != "" && keyPEMBase64 != "" {
+		cert, err := CertificateFromBase64(certPEMBase64, keyPEMBase64)
 		if err != nil {
-			return nil, fmt.Errorf("unable to load X509 key pair: %v", err)
+			return nil, errors.WithStack(err)
 		}
 		return []tls.Certificate{cert}, nil
 	}
@@ -89,8 +114,91 @@ func Certificate(
 	return nil, errors.WithStack(ErrInvalidCertificateConfiguration)
 }
 
-// PublicKey returns the public key for a given key or nul.
-func PublicKey(key interface{}) interface{} {
+// GetCertificate returns a function for use with
+// "net/tls".Config.GetCertificate.
+//
+// The certificate and private key are read from the specified filesystem paths.
+// The certificate file is watched for changes, upon which the cert+key are
+// reloaded in the background. Errors during reloading are deduplicated and
+// reported through the errs channel if it is not nil. When the provided context
+// is canceled, background reloading stops and the errs channel is closed.
+//
+// The returned function always yields the latest successfully loaded
+// certificate; ClientHelloInfo is unused.
+func GetCertificate(
+	ctx context.Context,
+	certPath, keyPath string,
+	errs chan<- error,
+) (func(*tls.ClientHelloInfo) (*tls.Certificate, error), error) {
+	if certPath == "" || keyPath == "" {
+		return nil, errors.WithStack(ErrNoCertificatesConfigured)
+	}
+	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
+	if err != nil {
+		return nil, errors.WithStack(fmt.Errorf("unable to load X509 key pair from files: %v", err))
+	}
+	var store atomic.Value
+	store.Store(&cert)
+
+	events := make(chan watcherx.Event)
+	// The cert could change without the key changing, but not the other way around.
+	// Hence, we only watch the cert.
+	_, err = watcherx.WatchFile(ctx, certPath, events)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	go func() {
+		if errs != nil {
+			defer close(errs)
+		}
+		var lastReportedError string
+		for {
+			select {
+			case <-ctx.Done():
+				return
+
+			case event := <-events:
+				var err error
+				switch event := event.(type) {
+				case *watcherx.ChangeEvent:
+					var cert tls.Certificate
+					cert, err = tls.LoadX509KeyPair(certPath, keyPath)
+					if err == nil {
+						store.Store(&cert)
+						lastReportedError = ""
+						continue
+					}
+					err = fmt.Errorf("unable to load X509 key pair from files: %v", err)
+
+				case *watcherx.ErrorEvent:
+					err = fmt.Errorf("file watch: %v", event)
+				default:
+					continue
+				}
+
+				if err.Error() == lastReportedError { // same message as before: don't spam the error channel
+					continue
+				}
+				// fresh error
+				select {
+				case errs <- errors.WithStack(err):
+					lastReportedError = err.Error()
+				case <-time.After(500 * time.Millisecond):
+				}
+			}
+		}
+	}()
+
+	return func(_ *tls.ClientHelloInfo) (*tls.Certificate, error) {
+		if cert, ok := store.Load().(*tls.Certificate); ok {
+			return cert, nil
+		}
+		return nil, errors.WithStack(ErrNoCertificatesConfigured)
+	}, nil
+}
+
+// PublicKey returns the public key for a given private key, or nil.
+func PublicKey(key crypto.PrivateKey) interface{ Equal(x crypto.PublicKey) bool } {
 	switch k := key.(type) {
 	case *rsa.PrivateKey:
 		return &k.PublicKey
