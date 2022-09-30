@@ -46,7 +46,18 @@ func Parse(rawURL string) (*url.URL, error) {
 		return url.Parse("file://" + host + strings.ReplaceAll(path, "\\", "/"))
 	}
 
-	return url.Parse(rawURL)
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return nil, err
+	}
+	// Since go1.19:
+	//
+	// > The URL type now distinguishes between URLs with no authority and URLs with an empty authority.
+	// > For example, http:///path has an empty authority (host), while http:/path has none.
+	//
+	// See https://golang.org/doc/go1.19#net/url for more details.
+	parsed.OmitHost = false
+	return parsed, nil
 }
 
 // ParseOrPanic parses a url or panics.
