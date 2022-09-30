@@ -11,11 +11,11 @@ import (
 // ContextualizedMiddleware is a context-aware CORS middleware. It allows hot-reloading CORS configuration using
 // the HTTP request context.
 //
-//  n := negroni.New()
-//  n.UseFunc(ContextualizedMiddleware(func(context.Context) (opts cors.Options, enabled bool) {
-//    panic("implement me")
-//  })
-//  // ...
+//	n := negroni.New()
+//	n.UseFunc(ContextualizedMiddleware(func(context.Context) (opts cors.Options, enabled bool) {
+//	  panic("implement me")
+//	})
+//	// ...
 func ContextualizedMiddleware(provider func(context.Context) (opts cors.Options, enabled bool)) negroni.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 		options, enabled := provider(r.Context())

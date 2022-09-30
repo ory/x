@@ -93,7 +93,6 @@ func WithMigrationContentMiddleware(middleware func(content string, err error) (
 // NewMigrationBox from a packr.Dir and a Connection.
 //
 //	migrations, err := NewMigrationBox(pkger.Dir("/migrations"))
-//
 func NewMigrationBox(dir pkger.Dir, c *pop.Connection, l *logrusx.Logger, opts ...func(*MigrationBox) *MigrationBox) (*MigrationBox, error) {
 	mb := &MigrationBox{
 		Migrator:         pop.NewMigrator(c),

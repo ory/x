@@ -83,7 +83,7 @@ func NewRouterAdminWithPrefixAndRouter(root *httprouter.Router, prefix string, b
 
 // NewRouterAdminWithPrefix creates a new router with is prefixed.
 //
-//  NewRouterAdminWithPrefix("/admin", func(context.Context) *url.URL { return &url.URL{/*...*/} })
+//	NewRouterAdminWithPrefix("/admin", func(context.Context) *url.URL { return &url.URL{/*...*/} })
 func NewRouterAdminWithPrefix(prefix string, baseURLProvider baseURLProvider) *RouterAdmin {
 	if prefix != "" {
 		prefix = "/" + strings.TrimPrefix(strings.TrimSuffix(prefix, "/"), "/")

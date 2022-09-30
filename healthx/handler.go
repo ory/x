@@ -124,7 +124,7 @@ func (h *Handler) SetVersionRoutes(r router, opts ...Options) {
 //
 // swagger:route GET /health/alive health isInstanceAlive
 //
-// Check alive status
+// # Check alive status
 //
 // This endpoint returns a 200 status code when the HTTP server is up running.
 // This status does currently not include checks whether the database connection is working.
@@ -135,12 +135,12 @@ func (h *Handler) SetVersionRoutes(r router, opts ...Options) {
 // Be aware that if you are running multiple nodes of this service, the health status will never
 // refer to the cluster state, only to a single instance.
 //
-//     Produces:
-//     - application/json
+//	Produces:
+//	- application/json
 //
-//     Responses:
-//       200: healthStatus
-//       500: genericError
+//	Responses:
+//	  200: healthStatus
+//	  500: genericError
 func (h *Handler) Alive() http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		h.H.Write(rw, r, &swaggerHealthStatus{
@@ -153,7 +153,7 @@ func (h *Handler) Alive() http.Handler {
 //
 // swagger:route GET /health/ready health isInstanceReady
 //
-// Check readiness status
+// # Check readiness status
 //
 // This endpoint returns a 200 status code when the HTTP server is up running and the environment dependencies (e.g.
 // the database) are responsive as well.
@@ -164,12 +164,12 @@ func (h *Handler) Alive() http.Handler {
 // Be aware that if you are running multiple nodes of this service, the health status will never
 // refer to the cluster state, only to a single instance.
 //
-//     Produces:
-//     - application/json
+//	Produces:
+//	- application/json
 //
-//     Responses:
-//       200: healthStatus
-//       503: healthNotReadyStatus
+//	Responses:
+//	  200: healthStatus
+//	  503: healthNotReadyStatus
 func (h *Handler) Ready(shareErrors bool) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		var notReady = swaggerNotReadyStatus{
@@ -201,7 +201,7 @@ func (h *Handler) Ready(shareErrors bool) http.Handler {
 //
 // swagger:route GET /version version getVersion
 //
-// Get service version
+// # Get service version
 //
 // This endpoint returns the service version typically notated using semantic versioning.
 //
@@ -211,11 +211,11 @@ func (h *Handler) Ready(shareErrors bool) http.Handler {
 // Be aware that if you are running multiple nodes of this service, the health status will never
 // refer to the cluster state, only to a single instance.
 //
-//     Produces:
-//     - application/json
+//	    Produces:
+//	    - application/json
 //
-//	   Responses:
-// 			200: version
+//		   Responses:
+//				200: version
 func (h *Handler) Version() http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		h.H.Write(rw, r, &swaggerVersion{

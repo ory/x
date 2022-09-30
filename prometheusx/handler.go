@@ -48,16 +48,18 @@ func (h *Handler) SetRoutes(r router) {
 //
 // ```
 // metadata:
-//  annotations:
-//    prometheus.io/port: "4434"
-//      prometheus.io/path: "/metrics/prometheus"
+//
+//	annotations:
+//	  prometheus.io/port: "4434"
+//	    prometheus.io/path: "/metrics/prometheus"
+//
 // ```
 //
-//     Produces:
-//     - plain/text
+//	Produces:
+//	- plain/text
 //
-//     Responses:
-//       200: emptyResponse
+//	Responses:
+//	  200: emptyResponse
 func (h *Handler) Metrics(rw http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	promhttp.Handler().ServeHTTP(rw, r)
 }
