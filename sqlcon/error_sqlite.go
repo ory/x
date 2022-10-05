@@ -18,15 +18,16 @@ func handleSqlite(err error) error {
 			fallthrough
 		case sqlite3.ErrConstraintPrimaryKey:
 			return errors.WithStack(ErrUniqueViolation.WithWrap(err))
+
 		}
 
 		switch e.Code {
 		case sqlite3.ErrError:
 			if strings.Contains(err.Error(), "no such table") {
 				return errors.WithStack(ErrNoSuchTable.WithWrap(err))
-			} else if strings.Contains(err.Error(), "database table is locked") {
-				return errors.WithStack(ErrTableLocked.WithWrap(err))
 			}
+		case sqlite3.ErrLocked:
+			return errors.WithStack(ErrTableLocked.WithWrap(err))
 		}
 
 		return errors.WithStack(err)
