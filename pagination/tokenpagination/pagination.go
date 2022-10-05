@@ -27,8 +27,34 @@ func decode(s string) (int, error) {
 	return int(gjson.Get(string(b), "page").Int()), nil
 }
 
-// swagger:model responseHeaderTokenPagination
-type ResponseHeaderAnnotation struct {
+// swagger:model tokenPaginationRequestParameters
+type RequestParameters struct {
+	// Items per Page
+	//
+	// This is the number of items per page to return.
+	// For details on pagination please head over to the [pagination documentation](https://www.ory.sh/docs/ecosystem/api-design#pagination).
+	//
+	// required: false
+	// in: query
+	// default: 250
+	// min: 1
+	// max: 1000
+	PageSize int `json:"page_size"`
+
+	// Next Page Token
+	//
+	// The next page token.
+	// For details on pagination please head over to the [pagination documentation](https://www.ory.sh/docs/ecosystem/api-design#pagination).
+	//
+	// required: false
+	// in: query
+	// default: 1
+	// min: 1
+	PageToken string `json:"page_token"`
+}
+
+// swagger:model tokenPaginationResponseHeaders
+type ResponseHeaders struct {
 	// The Link HTTP Header
 	//
 	// The `Link` header contains a comma-delimited list of links to the following pages:
