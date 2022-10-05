@@ -27,7 +27,7 @@ func handleSqlite(err error) error {
 				return errors.WithStack(ErrNoSuchTable.WithWrap(err))
 			}
 		case sqlite3.ErrLocked:
-			return errors.WithStack(ErrTableLocked.WithWrap(err))
+			return errors.WithStack(ErrConcurrentUpdate.WithWrap(err))
 		}
 
 		return errors.WithStack(err)
