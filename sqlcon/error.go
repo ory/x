@@ -42,6 +42,12 @@ var (
 		StatusField:   http.StatusText(http.StatusInternalServerError),
 		ErrorField:    "Unable to locate the table",
 	}
+	ErrTableLocked = &herodot.DefaultError{
+		CodeField:     http.StatusTooManyRequests,
+		GRPCCodeField: codes.Unavailable,
+		StatusField:   http.StatusText(http.StatusInternalServerError),
+		ErrorField:    "Database is locked",
+	}
 )
 
 func handlePostgres(err error, sqlState string) error {

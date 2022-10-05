@@ -24,6 +24,8 @@ func handleSqlite(err error) error {
 		case sqlite3.ErrError:
 			if strings.Contains(err.Error(), "no such table") {
 				return errors.WithStack(ErrNoSuchTable.WithWrap(err))
+			} else if strings.Contains(err.Error(), "database table is locked") {
+				return errors.WithStack(ErrTableLocked.WithWrap(err))
 			}
 		}
 
