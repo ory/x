@@ -23,6 +23,30 @@ func (p *PagePaginator) defaults() {
 	}
 }
 
+// swagger:model headerPagePagination
+type HeaderAnnotation struct {
+	// The Link HTTP Header
+	//
+	// The `Link` header contains a comma-delimited list of links to the following pages:
+	//
+	// - first: The first page of results.
+	// - next: The next page of results.
+	// - prev: The previous page of results.
+	// - last: The last page of results.
+	//
+	// Pages are omitted if they do not exist. For example, if there is no next page, the `next` link is omitted.
+	//
+	//	Example: Link: </clients?limit=5&offset=0>; rel="first",</clients?limit=5&offset=15>; rel="next",</clients?limit=5&offset=5>; rel="prev",</clients?limit=5&offset=20>; rel="last"
+	Link string `json:"link"`
+
+	// The X-Total-Count HTTP Header
+	//
+	// The `X-Total-Count` header contains the total number of items in the collection.
+	//
+	// Example: 123
+	TotalCount int `json:"x-total-count"`
+}
+
 // ParsePagination parses limit and page from *http.Request with given limits and defaults.
 func (p *PagePaginator) ParsePagination(r *http.Request) (page, itemsPerPage int) {
 	p.defaults()
