@@ -27,8 +27,8 @@ func decode(s string) (int, error) {
 	return int(gjson.Get(string(b), "page").Int()), nil
 }
 
-// swagger:model headerTokenPagination
-type HeaderAnnotation struct {
+// swagger:model responseHeaderTokenPagination
+type ResponseHeaderAnnotation struct {
 	// The Link HTTP Header
 	//
 	// The `Link` header contains a comma-delimited list of links to the following pages:

@@ -23,8 +23,8 @@ func (p *PagePaginator) defaults() {
 	}
 }
 
-// swagger:model headerPagePagination
-type HeaderAnnotation struct {
+// swagger:model responseHeaderPagePagination
+type ResponseHeaderAnnotation struct {
 	// The Link HTTP Header
 	//
 	// The `Link` header contains a comma-delimited list of links to the following pages:
