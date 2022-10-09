@@ -27,6 +27,13 @@ func decode(s string) (int, error) {
 	return int(gjson.Get(string(b), "page").Int()), nil
 }
 
+// Pagination Request Parameters
+//
+// The `Link` HTTP header contains multiple links (`first`, `next`, `last`, `previous`) formatted as:
+// `<https://{project-slug}.projects.oryapis.com/admin/clients?limit={limit}&offset={offset}>; rel="{page}"`
+//
+// For details on pagination please head over to the [pagination documentation](https://www.ory.sh/docs/ecosystem/api-design#pagination).
+//
 // swagger:model tokenPaginationRequestParameters
 type RequestParameters struct {
 	// Items per Page
@@ -53,6 +60,13 @@ type RequestParameters struct {
 	PageToken string `json:"page_token"`
 }
 
+// Pagination Response Header
+//
+// The `Link` HTTP header contains multiple links (`first`, `next`, `last`, `previous`) formatted as:
+// `<https://{project-slug}.projects.oryapis.com/admin/clients?limit={limit}&offset={offset}>; rel="{page}"`
+//
+// For details on pagination please head over to the [pagination documentation](https://www.ory.sh/docs/ecosystem/api-design#pagination).
+//
 // swagger:model tokenPaginationResponseHeaders
 type ResponseHeaders struct {
 	// The Link HTTP Header
