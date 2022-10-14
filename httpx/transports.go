@@ -2,6 +2,14 @@ package httpx
 
 import "net/http"
 
+// WrapTransportWithHeader wraps a http.Transport to always use the values from the given header.
+func WrapTransportWithHeader(parent http.RoundTripper, h http.Header) *TransportWithHeader {
+	return &TransportWithHeader{
+		RoundTripper: parent,
+		h:            h,
+	}
+}
+
 // NewTransportWithHeader returns a new http.Transport that always uses the values from the given header.
 func NewTransportWithHeader(h http.Header) *TransportWithHeader {
 	return &TransportWithHeader{
