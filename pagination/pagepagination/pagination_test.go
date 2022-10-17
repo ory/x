@@ -96,7 +96,7 @@ func TestPaginationHeader(t *testing.T) {
 		assert.EqualValues(t, "5", r.Result().Header.Get("X-Total-Count"))
 	})
 
-	t.Run("Create only first if the limits provided equls the number of clients found", func(t *testing.T) {
+	t.Run("Create only first if the limits provided equals the number of clients found", func(t *testing.T) {
 		r := httptest.NewRecorder()
 		PaginationHeader(r, u, 50, 0, 50)
 
