@@ -15,6 +15,7 @@ import (
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace"
 	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/ory/x/errorsx"
 )
@@ -86,7 +87,11 @@ func (l *Logger) WithRequest(r *http.Request) *Logger {
 		"headers": headers,
 	})
 
-	if _, _, spanCtx := otelhttptrace.Extract(r.Context(), r, opts); spanCtx.IsValid() {
+	spanCtx := trace.SpanContextFromContext(r.Context())
+	if !spanCtx.IsValid() {
+		_, _, spanCtx = otelhttptrace.Extract(r.Context(), r, opts)
+	}
+	if spanCtx.IsValid() {
 		traces := map[string]string{}
 		if spanCtx.HasTraceID() {
 			traces["trace_id"] = spanCtx.TraceID().String()
@@ -96,7 +101,6 @@ func (l *Logger) WithRequest(r *http.Request) *Logger {
 		}
 		ll = ll.WithField("otel", traces)
 	}
-
 	return ll
 }
 
