@@ -131,12 +131,16 @@ func (m *Middleware) ServeHTTP(rw http.ResponseWriter, r *http.Request, next htt
 		entry.Log(logLevel, "started handling request")
 	}
 
-	next(rw, r)
+	nrw, ok := rw.(negroni.ResponseWriter)
+	if !ok {
+		nrw = negroni.NewResponseWriter(rw)
+	}
+
+	next(nrw, r)
 
 	latency := m.clock.Since(start)
-	res := rw.(negroni.ResponseWriter)
 
-	m.After(entry, r, res, latency, m.Name).Log(logLevel, "completed handling request")
+	m.After(entry, r, nrw, latency, m.Name).Log(logLevel, "completed handling request")
 }
 
 // BeforeFunc is the func type used to modify or replace the *logrusx.Logger prior
