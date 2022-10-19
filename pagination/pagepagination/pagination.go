@@ -151,7 +151,7 @@ func PaginationHeader(w http.ResponseWriter, u *url.URL, total int64, page, item
 			return
 		}
 
-		if total < itemsPerPage64 {
+		if total <= itemsPerPage64 {
 			w.Header().Set("link", header(u, "first", total, 0))
 			return
 		}
