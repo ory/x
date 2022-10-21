@@ -9,6 +9,65 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Pagination Request Parameters
+//
+// The `Link` HTTP header contains multiple links (`first`, `next`) formatted as:
+// `<https://{project-slug}.projects.oryapis.com/admin/sessions?page_size=250&page_token=>; rel="first"`
+//
+// For details on pagination please head over to the [pagination documentation](https://www.ory.sh/docs/ecosystem/api-design#pagination).
+//
+// swagger:model keysetPaginationRequestParameters
+type RequestParameters struct {
+	// Items per Page
+	//
+	// This is the number of items per page to return.
+	// For details on pagination please head over to the [pagination documentation](https://www.ory.sh/docs/ecosystem/api-design#pagination).
+	//
+	// required: false
+	// in: query
+	// default: 250
+	// min: 1
+	// max: 1000
+	PageSize int `json:"page_size"`
+
+	// Next Page Token
+	//
+	// The next page token.
+	// For details on pagination please head over to the [pagination documentation](https://www.ory.sh/docs/ecosystem/api-design#pagination).
+	//
+	// required: false
+	// in: query
+	PageToken string `json:"page_token"`
+}
+
+// Pagination Response Header
+//
+// The `Link` HTTP header contains multiple links (`first`, `next`) formatted as:
+// `<https://{project-slug}.projects.oryapis.com/admin/sessions?page_size=250&page_token=>; rel="first"`
+//
+// For details on pagination please head over to the [pagination documentation](https://www.ory.sh/docs/ecosystem/api-design#pagination).
+//
+// swagger:model keysetPaginationResponseHeaders
+type ResponseHeaders struct {
+	// The Link HTTP Header
+	//
+	// The `Link` header contains a comma-delimited list of links to the following pages:
+	//
+	// - first: The first page of results.
+	// - next: The next page of results.
+	//
+	// Pages are omitted if they do not exist. For example, if there is no next page, the `next` link is omitted. Examples:
+	//
+	//	</admin/sessions?page_size=250&page_token={last_item_uuid}; rel="first",/admin/sessions?page_size=250&page_token=>; rel="next"
+	//
+	Link string `json:"link"`
+
+	// The X-Total-Count HTTP Header
+	//
+	// The `X-Total-Count` header contains the total number of items in the collection.
+	TotalCount int `json:"x-total-count"`
+}
+
 func header(u *url.URL, rel, token string, size int) string {
 	q := u.Query()
 	q.Set("page_token", token)
