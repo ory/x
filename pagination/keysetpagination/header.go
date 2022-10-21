@@ -11,12 +11,12 @@ import (
 
 // Pagination Request Parameters
 //
-// The `Link` HTTP header contains multiple links (`first`, `next`, `last`, `previous`) formatted as:
-// `<https://{project-slug}.projects.oryapis.com/admin/clients?limit={limit}&offset={offset}>; rel="{page}"`
+// The `Link` HTTP header contains multiple links (`first`, `next`) formatted as:
+// `<https://{project-slug}.projects.oryapis.com/admin/sessions?page_size=250&page_token=>; rel="first"`
 //
 // For details on pagination please head over to the [pagination documentation](https://www.ory.sh/docs/ecosystem/api-design#pagination).
 //
-// swagger:model tokenPaginationRequestParameters
+// swagger:model keysetPaginationRequestParameters
 type RequestParameters struct {
 	// Items per Page
 	//
@@ -42,12 +42,12 @@ type RequestParameters struct {
 
 // Pagination Response Header
 //
-// The `Link` HTTP header contains multiple links (`first`, `next`, `last`, `previous`) formatted as:
-// `<https://{project-slug}.projects.oryapis.com/admin/clients?limit={limit}&offset={offset}>; rel="{page}"`
+// The `Link` HTTP header contains multiple links (`first`, `next`) formatted as:
+// `<https://{project-slug}.projects.oryapis.com/admin/sessions?page_size=250&page_token=>; rel="first"`
 //
 // For details on pagination please head over to the [pagination documentation](https://www.ory.sh/docs/ecosystem/api-design#pagination).
 //
-// swagger:model tokenPaginationResponseHeaders
+// swagger:model keysetPaginationResponseHeaders
 type ResponseHeaders struct {
 	// The Link HTTP Header
 	//
@@ -55,12 +55,10 @@ type ResponseHeaders struct {
 	//
 	// - first: The first page of results.
 	// - next: The next page of results.
-	// - prev: The previous page of results.
-	// - last: The last page of results.
 	//
 	// Pages are omitted if they do not exist. For example, if there is no next page, the `next` link is omitted. Examples:
 	//
-	//	</clients?limit=5&offset=0>; rel="first",</clients?limit=5&offset=15>; rel="next",</clients?limit=5&offset=5>; rel="prev",</clients?limit=5&offset=20>; rel="last"
+	//	</admin/sessions?page_size=250&page_token={last_item_uuid}; rel="first",/admin/sessions?page_size=250&page_token=>; rel="next"
 	//
 	Link string `json:"link"`
 
