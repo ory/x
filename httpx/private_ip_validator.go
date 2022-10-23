@@ -104,8 +104,11 @@ func (n NoInternalIPRoundTripper) RoundTrip(request *http.Request) (*http.Respon
 		rt = n.RoundTripper
 	}
 
+	incoming := IncomingRequestURL(request)
+	incoming.RawQuery = ""
+	incoming.RawFragment = ""
 	for _, exception := range n.internalIPExceptions {
-		if IncomingRequestURL(request).String() == exception {
+		if incoming.String() == exception {
 			return rt.RoundTrip(request)
 		}
 	}
