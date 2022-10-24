@@ -28,10 +28,14 @@
       "pairwise": {
         "salt": "youReallyNeedToChangeThis"
       }
+    },
+    "dynamic_client_registration": {
+      "default_scope": ["foo", "bar", "baz"]
     }
   },
   "secrets": {
-    "system": ["youReallyNeedToChangeThis"]
+    "system": ["youReallyNeedToChangeThis"],
+    "cookie": ["1111111111111111", "2222222222222222", "3333333333333333"]
   },
   "serve": {
     "admin": {
