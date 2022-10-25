@@ -12,7 +12,6 @@ type (
 		token, defaultToken        string
 		size, defaultSize, maxSize int
 		isLast                     bool
-		sortDescending             bool
 	}
 	Option func(*Paginator) *Paginator
 )
@@ -40,13 +39,6 @@ func (p *Paginator) Size() int {
 
 func (p *Paginator) IsLast() bool {
 	return p.isLast
-}
-
-func (p *Paginator) SortDirection() string {
-	if p.sortDescending {
-		return "desc"
-	}
-	return "asc"
 }
 
 func (p *Paginator) ToOptions() []Option {
@@ -134,13 +126,6 @@ func WithSize(size int) Option {
 func withIsLast(isLast bool) Option {
 	return func(opts *Paginator) *Paginator {
 		opts.isLast = isLast
-		return opts
-	}
-}
-
-func WithDescendingSort(descending bool) Option {
-	return func(opts *Paginator) *Paginator {
-		opts.sortDescending = descending
 		return opts
 	}
 }
