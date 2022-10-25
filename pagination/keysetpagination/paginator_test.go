@@ -27,7 +27,7 @@ func TestPaginator(t *testing.T) {
 		q = q.Scope(Paginate[testItem](paginator))
 
 		sql, args := q.ToSQL(&pop.Model{Value: new(testItem)})
-		assert.Equal(t, "SELECT test_items.pk FROM test_items AS test_items WHERE pk > $1 LIMIT 11", sql)
+		assert.Equal(t, "SELECT test_items.pk FROM test_items AS test_items WHERE \"pk\" > $1 ORDER BY \"pk\" ASC LIMIT 11", sql)
 		assert.Equal(t, []interface{}{"token"}, args)
 	})
 
