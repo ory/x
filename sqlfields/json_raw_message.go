@@ -8,6 +8,9 @@ import (
 )
 
 func NewNullJSONRawMessage(data []byte) NullJSONRawMessage {
+	if data == nil {
+		return NullJSONRawMessage{}
+	}
 	return NullJSONRawMessage{Val: data, Valid: true}
 }
 

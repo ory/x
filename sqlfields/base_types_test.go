@@ -100,3 +100,10 @@ func TestSQLCompat(t *testing.T) {
 	testSQLCompatibility(t, db, StringSliceJSONFormat{"foo", "bar"})
 	testSQLCompatibility(t, db, StringSlicePipeDelimiter{"foo", "bar"})
 }
+
+func TestFactoryFuncs(t *testing.T) {
+	t.Run("case=JSONRawMessage", func(t *testing.T) {
+		assert.True(t, NewNullJSONRawMessage([]byte(`"foo"`)).Valid)
+		assert.False(t, NewNullJSONRawMessage(nil).Valid)
+	})
+}
