@@ -40,6 +40,7 @@ func (ns *Duration) UnmarshalJSON(data []byte) error {
 }
 
 // StringSliceJSONFormat represents []string{} which is encoded to/from JSON for SQL storage.
+// Deprecated: use sqlfields.StringSliceJSONFormat instead
 type StringSliceJSONFormat []string
 
 // Scan implements the Scanner interface.
@@ -69,6 +70,7 @@ func (m StringSliceJSONFormat) Value() (driver.Value, error) {
 }
 
 // StringSlicePipeDelimiter de/encodes the string slice to/from a SQL string.
+// Deprecated: use sqlfields.StringSlicePipeDelimiter instead
 type StringSlicePipeDelimiter []string
 
 // Scan implements the Scanner interface.
@@ -111,10 +113,11 @@ func valueStringSlice(delimiter rune, value []string) string {
 	return strings.Join(replace, string(delimiter))
 }
 
-// NullBool represents a bool that may be null.
+// NullBool represents a bool that may be sqlfields.
 // NullBool implements the Scanner interface so
 // swagger:type bool
 // swagger:model nullBool
+// Deprecated: use sqlfields.Bool instead
 type NullBool struct {
 	Bool  bool
 	Valid bool // Valid is true if Bool is not NULL
@@ -162,6 +165,7 @@ func (ns *NullBool) UnmarshalJSON(data []byte) error {
 
 // swagger:type string
 // swagger:model nullString
+// Deprecated: use sqlfields.String instead
 type NullString string
 
 // MarshalJSON returns m as the JSON encoding of m.
@@ -207,6 +211,7 @@ func (ns NullString) String() string {
 //
 // swagger:model nullTime
 // required: false
+// Deprecated: use sqlfields.Time instead
 type NullTime time.Time
 
 // Scan implements the Scanner interface.
@@ -337,6 +342,7 @@ func (m *JSONRawMessage) UnmarshalJSON(data []byte) error {
 // NullJSONRawMessage represents a json.RawMessage that works well with JSON, SQL, and Swagger and is NULLable-
 //
 // swagger:model nullJsonRawMessage
+// Deprecated: use sqlfields.JSONRawMessage instead
 type NullJSONRawMessage json.RawMessage
 
 // Scan implements the Scanner interface.
@@ -396,8 +402,9 @@ func JSONValue(src interface{}) (driver.Value, error) {
 	return b.String(), nil
 }
 
-// NullInt64 represents an int64 that may be null.
+// NullInt64 represents an int64 that may be sqlfields.
 // swagger:model nullInt64
+// Deprecated: use sqlfields.Int64 instead
 type NullInt64 struct {
 	Int   int64
 	Valid bool // Valid is true if Duration is not NULL
@@ -447,6 +454,7 @@ func (ns *NullInt64) UnmarshalJSON(data []byte) error {
 //
 // swagger:type string
 // swagger:model nullDuration
+// Deprecated: use sqlfields.Duration instead
 type NullDuration struct {
 	Duration time.Duration
 	Valid    bool
