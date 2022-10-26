@@ -105,6 +105,7 @@ func FinalizeDSN(l *logrusx.Logger, dsn string) string {
 
 		q.Set("multiStatements", "true")
 		q.Set("parseTime", "true")
+		q.Set("sql_mode", "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION,ANSI_QUOTES")
 
 		return fmt.Sprintf("%s?%s", parts[0], q.Encode())
 	}

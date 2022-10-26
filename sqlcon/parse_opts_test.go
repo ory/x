@@ -99,11 +99,11 @@ func TestFinalizeDSN(t *testing.T) {
 	}{
 		{
 			dsn:      "mysql://localhost",
-			expected: "mysql://localhost?multiStatements=true&parseTime=true",
+			expected: "mysql://localhost?multiStatements=true&parseTime=true&sql_mode=ONLY_FULL_GROUP_BY%2CSTRICT_TRANS_TABLES%2CNO_ZERO_IN_DATE%2CNO_ZERO_DATE%2CERROR_FOR_DIVISION_BY_ZERO%2CNO_ENGINE_SUBSTITUTION%2CANSI_QUOTES",
 		},
 		{
 			dsn:      "mysql://localhost?multiStatements=true&parseTime=true",
-			expected: "mysql://localhost?multiStatements=true&parseTime=true",
+			expected: "mysql://localhost?multiStatements=true&parseTime=true&sql_mode=ONLY_FULL_GROUP_BY%2CSTRICT_TRANS_TABLES%2CNO_ZERO_IN_DATE%2CNO_ZERO_DATE%2CERROR_FOR_DIVISION_BY_ZERO%2CNO_ENGINE_SUBSTITUTION%2CANSI_QUOTES",
 		},
 		{
 			dsn:      "postgres://localhost",
