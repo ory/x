@@ -19,7 +19,7 @@ import (
 
 // Run this test with
 //
-// docker run --name cloud_kratos_test_database_cockroach -p 3446:26257 -d cockroachdb/cockroach:v21.1.0 start-single-node --insecure
+// docker run --name cloud_kratos_test_database_cockroach -p 3446:26257 -d cockroachdb/cockroach:v21.1.21 start-single-node --insecure
 // export TEST_DATABASE_COCKROACHDB="cockroach://root@127.0.0.1:3446/defaultdb?sslmode=disable"
 func TestChangeFeed(t *testing.T) {
 	tableName := "t_" + strings.ReplaceAll(uuid.New().String(), "-", "")

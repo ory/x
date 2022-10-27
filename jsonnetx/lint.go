@@ -43,7 +43,7 @@ var LintCommand = &cobra.Command{
 				content, err := ioutil.ReadFile(file)
 				cmdx.Must(err, `Unable to read file "%s" because: %s`, file, err)
 
-				if linter.LintSnippet(jsonnet.MakeVM(), os.Stderr, file, string(content)) {
+				if linter.LintSnippet(jsonnet.MakeVM(), os.Stderr, []linter.Snippet{{FileName: file, Code: string(content)}}) {
 					_, _ = fmt.Fprintf(os.Stderr, "Linter found issues.")
 					os.Exit(1)
 				}

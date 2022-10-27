@@ -21,6 +21,7 @@ func newDB(t *testing.T) *pop.Connection {
 
 	ts, err := testserver.NewTestServer()
 	require.NoError(t, err)
+	t.Cleanup(ts.Stop)
 
 	dsn := ts.PGURL()
 	dsn.Scheme = "cockroach:"
