@@ -60,6 +60,13 @@ func Paginate[I Item](p *Paginator) pop.ScopeFunc {
 	var item I
 	id := (&pop.Model{Value: item}).IDField()
 	return func(q *pop.Query) *pop.Query {
+		if q.Connection.Dialect.Name() == "mysql" {
+			return q.
+				Limit(p.Size()+1).
+				Where(fmt.Sprintf("`%s` > ?", id), p.Token()).
+				Order(fmt.Sprintf("`%s` ASC", id))
+		}
+
 		return q.
 			Limit(p.Size()+1).
 			Where(fmt.Sprintf(`%q > ?`, id), p.Token()).
