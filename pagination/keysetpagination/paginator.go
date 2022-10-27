@@ -62,8 +62,8 @@ func Paginate[I Item](p *Paginator) pop.ScopeFunc {
 	return func(q *pop.Query) *pop.Query {
 		return q.
 			Limit(p.Size()+1).
-			Where(fmt.Sprintf(`%q > ?`, id), p.Token()).
-			Order(fmt.Sprintf(`%q ASC`, id))
+			Where(fmt.Sprintf("`%s` > ?", id), p.Token()).
+			Order(fmt.Sprintf("`%s` ASC", id))
 	}
 }
 
