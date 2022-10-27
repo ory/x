@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"reflect"
@@ -63,7 +62,6 @@ type Provider struct {
 	forcedValues []tuple
 	baseValues   []tuple
 	files        []string
-	changeFeed   *KoanfMemory
 
 	skipValidation    bool
 	disableEnvLoading bool
@@ -98,7 +96,7 @@ func New(ctx context.Context, schema []byte, modifiers ...OptionModifier) (*Prov
 	}
 
 	l := logrus.New()
-	l.Out = ioutil.Discard
+	l.Out = io.Discard
 
 	p := &Provider{
 		originalContext:          context.Background(),
@@ -268,7 +266,7 @@ func (p *Provider) startSpan(ctx context.Context, opName string) (context.Contex
 }
 
 func (p *Provider) traceConfig(ctx context.Context, k *koanf.Koanf, opName string) {
-	ctx, span := p.startSpan(ctx, opName)
+	_, span := p.startSpan(ctx, opName)
 	defer span.End()
 
 	span.SetAttributes(attribute.String("component", tracingComponent))

@@ -3,7 +3,6 @@ package configx
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -15,7 +14,7 @@ import (
 )
 
 func newKoanf(ctx context.Context, schemaPath string, configPaths []string, modifiers ...OptionModifier) (*Provider, error) {
-	schema, err := ioutil.ReadFile(schemaPath)
+	schema, err := os.ReadFile(schemaPath)
 	if err != nil {
 		return nil, err
 	}

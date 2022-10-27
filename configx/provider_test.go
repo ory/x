@@ -2,7 +2,7 @@ package configx
 
 import (
 	"context"
-	"io/ioutil"
+	"os"
 	"path"
 	"testing"
 	"time"
@@ -183,7 +183,7 @@ func TestAdvancedConfigs(t *testing.T) {
 		t.Run("service="+tc.stub, func(t *testing.T) {
 			setEnvs(t, tc.envs)
 
-			expected, err := ioutil.ReadFile(path.Join("stub", tc.stub, "expected.json"))
+			expected, err := os.ReadFile(path.Join("stub", tc.stub, "expected.json"))
 			require.NoError(t, err)
 
 			schemaPath := path.Join("stub", tc.stub, "config.schema.json")

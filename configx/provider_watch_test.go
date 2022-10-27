@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -34,7 +33,8 @@ func tmpConfigFile(t *testing.T, dsn, foo string) *os.File {
 	require.NoError(t,
 		os.MkdirAll(tdir, // DO NOT CHANGE THIS: https://github.com/fsnotify/fsnotify/issues/340
 			os.ModePerm))
-	configFile, err := ioutil.TempFile(tdir, "config-*.yml")
+	configFile, err := os.CreateTemp(tdir, "config-*.yml")
+	require.NoError(t, err)
 	_, err = io.WriteString(configFile, config)
 	require.NoError(t, err)
 	require.NoError(t, configFile.Sync())
@@ -55,6 +55,7 @@ bar: %s`, dsn, foo, bar)
 	require.NoError(t, err)
 	require.NoError(t, configFile.Truncate(0))
 	_, err = io.WriteString(configFile, config)
+	require.NoError(t, err)
 	require.NoError(t, configFile.Sync())
 	<-c // Wait for changes to propagate
 	time.Sleep(time.Millisecond)

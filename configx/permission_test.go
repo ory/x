@@ -1,7 +1,6 @@
 package configx
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -10,7 +9,7 @@ import (
 )
 
 func TestSetPerm(t *testing.T) {
-	f, e := ioutil.TempFile("", "test")
+	f, e := os.CreateTemp("", "test")
 	require.NoError(t, e)
 	path := f.Name()
 
