@@ -2,7 +2,7 @@ package configx
 
 import (
 	"context"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -60,7 +60,7 @@ func (f *KoanfFile) ReadBytes() ([]byte, error) {
 // Read is not supported by the file provider.
 func (f *KoanfFile) Read() (map[string]interface{}, error) {
 	//#nosec G304 -- false positive
-	fc, err := ioutil.ReadFile(f.path)
+	fc, err := os.ReadFile(f.path)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

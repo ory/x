@@ -6,8 +6,6 @@ import (
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/json"
 
-	"github.com/ory/x/watcherx"
-
 	"github.com/pkg/errors"
 
 	stdjson "encoding/json"
@@ -19,7 +17,6 @@ type KoanfMemory struct {
 
 	ctx    context.Context
 	parser koanf.Parser
-	c      watcherx.EventChannel
 }
 
 // NewKoanfMemory returns a file provider.

@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -46,7 +45,7 @@ func decodeResponseBody(t *testing.T, r *http.Request) []byte {
 	default:
 		reader = r.Body
 	}
-	respBody, err := ioutil.ReadAll(reader)
+	respBody, err := io.ReadAll(reader)
 	require.NoError(t, err)
 	require.NoError(t, reader.Close())
 	return respBody
