@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"text/tabwriter"
 
@@ -38,8 +39,9 @@ const (
 	FormatQuiet      format = "quiet"
 	FormatTable      format = "table"
 	FormatJSON       format = "json"
-	FormatYAML       format = "yaml"
+	FormatJSONPath   format = "jsonpath"
 	FormatJSONPretty format = "json-pretty"
+	FormatYAML       format = "yaml"
 	FormatDefault    format = "default"
 
 	FlagFormat = "format"
@@ -72,11 +74,13 @@ func PrintRow(cmd *cobra.Command, row TableRow) {
 		}
 		_, _ = fmt.Fprintln(cmd.OutOrStdout(), row.Columns()[0])
 	case FormatJSON:
-		printJSON(cmd.OutOrStdout(), row.Interface(), false)
+		printJSON(cmd.OutOrStdout(), row.Interface(), false, "")
 	case FormatYAML:
 		printYAML(cmd.OutOrStdout(), row.Interface())
 	case FormatJSONPretty:
-		printJSON(cmd.OutOrStdout(), row.Interface(), true)
+		printJSON(cmd.OutOrStdout(), row.Interface(), true, "")
+	case FormatJSONPath:
+		printJSON(cmd.OutOrStdout(), row.Interface(), true, getPath(cmd))
 	case FormatTable, FormatDefault:
 		w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 8, 1, '\t', 0)
 
@@ -109,9 +113,11 @@ func PrintTable(cmd *cobra.Command, table Table) {
 			fmt.Fprintln(cmd.OutOrStdout(), row[0])
 		}
 	case FormatJSON:
-		printJSON(cmd.OutOrStdout(), table.Interface(), false)
+		printJSON(cmd.OutOrStdout(), table.Interface(), false, "")
 	case FormatJSONPretty:
-		printJSON(cmd.OutOrStdout(), table.Interface(), true)
+		printJSON(cmd.OutOrStdout(), table.Interface(), true, "")
+	case FormatJSONPath:
+		printJSON(cmd.OutOrStdout(), table.Interface(), true, getPath(cmd))
 	case FormatYAML:
 		printYAML(cmd.OutOrStdout(), table.Interface())
 	default:
@@ -133,6 +139,7 @@ func PrintTable(cmd *cobra.Command, table Table) {
 type interfacer interface{ Interface() interface{} }
 
 func PrintJSONAble(cmd *cobra.Command, d interface{ String() string }) {
+	var path string
 	if d == nil {
 		d = Nil{}
 	}
@@ -144,13 +151,16 @@ func PrintJSONAble(cmd *cobra.Command, d interface{ String() string }) {
 		if i, ok := d.(interfacer); ok {
 			v = i
 		}
-		printJSON(cmd.OutOrStdout(), v, false)
+		printJSON(cmd.OutOrStdout(), v, false, "")
+	case FormatJSONPath:
+		path = getPath(cmd)
+		fallthrough
 	case FormatJSONPretty:
 		var v interface{} = d
 		if i, ok := d.(interfacer); ok {
 			v = i
 		}
-		printJSON(cmd.OutOrStdout(), v, true)
+		printJSON(cmd.OutOrStdout(), v, true, path)
 	case FormatYAML:
 		var v interface{} = d
 		if i, ok := d.(interfacer); ok {
@@ -180,21 +190,44 @@ func getFormat(cmd *cobra.Command) format {
 	// unexpected error
 	Must(err, "flag access error: %s", err)
 
-	switch f {
-	case string(FormatTable):
+	switch {
+	case f == string(FormatTable):
 		return FormatTable
-	case string(FormatJSON):
+	case f == string(FormatJSON):
 		return FormatJSON
-	case string(FormatJSONPretty):
+	case strings.HasPrefix(f, string(FormatJSONPath)):
+		return FormatJSONPath
+	case f == string(FormatJSONPretty):
 		return FormatJSONPretty
-	case string(FormatYAML):
+	case f == string(FormatYAML):
 		return FormatYAML
 	default:
 		return FormatDefault
 	}
 }
 
-func printJSON(w io.Writer, v interface{}, pretty bool) {
+func getPath(cmd *cobra.Command) string {
+	f, err := cmd.Flags().GetString(FlagFormat)
+	// unexpected error
+	Must(err, "flag access error: %s", err)
+	_, path, found := strings.Cut(f, "=")
+	if !found {
+		_, _ = fmt.Fprintf(os.Stderr,
+			"Format %s is missing a path, e.g., --%s=%s=<path>. The path syntax is described at https://github.com/tidwall/gjson/blob/master/SYNTAX.md",
+			f, FlagFormat, f)
+		os.Exit(1)
+	}
+
+	return path
+}
+
+func printJSON(w io.Writer, v interface{}, pretty bool, path string) {
+	if path != "" {
+		temp, err := json.Marshal(v)
+		Must(err, "Error encoding JSON: %s", err)
+		v = gjson.GetBytes(temp, path).Value()
+	}
+
 	e := json.NewEncoder(w)
 	if pretty {
 		e.SetIndent("", "  ")
@@ -213,12 +246,12 @@ func printYAML(w io.Writer, v interface{}) {
 }
 
 func RegisterJSONFormatFlags(flags *pflag.FlagSet) {
-	flags.String(FlagFormat, string(FormatDefault), fmt.Sprintf("Set the output format. One of %s, %s, %s, and %s.", FormatDefault, FormatJSON, FormatYAML, FormatJSONPretty))
+	flags.String(FlagFormat, string(FormatDefault), fmt.Sprintf("Set the output format. One of %s, %s, %s, %s and %s.", FormatDefault, FormatJSON, FormatYAML, FormatJSONPretty, FormatJSONPath))
 }
 
 func RegisterFormatFlags(flags *pflag.FlagSet) {
 	RegisterNoiseFlags(flags)
-	flags.String(FlagFormat, string(FormatDefault), fmt.Sprintf("Set the output format. One of %s, %s, %s, and %s.", FormatTable, FormatJSON, FormatYAML, FormatJSONPretty))
+	flags.String(FlagFormat, string(FormatDefault), fmt.Sprintf("Set the output format. One of %s, %s, %s, %s, and %s.", FormatTable, FormatJSON, FormatYAML, FormatJSONPretty, FormatJSONPath))
 }
 
 type bodyer interface {

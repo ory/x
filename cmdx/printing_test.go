@@ -102,7 +102,7 @@ func TestPrinting(t *testing.T) {
 
 	t.Run("method=table row", func(t *testing.T) {
 		t.Run("case=all formats", func(t *testing.T) {
-			tr := dynamicRow{"0", "1", "2"}
+			tr := dynamicRow{"AAA", "BBB", "CCC"}
 			allFields := append(tr.Header(), tr...)
 
 			for _, tc := range []struct {
@@ -124,6 +124,18 @@ func TestPrinting(t *testing.T) {
 				{
 					fArgs:     []string{"--" + FlagFormat, string(FormatJSONPretty)},
 					contained: tr,
+				},
+				{
+					fArgs:     []string{"--" + FlagFormat, string(FormatJSONPath) + "=0"},
+					contained: []string{"AAA"},
+				},
+				{
+					fArgs:     []string{"--" + FlagFormat, string(FormatJSONPath) + "=2"},
+					contained: []string{"CCC"},
+				},
+				{
+					fArgs:     []string{"--" + FlagFormat, string(FormatJSONPath) + "=[0,1]"},
+					contained: []string{"AAA", "BBB"},
 				},
 				{
 					fArgs:     []string{"--" + FlagFormat, string(FormatYAML)},
@@ -206,6 +218,10 @@ func TestPrinting(t *testing.T) {
 					contained: append(tb.t[0], tb.t[1]...),
 				},
 				{
+					fArgs:     []string{"--" + FlagFormat, string(FormatJSONPath) + "=1.1"},
+					contained: []string{tb.t[1][1]},
+				},
+				{
 					fArgs:     []string{"--" + FlagFormat, string(FormatYAML)},
 					contained: append(tb.t[0], tb.t[1]...),
 				},
@@ -262,6 +278,10 @@ func TestPrinting(t *testing.T) {
 					expected: "null",
 				},
 				{
+					fArgs:    []string{"--" + FlagFormat, string(FormatJSONPath) + "=foo"},
+					expected: "null",
+				},
+				{
 					fArgs:    []string{"--" + FlagFormat, string(FormatYAML)},
 					expected: "null",
 				},
@@ -307,7 +327,7 @@ func TestPrinting(t *testing.T) {
 
 	t.Run("method=jsonable", func(t *testing.T) {
 		t.Run("case=nil", func(t *testing.T) {
-			for _, f := range []format{FormatDefault, FormatJSON, FormatJSONPretty, FormatYAML} {
+			for _, f := range []format{FormatDefault, FormatJSON, FormatJSONPretty, FormatJSONPath, FormatYAML} {
 				t.Run("format="+string(f), func(t *testing.T) {
 					out := &bytes.Buffer{}
 					cmd := &cobra.Command{}
@@ -321,4 +341,5 @@ func TestPrinting(t *testing.T) {
 			}
 		})
 	})
+
 }
