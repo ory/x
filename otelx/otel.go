@@ -8,18 +8,15 @@ import (
 )
 
 type Tracer struct {
-	Config *Config
-
-	l      *logrusx.Logger
 	tracer trace.Tracer
 }
 
 // Creates a new tracer. If name is empty, a default tracer name is used
 // instead. See: https://godocs.io/go.opentelemetry.io/otel/sdk/trace#TracerProvider.Tracer
 func New(name string, l *logrusx.Logger, c *Config) (*Tracer, error) {
-	t := &Tracer{Config: c, l: l}
+	t := &Tracer{}
 
-	if err := t.setup(name); err != nil {
+	if err := t.setup(name, l, c); err != nil {
 		return nil, err
 	}
 
@@ -27,41 +24,41 @@ func New(name string, l *logrusx.Logger, c *Config) (*Tracer, error) {
 }
 
 // Creates a new no-op tracer.
-func NewNoop(l *logrusx.Logger, c *Config) *Tracer {
+func NewNoop(_ *logrusx.Logger, c *Config) *Tracer {
 	tp := trace.NewNoopTracerProvider()
-	t := &Tracer{Config: c, l: l, tracer: tp.Tracer("")}
+	t := &Tracer{tracer: tp.Tracer("")}
 	return t
 }
 
-// setup sets up the tracer.
-func (t *Tracer) setup(name string) error {
-	switch f := stringsx.SwitchExact(t.Config.Provider); {
+// setup constructs the tracer based on the given configuration.
+func (t *Tracer) setup(name string, l *logrusx.Logger, c *Config) error {
+	switch f := stringsx.SwitchExact(c.Provider); {
 	case f.AddCase("jaeger"):
-		tracer, err := SetupJaeger(t, name)
+		tracer, err := SetupJaeger(t, name, c)
 		if err != nil {
 			return err
 		}
 
 		t.tracer = tracer
-		t.l.Infof("Jaeger tracer configured! Sending spans to %s", t.Config.Providers.Jaeger.LocalAgentAddress)
+		l.Infof("Jaeger tracer configured! Sending spans to %s", c.Providers.Jaeger.LocalAgentAddress)
 	case f.AddCase("zipkin"):
-		tracer, err := SetupZipkin(t, name)
+		tracer, err := SetupZipkin(t, name, c)
 		if err != nil {
 			return err
 		}
 
 		t.tracer = tracer
-		t.l.Infof("Zipkin tracer configured! Sending spans to %s", t.Config.Providers.Zipkin.ServerURL)
+		l.Infof("Zipkin tracer configured! Sending spans to %s", c.Providers.Zipkin.ServerURL)
 	case f.AddCase("otel"):
-		tracer, err := SetupOTLP(t, name)
+		tracer, err := SetupOTLP(t, name, c)
 		if err != nil {
 			return err
 		}
 
 		t.tracer = tracer
-		t.l.Infof("OTLP tracer configured! Sending spans to %s", t.Config.Providers.OTLP.ServerURL)
+		l.Infof("OTLP tracer configured! Sending spans to %s", c.Providers.OTLP.ServerURL)
 	case f.AddCase(""):
-		t.l.Infof("No tracer configured - skipping tracing setup")
+		l.Infof("No tracer configured - skipping tracing setup")
 		t.tracer = trace.NewNoopTracerProvider().Tracer(name)
 	default:
 		return f.ToUnknownCaseErr()
@@ -78,7 +75,29 @@ func (t *Tracer) IsLoaded() bool {
 	return true
 }
 
-// Returns the wrapped tracer.
+// Tracer returns the underlying OpenTelemetry tracer.
 func (t *Tracer) Tracer() trace.Tracer {
 	return t.tracer
+}
+
+// WithOTLP returns a new tracer with the underlying OpenTelemetry Tracer
+// replaced.
+func (t *Tracer) WithOTLP(other trace.Tracer) *Tracer {
+	return &Tracer{other}
+}
+
+// Provider returns a TracerProvider which in turn yieds this tracer unmodified.
+func (t *Tracer) Provider() trace.TracerProvider {
+	return tracerProvider{t.Tracer()}
+}
+
+type tracerProvider struct {
+	t trace.Tracer
+}
+
+var _ trace.TracerProvider = tracerProvider{}
+
+// Tracer implements trace.TracerProvider.
+func (tp tracerProvider) Tracer(name string, options ...trace.TracerOption) trace.Tracer {
+	return tp.t
 }

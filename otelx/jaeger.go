@@ -18,8 +18,8 @@ import (
 // Optionally, Config.Providers.Jaeger.LocalAgentAddress can be set.
 // NOTE: If Config.Providers.Jaeger.Sampling.ServerURL is not specfied,
 // AlwaysSample is used.
-func SetupJaeger(t *Tracer, tracerName string) (trace.Tracer, error) {
-	host, port, err := net.SplitHostPort(t.Config.Providers.Jaeger.LocalAgentAddress)
+func SetupJaeger(t *Tracer, tracerName string, c *Config) (trace.Tracer, error) {
+	host, port, err := net.SplitHostPort(c.Providers.Jaeger.LocalAgentAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -37,11 +37,11 @@ func SetupJaeger(t *Tracer, tracerName string) (trace.Tracer, error) {
 		sdktrace.WithBatcher(exp),
 		sdktrace.WithResource(resource.NewWithAttributes(
 			semconv.SchemaURL,
-			semconv.ServiceNameKey.String(t.Config.ServiceName),
+			semconv.ServiceNameKey.String(c.ServiceName),
 		)),
 	}
 
-	samplingServerURL := t.Config.Providers.Jaeger.Sampling.ServerURL
+	samplingServerURL := c.Providers.Jaeger.Sampling.ServerURL
 
 	if samplingServerURL != "" {
 		jaegerRemoteSampler := jaegerremote.New(
