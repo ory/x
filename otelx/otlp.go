@@ -13,14 +13,14 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-func SetupOTLP(t *Tracer, tracerName string) (trace.Tracer, error) {
+func SetupOTLP(t *Tracer, tracerName string, c *Config) (trace.Tracer, error) {
 	ctx := context.Background()
 
 	clientOpts := []otlptracehttp.Option{
-		otlptracehttp.WithEndpoint(t.Config.Providers.OTLP.ServerURL),
+		otlptracehttp.WithEndpoint(c.Providers.OTLP.ServerURL),
 	}
 
-	if t.Config.Providers.OTLP.Insecure {
+	if c.Providers.OTLP.Insecure {
 		clientOpts = append(clientOpts, otlptracehttp.WithInsecure())
 	}
 
@@ -35,10 +35,10 @@ func SetupOTLP(t *Tracer, tracerName string) (trace.Tracer, error) {
 		sdktrace.WithBatcher(exp),
 		sdktrace.WithResource(resource.NewWithAttributes(
 			semconv.SchemaURL,
-			semconv.ServiceNameKey.String(t.Config.ServiceName),
+			semconv.ServiceNameKey.String(c.ServiceName),
 		)),
 		sdktrace.WithSampler(sdktrace.ParentBased(sdktrace.TraceIDRatioBased(
-			t.Config.Providers.OTLP.Sampling.SamplingRatio,
+			c.Providers.OTLP.Sampling.SamplingRatio,
 		))),
 	}
 

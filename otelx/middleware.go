@@ -7,22 +7,14 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
-const tracingComponent = "github.com/ory/x/otelx"
-
 func isHealthFilter(r *http.Request) bool {
 	path := r.URL.Path
-	if strings.HasPrefix(path, "/health/") {
-		return false
-	}
-	return true
+	return !strings.HasPrefix(path, "/health/")
 }
 
 func isAdminHealthFilter(r *http.Request) bool {
 	path := r.URL.Path
-	if strings.HasPrefix(path, "/admin/health/") {
-		return false
-	}
-	return true
+	return !strings.HasPrefix(path, "/admin/health/")
 }
 
 func filterOpts() []otelhttp.Option {
@@ -38,13 +30,14 @@ func filterOpts() []otelhttp.Option {
 }
 
 // NewHandler returns a wrapped otelhttp.NewHandler with our request filters.
-func NewHandler(handler http.Handler, operation string) http.Handler {
-	return otelhttp.NewHandler(handler, operation, filterOpts()...)
+func NewHandler(handler http.Handler, operation string, opts ...otelhttp.Option) http.Handler {
+	opts = append(filterOpts(), opts...)
+	return otelhttp.NewHandler(handler, operation, opts...)
 }
 
 // TraceHandler wraps otelx.NewHandler, passing the URL path as the span name.
-func TraceHandler(h http.Handler) http.Handler {
+func TraceHandler(h http.Handler, opts ...otelhttp.Option) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		NewHandler(h, r.URL.Path).ServeHTTP(w, r)
+		NewHandler(h, r.URL.Path, opts...).ServeHTTP(w, r)
 	})
 }
