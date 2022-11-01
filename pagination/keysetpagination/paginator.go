@@ -60,10 +60,11 @@ func Paginate[I Item](p *Paginator) pop.ScopeFunc {
 	var item I
 	id := (&pop.Model{Value: item}).IDField()
 	return func(q *pop.Query) *pop.Query {
+		eid := q.Connection.Dialect.Quote(id)
 		return q.
 			Limit(p.Size()+1).
-			Where(fmt.Sprintf(`%q > ?`, id), p.Token()).
-			Order(fmt.Sprintf(`%q ASC`, id))
+			Where(fmt.Sprintf(`%s > ?`, eid), p.Token()).
+			Order(fmt.Sprintf(`%s ASC`, eid))
 	}
 }
 

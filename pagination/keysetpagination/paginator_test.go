@@ -31,6 +31,20 @@ func TestPaginator(t *testing.T) {
 		assert.Equal(t, []interface{}{"token"}, args)
 	})
 
+	t.Run("paginates correctly mysql", func(t *testing.T) {
+		c, err := pop.NewConnection(&pop.ConnectionDetails{
+			URL: "mysql://user:pass@(host:1337)/database",
+		})
+		require.NoError(t, err)
+		q := pop.Q(c)
+		paginator := GetPaginator(WithSize(10), WithToken("token"))
+		q = q.Scope(Paginate[testItem](paginator))
+
+		sql, args := q.ToSQL(&pop.Model{Value: new(testItem)})
+		assert.Equal(t, "SELECT test_items.pk FROM test_items AS test_items WHERE `pk` > ? ORDER BY `pk` ASC LIMIT 11", sql)
+		assert.Equal(t, []interface{}{"token"}, args)
+	})
+
 	t.Run("returns correct result", func(t *testing.T) {
 		items := []testItem{
 			{ID: "1"},
