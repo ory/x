@@ -24,9 +24,6 @@ format: .bin/goimports node_modules
 	.bin/goimports -w -local github.com/ory .
 	npm exec -- prettier --write .
 
-format: node_modules
-	npm exec -- prettier --write .
-
 licenses: .bin/licenses node_modules  # checks open-source licenses
 	.bin/licenses
 
