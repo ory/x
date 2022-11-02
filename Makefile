@@ -24,11 +24,20 @@ format: .bin/goimports node_modules
 	.bin/goimports -w -local github.com/ory .
 	npm exec -- prettier --write .
 
+format: node_modules
+	npm exec -- prettier --write .
+
+licenses: .bin/licenses node_modules  # checks open-source licenses
+	.bin/licenses
+
 .bin/goimports: Makefile
 	GOBIN=$(shell pwd)/.bin go install golang.org/x/tools/cmd/goimports@latest
 
 .bin/golangci-lint: Makefile
 	bash <(curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh) -d -b .bin v1.46.2
+
+.bin/licenses: Makefile
+	curl https://raw.githubusercontent.com/ory/ci/master/licenses/install | sh
 
 .PHONY: test
 test:
