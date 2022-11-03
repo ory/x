@@ -16,11 +16,12 @@ $(foreach dep, $(GO_DEPENDENCIES), $(eval $(call make-go-dependency, $(dep))))
 $(call make-lint-dependency)
 
 .bin/ory: Makefile
-	bash <(curl https://raw.githubusercontent.com/ory/cli/master/install.sh) -b .bin v0.0.53
-	touch -a -m .bin/ory
+	curl https://raw.githubusercontent.com/ory/meta/master/install.sh | bash -s -- -b .bin ory v0.1.47
+	touch .bin/ory
 
 .PHONY: format
-format: .bin/goimports node_modules
+format: .bin/goimports .bin/ory node_modules
+	.bin/ory dev headers license --exclude=clidoc/ --exclude=hasherx/mocks_pkdbf2_test.go --exclude=josex/ --exclude=hasherx/ --exclude=jsonnetsecure/jsonnet.go
 	.bin/goimports -w -local github.com/ory .
 	npm exec -- prettier --write .
 

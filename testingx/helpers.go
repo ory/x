@@ -1,3 +1,6 @@
+// Copyright © 2022 Ory Corp
+// SPDX-License-Identifier: Apache-2.0
+
 // Package testingx contains helper functions and extensions used when writing tests in Ory.
 package testingx
 
