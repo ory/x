@@ -9,15 +9,16 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/tidwall/gjson"
 
+	"github.com/ory/x/pagination"
+
 	"github.com/ory/herodot"
 )
 
-func encode(offset int64) string {
+func Encode(offset int64) string {
 	return base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprintf(`{"page":"%d","v":1}`, offset)))
 }
 
@@ -28,69 +29,6 @@ func decode(s string) (int, error) {
 	}
 
 	return int(gjson.Get(string(b), "page").Int()), nil
-}
-
-// Pagination Request Parameters
-//
-// The `Link` HTTP header contains multiple links (`first`, `next`, `last`, `previous`) formatted as:
-// `<https://{project-slug}.projects.oryapis.com/admin/clients?limit={limit}&offset={offset}>; rel="{page}"`
-//
-// For details on pagination please head over to the [pagination documentation](https://www.ory.sh/docs/ecosystem/api-design#pagination).
-//
-// swagger:model tokenPaginationRequestParameters
-type RequestParameters struct {
-	// Items per Page
-	//
-	// This is the number of items per page to return.
-	// For details on pagination please head over to the [pagination documentation](https://www.ory.sh/docs/ecosystem/api-design#pagination).
-	//
-	// required: false
-	// in: query
-	// default: 250
-	// min: 1
-	// max: 500
-	PageSize int `json:"page_size"`
-
-	// Next Page Token
-	//
-	// The next page token.
-	// For details on pagination please head over to the [pagination documentation](https://www.ory.sh/docs/ecosystem/api-design#pagination).
-	//
-	// required: false
-	// in: query
-	// default: 1
-	// min: 1
-	PageToken string `json:"page_token"`
-}
-
-// Pagination Response Header
-//
-// The `Link` HTTP header contains multiple links (`first`, `next`, `last`, `previous`) formatted as:
-// `<https://{project-slug}.projects.oryapis.com/admin/clients?limit={limit}&offset={offset}>; rel="{page}"`
-//
-// For details on pagination please head over to the [pagination documentation](https://www.ory.sh/docs/ecosystem/api-design#pagination).
-//
-// swagger:model tokenPaginationResponseHeaders
-type ResponseHeaders struct {
-	// The Link HTTP Header
-	//
-	// The `Link` header contains a comma-delimited list of links to the following pages:
-	//
-	// - first: The first page of results.
-	// - next: The next page of results.
-	// - prev: The previous page of results.
-	// - last: The last page of results.
-	//
-	// Pages are omitted if they do not exist. For example, if there is no next page, the `next` link is omitted. Examples:
-	//
-	//	</clients?limit=5&offset=0>; rel="first",</clients?limit=5&offset=15>; rel="next",</clients?limit=5&offset=5>; rel="prev",</clients?limit=5&offset=20>; rel="last"
-	//
-	Link string `json:"link"`
-
-	// The X-Total-Count HTTP Header
-	//
-	// The `X-Total-Count` header contains the total number of items in the collection.
-	TotalCount int `json:"x-total-count"`
 }
 
 type TokenPaginator struct {
@@ -140,65 +78,11 @@ func (p *TokenPaginator) ParsePagination(r *http.Request) (page, itemsPerPage in
 func header(u *url.URL, rel string, itemsPerPage, page int64) string {
 	q := u.Query()
 	q.Set("page_size", fmt.Sprintf("%d", itemsPerPage))
-	q.Set("page_token", encode(page))
+	q.Set("page_token", Encode(page))
 	u.RawQuery = q.Encode()
 	return fmt.Sprintf("<%s>; rel=\"%s\"", u.String(), rel)
 }
 
 func PaginationHeader(w http.ResponseWriter, u *url.URL, total int64, page, itemsPerPage int) {
-	if itemsPerPage <= 0 {
-		itemsPerPage = 1
-	}
-
-	itemsPerPage64 := int64(itemsPerPage)
-	offset := int64(page) * itemsPerPage64
-
-	// lastOffset will either equal the offset required to contain the remainder,
-	// or the limit.
-	var lastOffset int64
-	if total%itemsPerPage64 == 0 {
-		lastOffset = total - itemsPerPage64
-	} else {
-		lastOffset = (total / itemsPerPage64) * itemsPerPage64
-	}
-
-	w.Header().Set("X-Total-Count", strconv.FormatInt(total, 10))
-
-	// Check for last page
-	if offset >= lastOffset {
-		if total == 0 {
-			w.Header().Set("Link", strings.Join([]string{
-				header(u, "first", itemsPerPage64, 0),
-				header(u, "next", itemsPerPage64, ((offset/itemsPerPage64)+1)*itemsPerPage64),
-				header(u, "prev", itemsPerPage64, ((offset/itemsPerPage64)-1)*itemsPerPage64),
-			}, ","))
-			return
-		}
-
-		if total < itemsPerPage64 {
-			w.Header().Set("link", header(u, "first", total, 0))
-			return
-		}
-
-		w.Header().Set("Link", strings.Join([]string{
-			header(u, "first", itemsPerPage64, 0),
-			header(u, "prev", itemsPerPage64, lastOffset-itemsPerPage64),
-		}, ","))
-		return
-	}
-
-	if offset < itemsPerPage64 {
-		w.Header().Set("Link", strings.Join([]string{
-			header(u, "next", itemsPerPage64, itemsPerPage64),
-			header(u, "last", itemsPerPage64, lastOffset),
-		}, ","))
-		return
-	}
-
-	w.Header().Set("Link", strings.Join([]string{
-		header(u, "first", itemsPerPage64, 0),
-		header(u, "next", itemsPerPage64, ((offset/itemsPerPage64)+1)*itemsPerPage64),
-		header(u, "prev", itemsPerPage64, ((offset/itemsPerPage64)-1)*itemsPerPage64),
-		header(u, "last", itemsPerPage64, lastOffset),
-	}, ","))
+	pagination.HeaderWithFormatter(w, u, total, page, itemsPerPage, header)
 }
