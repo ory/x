@@ -1,7 +1,4 @@
-// Copyright © 2022 Ory Corp
-// SPDX-License-Identifier: Apache-2.0
-
-package tokenpagination
+package migrationpagination
 
 import (
 	"fmt"
@@ -10,6 +7,9 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/ory/x/pagination/pagepagination"
+	"github.com/ory/x/pagination/tokenpagination"
 
 	"github.com/ory/x/snapshotx"
 
@@ -82,18 +82,26 @@ func TestParsePagination(t *testing.T) {
 		expectedPage         int
 	}{
 		{"normal", "http://localhost/foo?page_size=10&page_token=eyJwYWdlIjoxMH0", 10, 10},
-		{"normal-encoded", "http://localhost/foo?page_size=10&page_token=" + Encode(10), 10, 10},
+		{"normal-encoded", fmt.Sprintf("http://localhost/foo?page_size=10&page_token=%s", tokenpagination.Encode(10)), 10, 10},
 		{"defaults", "http://localhost/foo", 250, 0},
 		{"limits", "http://localhost/foo?page_size=2000", 1000, 0},
 		{"negatives", "http://localhost/foo?page_size=-1&page=eyJwYWdlIjotMX0", 1, 0},
-		{"negatives-encoded", "http://localhost/foo?page_size=-1&page=" + Encode(-1), 1, 0},
+		{"negatives-encoded", fmt.Sprintf("http://localhost/foo?page_size=-1&page=%s", tokenpagination.Encode(-1)), 1, 0},
 		{"invalid_params", "http://localhost/foo?page_size=a&page=b", 250, 0},
+		{"legacy-normal", "http://localhost/foo?per_page=10&page=10", 10, 10},
+		{"legacy-defaults", "http://localhost/foo", 250, 0},
+		{"legacy-limits", "http://localhost/foo?per_page=2000", 1000, 0},
+		{"legacy-negatives", "http://localhost/foo?per_page=-1&page=-1", 1, 0},
+		{"legacy-invalid_params", "http://localhost/foo?per_page=a&page=b", 250, 0},
 	} {
 		t.Run(fmt.Sprintf("case=%s", tc.d), func(t *testing.T) {
 			u, _ := url.Parse(tc.url)
-			page, perPage := new(TokenPaginator).ParsePagination(&http.Request{URL: u})
+			page, perPage := NewPaginator(&pagepagination.PagePaginator{}, &tokenpagination.TokenPaginator{}).
+				ParsePagination(&http.Request{URL: u})
 			assert.EqualValues(t, tc.expectedItemsPerPage, perPage, "page_size")
 			assert.EqualValues(t, tc.expectedPage, page, "page_token")
+			assert.EqualValues(t, tc.expectedItemsPerPage, perPage, "per_page")
+			assert.EqualValues(t, tc.expectedPage, page, "page")
 		})
 	}
 }
