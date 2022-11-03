@@ -1,3 +1,6 @@
+// Copyright © 2022 Ory Corp
+// SPDX-License-Identifier: Apache-2.0
+
 // Package tracing provides helpers for dealing with Open Tracing and Distributed Tracing.
 package tracing
 
