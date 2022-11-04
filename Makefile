@@ -21,7 +21,7 @@ $(call make-lint-dependency)
 
 .PHONY: format
 format: .bin/goimports .bin/ory node_modules
-	.bin/ory dev headers copyright --exclude=clidoc/ --exclude=hasherx/mocks_pkdbf2_test.go --exclude=josex/ --exclude=hasherx/ --exclude=jsonnetsecure/jsonnet.go
+	.bin/ory dev headers copyright --type=open-source --exclude=clidoc/ --exclude=hasherx/mocks_pkdbf2_test.go --exclude=josex/ --exclude=hasherx/ --exclude=jsonnetsecure/jsonnet.go
 	.bin/goimports -w -local github.com/ory .
 	npm exec -- prettier --write .
 
