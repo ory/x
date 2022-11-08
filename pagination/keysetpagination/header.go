@@ -88,7 +88,7 @@ func Header(w http.ResponseWriter, u *url.URL, p *Paginator) {
 }
 
 // Parse returns the pagination options from the URL query.
-func Parse(q *url.Values) ([]Option, error) {
+func Parse(q url.Values) ([]Option, error) {
 	var opts []Option
 	if q.Has("page_token") {
 		opts = append(opts, WithToken(q.Get("page_token")))
