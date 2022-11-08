@@ -1,11 +1,13 @@
 package jsonnetsecure
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"path"
+	"runtime"
 	"testing"
 
 	"github.com/google/go-jsonnet"
@@ -100,11 +102,16 @@ func (importer *ErrorImporter) Import(importedFrom, importedPath string) (conten
 func JsonnetTestBinary(t testing.TB) string {
 	t.Helper()
 
+	var stderr bytes.Buffer
 	outPath := path.Join(t.TempDir(), "jsonnet")
+	if runtime.GOOS == "windows" {
+		outPath = outPath + ".exe"
+	}
 	cmd := exec.Command("go", "build", "-o", outPath, "github.com/ory/x/jsonnetsecure/cmd")
-	cmdOut, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("building the Go binary returned error: %v\n%s", err, string(cmdOut))
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil || stderr.Len() != 0 {
+		t.Fatalf("building the Go binary returned error: %v\n%s", err, string(stderr.String()))
 	}
 
 	return outPath
