@@ -4,6 +4,8 @@
 package keysetpagination
 
 import (
+	"net/url"
+	"strconv"
 	"testing"
 
 	"github.com/gobuffalo/pop/v6"
@@ -63,7 +65,7 @@ func TestPaginator(t *testing.T) {
 			{ID: "11"},
 		}
 		paginator := GetPaginator(WithDefaultSize(10), WithToken("token"))
-		items, nextPage := Result[testItem](items, paginator)
+		items, nextPage := Result(items, paginator)
 		assert.Len(t, items, 10)
 		assert.Equal(t, "10", nextPage.Token())
 		assert.Equal(t, 10, nextPage.Size())
@@ -112,5 +114,45 @@ func TestPaginator(t *testing.T) {
 				assert.Equal(t, tc.expectedToken, paginator.Token())
 			})
 		}
+	})
+}
+
+func TestParse(t *testing.T) {
+	for _, tc := range []struct {
+		name          string
+		q             url.Values
+		expectedSize  int
+		expectedToken string
+	}{
+		{
+			name:          "with page token",
+			q:             url.Values{"page_token": {"token3"}},
+			expectedSize:  100,
+			expectedToken: "token3",
+		},
+		{
+			name:         "with page size",
+			q:            url.Values{"page_size": {"123"}},
+			expectedSize: 123,
+		},
+		{
+			name:          "with page size and page token",
+			q:             url.Values{"page_size": {"123"}, "page_token": {"token5"}},
+			expectedSize:  123,
+			expectedToken: "token5",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			opts, err := Parse(tc.q)
+			require.NoError(t, err)
+			paginator := GetPaginator(opts...)
+			assert.Equal(t, tc.expectedSize, paginator.Size())
+			assert.Equal(t, tc.expectedToken, paginator.Token())
+		})
+	}
+
+	t.Run("invalid page size leads to err", func(t *testing.T) {
+		_, err := Parse(url.Values{"page_size": {"invalid-int"}})
+		require.ErrorIs(t, err, strconv.ErrSyntax)
 	})
 }
