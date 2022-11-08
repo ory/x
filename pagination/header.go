@@ -5,6 +5,7 @@ package pagination
 
 import (
 	"fmt"
+	"math"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -83,5 +84,11 @@ func HeaderWithFormatter(w http.ResponseWriter, u *url.URL, total int64, page, i
 // If total is not set, then no "last" page will be calculated.
 // If no limit is provided, then it will default to 1.
 func Header(w http.ResponseWriter, u *url.URL, total int, limit, offset int) {
-	HeaderWithFormatter(w, u, int64(total), limit, offset, header)
+	var page int
+	if limit == 0 {
+		limit = 1
+	}
+
+	page = int(math.Floor(float64(offset) / float64(limit)))
+	HeaderWithFormatter(w, u, int64(total), page, limit, header)
 }
