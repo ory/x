@@ -97,7 +97,7 @@ func (importer *ErrorImporter) Import(importedFrom, importedPath string) (conten
 	return jsonnet.Contents{}, "", fmt.Errorf("import not available %v", importedPath)
 }
 
-func JsonnetTestBinary(t *testing.T) string {
+func JsonnetTestBinary(t testing.TB) string {
 	t.Helper()
 
 	outPath := path.Join(t.TempDir(), "jsonnet")

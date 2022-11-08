@@ -156,3 +156,32 @@ func assertEqualVMOutput(t *testing.T, run func(factory func(t *testing.T) VM) s
 	assert.Equal(t, expectedOut, secureOut, "secure output incorrect")
 	assert.Equal(t, expectedOut, processOut, "process output incorrect")
 }
+
+func BenchmarkIsolatedVM(b *testing.B) {
+	snippet := "{a:1}"
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	vm := MakeSecureVM(
+		WithProcessIsolatedVM(ctx),
+		WithJsonnetBinary(JsonnetTestBinary(b)),
+	)
+
+	for i := 0; i < b.N; i++ {
+		_, err := vm.EvaluateAnonymousSnippet("test", snippet)
+		if err != nil {
+			require.NoError(b, err)
+		}
+	}
+}
+
+func BenchmarkRegularVM(b *testing.B) {
+	snippet := "{a:1}"
+	vm := MakeSecureVM()
+
+	for i := 0; i < b.N; i++ {
+		_, err := vm.EvaluateAnonymousSnippet("test", snippet)
+		if err != nil {
+			require.NoError(b, err)
+		}
+	}
+}
