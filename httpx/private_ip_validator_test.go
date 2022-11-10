@@ -4,6 +4,8 @@
 package httpx
 
 import (
+	"net/http"
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -34,4 +36,34 @@ func TestDisallowLocalIPAddressesWhenSet(t *testing.T) {
 	require.NoError(t, DisallowIPPrivateAddresses(""))
 	require.Error(t, DisallowIPPrivateAddresses("127.0.0.1"))
 	require.ErrorAs(t, DisallowIPPrivateAddresses("127.0.0.1"), new(ErrPrivateIPAddressDisallowed))
+}
+
+type noOpRoundTripper struct{}
+
+func (n noOpRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
+	return &http.Response{}, nil
+}
+
+var _ http.RoundTripper = new(noOpRoundTripper)
+
+func TestAllowExceptions(t *testing.T) {
+	rt := &NoInternalIPRoundTripper{RoundTripper: new(noOpRoundTripper), internalIPExceptions: []string{"http://localhost/asdf"}}
+
+	_, err := rt.RoundTrip(&http.Request{
+		Host: "localhost",
+		URL:  &url.URL{Scheme: "http", Path: "/asdf", Host: "localhost"},
+		Header: http.Header{
+			"Host": []string{"localhost"},
+		},
+	})
+	require.NoError(t, err)
+
+	_, err = rt.RoundTrip(&http.Request{
+		Host: "localhost",
+		URL:  &url.URL{Scheme: "http", Path: "/not-asdf", Host: "localhost"},
+		Header: http.Header{
+			"Host": []string{"localhost"},
+		},
+	})
+	require.Error(t, err)
 }
