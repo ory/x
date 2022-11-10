@@ -98,11 +98,6 @@ func (n NoInternalIPRoundTripper) RoundTrip(request *http.Request) (*http.Respon
 			return rt.RoundTrip(request)
 		}
 	}
-	for _, exception := range n.internalIPExceptions {
-		if incoming.String() == exception {
-			return rt.RoundTrip(request)
-		}
-	}
 
 	host, _, _ := net.SplitHostPort(request.Host)
 	if err := DisallowIPPrivateAddresses(stringsx.Coalesce(host, request.Host)); err != nil {
