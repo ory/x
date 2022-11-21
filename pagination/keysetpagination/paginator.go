@@ -66,8 +66,7 @@ func Paginate[I Item](p *Paginator) pop.ScopeFunc {
 		eid := q.Connection.Dialect.Quote(id)
 		return q.
 			Limit(p.Size()+1).
-			Where(fmt.Sprintf(`%s > ?`, eid), p.Token()).
-			Order(fmt.Sprintf(`%s ASC`, eid))
+			Where(fmt.Sprintf(`%s > ?`, eid), p.Token())
 	}
 }
 
