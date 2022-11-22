@@ -32,7 +32,7 @@ func TestPaginator(t *testing.T) {
 		q = q.Scope(Paginate[testItem](paginator))
 
 		sql, args := q.ToSQL(&pop.Model{Value: new(testItem)})
-		assert.Equal(t, "SELECT test_items.pk FROM test_items AS test_items WHERE \"pk\" > $1 LIMIT 11", sql)
+		assert.Equal(t, "SELECT test_items.pk FROM test_items AS test_items WHERE \"pk\" > $1 ORDER BY \"pk\" ASC LIMIT 11", sql)
 		assert.Equal(t, []interface{}{"token"}, args)
 	})
 
@@ -46,7 +46,35 @@ func TestPaginator(t *testing.T) {
 		q = q.Scope(Paginate[testItem](paginator))
 
 		sql, args := q.ToSQL(&pop.Model{Value: new(testItem)})
-		assert.Equal(t, "SELECT test_items.pk FROM test_items AS test_items WHERE `pk` > ? LIMIT 11", sql)
+		assert.Equal(t, "SELECT test_items.pk FROM test_items AS test_items WHERE `pk` > ? ORDER BY `pk` ASC LIMIT 11", sql)
+		assert.Equal(t, []interface{}{"token"}, args)
+	})
+
+	t.Run("paginates correctly with order", func(t *testing.T) {
+		c, err := pop.NewConnection(&pop.ConnectionDetails{
+			URL: "postgres://foo.bar",
+		})
+		require.NoError(t, err)
+		q := pop.Q(c)
+		paginator := GetPaginator(WithSize(10), WithToken("token"), WithOrder("COL", OrderDirectionAscending))
+		q = q.Scope(Paginate[testItem](paginator))
+
+		sql, args := q.ToSQL(&pop.Model{Value: new(testItem)})
+		assert.Equal(t, "SELECT test_items.pk FROM test_items AS test_items WHERE \"pk\" > $1 ORDER BY \"COL\" ASC LIMIT 11", sql)
+		assert.Equal(t, []interface{}{"token"}, args)
+	})
+
+	t.Run("paginates correctly with order mysql", func(t *testing.T) {
+		c, err := pop.NewConnection(&pop.ConnectionDetails{
+			URL: "mysql://user:pass@(host:1337)/database",
+		})
+		require.NoError(t, err)
+		q := pop.Q(c)
+		paginator := GetPaginator(WithSize(10), WithToken("token"), WithOrder("COL", OrderDirectionAscending))
+		q = q.Scope(Paginate[testItem](paginator))
+
+		sql, args := q.ToSQL(&pop.Model{Value: new(testItem)})
+		assert.Equal(t, "SELECT test_items.pk FROM test_items AS test_items WHERE `pk` > ? ORDER BY `COL` ASC LIMIT 11", sql)
 		assert.Equal(t, []interface{}{"token"}, args)
 	})
 
