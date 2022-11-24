@@ -87,7 +87,7 @@ func NewClient(cmd *cobra.Command) (*http.Client, *url.URL, error) {
 	if err != nil {
 		return nil, nil, errors.WithStack(err)
 	}
-	var header http.Header
+	header := http.Header{}
 	for _, h := range rawHeaders {
 		parts := strings.Split(h, ":")
 		if len(parts) != 2 {
