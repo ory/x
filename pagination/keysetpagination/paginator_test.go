@@ -14,7 +14,8 @@ import (
 )
 
 type testItem struct {
-	ID string `db:"pk"`
+	ID        string `db:"pk"`
+	CreatedAt string `db:"created_at"`
 }
 
 func (t testItem) PageToken() string {
@@ -32,7 +33,7 @@ func TestPaginator(t *testing.T) {
 		q = q.Scope(Paginate[testItem](paginator))
 
 		sql, args := q.ToSQL(&pop.Model{Value: new(testItem)})
-		assert.Equal(t, "SELECT test_items.pk FROM test_items AS test_items WHERE \"pk\" > $1 ORDER BY \"pk\" ASC LIMIT 11", sql)
+		assert.Equal(t, "SELECT test_items.created_at, test_items.pk FROM test_items AS test_items WHERE \"pk\" > $1 ORDER BY \"pk\" ASC LIMIT 11", sql)
 		assert.Equal(t, []interface{}{"token"}, args)
 	})
 
@@ -46,7 +47,7 @@ func TestPaginator(t *testing.T) {
 		q = q.Scope(Paginate[testItem](paginator))
 
 		sql, args := q.ToSQL(&pop.Model{Value: new(testItem)})
-		assert.Equal(t, "SELECT test_items.pk FROM test_items AS test_items WHERE `pk` > ? ORDER BY `pk` ASC LIMIT 11", sql)
+		assert.Equal(t, "SELECT test_items.created_at, test_items.pk FROM test_items AS test_items WHERE `pk` > ? ORDER BY `pk` ASC LIMIT 11", sql)
 		assert.Equal(t, []interface{}{"token"}, args)
 	})
 
@@ -155,4 +156,18 @@ func TestParse(t *testing.T) {
 		_, err := Parse(url.Values{"page_size": {"invalid-int"}})
 		require.ErrorIs(t, err, strconv.ErrSyntax)
 	})
+}
+
+func TestPaginateWithAdditionalColumn(t *testing.T) {
+	c, err := pop.NewConnection(&pop.ConnectionDetails{
+		URL: "postgres://foo.bar",
+	})
+	require.NoError(t, err)
+	q := pop.Q(c)
+	paginator := GetPaginator(WithSize(10), WithToken("pk=token_value/created_at=timestamp"), WithColumn("created_at", "DESC"))
+	q = q.Scope(Paginate[testItem](paginator))
+
+	sql, args := q.ToSQL(&pop.Model{Value: new(testItem)})
+	assert.Equal(t, "SELECT test_items.created_at, test_items.pk FROM test_items AS test_items WHERE \"created_at\" > $1 OR (\"created_at\" = $2 AND \"pk\" > $3) ORDER BY \"created_at\" DESC, \"pk\" ASC LIMIT 11", sql)
+	assert.Equal(t, []interface{}{"timestamp", "timestamp", "token_value"}, args)
 }

@@ -5,16 +5,23 @@ package keysetpagination
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/gobuffalo/pop/v6"
 )
 
 type (
-	Item      interface{ PageToken() string }
+	Item interface{ PageToken() string }
+
+	columnOrdering struct {
+		name  string
+		order string
+	}
 	Paginator struct {
 		token, defaultToken        string
 		size, defaultSize, maxSize int
 		isLast                     bool
+		additionalColumn           columnOrdering
 	}
 	Option func(*Paginator) *Paginator
 )
@@ -40,6 +47,25 @@ func (p *Paginator) Size() int {
 	return size
 }
 
+func parseToken(idField string, s string) map[string]string {
+	tokens := strings.Split(s, "/")
+	if len(tokens) != 2 {
+		return map[string]string{idField: s}
+	}
+
+	r := map[string]string{}
+
+	for _, p := range tokens {
+		parts := strings.Split(p, "=")
+		if len(parts) != 2 {
+			continue
+		}
+		r[parts[0]] = parts[1]
+	}
+
+	return r
+}
+
 func (p *Paginator) IsLast() bool {
 	return p.isLast
 }
@@ -61,12 +87,28 @@ func (p *Paginator) ToOptions() []Option {
 //	q := c.Where("foo = ?", foo).Scope(keysetpagination.Paginate[Item](paginator))
 func Paginate[I Item](p *Paginator) pop.ScopeFunc {
 	var item I
-	id := (&pop.Model{Value: item}).IDField()
+	model := &pop.Model{Value: item}
+	id := model.IDField()
 	return func(q *pop.Query) *pop.Query {
 		eid := q.Connection.Dialect.Quote(id)
+
+		tokenParts := parseToken(id, p.Token())
+		idValue := tokenParts[id]
+		if column, ok := model.Columns().Cols[p.additionalColumn.name]; ok {
+			quoteName := q.Connection.Dialect.Quote(column.Name)
+
+			value := tokenParts[column.Name]
+
+			q = q.
+				Where(fmt.Sprintf("%s > ? OR (%s = ? AND %s > ?)", quoteName, quoteName, eid), value, value, idValue).
+				Order(fmt.Sprintf("%s %s", quoteName, p.additionalColumn.order))
+		} else {
+			q = q.
+				Where(fmt.Sprintf(`%s > ?`, eid), idValue)
+		}
 		return q.
-			Limit(p.Size()+1).
-			Where(fmt.Sprintf(`%s > ?`, eid), p.Token()).
+			Limit(p.Size() + 1).
+			// we always need to order by the id field last
 			Order(fmt.Sprintf(`%s ASC`, eid))
 	}
 }
@@ -123,6 +165,16 @@ func WithToken(t string) Option {
 func WithSize(size int) Option {
 	return func(opts *Paginator) *Paginator {
 		opts.size = size
+		return opts
+	}
+}
+
+func WithColumn(name string, order string) Option {
+	return func(opts *Paginator) *Paginator {
+		opts.additionalColumn = columnOrdering{
+			name:  name,
+			order: order,
+		}
 		return opts
 	}
 }
