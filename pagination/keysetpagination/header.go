@@ -94,7 +94,11 @@ func Header(w http.ResponseWriter, u *url.URL, p *Paginator) {
 func Parse(q url.Values) ([]Option, error) {
 	var opts []Option
 	if q.Has("page_token") {
-		opts = append(opts, WithToken(q.Get("page_token")))
+		pageToken, err := url.QueryUnescape(q.Get("page_token"))
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		opts = append(opts, WithToken(pageToken))
 	}
 	if q.Has("page_size") {
 		size, err := strconv.Atoi(q.Get("page_size"))
