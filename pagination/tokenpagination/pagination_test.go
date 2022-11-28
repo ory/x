@@ -81,11 +81,11 @@ func TestParsePagination(t *testing.T) {
 		expectedItemsPerPage int
 		expectedPage         int
 	}{
-		{"normal", "http://localhost/foo?page_size=10&page_token=eyJwYWdlIjoxMH0", 10, 10},
-		{"normal-encoded", "http://localhost/foo?page_size=10&page_token=" + Encode(10), 10, 10},
+		{"normal", "http://localhost/foo?page_size=10&page_token=eyJvZmZzZXQiOjEwfQ", 10, 1},
+		{"normal-encoded", "http://localhost/foo?page_size=10&page_token=" + Encode(10), 10, 1},
 		{"defaults", "http://localhost/foo", 250, 0},
 		{"limits", "http://localhost/foo?page_size=2000", 1000, 0},
-		{"negatives", "http://localhost/foo?page_size=-1&page=eyJwYWdlIjotMX0", 1, 0},
+		{"negatives", "http://localhost/foo?page_size=-1&page=eyJvZmZzZXQiOi0xfQ", 1, 0},
 		{"negatives-encoded", "http://localhost/foo?page_size=-1&page=" + Encode(-1), 1, 0},
 		{"invalid_params", "http://localhost/foo?page_size=a&page=b", 250, 0},
 	} {

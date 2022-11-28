@@ -19,7 +19,7 @@ import (
 )
 
 func Encode(offset int64) string {
-	return base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprintf(`{"page":"%d","v":1}`, offset)))
+	return base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprintf(`{"offset":"%d","v":2}`, offset)))
 }
 
 func decode(s string) (int, error) {
@@ -28,7 +28,7 @@ func decode(s string) (int, error) {
 		return 0, errors.WithStack(herodot.ErrBadRequest.WithWrap(err).WithReasonf("Unable to parse pagination token: %s", err))
 	}
 
-	return int(gjson.Get(string(b), "page").Int()), nil
+	return int(gjson.Get(string(b), "offset").Int()), nil
 }
 
 type TokenPaginator struct {
@@ -50,8 +50,9 @@ func (p *TokenPaginator) defaults() {
 func (p *TokenPaginator) ParsePagination(r *http.Request) (page, itemsPerPage int) {
 	p.defaults()
 
+	var offset int
 	if offsetParam := r.URL.Query().Get("page_token"); len(offsetParam) > 0 {
-		page, _ = decode(offsetParam)
+		offset, _ = decode(offsetParam)
 	}
 
 	if gotLimit, err := strconv.ParseInt(r.URL.Query().Get("page_size"), 10, 0); err == nil {
@@ -68,6 +69,10 @@ func (p *TokenPaginator) ParsePagination(r *http.Request) (page, itemsPerPage in
 		itemsPerPage = 1
 	}
 
+	if offset > 0 {
+		page = offset / itemsPerPage
+	}
+
 	if page < 0 {
 		page = 0
 	}
@@ -75,10 +80,10 @@ func (p *TokenPaginator) ParsePagination(r *http.Request) (page, itemsPerPage in
 	return
 }
 
-func header(u *url.URL, rel string, itemsPerPage, page int64) string {
+func header(u *url.URL, rel string, itemsPerPage, offset int64) string {
 	q := u.Query()
 	q.Set("page_size", fmt.Sprintf("%d", itemsPerPage))
-	q.Set("page_token", Encode(page))
+	q.Set("page_token", Encode(offset))
 	u.RawQuery = q.Encode()
 	return fmt.Sprintf("<%s>; rel=\"%s\"", u.String(), rel)
 }
