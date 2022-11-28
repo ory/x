@@ -163,11 +163,53 @@ func TestPaginateWithAdditionalColumn(t *testing.T) {
 		URL: "postgres://foo.bar",
 	})
 	require.NoError(t, err)
-	q := pop.Q(c)
-	paginator := GetPaginator(WithSize(10), WithToken("pk=token_value/created_at=timestamp"), WithColumn("created_at", "DESC"))
-	q = q.Scope(Paginate[testItem](paginator))
 
-	sql, args := q.ToSQL(&pop.Model{Value: new(testItem)})
-	assert.Equal(t, "SELECT test_items.created_at, test_items.pk FROM test_items AS test_items WHERE \"created_at\" > $1 OR (\"created_at\" = $2 AND \"pk\" > $3) ORDER BY \"created_at\" DESC, \"pk\" ASC LIMIT 11", sql)
-	assert.Equal(t, []interface{}{"timestamp", "timestamp", "token_value"}, args)
+	for _, tc := range []struct {
+		d    string
+		opts []Option
+		e    string
+		args []interface{}
+	}{
+		{
+			d:    "with sort by created_at DESC",
+			opts: []Option{WithToken("pk=token_value/created_at=timestamp"), WithColumn("created_at", "DESC")},
+			e:    "created_at\" < $1 OR (\"created_at\" = $2 AND \"pk\" > $3) ORDER BY \"created_at\" DESC, \"pk\" ASC",
+			args: []interface{}{"timestamp", "timestamp", "token_value"},
+		},
+		{
+			d:    "with sort by created_at ASC",
+			opts: []Option{WithToken("pk=token_value/created_at=timestamp"), WithColumn("created_at", "ASC")},
+			e:    "created_at\" > $1 OR (\"created_at\" = $2 AND \"pk\" > $3) ORDER BY \"created_at\" ASC, \"pk\" ASC",
+			args: []interface{}{"timestamp", "timestamp", "token_value"},
+		},
+		{
+			d:    "with malformed token",
+			opts: []Option{WithToken("some/random/token"), WithColumn("created_at", "ASC")},
+			e:    "WHERE \"pk\" > $1 ORDER BY \"pk\"",
+			args: []interface{}{"some/random/token"},
+		},
+		{
+			d:    "with unknown column",
+			opts: []Option{WithToken("pk=token_value/created_at=timestamp"), WithColumn("unknown_column", "ASC")},
+			e:    "WHERE \"pk\" > $1 ORDER BY \"pk\"",
+			args: []interface{}{"pk=token_value/created_at=timestamp"},
+		},
+		{
+			d:    "with unknown order",
+			opts: []Option{WithToken("pk=token_value/created_at=timestamp"), WithColumn("created_at", Order("unknown order"))},
+			e:    "WHERE \"pk\" > $1 ORDER BY \"pk\"",
+			args: []interface{}{"pk=token_value/created_at=timestamp"},
+		},
+	} {
+		t.Run("case="+tc.d, func(t *testing.T) {
+			opts := append(tc.opts, WithSize(10))
+			paginator := GetPaginator(opts...)
+			sql, args := pop.Q(c).
+				Scope(Paginate[testItem](paginator)).
+				ToSQL(&pop.Model{Value: new(testItem)})
+			assert.Contains(t, sql, tc.e)
+			assert.Contains(t, sql, "LIMIT 11")
+			assert.Equal(t, tc.args, args)
+		})
+	}
 }
