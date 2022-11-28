@@ -1,5 +1,5 @@
 [
-  "\u003chttp://example.com?page=0\u0026page_size=50\u0026page_token=eyJwYWdlIjoiMCIsInYiOjF9\u0026per_page=50\u003e",
-  "rel=\"first\",\u003chttp://example.com?page=1\u0026page_size=50\u0026page_token=eyJwYWdlIjoiNTAiLCJ2IjoxfQ\u0026per_page=50\u003e",
+  "\u003chttp://example.com?page=0\u0026page_size=50\u0026page_token=eyJvZmZzZXQiOiIwIiwidiI6Mn0\u0026per_page=50\u003e",
+  "rel=\"first\",\u003chttp://example.com?page=1\u0026page_size=50\u0026page_token=eyJvZmZzZXQiOiI1MCIsInYiOjJ9\u0026per_page=50\u003e",
   "rel=\"prev\""
 ]

@@ -66,10 +66,10 @@ func (p *PagePaginator) ParsePagination(r *http.Request) (page, itemsPerPage int
 	return
 }
 
-func header(u *url.URL, rel string, limit, page int64) string {
+func header(u *url.URL, rel string, limit, offset int64) string {
 	q := u.Query()
 	q.Set("per_page", fmt.Sprintf("%d", limit))
-	q.Set("page", fmt.Sprintf("%d", page/limit))
+	q.Set("page", fmt.Sprintf("%d", offset/limit))
 	u.RawQuery = q.Encode()
 	return fmt.Sprintf("<%s>; rel=\"%s\"", u.String(), rel)
 }
