@@ -20,8 +20,10 @@ func header(u *url.URL, rel string, limit, offset int64) string {
 	return fmt.Sprintf("<%s>; rel=\"%s\"", u.String(), rel)
 }
 
+type formatter func(location *url.URL, rel string, itemsPerPage int64, offset int64) string
+
 // HeaderWithFormatter adds an HTTP header for pagination which uses a custom formatter for generating the URL links.
-func HeaderWithFormatter(w http.ResponseWriter, u *url.URL, total int64, page, itemsPerPage int, formatter func(*url.URL, string, int64, int64) string) {
+func HeaderWithFormatter(w http.ResponseWriter, u *url.URL, total int64, page, itemsPerPage int, f formatter) {
 	if itemsPerPage <= 0 {
 		itemsPerPage = 1
 	}
@@ -44,38 +46,38 @@ func HeaderWithFormatter(w http.ResponseWriter, u *url.URL, total int64, page, i
 	if offset >= lastOffset {
 		if total == 0 {
 			w.Header().Set("Link", strings.Join([]string{
-				formatter(u, "first", itemsPerPage64, 0),
-				formatter(u, "next", itemsPerPage64, ((offset/itemsPerPage64)+1)*itemsPerPage64),
-				formatter(u, "prev", itemsPerPage64, ((offset/itemsPerPage64)-1)*itemsPerPage64),
+				f(u, "first", itemsPerPage64, 0),
+				f(u, "next", itemsPerPage64, ((offset/itemsPerPage64)+1)*itemsPerPage64),
+				f(u, "prev", itemsPerPage64, ((offset/itemsPerPage64)-1)*itemsPerPage64),
 			}, ","))
 			return
 		}
 
 		if total <= itemsPerPage64 {
-			w.Header().Set("link", formatter(u, "first", total, 0))
+			w.Header().Set("link", f(u, "first", total, 0))
 			return
 		}
 
 		w.Header().Set("Link", strings.Join([]string{
-			formatter(u, "first", itemsPerPage64, 0),
-			formatter(u, "prev", itemsPerPage64, lastOffset-itemsPerPage64),
+			f(u, "first", itemsPerPage64, 0),
+			f(u, "prev", itemsPerPage64, lastOffset-itemsPerPage64),
 		}, ","))
 		return
 	}
 
 	if offset < itemsPerPage64 {
 		w.Header().Set("Link", strings.Join([]string{
-			formatter(u, "next", itemsPerPage64, itemsPerPage64),
-			formatter(u, "last", itemsPerPage64, lastOffset),
+			f(u, "next", itemsPerPage64, itemsPerPage64),
+			f(u, "last", itemsPerPage64, lastOffset),
 		}, ","))
 		return
 	}
 
 	w.Header().Set("Link", strings.Join([]string{
-		formatter(u, "first", itemsPerPage64, 0),
-		formatter(u, "next", itemsPerPage64, ((offset/itemsPerPage64)+1)*itemsPerPage64),
-		formatter(u, "prev", itemsPerPage64, ((offset/itemsPerPage64)-1)*itemsPerPage64),
-		formatter(u, "last", itemsPerPage64, lastOffset),
+		f(u, "first", itemsPerPage64, 0),
+		f(u, "next", itemsPerPage64, ((offset/itemsPerPage64)+1)*itemsPerPage64),
+		f(u, "prev", itemsPerPage64, ((offset/itemsPerPage64)-1)*itemsPerPage64),
+		f(u, "last", itemsPerPage64, lastOffset),
 	}, ","))
 }
 
