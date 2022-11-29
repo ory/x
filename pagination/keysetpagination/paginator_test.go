@@ -173,31 +173,31 @@ func TestPaginateWithAdditionalColumn(t *testing.T) {
 		{
 			d:    "with sort by created_at DESC",
 			opts: []Option{WithToken("pk=token_value/created_at=timestamp"), WithColumn("created_at", "DESC")},
-			e:    "created_at\" < $1 OR (\"created_at\" = $2 AND \"pk\" > $3) ORDER BY \"created_at\" DESC, \"pk\" ASC",
+			e:    `WHERE "created_at" < $1 OR ("created_at" = $2 AND "pk" > $3) ORDER BY "created_at" DESC, "pk" ASC`,
 			args: []interface{}{"timestamp", "timestamp", "token_value"},
 		},
 		{
 			d:    "with sort by created_at ASC",
 			opts: []Option{WithToken("pk=token_value/created_at=timestamp"), WithColumn("created_at", "ASC")},
-			e:    "created_at\" > $1 OR (\"created_at\" = $2 AND \"pk\" > $3) ORDER BY \"created_at\" ASC, \"pk\" ASC",
+			e:    `WHERE "created_at" > $1 OR ("created_at" = $2 AND "pk" > $3) ORDER BY "created_at" ASC, "pk" ASC`,
 			args: []interface{}{"timestamp", "timestamp", "token_value"},
 		},
 		{
 			d:    "with malformed token",
 			opts: []Option{WithToken("some/random/token"), WithColumn("created_at", "ASC")},
-			e:    "WHERE \"pk\" > $1 ORDER BY \"pk\"",
+			e:    `WHERE "pk" > $1 ORDER BY "pk"`,
 			args: []interface{}{"some/random/token"},
 		},
 		{
 			d:    "with unknown column",
 			opts: []Option{WithToken("pk=token_value/created_at=timestamp"), WithColumn("unknown_column", "ASC")},
-			e:    "WHERE \"pk\" > $1 ORDER BY \"pk\"",
+			e:    `WHERE "pk" > $1 ORDER BY "pk"`,
 			args: []interface{}{"pk=token_value/created_at=timestamp"},
 		},
 		{
 			d:    "with unknown order",
 			opts: []Option{WithToken("pk=token_value/created_at=timestamp"), WithColumn("created_at", Order("unknown order"))},
-			e:    "WHERE \"pk\" > $1 ORDER BY \"pk\"",
+			e:    `WHERE "pk" > $1 ORDER BY "pk"`,
 			args: []interface{}{"pk=token_value/created_at=timestamp"},
 		},
 	} {
