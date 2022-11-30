@@ -4,8 +4,8 @@
 package keysetpagination
 
 import (
+	"encoding/base64"
 	"fmt"
-	"net/url"
 	"strings"
 )
 
@@ -45,15 +45,15 @@ func (m MapPageToken) Encode() string {
 		elems = append(elems, fmt.Sprintf("%s=%s", k, v))
 	}
 
-	return url.QueryEscape(strings.Join(elems, pageTokenColumnDelim))
+	return base64.RawStdEncoding.EncodeToString([]byte(strings.Join(elems, pageTokenColumnDelim)))
 }
 
 func NewMapPageToken(s string) (PageToken, error) {
-	s, err := url.QueryUnescape(s)
+	b, err := base64.RawStdEncoding.DecodeString(s)
 	if err != nil {
 		return nil, err
 	}
-	tokens := strings.Split(s, pageTokenColumnDelim)
+	tokens := strings.Split(string(b), pageTokenColumnDelim)
 
 	r := map[string]string{}
 
