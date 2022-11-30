@@ -45,6 +45,8 @@ func (m MapPageToken) Encode() string {
 		elems = append(elems, fmt.Sprintf("%s=%s", k, v))
 	}
 
+	// For now: use Base64 instead of URL escaping, as the Timestamp format we need to use can contain a `+` sign,
+	// which represents a space in URLs, so it's not properly encoded by the Go library.
 	return base64.RawStdEncoding.EncodeToString([]byte(strings.Join(elems, pageTokenColumnDelim)))
 }
 

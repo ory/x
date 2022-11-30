@@ -147,16 +147,9 @@ func TestParse(t *testing.T) {
 		},
 		{
 			name:          "with page size and page token",
-			q:             url.Values{"page_size": {"123"}, "page_token": {"pk=token5"}},
+			q:             url.Values{"page_size": {"123"}, "page_token": {"cGs9dG9rZW41"}},
 			expectedSize:  123,
 			expectedToken: MapPageToken{"pk": "token5"},
-			f:             NewMapPageToken,
-		},
-		{
-			name:          "with page size and page token",
-			q:             url.Values{"page_size": {"123"}, "page_token": {"pk%3Dtoken%2Fcreated_at%3D111"}},
-			expectedSize:  123,
-			expectedToken: MapPageToken{"created_at": "111", "pk": "token"},
 			f:             NewMapPageToken,
 		},
 	} {
