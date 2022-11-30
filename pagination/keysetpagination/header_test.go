@@ -30,26 +30,15 @@ func TestHeader(t *testing.T) {
 	assert.Len(t, links, 2)
 	assert.Contains(t, links[0], "page_token=default")
 	assert.Contains(t, links[1], "page_token=next")
-}
 
-func TestHeader_WithIsLast(t *testing.T) {
-	p := &Paginator{
-		defaultToken: StringPageToken("default"),
-		token:        StringPageToken("next"),
-		size:         2,
-		isLast:       true,
-	}
+	t.Run("with isLast", func(t *testing.T) {
+		p.isLast = true
 
-	u, err := url.Parse("http://ory.sh/")
-	require.NoError(t, err)
+		Header(r, u, p)
 
-	r := httptest.NewRecorder()
+		links := r.HeaderMap["Link"]
+		assert.Len(t, links, 1)
+		assert.Contains(t, links[0], "page_token=default")
+	})
 
-	Header(r, u, p)
-
-	links := r.HeaderMap["Link"]
-	assert.Len(t, links, 1)
-	assert.Contains(t, links[0], "page_token=default")
-
-	t.Logf("%v", url.QueryEscape("pk=token/created_at=123"))
 }
