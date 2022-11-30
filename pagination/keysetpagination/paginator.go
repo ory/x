@@ -13,7 +13,7 @@ import (
 )
 
 type (
-	Item interface{ PageToken() string }
+	Item interface{ PageToken() PageToken }
 
 	Order string
 
@@ -22,7 +22,7 @@ type (
 		order Order
 	}
 	Paginator struct {
-		token, defaultToken        string
+		token, defaultToken        PageToken
 		size, defaultSize, maxSize int
 		isLast                     bool
 		additionalColumn           columnOrdering
@@ -48,8 +48,8 @@ func (o Order) extract() (string, string, error) {
 	}
 }
 
-func (p *Paginator) Token() string {
-	if p.token == "" {
+func (p *Paginator) Token() PageToken {
+	if p.token == nil {
 		return p.defaultToken
 	}
 	return p.token
@@ -102,33 +102,35 @@ func (p *Paginator) ToOptions() []Option {
 	}
 }
 
-func (p *Paginator) multipleOrderFieldsQuery(q *pop.Query, idField string, cols map[string]*columns.Column, quote func(string) string) error {
+func (p *Paginator) multipleOrderFieldsQuery(q *pop.Query, idField string, cols map[string]*columns.Column, quote func(string) string) {
+	tokenParts := p.Token().Parse(idField)
+	idValue := tokenParts[idField]
+
 	column, ok := cols[p.additionalColumn.name]
 	if !ok {
-		return errors.New("column not supported")
+		q.Where(fmt.Sprintf(`%s > ?`, quote(idField)), idValue)
+		return
 	}
-
-	tokenParts := parseToken(idField, p.Token())
-	idValue := tokenParts[idField]
 
 	quoteName := quote(column.Name)
 
 	value, ok := tokenParts[column.Name]
 
 	if !ok {
-		return errors.New("no value provided for " + column.Name)
+		q.Where(fmt.Sprintf(`%s > ?`, quote(idField)), idValue)
+		return
 	}
 
 	sign, keyword, err := p.additionalColumn.order.extract()
 	if err != nil {
-		return err
+		q.Where(fmt.Sprintf(`%s > ?`, quote(idField)), idValue)
+		return
 	}
 
 	q.
 		Where(fmt.Sprintf("%s %s ? OR (%s = ? AND %s > ?)", quoteName, sign, quoteName, quote(idField)), value, value, idValue).
 		Order(fmt.Sprintf("%s %s", quoteName, keyword))
 
-	return nil
 }
 
 // Paginate returns a function that paginates a pop.Query.
@@ -142,10 +144,7 @@ func Paginate[I Item](p *Paginator) pop.ScopeFunc {
 	return func(q *pop.Query) *pop.Query {
 		eid := q.Connection.Dialect.Quote(id)
 
-		if err := p.multipleOrderFieldsQuery(q, id, model.Columns().Cols, q.Connection.Dialect.Quote); err != nil {
-			// silently ignore the error, and fall back to the "default" behavior of just ordering by the token
-			q.Where(fmt.Sprintf(`%s > ?`, eid), p.Token())
-		}
+		p.multipleOrderFieldsQuery(q, id, model.Columns().Cols, q.Connection.Dialect.Quote)
 
 		return q.
 			Limit(p.Size() + 1).
@@ -175,7 +174,7 @@ func Result[I Item](items []I, p *Paginator) ([]I, *Paginator) {
 	}
 }
 
-func WithDefaultToken(t string) Option {
+func WithDefaultToken(t PageToken) Option {
 	return func(opts *Paginator) *Paginator {
 		opts.defaultToken = t
 		return opts
@@ -196,7 +195,7 @@ func WithMaxSize(size int) Option {
 	}
 }
 
-func WithToken(t string) Option {
+func WithToken(t PageToken) Option {
 	return func(opts *Paginator) *Paginator {
 		opts.token = t
 		return opts
