@@ -206,6 +206,12 @@ func TestPaginateWithAdditionalColumn(t *testing.T) {
 			args: []interface{}{"token_value"},
 		},
 		{
+			d:    "with no token value",
+			opts: []Option{WithToken(MapPageToken{"pk": "token_value"}), WithColumn("created_at", "ASC")},
+			e:    `WHERE "pk" > $1 ORDER BY "pk"`,
+			args: []interface{}{"token_value"},
+		},
+		{
 			d:    "with unknown order",
 			opts: []Option{WithToken(MapPageToken{"pk": "token_value", "created_at": "timestamp"}), WithColumn("created_at", Order("unknown order"))},
 			e:    `WHERE "pk" > $1 ORDER BY "pk"`,

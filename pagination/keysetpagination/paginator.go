@@ -6,7 +6,6 @@ package keysetpagination
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/pop/v6/columns"
@@ -67,23 +66,6 @@ func (p *Paginator) Size() int {
 		size = p.maxSize
 	}
 	return size
-}
-
-func parseToken(idField string, s string) map[string]string {
-	tokens := strings.Split(s, "/")
-	if len(tokens) != 2 {
-		return map[string]string{idField: s}
-	}
-
-	r := map[string]string{}
-
-	for _, p := range tokens {
-		if columnName, value, found := strings.Cut(p, "="); found {
-			r[columnName] = value
-		}
-	}
-
-	return r
 }
 
 func (p *Paginator) IsLast() bool {
