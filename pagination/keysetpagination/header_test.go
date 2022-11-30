@@ -27,7 +27,7 @@ func TestHeader(t *testing.T) {
 	Header(r, u, p)
 
 	links := r.HeaderMap["Link"]
-	assert.Len(t, links, 2)
+	require.Len(t, links, 2)
 	assert.Contains(t, links[0], "page_token=default")
 	assert.Contains(t, links[1], "page_token=next")
 
@@ -37,7 +37,7 @@ func TestHeader(t *testing.T) {
 		Header(r, u, p)
 
 		links := r.HeaderMap["Link"]
-		assert.Len(t, links, 1)
+		require.Len(t, links, 1)
 		assert.Contains(t, links[0], "page_token=default")
 	})
 

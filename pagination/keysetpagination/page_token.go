@@ -40,7 +40,7 @@ func (m MapPageToken) Parse(_ string) map[string]string {
 const pageTokenColumnDelim = "/"
 
 func (m MapPageToken) Encode() string {
-	elems := []string{}
+	elems := make([]string, 0, len(m))
 	for k, v := range m {
 		elems = append(elems, fmt.Sprintf("%s=%s", k, v))
 	}
@@ -71,4 +71,4 @@ func NewMapPageToken(s string) (PageToken, error) {
 var _ PageTokenConstructor = NewMapPageToken
 var _ PageTokenConstructor = NewStringPageToken
 
-type PageTokenConstructor func(string) (PageToken, error)
+type PageTokenConstructor = func(string) (PageToken, error)
