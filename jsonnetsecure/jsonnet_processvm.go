@@ -25,7 +25,7 @@ func NewProcessVM(opts *vmOptions) VM {
 }
 
 func (p *ProcessVM) EvaluateAnonymousSnippet(filename string, snippet string) (string, error) {
-	ctx, cancel := context.WithTimeout(p.ctx, 1*time.Second)
+	ctx, cancel := context.WithTimeout(p.ctx, 3*time.Second)
 	defer cancel()
 
 	var (
