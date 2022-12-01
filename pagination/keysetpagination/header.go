@@ -83,18 +83,26 @@ func header(u *url.URL, rel, token string, size int) string {
 // It contains links to the first and next page, if one exists.
 func Header(w http.ResponseWriter, u *url.URL, p *Paginator) {
 	size := p.Size()
-	w.Header().Set("Link", header(u, "first", p.defaultToken, size))
+	w.Header().Set("Link", header(u, "first", p.defaultToken.Encode(), size))
 
 	if !p.IsLast() {
-		w.Header().Add("Link", header(u, "next", p.Token(), size))
+		w.Header().Add("Link", header(u, "next", p.Token().Encode(), size))
 	}
 }
 
 // Parse returns the pagination options from the URL query.
-func Parse(q url.Values) ([]Option, error) {
+func Parse(q url.Values, p PageTokenConstructor) ([]Option, error) {
 	var opts []Option
 	if q.Has("page_token") {
-		opts = append(opts, WithToken(q.Get("page_token")))
+		pageToken, err := url.QueryUnescape(q.Get("page_token"))
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		parsed, err := p(pageToken)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		opts = append(opts, WithToken(parsed))
 	}
 	if q.Has("page_size") {
 		size, err := strconv.Atoi(q.Get("page_size"))

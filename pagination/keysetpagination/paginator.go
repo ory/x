@@ -4,23 +4,51 @@
 package keysetpagination
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/gobuffalo/pop/v6"
+	"github.com/gobuffalo/pop/v6/columns"
 )
 
 type (
-	Item      interface{ PageToken() string }
+	Item interface{ PageToken() PageToken }
+
+	Order string
+
+	columnOrdering struct {
+		name  string
+		order Order
+	}
 	Paginator struct {
-		token, defaultToken        string
+		token, defaultToken        PageToken
 		size, defaultSize, maxSize int
 		isLast                     bool
+		additionalColumn           columnOrdering
 	}
 	Option func(*Paginator) *Paginator
 )
 
-func (p *Paginator) Token() string {
-	if p.token == "" {
+var ErrUnknownOrder = errors.New("unknown order")
+
+const (
+	OrderDescending Order = "DESC"
+	OrderAscending  Order = "ASC"
+)
+
+func (o Order) extract() (string, string, error) {
+	switch o {
+	case OrderAscending:
+		return ">", string(o), nil
+	case OrderDescending:
+		return "<", string(o), nil
+	default:
+		return "", "", ErrUnknownOrder
+	}
+}
+
+func (p *Paginator) Token() PageToken {
+	if p.token == nil {
 		return p.defaultToken
 	}
 	return p.token
@@ -51,8 +79,40 @@ func (p *Paginator) ToOptions() []Option {
 		WithDefaultToken(p.defaultToken),
 		WithDefaultSize(p.defaultSize),
 		WithMaxSize(p.maxSize),
+		WithColumn(p.additionalColumn.name, p.additionalColumn.order),
 		withIsLast(p.isLast),
 	}
+}
+
+func (p *Paginator) multipleOrderFieldsQuery(q *pop.Query, idField string, cols map[string]*columns.Column, quote func(string) string) {
+	tokenParts := p.Token().Parse(idField)
+	idValue := tokenParts[idField]
+
+	column, ok := cols[p.additionalColumn.name]
+	if !ok {
+		q.Where(fmt.Sprintf(`%s > ?`, quote(idField)), idValue)
+		return
+	}
+
+	quoteName := quote(column.Name)
+
+	value, ok := tokenParts[column.Name]
+
+	if !ok {
+		q.Where(fmt.Sprintf(`%s > ?`, quote(idField)), idValue)
+		return
+	}
+
+	sign, keyword, err := p.additionalColumn.order.extract()
+	if err != nil {
+		q.Where(fmt.Sprintf(`%s > ?`, quote(idField)), idValue)
+		return
+	}
+
+	q.
+		Where(fmt.Sprintf("%s %s ? OR (%s = ? AND %s > ?)", quoteName, sign, quoteName, quote(idField)), value, value, idValue).
+		Order(fmt.Sprintf("%s %s", quoteName, keyword))
+
 }
 
 // Paginate returns a function that paginates a pop.Query.
@@ -61,12 +121,16 @@ func (p *Paginator) ToOptions() []Option {
 //	q := c.Where("foo = ?", foo).Scope(keysetpagination.Paginate[Item](paginator))
 func Paginate[I Item](p *Paginator) pop.ScopeFunc {
 	var item I
-	id := (&pop.Model{Value: item}).IDField()
+	model := &pop.Model{Value: item}
+	id := model.IDField()
 	return func(q *pop.Query) *pop.Query {
 		eid := q.Connection.Dialect.Quote(id)
+
+		p.multipleOrderFieldsQuery(q, id, model.Columns().Cols, q.Connection.Dialect.Quote)
+
 		return q.
-			Limit(p.Size()+1).
-			Where(fmt.Sprintf(`%s > ?`, eid), p.Token()).
+			Limit(p.Size() + 1).
+			// we always need to order by the id field last
 			Order(fmt.Sprintf(`%s ASC`, eid))
 	}
 }
@@ -92,7 +156,7 @@ func Result[I Item](items []I, p *Paginator) ([]I, *Paginator) {
 	}
 }
 
-func WithDefaultToken(t string) Option {
+func WithDefaultToken(t PageToken) Option {
 	return func(opts *Paginator) *Paginator {
 		opts.defaultToken = t
 		return opts
@@ -113,7 +177,7 @@ func WithMaxSize(size int) Option {
 	}
 }
 
-func WithToken(t string) Option {
+func WithToken(t PageToken) Option {
 	return func(opts *Paginator) *Paginator {
 		opts.token = t
 		return opts
@@ -123,6 +187,16 @@ func WithToken(t string) Option {
 func WithSize(size int) Option {
 	return func(opts *Paginator) *Paginator {
 		opts.size = size
+		return opts
+	}
+}
+
+func WithColumn(name string, order Order) Option {
+	return func(opts *Paginator) *Paginator {
+		opts.additionalColumn = columnOrdering{
+			name:  name,
+			order: order,
+		}
 		return opts
 	}
 }
