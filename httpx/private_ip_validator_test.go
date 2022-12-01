@@ -4,10 +4,12 @@
 package httpx
 
 import (
+	"net"
 	"net/http"
 	"net/url"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -47,7 +49,7 @@ func (n noOpRoundTripper) RoundTrip(request *http.Request) (*http.Response, erro
 var _ http.RoundTripper = new(noOpRoundTripper)
 
 func TestAllowExceptions(t *testing.T) {
-	rt := &NoInternalIPRoundTripper{RoundTripper: new(noOpRoundTripper), internalIPExceptions: []string{"http://localhost/asdf"}}
+	rt := &NoInternalIPRoundTripper{internalIPExceptions: []string{"http://localhost/asdf"}}
 
 	_, err := rt.RoundTrip(&http.Request{
 		Host: "localhost",
@@ -56,7 +58,12 @@ func TestAllowExceptions(t *testing.T) {
 			"Host": []string{"localhost"},
 		},
 	})
-	require.NoError(t, err)
+	// assert that the error is eiher nil or a dial error.
+	if err != nil {
+		opErr := new(net.OpError)
+		require.ErrorAs(t, err, &opErr)
+		require.Equal(t, "dial", opErr.Op)
+	}
 
 	_, err = rt.RoundTrip(&http.Request{
 		Host: "localhost",
@@ -66,4 +73,53 @@ func TestAllowExceptions(t *testing.T) {
 		},
 	})
 	require.Error(t, err)
+}
+
+func assertErrorContains(msg string) assert.ErrorAssertionFunc {
+	return func(t assert.TestingT, err error, i ...interface{}) bool {
+		if !assert.Error(t, err, i...) {
+			return false
+		}
+		return assert.Contains(t, err.Error(), msg)
+	}
+}
+
+func TestNoInternalDialer(t *testing.T) {
+	for _, tt := range []struct {
+		name      string
+		network   string
+		address   string
+		assertErr assert.ErrorAssertionFunc
+	}{{
+		name:      "TCP public is allowed",
+		network:   "tcp",
+		address:   "www.google.de:443",
+		assertErr: assert.NoError,
+	}, {
+		name:      "TCP private is denied",
+		network:   "tcp",
+		address:   "localhost:443",
+		assertErr: assertErrorContains("is not a public IP address"),
+	}, {
+		name:      "UDP public is denied",
+		network:   "udp",
+		address:   "www.google.de:443",
+		assertErr: assertErrorContains("not a safe network type"),
+	}, {
+		name:      "UDP public is denied",
+		network:   "udp",
+		address:   "www.google.de:443",
+		assertErr: assertErrorContains("not a safe network type"),
+	}, {
+		name:      "UNIX sockets are denied",
+		network:   "unix",
+		address:   "/etc/passwd",
+		assertErr: assertErrorContains("not a safe network type"),
+	}} {
+
+		t.Run("case="+tt.name, func(t *testing.T) {
+			_, err := NoInternalDialer.Dial(tt.network, tt.address)
+			tt.assertErr(t, err)
+		})
+	}
 }

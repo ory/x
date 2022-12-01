@@ -17,7 +17,7 @@ import (
 )
 
 func TestNoPrivateIPs(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte("Hello, world!"))
 	}))
 	t.Cleanup(ts.Close)
@@ -46,7 +46,7 @@ func TestNoPrivateIPs(t *testing.T) {
 		_, err := c.Get(destination)
 		if !passes {
 			require.Error(t, err)
-			assert.Contains(t, err.Error(), "is in the")
+			assert.Contains(t, err.Error(), "is not a public IP address")
 		} else {
 			require.NoError(t, err)
 		}
@@ -54,7 +54,7 @@ func TestNoPrivateIPs(t *testing.T) {
 }
 
 func TestClientWithTracer(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte("Hello, world!"))
 	}))
 	t.Cleanup(ts.Close)
