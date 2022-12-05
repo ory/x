@@ -129,6 +129,18 @@ func TestPrinting(t *testing.T) {
 					contained: tr,
 				},
 				{
+					fArgs:     []string{"--" + FlagFormat, string(FormatJSONPointer) + "=/0"},
+					contained: []string{"AAA"},
+				},
+				{
+					fArgs:     []string{"--" + FlagFormat, string(FormatJSONPointer) + "=/2"},
+					contained: []string{"CCC"},
+				},
+				{
+					fArgs:     []string{"--" + FlagFormat, string(FormatJSONPointer) + "=/1"},
+					contained: []string{"BBB"},
+				},
+				{
 					fArgs:     []string{"--" + FlagFormat, string(FormatJSONPath) + "=0"},
 					contained: []string{"AAA"},
 				},
@@ -222,6 +234,10 @@ func TestPrinting(t *testing.T) {
 				},
 				{
 					fArgs:     []string{"--" + FlagFormat, string(FormatJSONPath) + "=1.1"},
+					contained: []string{tb.t[1][1]},
+				},
+				{
+					fArgs:     []string{"--" + FlagFormat, string(FormatJSONPointer) + "=/1/1"},
 					contained: []string{tb.t[1][1]},
 				},
 				{
@@ -330,7 +346,7 @@ func TestPrinting(t *testing.T) {
 
 	t.Run("method=jsonable", func(t *testing.T) {
 		t.Run("case=nil", func(t *testing.T) {
-			for _, f := range []format{FormatDefault, FormatJSON, FormatJSONPretty, FormatJSONPath, FormatYAML} {
+			for _, f := range []format{FormatDefault, FormatJSON, FormatJSONPretty, FormatJSONPath, FormatJSONPointer, FormatYAML} {
 				t.Run("format="+string(f), func(t *testing.T) {
 					out := &bytes.Buffer{}
 					cmd := &cobra.Command{}
