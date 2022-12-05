@@ -12,6 +12,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/go-openapi/jsonpointer"
 	"github.com/goccy/go-yaml"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -39,13 +40,14 @@ type (
 )
 
 const (
-	FormatQuiet      format = "quiet"
-	FormatTable      format = "table"
-	FormatJSON       format = "json"
-	FormatJSONPath   format = "jsonpath"
-	FormatJSONPretty format = "json-pretty"
-	FormatYAML       format = "yaml"
-	FormatDefault    format = "default"
+	FormatQuiet       format = "quiet"
+	FormatTable       format = "table"
+	FormatJSON        format = "json"
+	FormatJSONPath    format = "jsonpath"
+	FormatJSONPointer format = "jsonpointer"
+	FormatJSONPretty  format = "json-pretty"
+	FormatYAML        format = "yaml"
+	FormatDefault     format = "default"
 
 	FlagFormat = "format"
 
@@ -84,6 +86,8 @@ func PrintRow(cmd *cobra.Command, row TableRow) {
 		printJSON(cmd.OutOrStdout(), row.Interface(), true, "")
 	case FormatJSONPath:
 		printJSON(cmd.OutOrStdout(), row.Interface(), true, getPath(cmd))
+	case FormatJSONPointer:
+		printJSON(cmd.OutOrStdout(), filterJSONPointer(cmd, row.Interface()), true, "")
 	case FormatTable, FormatDefault:
 		w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 8, 1, '\t', 0)
 
@@ -94,6 +98,26 @@ func PrintRow(cmd *cobra.Command, row TableRow) {
 
 		_ = w.Flush()
 	}
+}
+
+func filterJSONPointer(cmd *cobra.Command, data any) any {
+	f, err := cmd.Flags().GetString(FlagFormat)
+	// unexpected error
+	Must(err, "flag access error: %s", err)
+	_, jsonptr, found := strings.Cut(f, "=")
+	if !found {
+		_, _ = fmt.Fprintf(os.Stderr,
+			"Format %s is missing a JSON pointer, e.g., --%s=%s=<jsonpointer>. The path syntax is described at https://datatracker.ietf.org/doc/html/draft-ietf-appsawg-json-pointer-07.",
+			f, FlagFormat, f)
+		os.Exit(1)
+	}
+	ptr, err := jsonpointer.New(jsonptr)
+	Must(err, "invalid JSON pointer: %s", err)
+
+	result, _, err := ptr.Get(data)
+	Must(err, "failed to apply JSON pointer: %s", err)
+
+	return result
 }
 
 func PrintTable(cmd *cobra.Command, table Table) {
@@ -121,6 +145,8 @@ func PrintTable(cmd *cobra.Command, table Table) {
 		printJSON(cmd.OutOrStdout(), table.Interface(), true, "")
 	case FormatJSONPath:
 		printJSON(cmd.OutOrStdout(), table.Interface(), true, getPath(cmd))
+	case FormatJSONPointer:
+		printJSON(cmd.OutOrStdout(), filterJSONPointer(cmd, table.Interface()), true, "")
 	case FormatYAML:
 		printYAML(cmd.OutOrStdout(), table.Interface())
 	default:
@@ -164,6 +190,12 @@ func PrintJSONAble(cmd *cobra.Command, d interface{ String() string }) {
 			v = i
 		}
 		printJSON(cmd.OutOrStdout(), v, true, path)
+	case FormatJSONPointer:
+		var v interface{} = d
+		if i, ok := d.(interfacer); ok {
+			v = i
+		}
+		printJSON(cmd.OutOrStdout(), filterJSONPointer(cmd, v), true, "")
 	case FormatYAML:
 		var v interface{} = d
 		if i, ok := d.(interfacer); ok {
@@ -200,6 +232,8 @@ func getFormat(cmd *cobra.Command) format {
 		return FormatJSON
 	case strings.HasPrefix(f, string(FormatJSONPath)):
 		return FormatJSONPath
+	case strings.HasPrefix(f, string(FormatJSONPointer)):
+		return FormatJSONPointer
 	case f == string(FormatJSONPretty):
 		return FormatJSONPretty
 	case f == string(FormatYAML):
@@ -249,12 +283,12 @@ func printYAML(w io.Writer, v interface{}) {
 }
 
 func RegisterJSONFormatFlags(flags *pflag.FlagSet) {
-	flags.String(FlagFormat, string(FormatDefault), fmt.Sprintf("Set the output format. One of %s, %s, %s, %s and %s.", FormatDefault, FormatJSON, FormatYAML, FormatJSONPretty, FormatJSONPath))
+	flags.String(FlagFormat, string(FormatDefault), fmt.Sprintf("Set the output format. One of %s, %s, %s, %s, %s and %s.", FormatDefault, FormatJSON, FormatYAML, FormatJSONPretty, FormatJSONPath, FormatJSONPointer))
 }
 
 func RegisterFormatFlags(flags *pflag.FlagSet) {
 	RegisterNoiseFlags(flags)
-	flags.String(FlagFormat, string(FormatDefault), fmt.Sprintf("Set the output format. One of %s, %s, %s, %s, and %s.", FormatTable, FormatJSON, FormatYAML, FormatJSONPretty, FormatJSONPath))
+	flags.String(FlagFormat, string(FormatDefault), fmt.Sprintf("Set the output format. One of %s, %s, %s, %s, %s and %s.", FormatTable, FormatJSON, FormatYAML, FormatJSONPretty, FormatJSONPath, FormatJSONPointer))
 }
 
 type bodyer interface {
