@@ -5,11 +5,12 @@
 package semconv
 
 const (
-	EventSessionIssued   = "Session issued"
-	EventIdentityCreated = "Identity created"
+	EventSessionIssued   = "SessionIssued"
+	EventIdentityCreated = "IdentityCreated"
 )
 
 const (
-	AttrIdentityID = "identity.id"
-	AttrNID        = "nid"
+	AttrIdentityID = "IdentityID"
+	AttrNID        = "ProjectID"
+	AttrClientIP   = "ClientIP"
 )
