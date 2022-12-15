@@ -18,7 +18,9 @@ type testItem struct {
 	CreatedAt string `db:"created_at"`
 }
 
-func (t testItem) PageToken() PageToken {
+// Both value and pointer receiver implementations should work with this test:
+// func (t testItem) PageToken() PageToken {
+func (t *testItem) PageToken() PageToken {
 	return StringPageToken(t.ID)
 }
 

@@ -118,10 +118,17 @@ func (p *Paginator) multipleOrderFieldsQuery(q *pop.Query, idField string, cols 
 // Paginate returns a function that paginates a pop.Query.
 // Usage:
 //
-//	q := c.Where("foo = ?", foo).Scope(keysetpagination.Paginate[Item](paginator))
-func Paginate[I Item](p *Paginator) pop.ScopeFunc {
-	var item I
-	model := &pop.Model{Value: item}
+//	q := c.Where("foo = ?", foo).Scope(keysetpagination.Paginate[MyItemType](paginator))
+//
+// This function works regardless of whether your type implements the Item
+// interface with pointer or value receivers. To understand the type parameters,
+// see this document:
+// https://go.googlesource.com/proposal/+/refs/heads/master/design/43651-type-parameters.md#pointer-method-example
+func Paginate[I any, PI interface {
+	Item
+	*I
+}](p *Paginator) pop.ScopeFunc {
+	model := pop.Model{Value: new(I)}
 	id := model.IDField()
 	return func(q *pop.Query) *pop.Query {
 		eid := q.Connection.Dialect.Quote(id)
@@ -136,11 +143,19 @@ func Paginate[I Item](p *Paginator) pop.ScopeFunc {
 }
 
 // Result removes the last item (if applicable) and returns the paginator for the next page.
-func Result[I Item](items []I, p *Paginator) ([]I, *Paginator) {
+//
+// This function works regardless of whether your type implements the Item
+// interface with pointer or value receivers. To understand the type parameters,
+// see this document:
+// https://go.googlesource.com/proposal/+/refs/heads/master/design/43651-type-parameters.md#pointer-method-example
+func Result[I any, PI interface {
+	Item
+	*I
+}](items []I, p *Paginator) ([]I, *Paginator) {
 	if len(items) > p.Size() {
 		items = items[:p.Size()]
 		return items, &Paginator{
-			token:        items[len(items)-1].PageToken(),
+			token:        PI(&items[len(items)-1]).PageToken(),
 			defaultToken: p.defaultToken,
 			size:         p.size,
 			defaultSize:  p.defaultSize,
