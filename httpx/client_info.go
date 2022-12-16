@@ -5,6 +5,7 @@ package httpx
 
 import (
 	"net"
+	"net/http"
 	"strings"
 )
 
@@ -21,4 +22,17 @@ func GetClientIPAddressesWithoutInternalIPs(ipAddresses []string) (string, error
 	}
 
 	return res, nil
+}
+
+func ClientIP(r *http.Request) string {
+	if trueClientIP := r.Header.Get("True-Client-IP"); trueClientIP != "" {
+		return trueClientIP
+	} else if realClientIP := r.Header.Get("X-Real-IP"); realClientIP != "" {
+		return realClientIP
+	} else if forwardedIP := r.Header.Get("X-Forwarded-For"); forwardedIP != "" {
+		ip, _ := GetClientIPAddressesWithoutInternalIPs(strings.Split(forwardedIP, ","))
+		return ip
+	} else {
+		return r.RemoteAddr
+	}
 }
