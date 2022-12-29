@@ -34,7 +34,6 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.1
 	github.com/inhies/go-bytesize v0.0.0-20220417184213-4913239db9cf
 	github.com/instana/go-sensor v1.46.0
-	github.com/instana/testify v1.6.2-0.20200721153833-94b1851f4d65
 	github.com/jackc/pgconn v1.13.0
 	github.com/jackc/pgx/v4 v4.17.2
 	github.com/jandelgado/gcov2lcov v1.0.5
