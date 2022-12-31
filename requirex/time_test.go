@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/instana/testify/require"
+	"github.com/stretchr/testify/require"
 )
 
 type MockT struct {

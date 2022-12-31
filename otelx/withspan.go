@@ -5,6 +5,7 @@ package otelx
 
 import (
 	"context"
+	"fmt"
 
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -21,21 +22,48 @@ func WithSpan(ctx context.Context, name string, f func(context.Context) error, o
 	ctx, span := trace.SpanFromContext(ctx).TracerProvider().Tracer("").Start(ctx, name, opts...)
 	defer func() {
 		defer span.End()
-		if err != nil {
-			span.SetStatus(codes.Error, err.Error())
-		} else if r := recover(); r != nil {
-			switch e := r.(type) {
-			case error:
-				span.SetStatus(codes.Error, "panic: "+e.Error())
-			case interface{ String() string }:
-				span.SetStatus(codes.Error, "panic: "+e.String())
-			case string:
-				span.SetStatus(codes.Error, "panic: "+e)
-			default:
-				span.SetStatus(codes.Error, "panic")
-			}
+		if r := recover(); r != nil {
+			setErrorStatusPanic(span, r)
 			panic(r)
+		} else if err != nil {
+			span.SetStatus(codes.Error, err.Error())
 		}
 	}()
 	return f(ctx)
+}
+
+// End finishes span, and automatically sets the error state if *err is not nil
+// or during panicking.
+//
+// Usage:
+//
+//	func Divide(ctx context.Context, numerator, denominator int) (ratio int, err error) {
+//		ctx, span := tracer.Start(ctx, "my-operation")
+//		defer otelx.End(span, &err)
+//		if denominator == 0 {
+//			return 0, errors.New("cannot divide by zero")
+//		}
+//		return numerator / denominator, nil
+//	}
+func End(span trace.Span, err *error) {
+	defer span.End()
+	if r := recover(); r != nil {
+		setErrorStatusPanic(span, r)
+		panic(r)
+	}
+	if err == nil || *err == nil {
+		return
+	}
+	span.SetStatus(codes.Error, (*err).Error())
+}
+
+func setErrorStatusPanic(span trace.Span, recovered any) {
+	switch e := recovered.(type) {
+	case error, string, fmt.Stringer:
+		span.SetStatus(codes.Error, fmt.Sprintf("panic: %v", e))
+	default:
+		span.SetStatus(codes.Error, "panic")
+	case nil:
+		// nothing
+	}
 }
