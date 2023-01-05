@@ -110,7 +110,7 @@ func (p *Paginator) multipleOrderFieldsQuery(q *pop.Query, idField string, cols 
 	}
 
 	q.
-		Where(fmt.Sprintf("%s %s ? OR (%s = ? AND %s > ?)", quoteName, sign, quoteName, quote(idField)), value, value, idValue).
+		Where(fmt.Sprintf("(%s %s ? OR (%s = ? AND %s > ?))", quoteName, sign, quoteName, quote(idField)), value, value, idValue).
 		Order(fmt.Sprintf("%s %s", quoteName, keyword))
 
 }

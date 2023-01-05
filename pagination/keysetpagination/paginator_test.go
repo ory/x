@@ -185,13 +185,13 @@ func TestPaginateWithAdditionalColumn(t *testing.T) {
 		{
 			d:    "with sort by created_at DESC",
 			opts: []Option{WithToken(MapPageToken{"pk": "token_value", "created_at": "timestamp"}), WithColumn("created_at", "DESC")},
-			e:    `WHERE "created_at" < $1 OR ("created_at" = $2 AND "pk" > $3) ORDER BY "created_at" DESC, "pk" ASC`,
+			e:    `WHERE ("created_at" < $1 OR ("created_at" = $2 AND "pk" > $3)) ORDER BY "created_at" DESC, "pk" ASC`,
 			args: []interface{}{"timestamp", "timestamp", "token_value"},
 		},
 		{
 			d:    "with sort by created_at ASC",
 			opts: []Option{WithToken(MapPageToken{"pk": "token_value", "created_at": "timestamp"}), WithColumn("created_at", "ASC")},
-			e:    `WHERE "created_at" > $1 OR ("created_at" = $2 AND "pk" > $3) ORDER BY "created_at" ASC, "pk" ASC`,
+			e:    `WHERE ("created_at" > $1 OR ("created_at" = $2 AND "pk" > $3)) ORDER BY "created_at" ASC, "pk" ASC`,
 			args: []interface{}{"timestamp", "timestamp", "token_value"},
 		},
 		{
