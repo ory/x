@@ -50,6 +50,7 @@ func SetupJaeger(t *Tracer, tracerName string, c *Config) (trace.Tracer, error) 
 		jaegerRemoteSampler := jaegerremote.New(
 			"jaegerremote",
 			jaegerremote.WithSamplingServerURL(samplingServerURL),
+			jaegerremote.WithInitialSampler(sdktrace.TraceIDRatioBased(0.5)),
 		)
 		tpOpts = append(tpOpts, sdktrace.WithSampler(jaegerRemoteSampler))
 	} else {
