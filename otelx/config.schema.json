@@ -56,6 +56,11 @@
                   "description": "The address of jaeger-agent's HTTP sampling server",
                   "format": "uri",
                   "examples": ["http://localhost:5778/sampling"]
+                },
+                "trace_id_ratio": {
+                  "type": "number",
+                  "description": "Trace Id ratio sample",
+                  "examples": [0.5]
                 }
               }
             }
