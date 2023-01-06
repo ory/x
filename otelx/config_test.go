@@ -37,7 +37,8 @@ func TestConfigSchema(t *testing.T) {
 				Jaeger: JaegerConfig{
 					LocalAgentAddress: "localhost:6831",
 					Sampling: JaegerSampling{
-						ServerURL: "http://localhost:5778/sampling",
+						ServerURL:    "http://localhost:5778/sampling",
+						TraceIdRatio: 1,
 					},
 				},
 			},
