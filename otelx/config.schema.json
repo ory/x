@@ -47,7 +47,7 @@
             "sampling": {
               "type": "object",
               "propertyNames": {
-                "enum": ["server_url"]
+                "enum": ["server_url", "trace_id_ratio"]
               },
               "additionalProperties": false,
               "properties": {
