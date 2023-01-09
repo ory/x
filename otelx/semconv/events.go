@@ -4,13 +4,42 @@
 // Package semconv contains OpenTelemetry semantic convention constants.
 package semconv
 
-const (
-	EventSessionIssued   = "SessionIssued"
-	EventIdentityCreated = "IdentityCreated"
+import (
+	"github.com/gofrs/uuid"
+	otelattr "go.opentelemetry.io/otel/attribute"
 )
 
+type Event string
+
 const (
-	AttrIdentityID = "IdentityID"
-	AttrNID        = "ProjectID"
-	AttrClientIP   = "ClientIP"
+	EventSessionIssued   Event = "SessionIssued"
+	EventIdentityCreated Event = "IdentityCreated"
 )
+
+func (e Event) String() string {
+	return string(e)
+}
+
+type attributeKey string
+
+func (a attributeKey) String() string {
+	return string(a)
+}
+
+const (
+	attributeKeyIdentityID attributeKey = "IdentityID"
+	attributeKeyNID        attributeKey = "ProjectID"
+	attributeKeyClientIP   attributeKey = "ClientIP"
+)
+
+func AttrIdentityID(val uuid.UUID) otelattr.KeyValue {
+	return otelattr.String(attributeKeyIdentityID.String(), val.String())
+}
+
+func AttrNID(val uuid.UUID) otelattr.KeyValue {
+	return otelattr.String(attributeKeyNID.String(), val.String())
+}
+
+func AttrClientIP(val string) otelattr.KeyValue {
+	return otelattr.String(attributeKeyClientIP.String(), val)
+}
