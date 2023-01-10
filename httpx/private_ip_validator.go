@@ -11,8 +11,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ory/x/stringsx"
-
 	"github.com/pkg/errors"
 )
 
@@ -101,9 +99,8 @@ func (n NoInternalIPRoundTripper) RoundTrip(request *http.Request) (*http.Respon
 		}
 	}
 
-	host, _, _ := net.SplitHostPort(request.Host)
-	if err := DisallowIPPrivateAddresses(stringsx.Coalesce(host, request.Host)); err != nil {
-		return nil, err
+	if err := DisallowIPPrivateAddresses(incoming.Hostname()); err != nil {
+		return nil, errors.Wrapf(err, "is not a public IP address")
 	}
 
 	return rt.RoundTrip(request)

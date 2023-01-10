@@ -117,6 +117,7 @@ func NewResilientClient(opts ...ResilientOptions) *retryablehttp.Client {
 
 	if o.noInternalIPs == true {
 		o.c.Transport = &NoInternalIPRoundTripper{
+			RoundTripper:         o.c.Transport,
 			internalIPExceptions: o.internalIPExceptions,
 		}
 	}
