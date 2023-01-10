@@ -11,6 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	"golang.org/x/net/idna"
+
 	"github.com/pkg/errors"
 )
 
@@ -80,8 +82,14 @@ var _ http.RoundTripper = (*NoInternalIPRoundTripper)(nil)
 
 // NoInternalIPRoundTripper is a RoundTripper that disallows internal IP addresses.
 type NoInternalIPRoundTripper struct {
-	http.RoundTripper
+	RoundTripper         http.RoundTripper
 	internalIPExceptions []string
+}
+
+var portMap = map[string]string{
+	"http":   "80",
+	"https":  "443",
+	"socks5": "1080",
 }
 
 func (n NoInternalIPRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
@@ -99,8 +107,21 @@ func (n NoInternalIPRoundTripper) RoundTrip(request *http.Request) (*http.Respon
 		}
 	}
 
-	if err := DisallowIPPrivateAddresses(incoming.Hostname()); err != nil {
-		return nil, errors.Wrapf(err, "is not a public IP address")
+	host, port := incoming.Hostname(), incoming.Port()
+	// escape to punycode
+	host, err := idna.Lookup.ToASCII(host)
+	if err != nil {
+		host = incoming.Hostname()
+	}
+	if port == "" {
+		port = portMap[incoming.Scheme]
+	}
+
+	// Here we dial the upstream using our custom control before we to the actual round trip. This ensures only
+	// valid requests are made in the end.
+	_, err = NoInternalDialer.DialContext(request.Context(), "tcp", net.JoinHostPort(host, port))
+	if err != nil {
+		return nil, err
 	}
 
 	return rt.RoundTrip(request)
@@ -132,9 +153,6 @@ var NoInternalDialer = &net.Dialer{
 	},
 }
 
-// NoInternalTransport
-//
-// DEPRECATED: do not use
 var NoInternalTransport http.RoundTripper = &http.Transport{
 	Proxy:                 http.ProxyFromEnvironment,
 	DialContext:           NoInternalDialer.DialContext,
