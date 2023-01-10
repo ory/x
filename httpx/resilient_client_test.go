@@ -53,6 +53,41 @@ func TestNoPrivateIPs(t *testing.T) {
 	}
 }
 
+var errClient = &http.Client{Transport: errRoundTripper{}}
+
+func TestNoPrivateIPsRespectsWrappedClient(t *testing.T) {
+	c := NewResilientClient(
+		ResilientClientWithMaxRetry(1),
+		ResilientClientDisallowInternalIPs(),
+		ResilientClientWithClient(errClient),
+	)
+	_, err := c.Get("https://google.com")
+	require.ErrorIs(t, err, fakeErr)
+}
+
+func TestClientWithTracerRespectsWrappedClient(t *testing.T) {
+	tracer := otel.Tracer("github.com/ory/x/httpx test")
+	c := NewResilientClient(
+		ResilientClientWithMaxRetry(1),
+		ResilientClientWithTracer(tracer),
+		ResilientClientWithClient(errClient),
+	)
+	_, err := c.Get("https://google.com")
+	require.ErrorIs(t, err, fakeErr)
+}
+
+func TestClientWithMultiConfigRespectsWrapperClient(t *testing.T) {
+	tracer := otel.Tracer("github.com/ory/x/httpx test")
+	c := NewResilientClient(
+		ResilientClientWithMaxRetry(1),
+		ResilientClientWithTracer(tracer),
+		ResilientClientDisallowInternalIPs(),
+		ResilientClientWithClient(errClient),
+	)
+	_, err := c.Get("https://google.com")
+	require.ErrorIs(t, err, fakeErr)
+}
+
 func TestClientWithTracer(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte("Hello, world!"))
@@ -70,5 +105,4 @@ func TestClientWithTracer(t *testing.T) {
 	_, err = c.Get(target.String())
 
 	assert.NoError(t, err)
-
 }

@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/pkg/errors"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -47,6 +49,32 @@ func (n noOpRoundTripper) RoundTrip(request *http.Request) (*http.Response, erro
 }
 
 var _ http.RoundTripper = new(noOpRoundTripper)
+
+type errRoundTripper struct{}
+
+var fakeErr = errors.New("error")
+
+func (n errRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
+	return nil, fakeErr
+}
+
+var _ http.RoundTripper = new(errRoundTripper)
+
+func TestInternalRespectsRoundTripper(t *testing.T) {
+	rt := &NoInternalIPRoundTripper{RoundTripper: &errRoundTripper{}, internalIPExceptions: []string{
+		"https://127.0.0.1/foo",
+	}}
+
+	req, err := http.NewRequest("GET", "https://google.com/foo", nil)
+	require.NoError(t, err)
+	_, err = rt.RoundTrip(req)
+	require.ErrorIs(t, err, fakeErr)
+
+	req, err = http.NewRequest("GET", "https://127.0.0.1/foo", nil)
+	require.NoError(t, err)
+	_, err = rt.RoundTrip(req)
+	require.ErrorIs(t, err, fakeErr)
+}
 
 func TestAllowExceptions(t *testing.T) {
 	rt := &NoInternalIPRoundTripper{internalIPExceptions: []string{"http://localhost/asdf"}}
