@@ -11,6 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ory/x/stringsx"
+
 	"github.com/pkg/errors"
 )
 
@@ -80,20 +82,31 @@ var _ http.RoundTripper = (*NoInternalIPRoundTripper)(nil)
 
 // NoInternalIPRoundTripper is a RoundTripper that disallows internal IP addresses.
 type NoInternalIPRoundTripper struct {
+	http.RoundTripper
 	internalIPExceptions []string
 }
 
 func (n NoInternalIPRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
+	rt := http.DefaultTransport
+	if n.RoundTripper != nil {
+		rt = n.RoundTripper
+	}
+
 	incoming := IncomingRequestURL(request)
 	incoming.RawQuery = ""
 	incoming.RawFragment = ""
 	for _, exception := range n.internalIPExceptions {
 		if incoming.String() == exception {
-			return http.DefaultTransport.RoundTrip(request)
+			return rt.RoundTrip(request)
 		}
 	}
 
-	return NoInternalTransport.RoundTrip(request)
+	host, _, _ := net.SplitHostPort(request.Host)
+	if err := DisallowIPPrivateAddresses(stringsx.Coalesce(host, request.Host)); err != nil {
+		return nil, err
+	}
+
+	return rt.RoundTrip(request)
 }
 
 var NoInternalDialer = &net.Dialer{
@@ -122,6 +135,9 @@ var NoInternalDialer = &net.Dialer{
 	},
 }
 
+// NoInternalTransport
+//
+// DEPRECATED: do not use
 var NoInternalTransport http.RoundTripper = &http.Transport{
 	Proxy:                 http.ProxyFromEnvironment,
 	DialContext:           NoInternalDialer.DialContext,
