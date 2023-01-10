@@ -80,16 +80,22 @@ var _ http.RoundTripper = (*NoInternalIPRoundTripper)(nil)
 
 // NoInternalIPRoundTripper is a RoundTripper that disallows internal IP addresses.
 type NoInternalIPRoundTripper struct {
+	http.RoundTripper
 	internalIPExceptions []string
 }
 
 func (n NoInternalIPRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
+	rt := http.DefaultTransport
+	if n.RoundTripper != nil {
+		rt = n.RoundTripper
+	}
+
 	incoming := IncomingRequestURL(request)
 	incoming.RawQuery = ""
 	incoming.RawFragment = ""
 	for _, exception := range n.internalIPExceptions {
 		if incoming.String() == exception {
-			return http.DefaultTransport.RoundTrip(request)
+			return rt.RoundTrip(request)
 		}
 	}
 
