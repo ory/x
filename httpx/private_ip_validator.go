@@ -69,7 +69,7 @@ func DisallowIPPrivateAddresses(ipOrHostnameOrURL string) error {
 
 	for _, ip := range ips {
 		if ip.IsPrivate() || ip.IsLoopback() || ip.IsUnspecified() {
-			return ErrPrivateIPAddressDisallowed(fmt.Errorf("ip %s is in the private, loopback, or unspecified IP range", ip))
+			return ErrPrivateIPAddressDisallowed(fmt.Errorf("%s is not a public IP address", ip))
 		}
 	}
 
@@ -100,7 +100,7 @@ func (n NoInternalIPRoundTripper) RoundTrip(request *http.Request) (*http.Respon
 	}
 
 	if err := DisallowIPPrivateAddresses(incoming.Hostname()); err != nil {
-		return nil, errors.Wrapf(err, "is not a public IP address")
+		return nil, err
 	}
 
 	return rt.RoundTrip(request)
