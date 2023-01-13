@@ -19,3 +19,27 @@ func TestExpandablesHas(t *testing.T) {
 func TestExpandablesToEager(t *testing.T) {
 	assert.Equal(t, []string{"foo", "bar"}, Expandables{"foo", "bar"}.ToEager())
 }
+
+func TestExpandablesSort(t *testing.T) {
+	var e = Expandables{
+		"third_1.third_2.third_3",
+		"first_1",
+		"first_1.first_2.first_3_2",
+		"first_1.first_2.first_3_1",
+		"first_1.first_2",
+		"third_1",
+		"second_1",
+		"third_1.third_2",
+	}
+	e.Sort()
+	assert.Equal(t, Expandables{
+		"first_1",
+		"second_1",
+		"third_1",
+		"first_1.first_2",
+		"third_1.third_2",
+		"first_1.first_2.first_3_1",
+		"first_1.first_2.first_3_2",
+		"third_1.third_2.third_3",
+	}, e)
+}

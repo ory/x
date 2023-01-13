@@ -3,6 +3,15 @@
 
 package sqlxx
 
+import (
+	"sort"
+	"strings"
+
+	"github.com/gobuffalo/pop/v6"
+	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
+)
+
 // Expandable controls what fields to expand for projects.
 type Expandable string
 
@@ -31,4 +40,51 @@ func (e Expandables) Has(search Expandable) bool {
 		}
 	}
 	return false
+}
+
+func (e Expandables) Load(c *pop.Connection, m interface{}) error {
+	e.Sort()
+	return e.load(c, m, 1, e.MaxLevels())
+}
+
+func (e Expandables) load(c *pop.Connection, m interface{}, level int, maxLevel int) error {
+	var eg errgroup.Group
+	for i := range e {
+		item := e[i].String()
+		if len(strings.Split(item, ".")) == level {
+			continue
+		}
+
+		eg.Go(func() error {
+			return errors.WithStack(c.Load(m, item))
+		})
+	}
+
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+
+	if level <= maxLevel {
+		return e.load(c, m, level+1, maxLevel)
+	}
+
+	return nil
+}
+
+func (e Expandables) Sort() {
+	sort.SliceStable(e, func(i, j int) bool {
+		if len(strings.Split(e[i].String(), ".")) < len(strings.Split(e[j].String(), ".")) {
+			return true
+		}
+		return e[i] < e[j]
+	})
+}
+
+func (e Expandables) MaxLevels() (max int) {
+	for _, e := range e {
+		if l := len(strings.Split(e.String(), ".")); l > max {
+			max = l
+		}
+	}
+	return
 }
