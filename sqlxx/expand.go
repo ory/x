@@ -4,6 +4,7 @@
 package sqlxx
 
 import (
+	"context"
 	"sort"
 	"strings"
 
@@ -42,12 +43,12 @@ func (e Expandables) Has(search Expandable) bool {
 	return false
 }
 
-func (e Expandables) Load(c *pop.Connection, m interface{}) error {
+func (e Expandables) Load(ctx context.Context, c *pop.Connection, m interface{}) error {
 	e.Sort()
-	return e.load(c, m, 1, e.MaxLevels())
+	return e.load(ctx, c, m, 1, e.MaxLevels())
 }
 
-func (e Expandables) load(c *pop.Connection, m interface{}, level int, maxLevel int) error {
+func (e Expandables) load(ctx context.Context, c *pop.Connection, m interface{}, level int, maxLevel int) error {
 	var eg errgroup.Group
 	for i := range e {
 		item := e[i].String()
@@ -56,7 +57,9 @@ func (e Expandables) load(c *pop.Connection, m interface{}, level int, maxLevel 
 		}
 
 		eg.Go(func() error {
-			return errors.WithStack(c.Load(m, item))
+			// We need a copy of the connection which is only possible using `WithContext` because
+			// `.clone()` is not exported.
+			return errors.WithStack(c.WithContext(ctx).Load(m, item))
 		})
 	}
 
@@ -65,7 +68,7 @@ func (e Expandables) load(c *pop.Connection, m interface{}, level int, maxLevel 
 	}
 
 	if level <= maxLevel {
-		return e.load(c, m, level+1, maxLevel)
+		return e.load(ctx, c, m, level+1, maxLevel)
 	}
 
 	return nil
