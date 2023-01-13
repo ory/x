@@ -15,28 +15,22 @@ import (
 	"sync"
 	"time"
 
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
-
-	"github.com/sirupsen/logrus"
-
-	"github.com/ory/x/logrusx"
-	"github.com/ory/x/otelx"
-
-	"github.com/ory/x/jsonschemax"
-
-	"github.com/ory/jsonschema/v3"
-	"github.com/ory/x/watcherx"
-
 	"github.com/inhies/go-bytesize"
-	"github.com/knadh/koanf/providers/posflag"
-	"github.com/spf13/pflag"
-
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/json"
+	"github.com/knadh/koanf/providers/posflag"
 	"github.com/pkg/errors"
 	"github.com/rs/cors"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/pflag"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
+
+	"github.com/ory/jsonschema/v3"
+	"github.com/ory/x/jsonschemax"
+	"github.com/ory/x/logrusx"
+	"github.com/ory/x/otelx"
+	"github.com/ory/x/watcherx"
 )
 
 type tuple struct {
@@ -51,8 +45,7 @@ type Provider struct {
 	*koanf.Koanf
 	immutables []string
 
-	originalContext context.Context
-	//cancelFork      context.CancelFunc
+	cancel context.CancelFunc
 
 	schema                   []byte
 	flags                    *pflag.FlagSet
@@ -60,7 +53,7 @@ type Provider struct {
 	onChanges                []func(watcherx.Event, error)
 	onValidationError        func(k *koanf.Koanf, err error)
 	excludeFieldsFromTracing []string
-	tracer                   *otelx.Tracer
+	tracer                   trace.Tracer
 
 	forcedValues []tuple
 	baseValues   []tuple
@@ -92,6 +85,10 @@ func RegisterConfigFlag(flags *pflag.FlagSet, fallback []string) {
 // 2. Config files (yaml, yml, toml, json)
 // 3. Command line flags
 // 4. Environment variables
+//
+// ctx is used for cancelation in case a schema is loaded from a URL. Background
+// reloading of files is enabled automatically. Call Close on the returned
+// Provider to stop the background reloading.
 func New(ctx context.Context, schema []byte, modifiers ...OptionModifier) (*Provider, error) {
 	validator, err := getSchema(ctx, schema)
 	if err != nil {
@@ -102,7 +99,6 @@ func New(ctx context.Context, schema []byte, modifiers ...OptionModifier) (*Prov
 	l.Out = io.Discard
 
 	p := &Provider{
-		originalContext:          context.Background(),
 		schema:                   schema,
 		validator:                validator,
 		onValidationError:        func(k *koanf.Koanf, err error) {},
@@ -115,7 +111,8 @@ func New(ctx context.Context, schema []byte, modifiers ...OptionModifier) (*Prov
 		m(p)
 	}
 
-	providers, err := p.createProviders(p.originalContext)
+	ctx, p.cancel = context.WithCancel(context.Background())
+	providers, err := p.createProviders(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -129,6 +126,14 @@ func New(ctx context.Context, schema []byte, modifiers ...OptionModifier) (*Prov
 
 	p.replaceKoanf(k)
 	return p, nil
+}
+
+// Close stops background reloading.
+func (p *Provider) Close() {
+	if p.cancel != nil {
+		p.cancel()
+		p.cancel = nil
+	}
 }
 
 func (p *Provider) SkipValidation() bool {
@@ -223,11 +228,11 @@ func (p *Provider) validate(k *koanf.Koanf) error {
 //
 // - https://github.com/knadh/koanf/issues/77
 // - https://github.com/knadh/koanf/pull/47
-func (p *Provider) newKoanf() (*koanf.Koanf, error) {
-	ctx, span := p.startSpan(p.originalContext, LoadSpanOpName)
-	defer span.End()
+func (p *Provider) newKoanf() (k *koanf.Koanf, err error) {
+	_, span := p.startSpan(context.Background(), LoadSpanOpName)
+	defer otelx.End(span, &err)
 
-	k := koanf.New(Delimiter)
+	k = koanf.New(Delimiter)
 
 	for _, provider := range p.providers {
 		// posflag.Posflag requires access to Koanf instance so we recreate the provider here which is a workaround
@@ -250,50 +255,20 @@ func (p *Provider) newKoanf() (*koanf.Koanf, error) {
 		return nil, err
 	}
 
-	p.traceConfig(ctx, k, LoadSpanOpName)
 	return k, nil
 }
 
 // SetTracer sets the tracer.
-func (p *Provider) SetTracer(ctx context.Context, t *otelx.Tracer) {
-	p.tracer = t
-	p.traceConfig(ctx, p.Koanf, SnapshotSpanOpName)
+func (p *Provider) SetTracer(_ context.Context, t *otelx.Tracer) {
+	p.tracer = t.Provider().Tracer(tracingComponent)
 }
 
 func (p *Provider) startSpan(ctx context.Context, opName string) (context.Context, trace.Span) {
-	tracer := otel.Tracer("github.com/ory/x/configx")
-	if p.tracer != nil && p.tracer.Tracer() != nil {
-		tracer = p.tracer.Tracer()
+	tracer := otel.Tracer(tracingComponent)
+	if p.tracer != nil {
+		tracer = p.tracer
 	}
 	return tracer.Start(ctx, opName)
-}
-
-func (p *Provider) traceConfig(ctx context.Context, k *koanf.Koanf, opName string) {
-	_, span := p.startSpan(ctx, opName)
-	defer span.End()
-
-	span.SetAttributes(attribute.String("component", tracingComponent))
-
-	fields := make([]attribute.KeyValue, 0, len(k.Keys()))
-	for _, key := range k.Keys() {
-		var redact bool
-		for _, e := range p.excludeFieldsFromTracing {
-			if strings.Contains(key, e) {
-				redact = true
-			}
-		}
-
-		if redact {
-			fields = append(fields, attribute.String(key, "[redacted]"))
-		} else {
-			// XXX: The issue here is, we can't guess what attribute type to
-			// use without trying every type supported in Koanf and checking for
-			// a zero value. Is fmt.Sprint the best way?
-			fields = append(fields, attribute.String(key, fmt.Sprint(k.Get(key))))
-		}
-	}
-
-	span.AddEvent("event.log", trace.WithAttributes(fields...))
 }
 
 func (p *Provider) runOnChanges(e watcherx.Event, err error) {
