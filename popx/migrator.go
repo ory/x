@@ -444,7 +444,7 @@ func (m *Migrator) sanitizedMigrationTableName(con *pop.Connection) string {
 
 func errIsTableNotFound(err error) bool {
 	return strings.Contains(err.Error(), "no such table:") || // sqlite
-		strings.Contains(err.Error(), "Error 1146:") || // MySQL
+		strings.Contains(err.Error(), "Error 1146") || // MySQL
 		strings.Contains(err.Error(), "SQLSTATE 42P01") // PostgreSQL / CockroachDB
 }
 
