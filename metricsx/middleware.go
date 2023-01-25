@@ -31,7 +31,7 @@ import (
 	"github.com/ory/x/logrusx"
 	"github.com/ory/x/resilience"
 
-	"github.com/pborman/uuid"
+	"github.com/gofrs/uuid"
 
 	analytics "github.com/ory/analytics-go/v4"
 )
@@ -181,7 +181,7 @@ func New(
 
 	m := &Service{
 		optOut: optOut,
-		salt:   uuid.New(),
+		salt:   uuid.Must(uuid.NewV4()).String(),
 		o:      o,
 		c:      segment,
 		l:      l,
@@ -196,7 +196,7 @@ func New(
 			OS: oi,
 			Traits: analytics.NewTraits().
 				Set("optedOut", optOut).
-				Set("instanceId", uuid.New()).
+				Set("instanceId", uuid.Must(uuid.NewV4()).String()).
 				Set("isDevelopment", o.IsDevelopment),
 			UserAgent: "github.com/ory/x/metricsx.Service/v0.0.1",
 		},
