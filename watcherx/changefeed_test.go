@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/cockroachdb/cockroach-go/v2/testserver"
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -25,7 +25,7 @@ import (
 // docker run --name cloud_kratos_test_database_cockroach -p 3446:26257 -d cockroachdb/cockroach:v21.1.21 start-single-node --insecure
 // export TEST_DATABASE_COCKROACHDB="cockroach://root@127.0.0.1:3446/defaultdb?sslmode=disable"
 func TestChangeFeed(t *testing.T) {
-	tableName := "t_" + strings.ReplaceAll(uuid.New().String(), "-", "")
+	tableName := "t_" + strings.ReplaceAll(uuid.Must(uuid.NewV4()).String(), "-", "")
 	tableName = "asdfuhasdfuih"
 
 	var watcherCount = 1
@@ -80,7 +80,7 @@ func TestChangeFeed(t *testing.T) {
 	go func() {
 		for k := range rowsToCreate {
 			c := rowsToCreate[k]
-			c.id = uuid.New().String()
+			c.id = uuid.Must(uuid.NewV4()).String()
 			c.value = c.id[:8]
 
 			rowsToCreate[k] = c

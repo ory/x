@@ -14,7 +14,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
 	"github.com/square/go-jose/v3"
 	"golang.org/x/crypto/ed25519"
 )
@@ -22,7 +22,7 @@ import (
 // GenerateSigningKeys generates a JSON Web Key Set for signing.
 func GenerateSigningKeys(id, alg string, bits int) (*jose.JSONWebKeySet, error) {
 	if id == "" {
-		id = uuid.New().String()
+		id = uuid.Must(uuid.NewV4()).String()
 	}
 
 	key, err := generate(jose.SignatureAlgorithm(alg), bits)
