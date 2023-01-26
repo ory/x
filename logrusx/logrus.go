@@ -96,9 +96,9 @@ func setFormatter(l *logrus.Logger, o *options) {
 		format := stringsx.SwitchExact(stringsx.Coalesce(o.format, o.c.String("log.format"), os.Getenv("LOG_FORMAT")))
 		switch {
 		case format.AddCase("json"):
-			l.Formatter = &logrus.JSONFormatter{PrettyPrint: false, TimestampFormat: time.RFC3339Nano}
+			l.Formatter = &logrus.JSONFormatter{PrettyPrint: false, TimestampFormat: time.RFC3339Nano, DisableHTMLEscape: true}
 		case format.AddCase("json_pretty"):
-			l.Formatter = &logrus.JSONFormatter{PrettyPrint: true, TimestampFormat: time.RFC3339Nano}
+			l.Formatter = &logrus.JSONFormatter{PrettyPrint: true, TimestampFormat: time.RFC3339Nano, DisableHTMLEscape: true}
 		case format.AddCase("gelf"):
 			l.Formatter = new(gelf.GelfFormatter)
 		default:
