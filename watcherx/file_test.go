@@ -6,7 +6,7 @@ package watcherx
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -27,7 +27,7 @@ func setup(t *testing.T) (context.Context, chan Event, string, context.CancelFun
 func assertChange(t *testing.T, e Event, expectedData, src string) {
 	_, ok := e.(*ChangeEvent)
 	require.True(t, ok, "%T: %+v", e, e)
-	data, err := ioutil.ReadAll(e.Reader())
+	data, err := io.ReadAll(e.Reader())
 	require.NoError(t, err)
 	assert.Equal(t, expectedData, string(data))
 	assert.Equal(t, src, e.Source())
@@ -102,7 +102,7 @@ func TestFileWatcher(t *testing.T) {
 		ctx, c, dir, cancel := setup(t)
 		defer cancel()
 
-		otherDir, err := ioutil.TempDir("", "*")
+		otherDir, err := os.MkdirTemp("", "*")
 		require.NoError(t, err)
 		origFileName := filepath.Join(otherDir, "original")
 		f, err := os.Create(origFileName) //#nosec:G304
@@ -129,7 +129,7 @@ func TestFileWatcher(t *testing.T) {
 		ctx, c, dir, cancel := setup(t)
 		defer cancel()
 
-		otherDir, err := ioutil.TempDir("", "*")
+		otherDir, err := os.MkdirTemp("", "*")
 		require.NoError(t, err)
 		fileOne := filepath.Join(otherDir, "fileOne")
 		fileTwo := filepath.Join(otherDir, "fileTwo")
@@ -216,7 +216,7 @@ func TestFileWatcher(t *testing.T) {
 
 		fn := filepath.Join(dir, "example.file")
 		initialContent := "initial content"
-		require.NoError(t, ioutil.WriteFile(fn, []byte(initialContent), 0600))
+		require.NoError(t, os.WriteFile(fn, []byte(initialContent), 0600))
 
 		d, err := WatchFile(ctx, fn, c)
 		require.NoError(t, err)

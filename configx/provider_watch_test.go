@@ -4,7 +4,6 @@
 package configx
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"fmt"
@@ -69,37 +68,32 @@ func lsof(t *testing.T, file string) string {
 		return ""
 	}
 	var b, be bytes.Buffer
-	c := exec.Command("lsof", "-n")
+	// we are only interested in the file descriptors, so we use the `-F f` option
+	c := exec.Command("lsof", "-n", "-F", "f", file)
 	c.Stdout = &b
 	c.Stderr = &be
 	require.NoError(t, c.Run(), "stderr says: %s %s", be.String(), b.String())
-	var out string
-	scanner := bufio.NewScanner(&b)
-	for scanner.Scan() {
-		text := scanner.Text()
-		if strings.Contains(text, file) {
-			out += text + "\n"
-			break
-		}
-	}
-	require.NoError(t, scanner.Err())
-	return out
-}
-
-func checkLsof(t *testing.T, file string) string {
-	if runtime.GOOS == "windows" {
-		return ""
-	}
-
-	var b bytes.Buffer
-	c := exec.Command("bash", "-c", "lsof -n | grep '"+file+"' | wc -l")
-	c.Stdout = &b
-	require.NoError(t, c.Run(), c.String())
 	return b.String()
 }
 
-func compareLsof(t *testing.T, file, atStart, expected string) {
-	var actual string
+func checkLsof(t *testing.T, file string) int {
+	if runtime.GOOS == "windows" {
+		return 0
+	}
+
+	lines := strings.Split(lsof(t, file), "\n")
+	var count int
+	for _, line := range lines {
+		// the output starts with "f" for each distinct file descriptor
+		if strings.HasPrefix(line, "f") {
+			count++
+		}
+	}
+	return count
+}
+
+func compareLsof(t *testing.T, file, atStart string, expected int) {
+	var actual int
 	for i := 0; i < 5; i++ {
 		actual = checkLsof(t, file)
 		if expected == actual {
@@ -107,13 +101,7 @@ func compareLsof(t *testing.T, file, atStart, expected string) {
 		}
 	}
 
-	e, err := strconv.ParseInt(strings.TrimSpace(expected), 10, 64)
-	require.NoError(t, err)
-	a, err := strconv.ParseInt(strings.TrimSpace(actual), 10, 64)
-	require.NoError(t, err)
-
-	const deviation = 6
-	assert.True(t, e < a+deviation && e > a-deviation, "\n\t%s\n\t%s", atStart, lsof(t, file))
+	assert.Equal(t, expected, actual, "\n\t%s\n\t%s", atStart, lsof(t, file))
 }
 
 func TestReload(t *testing.T) {
@@ -255,8 +243,15 @@ func TestReload(t *testing.T) {
 		c := make(chan struct{})
 		p, _ := setup(t, configFile, c)
 
+		//f, err := os.Open(configFile.Name())
+		//require.NoError(t, err)
+		//f.Close()
+
 		atStart := checkLsof(t, configFile.Name())
 		lsofAtStart := lsof(t, configFile.Name())
+
+		assert.EqualValues(t, 1, atStart, lsofAtStart)
+
 		for i := 0; i < 30; i++ {
 			t.Run(fmt.Sprintf("iteration=%d", i), func(t *testing.T) {
 				expected := []string{"foo", "bar", "baz"}[i%3]
@@ -267,10 +262,6 @@ func TestReload(t *testing.T) {
 		}
 
 		compareLsof(t, configFile.Name(), lsofAtStart, atStart)
-
-		atStartNum, err := strconv.ParseInt(strings.TrimSpace(atStart), 10, 32)
-		require.NoError(t, err)
-		require.True(t, atStartNum < 20, "should not be unreasonably high: %s\n\t%s", atStartNum, lsofAtStart)
 	})
 
 	t.Run("case=callback can use the provider to get the new value", func(t *testing.T) {
