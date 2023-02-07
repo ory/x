@@ -105,7 +105,7 @@ func TestReload(t *testing.T) {
 			WithLogrusWatcher(l),
 			WithLogger(l),
 			AttachWatcher(func(event watcherx.Event, err error) {
-				t.Logf("Received event: %+v error: %+v", event, err)
+				fmt.Printf("Received event: %+v error: %+v\n", event, err)
 				c <- struct{}{}
 			}),
 			WithContext(ctx),
@@ -116,6 +116,7 @@ func TestReload(t *testing.T) {
 	}
 
 	t.Run("case=rejects not validating changes", func(t *testing.T) {
+		t.Parallel()
 		configFile := tmpConfigFile(t, "memory", "bar")
 		defer configFile.Close()
 		c := make(chan struct{})
@@ -150,6 +151,7 @@ func TestReload(t *testing.T) {
 	})
 
 	t.Run("case=rejects to update immutable", func(t *testing.T) {
+		t.Parallel()
 		configFile := tmpConfigFile(t, "memory", "bar")
 		defer configFile.Close()
 		c := make(chan struct{})
@@ -181,6 +183,7 @@ func TestReload(t *testing.T) {
 	})
 
 	t.Run("case=runs without validation errors", func(t *testing.T) {
+		t.Parallel()
 		configFile := tmpConfigFile(t, "some string", "bar")
 		defer configFile.Close()
 		c := make(chan struct{})
@@ -193,6 +196,7 @@ func TestReload(t *testing.T) {
 	})
 
 	t.Run("case=runs and reloads", func(t *testing.T) {
+		t.Parallel()
 		configFile := tmpConfigFile(t, "some string", "bar")
 		defer configFile.Close()
 		c := make(chan struct{})
@@ -208,6 +212,7 @@ func TestReload(t *testing.T) {
 	})
 
 	t.Run("case=has with validation errors", func(t *testing.T) {
+		t.Parallel()
 		configFile := tmpConfigFile(t, "some string", "not bar")
 		defer configFile.Close()
 		l := logrusx.New("", "")
@@ -226,6 +231,7 @@ func TestReload(t *testing.T) {
 	})
 
 	t.Run("case=is not leaking open files", func(t *testing.T) {
+		t.Parallel()
 		if runtime.GOOS == "windows" {
 			t.Skip()
 		}
@@ -253,6 +259,7 @@ func TestReload(t *testing.T) {
 	})
 
 	t.Run("case=callback can use the provider to get the new value", func(t *testing.T) {
+		t.Parallel()
 		dsn := "old"
 
 		f := tmpConfigFile(t, dsn, "bar")
