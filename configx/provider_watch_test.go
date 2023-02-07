@@ -93,15 +93,7 @@ func checkLsof(t *testing.T, file string) int {
 }
 
 func compareLsof(t *testing.T, file, atStart string, expected int) {
-	var actual int
-	for i := 0; i < 5; i++ {
-		actual = checkLsof(t, file)
-		if expected == actual {
-			break
-		}
-	}
-
-	assert.Equal(t, expected, actual, "\n\t%s\n\t%s", atStart, lsof(t, file))
+	assert.Equal(t, expected, checkLsof(t, file), "\n\t%s\n\t%s", atStart, lsof(t, file))
 }
 
 func TestReload(t *testing.T) {
@@ -242,10 +234,6 @@ func TestReload(t *testing.T) {
 		defer configFile.Close()
 		c := make(chan struct{})
 		p, _ := setup(t, configFile, c)
-
-		//f, err := os.Open(configFile.Name())
-		//require.NoError(t, err)
-		//f.Close()
 
 		atStart := checkLsof(t, configFile.Name())
 		lsofAtStart := lsof(t, configFile.Name())
