@@ -4,7 +4,6 @@
 package configx
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"fmt"
@@ -69,51 +68,32 @@ func lsof(t *testing.T, file string) string {
 		return ""
 	}
 	var b, be bytes.Buffer
-	c := exec.Command("lsof", "-n")
+	// we are only interested in the file descriptors, so we use the `-F f` option
+	c := exec.Command("lsof", "-n", "-F", "f", file)
 	c.Stdout = &b
 	c.Stderr = &be
 	require.NoError(t, c.Run(), "stderr says: %s %s", be.String(), b.String())
-	var out string
-	scanner := bufio.NewScanner(&b)
-	for scanner.Scan() {
-		text := scanner.Text()
-		if strings.Contains(text, file) {
-			out += text + "\n"
-			break
-		}
-	}
-	require.NoError(t, scanner.Err())
-	return out
-}
-
-func checkLsof(t *testing.T, file string) string {
-	if runtime.GOOS == "windows" {
-		return ""
-	}
-
-	var b bytes.Buffer
-	c := exec.Command("bash", "-c", "lsof -n | grep '"+file+"' | wc -l")
-	c.Stdout = &b
-	require.NoError(t, c.Run(), c.String())
 	return b.String()
 }
 
-func compareLsof(t *testing.T, file, atStart, expected string) {
-	var actual string
-	for i := 0; i < 5; i++ {
-		actual = checkLsof(t, file)
-		if expected == actual {
-			break
-		}
+func checkLsof(t *testing.T, file string) int {
+	if runtime.GOOS == "windows" {
+		return 0
 	}
 
-	e, err := strconv.ParseInt(strings.TrimSpace(expected), 10, 64)
-	require.NoError(t, err)
-	a, err := strconv.ParseInt(strings.TrimSpace(actual), 10, 64)
-	require.NoError(t, err)
+	lines := strings.Split(lsof(t, file), "\n")
+	var count int
+	for _, line := range lines {
+		// the output starts with "f" for each distinct file descriptor
+		if strings.HasPrefix(line, "f") {
+			count++
+		}
+	}
+	return count
+}
 
-	const deviation = 6
-	assert.True(t, e < a+deviation && e > a-deviation, "\n\t%s\n\t%s", atStart, lsof(t, file))
+func compareLsof(t *testing.T, file, atStart string, expected int) {
+	assert.Equal(t, expected, checkLsof(t, file), "\n\t%s\n\t%s", atStart, lsof(t, file))
 }
 
 func TestReload(t *testing.T) {
@@ -125,7 +105,7 @@ func TestReload(t *testing.T) {
 			WithLogrusWatcher(l),
 			WithLogger(l),
 			AttachWatcher(func(event watcherx.Event, err error) {
-				t.Logf("Received event: %+v error: %+v", event, err)
+				fmt.Printf("Received event: %+v error: %+v\n", event, err)
 				c <- struct{}{}
 			}),
 			WithContext(ctx),
@@ -136,6 +116,7 @@ func TestReload(t *testing.T) {
 	}
 
 	t.Run("case=rejects not validating changes", func(t *testing.T) {
+		t.Parallel()
 		configFile := tmpConfigFile(t, "memory", "bar")
 		defer configFile.Close()
 		c := make(chan struct{})
@@ -170,6 +151,7 @@ func TestReload(t *testing.T) {
 	})
 
 	t.Run("case=rejects to update immutable", func(t *testing.T) {
+		t.Parallel()
 		configFile := tmpConfigFile(t, "memory", "bar")
 		defer configFile.Close()
 		c := make(chan struct{})
@@ -201,6 +183,7 @@ func TestReload(t *testing.T) {
 	})
 
 	t.Run("case=runs without validation errors", func(t *testing.T) {
+		t.Parallel()
 		configFile := tmpConfigFile(t, "some string", "bar")
 		defer configFile.Close()
 		c := make(chan struct{})
@@ -213,6 +196,7 @@ func TestReload(t *testing.T) {
 	})
 
 	t.Run("case=runs and reloads", func(t *testing.T) {
+		t.Parallel()
 		configFile := tmpConfigFile(t, "some string", "bar")
 		defer configFile.Close()
 		c := make(chan struct{})
@@ -228,6 +212,7 @@ func TestReload(t *testing.T) {
 	})
 
 	t.Run("case=has with validation errors", func(t *testing.T) {
+		t.Parallel()
 		configFile := tmpConfigFile(t, "some string", "not bar")
 		defer configFile.Close()
 		l := logrusx.New("", "")
@@ -246,6 +231,7 @@ func TestReload(t *testing.T) {
 	})
 
 	t.Run("case=is not leaking open files", func(t *testing.T) {
+		t.Parallel()
 		if runtime.GOOS == "windows" {
 			t.Skip()
 		}
@@ -257,6 +243,9 @@ func TestReload(t *testing.T) {
 
 		atStart := checkLsof(t, configFile.Name())
 		lsofAtStart := lsof(t, configFile.Name())
+
+		assert.EqualValues(t, 1, atStart, lsofAtStart)
+
 		for i := 0; i < 30; i++ {
 			t.Run(fmt.Sprintf("iteration=%d", i), func(t *testing.T) {
 				expected := []string{"foo", "bar", "baz"}[i%3]
@@ -267,13 +256,10 @@ func TestReload(t *testing.T) {
 		}
 
 		compareLsof(t, configFile.Name(), lsofAtStart, atStart)
-
-		atStartNum, err := strconv.ParseInt(strings.TrimSpace(atStart), 10, 32)
-		require.NoError(t, err)
-		require.True(t, atStartNum < 20, "should not be unreasonably high: %s\n\t%s", atStartNum, lsofAtStart)
 	})
 
 	t.Run("case=callback can use the provider to get the new value", func(t *testing.T) {
+		t.Parallel()
 		dsn := "old"
 
 		f := tmpConfigFile(t, dsn, "bar")

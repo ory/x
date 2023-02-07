@@ -5,7 +5,6 @@ package watcherx
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -19,18 +18,15 @@ import (
 func WatchFile(ctx context.Context, file string, c EventChannel) (Watcher, error) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		close(c)
 		return nil, errors.WithStack(err)
 	}
 	dir := filepath.Dir(file)
 	if err := watcher.Add(dir); err != nil {
-		close(c)
 		return nil, errors.WithStack(err)
 	}
 	resolvedFile, err := filepath.EvalSymlinks(file)
 	if err != nil {
 		if _, ok := err.(*os.PathError); !ok {
-			close(c)
 			return nil, errors.WithStack(err)
 		}
 		// The file does not exist. The watcher should still watch the directory
@@ -41,7 +37,6 @@ func WatchFile(ctx context.Context, file string, c EventChannel) (Watcher, error
 		// This is because fsnotify follows symlinks and watches the destination file, not the symlink
 		// itself. That is at least the case for unix systems. See: https://github.com/fsnotify/fsnotify/issues/199
 		if err := watcher.Add(file); err != nil {
-			close(c)
 			return nil, errors.WithStack(err)
 		}
 	}
@@ -53,7 +48,6 @@ func WatchFile(ctx context.Context, file string, c EventChannel) (Watcher, error
 // streamFileEvents watches for file changes and supports symlinks which requires several workarounds due to limitations of fsnotify.
 // Argument `resolvedFile` is the resolved symlink path of the file, or it is the watchedFile name itself. If `resolvedFile` is empty, then the watchedFile does not exist.
 func streamFileEvents(ctx context.Context, watcher *fsnotify.Watcher, c EventChannel, sendNow <-chan struct{}, sendNowDone chan<- int, watchedFile, resolvedFile string) {
-	defer close(c)
 	eventSource := source(watchedFile)
 	removeDirectFileWatcher := func() {
 		_ = watcher.Remove(watchedFile)
@@ -82,7 +76,7 @@ func streamFileEvents(ctx context.Context, watcher *fsnotify.Watcher, c EventCha
 			} else {
 				// The file does exist. Announce the current content by sending a ChangeEvent.
 				//#nosec G304 -- false positive
-				data, err := ioutil.ReadFile(watchedFile)
+				data, err := os.ReadFile(watchedFile)
 				if err != nil {
 					c <- &ErrorEvent{
 						error:  errors.WithStack(err),
@@ -134,7 +128,7 @@ func streamFileEvents(ctx context.Context, watcher *fsnotify.Watcher, c EventCha
 					fallthrough
 				case e.Op&(fsnotify.Write|fsnotify.Create) != 0:
 					//#nosec G304 -- false positive
-					data, err := ioutil.ReadFile(watchedFile)
+					data, err := os.ReadFile(watchedFile)
 					if err != nil {
 						c <- &ErrorEvent{
 							error:  errors.WithStack(err),

@@ -159,18 +159,19 @@ func (p *Provider) createProviders(ctx context.Context) (providers []koanf.Provi
 	}
 
 	p.logger.WithField("files", paths).Debug("Adding config files.")
+
+	c := make(watcherx.EventChannel)
+	go p.watchForFileChanges(ctx, c)
+
 	for _, path := range paths {
 		fp, err := NewKoanfFile(ctx, path)
 		if err != nil {
 			return nil, err
 		}
 
-		c := make(watcherx.EventChannel)
 		if _, err := fp.WatchChannel(c); err != nil {
 			return nil, err
 		}
-
-		go p.watchForFileChanges(c)
 
 		providers = append(providers, fp)
 	}
@@ -304,14 +305,18 @@ func (p *Provider) reload(e watcherx.Event) {
 	// unlocks & runs changes in defer
 }
 
-func (p *Provider) watchForFileChanges(c watcherx.EventChannel) {
-	// Channel is closed automatically on ctx.Done() because of fp.WatchChannel()
-	for e := range c {
-		switch et := e.(type) {
-		case *watcherx.ErrorEvent:
-			p.runOnChanges(e, et)
-		default:
-			p.reload(e)
+func (p *Provider) watchForFileChanges(ctx context.Context, c watcherx.EventChannel) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case e := <-c:
+			switch et := e.(type) {
+			case *watcherx.ErrorEvent:
+				p.runOnChanges(e, et)
+			default:
+				p.reload(e)
+			}
 		}
 	}
 }
