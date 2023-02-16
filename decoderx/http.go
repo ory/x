@@ -93,7 +93,7 @@ func HTTPFormDecoder() HTTPDecoderOption {
 	}
 }
 
-// HTTPJSONDecoder configures the HTTP decoder to only accept form-data
+// HTTPJSONDecoder configures the HTTP decoder to only accept JSON data
 // (application/json).
 func HTTPJSONDecoder() HTTPDecoderOption {
 	return func(o *httpDecoderOptions) {
@@ -335,19 +335,10 @@ func (t *HTTP) decodeJSONForm(r *http.Request, destination interface{}, o *httpD
 	}
 
 	values := url.Values{}
-	var notJSONForm bool
 	parsed.ForEach(func(k, v gjson.Result) bool {
-		if v.IsArray() || v.IsObject() {
-			notJSONForm = true
-			return false
-		}
 		values.Set(k.String(), v.String())
 		return true
 	})
-
-	if notJSONForm {
-		return t.decodeJSON(r, destination, o, true)
-	}
 
 	if o.queryAndBody {
 		_ = r.ParseForm()
@@ -518,7 +509,7 @@ func (t *HTTP) decodeURLValues(values url.Values, paths []jsonschemax.Path, o *h
 						continue
 					}
 
-					raw, err = sjson.SetBytes(raw, path.Name, v)
+					raw, err = sjson.SetRawBytes(raw, path.Name, []byte(v))
 				case []map[string]interface{}:
 					raw, err = sjson.SetBytes(raw, path.Name, values[key])
 				}

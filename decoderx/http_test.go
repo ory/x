@@ -130,6 +130,168 @@ func TestHTTPFormDecoder(t *testing.T) {
 			expectedError: `missing properties: "foo"`,
 		},
 		{
+			d:       "should fail for invalid JSON data with unrestricted object",
+			request: newRequest(t, "POST", "/", bytes.NewBufferString(`{"dynamic_object":{"stuff":{"blub":[42,3.14152,"fu":"bar"},"consent":true}}`), httpContentTypeJSON),
+			options: []HTTPDecoderOption{
+				HTTPJSONSchemaCompiler("stub/dynamic-object.json", nil),
+				HTTPJSONDecoder()},
+			expectedError: "The request was malformed or contained invalid parameters",
+		},
+		{
+			d:       "should fail validation for wrong JSON type with unrestricted object",
+			request: newRequest(t, "POST", "/", bytes.NewBufferString(`{"dynamic_object":[42,3.14152]}`), httpContentTypeJSON),
+			options: []HTTPDecoderOption{
+				HTTPJSONSchemaCompiler("stub/dynamic-object.json", nil),
+				HTTPJSONDecoder()},
+			expectedError: "expected object, but got array",
+		},
+		{
+			d:       "should accept JSON data with unrestricted object",
+			request: newRequest(t, "POST", "/", bytes.NewBufferString(`{"dynamic_object":{"stuff":{"blub":[42,3.14152],"fu":"bar"},"consent":true}}`), httpContentTypeJSON),
+			options: []HTTPDecoderOption{
+				HTTPJSONSchemaCompiler("stub/dynamic-object.json", nil),
+				HTTPJSONDecoder()},
+			expected: `{
+	"dynamic_object": {
+		"stuff": {
+			"blub": [42, 3.14152],
+			"fu": "bar"
+		},
+		"consent": true
+	}
+}`,
+		},
+		{
+			d:       "should accept JSON data with unrestricted object and mixed object syntax and query parameter",
+			request: newRequest(t, "POST", "/?name.last=Horstmann", bytes.NewBufferString(`{"dynamic_object":{"stuff":{"blub":[42,3.14152],"fu":"bar"},"consent":true},"name.first":"Horst"}`), httpContentTypeJSON),
+			options: []HTTPDecoderOption{
+				HTTPJSONSchemaCompiler("stub/dynamic-object.json", nil),
+				HTTPJSONDecoder(),
+				HTTPDecoderJSONFollowsFormFormat(),
+				HTTPDecoderUseQueryAndBody()},
+			expected: `{
+	"dynamic_object": {
+		"stuff": {
+			"blub": [42, 3.14152],
+			"fu": "bar"
+		},
+		"consent": true
+	},
+	"name": {
+		"first": "Horst",
+		"last": "Horstmann"
+	}
+}`,
+		},
+		{
+			d:       "should accept JSON data with unrestricted object and mixed object syntax",
+			request: newRequest(t, "POST", "/", bytes.NewBufferString(`{"dynamic_object":{"stuff":{"blub":[42,3.14152],"fu":"bar"},"consent":true},"name.first":"Horst","name.last":"Horstmann"}`), httpContentTypeJSON),
+			options: []HTTPDecoderOption{
+				HTTPJSONSchemaCompiler("stub/dynamic-object.json", nil),
+				HTTPJSONDecoder(),
+				HTTPDecoderJSONFollowsFormFormat()},
+			expected: `{
+	"dynamic_object": {
+		"stuff": {
+			"blub": [42, 3.14152],
+			"fu": "bar"
+		},
+		"consent": true
+	},
+	"name": {
+		"first": "Horst",
+		"last": "Horstmann"
+	}
+}`,
+		},
+		{
+			d: "should fail form data with invalid premarshalled JSON object",
+			request: newRequest(t, "POST", "/", bytes.NewBufferString(url.Values{
+				"dynamic_object": {`{"stuff":{"blub":[42, 3.14152,"fu":"bar"},"consent":true}`},
+			}.Encode()), httpContentTypeURLEncodedForm),
+			options: []HTTPDecoderOption{
+				HTTPJSONSchemaCompiler("stub/dynamic-object.json", nil),
+				HTTPFormDecoder()},
+			expectedError: "The request was malformed or contained invalid parameters",
+		},
+		{
+			d: "should fail validation for form data with wrong premarshalled JSON type",
+			request: newRequest(t, "POST", "/", bytes.NewBufferString(url.Values{
+				"dynamic_object": {`[42, 3.14152]`},
+			}.Encode()), httpContentTypeURLEncodedForm),
+			options: []HTTPDecoderOption{
+				HTTPJSONSchemaCompiler("stub/dynamic-object.json", nil),
+				HTTPFormDecoder()},
+			expectedError: "expected object, but got array",
+		},
+		{
+			d: "should accept form data with premarshalled JSON object",
+			request: newRequest(t, "POST", "/", bytes.NewBufferString(url.Values{
+				"dynamic_object": {`{"stuff":{"blub":[42, 3.14152],"fu":"bar"},"consent":true}`},
+			}.Encode()), httpContentTypeURLEncodedForm),
+			options: []HTTPDecoderOption{
+				HTTPJSONSchemaCompiler("stub/dynamic-object.json", nil),
+				HTTPFormDecoder()},
+			expected: `{
+	"dynamic_object": {
+		"stuff": {
+			"blub": [42, 3.14152],
+			"fu": "bar"
+		},
+		"consent": true
+	},
+	"name": {}
+}`,
+		},
+		{
+			d: "should accept form data with premarshalled JSON object and mixed object syntax and query parameter",
+			request: newRequest(t, "POST", "/?name.last=Horstmann", bytes.NewBufferString(url.Values{
+				"dynamic_object": {`{"stuff":{"blub":[42, 3.14152],"fu":"bar"},"consent":true}`},
+				"name.first":     {"Horst"},
+			}.Encode()), httpContentTypeURLEncodedForm),
+			options: []HTTPDecoderOption{
+				HTTPJSONSchemaCompiler("stub/dynamic-object.json", nil),
+				HTTPFormDecoder(),
+				HTTPDecoderUseQueryAndBody()},
+			expected: `{
+	"dynamic_object": {
+		"stuff": {
+			"blub": [42, 3.14152],
+			"fu": "bar"
+		},
+		"consent": true
+	},
+	"name": {
+		"first": "Horst",
+		"last": "Horstmann"
+	}
+}`,
+		},
+		{
+			d: "should accept form data with premarshalled JSON object and mixed object syntax",
+			request: newRequest(t, "POST", "/", bytes.NewBufferString(url.Values{
+				"dynamic_object": {`{"stuff":{"blub":[42, 3.14152],"fu":"bar"},"consent":true}`},
+				"name.first":     {"Horst"},
+				"name.last":      {"Horstmann"},
+			}.Encode()), httpContentTypeURLEncodedForm),
+			options: []HTTPDecoderOption{
+				HTTPJSONSchemaCompiler("stub/dynamic-object.json", nil),
+				HTTPFormDecoder()},
+			expected: `{
+	"dynamic_object": {
+		"stuff": {
+			"blub": [42, 3.14152],
+			"fu": "bar"
+		},
+		"consent": true
+	},
+	"name": {
+		"first": "Horst",
+		"last": "Horstmann"
+	}
+}`,
+		},
+		{
 			d: "should pass form request and type assert data",
 			request: newRequest(t, "POST", "/", bytes.NewBufferString(url.Values{
 				"name.first": {"Aeneas"},
