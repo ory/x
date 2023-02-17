@@ -71,6 +71,8 @@ jobs:
         run: go list -json -deps > go.list
       - name: Run nancy
         uses: sonatype-nexus-community/nancy-github-action@main
+        with:
+          nancyVersion: v1.0.42
       - run: make .bin/go-acc .bin/gcov2lcov
       - run:
           COCKROACH_BINARY=/usr/local/bin/cockroach .bin/go-acc -o coverage.out
