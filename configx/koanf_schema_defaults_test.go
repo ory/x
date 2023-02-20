@@ -17,6 +17,9 @@ import (
 )
 
 func TestKoanfSchemaDefaults(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	schemaPath := path.Join("stub", "domain-aliases", "config.schema.json")
 
 	rawSchema, err := os.ReadFile(schemaPath)
@@ -25,7 +28,7 @@ func TestKoanfSchemaDefaults(t *testing.T) {
 	c := jsonschema.NewCompiler()
 	require.NoError(t, c.AddResource(schemaPath, bytes.NewReader(rawSchema)))
 
-	schema, err := c.Compile(context.Background(), schemaPath)
+	schema, err := c.Compile(ctx, schemaPath)
 	require.NoError(t, err)
 
 	k, err := newKoanf(ctx, schemaPath, nil)

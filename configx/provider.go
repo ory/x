@@ -45,8 +45,6 @@ type Provider struct {
 	*koanf.Koanf
 	immutables []string
 
-	cancel context.CancelFunc
-
 	schema                   []byte
 	flags                    *pflag.FlagSet
 	validator                *jsonschema.Schema
@@ -85,10 +83,6 @@ func RegisterConfigFlag(flags *pflag.FlagSet, fallback []string) {
 // 2. Config files (yaml, yml, toml, json)
 // 3. Command line flags
 // 4. Environment variables
-//
-// ctx is used for cancelation in case a schema is loaded from a URL. Background
-// reloading of files is enabled automatically. Call Close on the returned
-// Provider to stop the background reloading.
 func New(ctx context.Context, schema []byte, modifiers ...OptionModifier) (*Provider, error) {
 	validator, err := getSchema(ctx, schema)
 	if err != nil {
@@ -105,13 +99,13 @@ func New(ctx context.Context, schema []byte, modifiers ...OptionModifier) (*Prov
 		excludeFieldsFromTracing: []string{"dsn", "secret", "password", "key"},
 		logger:                   logrusx.New("discarding config logger", "", logrusx.UseLogger(l)),
 		Koanf:                    koanf.NewWithConf(koanf.Conf{Delim: Delimiter, StrictMerge: true}),
+		tracer:                   otel.Tracer(tracingComponent),
 	}
 
 	for _, m := range modifiers {
 		m(p)
 	}
 
-	ctx, p.cancel = context.WithCancel(context.Background())
 	providers, err := p.createProviders(ctx)
 	if err != nil {
 		return nil, err
@@ -126,14 +120,6 @@ func New(ctx context.Context, schema []byte, modifiers ...OptionModifier) (*Prov
 
 	p.replaceKoanf(k)
 	return p, nil
-}
-
-// Close stops background reloading.
-func (p *Provider) Close() {
-	if p.cancel != nil {
-		p.cancel()
-		p.cancel = nil
-	}
 }
 
 func (p *Provider) SkipValidation() bool {
@@ -164,12 +150,12 @@ func (p *Provider) createProviders(ctx context.Context) (providers []koanf.Provi
 	go p.watchForFileChanges(ctx, c)
 
 	for _, path := range paths {
-		fp, err := NewKoanfFile(ctx, path)
+		fp, err := NewKoanfFile(path)
 		if err != nil {
 			return nil, err
 		}
 
-		if _, err := fp.WatchChannel(c); err != nil {
+		if _, err := fp.WatchChannel(ctx, c); err != nil {
 			return nil, err
 		}
 
@@ -229,11 +215,11 @@ func (p *Provider) validate(k *koanf.Koanf) error {
 //
 // - https://github.com/knadh/koanf/issues/77
 // - https://github.com/knadh/koanf/pull/47
-func (p *Provider) newKoanf() (k *koanf.Koanf, err error) {
-	_, span := p.startSpan(context.Background(), LoadSpanOpName)
+func (p *Provider) newKoanf() (_ *koanf.Koanf, err error) {
+	_, span := p.tracer.Start(context.Background(), LoadSpanOpName)
 	defer otelx.End(span, &err)
 
-	k = koanf.New(Delimiter)
+	k := koanf.New(Delimiter)
 
 	for _, provider := range p.providers {
 		// posflag.Posflag requires access to Koanf instance so we recreate the provider here which is a workaround
@@ -262,14 +248,6 @@ func (p *Provider) newKoanf() (k *koanf.Koanf, err error) {
 // SetTracer sets the tracer.
 func (p *Provider) SetTracer(_ context.Context, t *otelx.Tracer) {
 	p.tracer = t.Provider().Tracer(tracingComponent)
-}
-
-func (p *Provider) startSpan(ctx context.Context, opName string) (context.Context, trace.Span) {
-	tracer := otel.Tracer(tracingComponent)
-	if p.tracer != nil {
-		tracer = p.tracer
-	}
-	return tracer.Start(ctx, opName)
 }
 
 func (p *Provider) runOnChanges(e watcherx.Event, err error) {

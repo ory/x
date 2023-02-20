@@ -25,7 +25,9 @@ func TestPFlagProvider(t *testing.T) {
   }
 }
 `
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	s, err := jsonschema.CompileString(ctx, "", schema)
 	require.NoError(t, err)
 

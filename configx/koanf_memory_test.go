@@ -14,12 +14,15 @@ import (
 )
 
 func TestKoanfMemory(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	doc := []byte(`{
   "foo": {
     "bar": "baz"
   }
 }`)
-	kf := NewKoanfMemory(context.Background(), doc)
+	kf := NewKoanfMemory(ctx, doc)
 
 	actual, err := kf.Read()
 	require.NoError(t, err)

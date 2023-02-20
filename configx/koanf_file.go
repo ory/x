@@ -25,19 +25,17 @@ import (
 type KoanfFile struct {
 	subKey string
 	path   string
-	ctx    context.Context
 	parser koanf.Parser
 }
 
-// Provider returns a file provider.
-func NewKoanfFile(ctx context.Context, path string) (*KoanfFile, error) {
-	return NewKoanfFileSubKey(ctx, path, "")
+// NewKoanfFile returns a file provider.
+func NewKoanfFile(path string) (*KoanfFile, error) {
+	return NewKoanfFileSubKey(path, "")
 }
 
-func NewKoanfFileSubKey(ctx context.Context, path, subKey string) (*KoanfFile, error) {
+func NewKoanfFileSubKey(path, subKey string) (*KoanfFile, error) {
 	kf := &KoanfFile{
 		path:   filepath.Clean(path),
-		ctx:    ctx,
 		subKey: subKey,
 	}
 
@@ -55,12 +53,12 @@ func NewKoanfFileSubKey(ctx context.Context, path, subKey string) (*KoanfFile, e
 	return kf, nil
 }
 
-// ReadBytes reads the contents of a file on disk and returns the bytes.
+// ReadBytes is not supported by KoanfFile.
 func (f *KoanfFile) ReadBytes() ([]byte, error) {
 	return nil, errors.New("file provider does not support this method")
 }
 
-// Read is not supported by the file provider.
+// Read reads the file and returns the parsed configuration.
 func (f *KoanfFile) Read() (map[string]interface{}, error) {
 	//#nosec G304 -- false positive
 	fc, err := os.ReadFile(f.path)
@@ -89,6 +87,6 @@ func (f *KoanfFile) Read() (map[string]interface{}, error) {
 
 // WatchChannel watches the file and triggers a callback when it changes. It is a
 // blocking function that internally spawns a goroutine to watch for changes.
-func (f *KoanfFile) WatchChannel(c watcherx.EventChannel) (watcherx.Watcher, error) {
-	return watcherx.WatchFile(f.ctx, f.path, c)
+func (f *KoanfFile) WatchChannel(ctx context.Context, c watcherx.EventChannel) (watcherx.Watcher, error) {
+	return watcherx.WatchFile(ctx, f.path, c)
 }

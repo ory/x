@@ -109,6 +109,9 @@ func TestProviderMethods(t *testing.T) {
 }
 
 func TestAdvancedConfigs(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	for _, tc := range []struct {
 		stub      string
 		configs   []string
@@ -166,13 +169,13 @@ func TestAdvancedConfigs(t *testing.T) {
 			stub:    "hydra",
 			configs: []string{"stub/hydra/hydra.yaml"},
 			isValid: false,
-			ops:     []OptionModifier{WithUserProviders(NewKoanfMemory(context.Background(), []byte(`{"dsn": null}`)))},
+			ops:     []OptionModifier{WithUserProviders(NewKoanfMemory(ctx, []byte(`{"dsn": null}`)))},
 		},
 		{
 			stub:    "hydra",
 			configs: []string{"stub/hydra/hydra.yaml"},
 			isValid: true,
-			ops:     []OptionModifier{WithUserProviders(NewKoanfMemory(context.Background(), []byte(`{"dsn": "invalid"}`)))},
+			ops:     []OptionModifier{WithUserProviders(NewKoanfMemory(ctx, []byte(`{"dsn": "invalid"}`)))},
 			envs: [][2]string{
 				{"DSN", "sqlite:///var/lib/sqlite/db.sqlite?_fk=true"},
 				{"TRACING_PROVIDER", "jaeger"},
