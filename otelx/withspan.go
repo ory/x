@@ -26,6 +26,7 @@ func WithSpan(ctx context.Context, name string, f func(context.Context) error, o
 			setErrorStatusPanic(span, r)
 			panic(r)
 		} else if err != nil {
+			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
 		}
 	}()
