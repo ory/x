@@ -6,7 +6,6 @@ package watcherx
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
@@ -42,6 +41,7 @@ func TestWatchWebsocket(t *testing.T) {
 		handler, err := WatchAndServeWS(ctx, url, herodot.NewJSONWriter(l))
 		require.NoError(t, err)
 		s := httptest.NewServer(handler)
+		defer s.Close()
 
 		u := urlx.ParseOrPanic("ws" + strings.TrimLeft(s.URL, "http"))
 		_, err = WatchWebsocket(ctx, u, c)
@@ -70,6 +70,7 @@ func TestWatchWebsocket(t *testing.T) {
 		handler, err := WatchAndServeWS(ctx1, urlx.ParseOrPanic("file://"+fn), herodot.NewJSONWriter(l))
 		require.NoError(t, err)
 		s := httptest.NewServer(handler)
+		defer s.Close()
 
 		ctx2, cancel2 := context.WithCancel(context.Background())
 		u := urlx.ParseOrPanic("ws" + strings.TrimLeft(s.URL, "http"))
@@ -97,6 +98,7 @@ func TestWatchWebsocket(t *testing.T) {
 		handler, err := WatchAndServeWS(ctxServe, urlx.ParseOrPanic("file://"+fn), herodot.NewJSONWriter(l))
 		require.NoError(t, err)
 		s := httptest.NewServer(handler)
+		defer s.Close()
 
 		u := urlx.ParseOrPanic("ws" + strings.TrimLeft(s.URL, "http"))
 		_, err = WatchWebsocket(ctxClient, u, c)
@@ -122,6 +124,7 @@ func TestWatchWebsocket(t *testing.T) {
 		handler, err := WatchAndServeWS(ctxServer, urlx.ParseOrPanic("file://"+fn), herodot.NewJSONWriter(l))
 		require.NoError(t, err)
 		s := httptest.NewServer(handler)
+		defer s.Close()
 
 		ctxClient1, cancelClient1 := context.WithCancel(context.Background())
 		defer cancelClient1()
@@ -161,6 +164,7 @@ func TestWatchWebsocket(t *testing.T) {
 		handler, err := WatchAndServeWS(ctxServer, urlx.ParseOrPanic("file://"+fn), herodot.NewJSONWriter(l))
 		require.NoError(t, err)
 		s := httptest.NewServer(handler)
+		defer s.Close()
 
 		ctxClient1, cancelClient1 := context.WithCancel(context.Background())
 		defer cancelClient1()
@@ -197,11 +201,12 @@ func TestWatchWebsocket(t *testing.T) {
 
 		fn := filepath.Join(dir, "some.file")
 		initialContent := "initial content"
-		require.NoError(t, ioutil.WriteFile(fn, []byte(initialContent), 0600))
+		require.NoError(t, os.WriteFile(fn, []byte(initialContent), 0600))
 
 		handler, err := WatchAndServeWS(ctxServer, urlx.ParseOrPanic("file://"+fn), herodot.NewJSONWriter(l))
 		require.NoError(t, err)
 		s := httptest.NewServer(handler)
+		defer s.Close()
 
 		ctxClient, cancelClient := context.WithCancel(context.Background())
 		defer cancelClient()
