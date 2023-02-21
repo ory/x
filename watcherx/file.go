@@ -63,10 +63,10 @@ func streamFileEvents(ctx context.Context, watcher *fsnotify.Watcher, c EventCha
 			}
 		}
 	}
+	defer watcher.Close()
 	for {
 		select {
 		case <-ctx.Done():
-			_ = watcher.Close()
 			return
 		case <-sendNow:
 			if resolvedFile == "" {
@@ -77,20 +77,32 @@ func streamFileEvents(ctx context.Context, watcher *fsnotify.Watcher, c EventCha
 				//#nosec G304 -- false positive
 				data, err := os.ReadFile(watchedFile)
 				if err != nil {
-					c <- &ErrorEvent{
+					select {
+					case c <- &ErrorEvent{
 						error:  errors.WithStack(err),
 						source: eventSource,
+					}:
+					case <-ctx.Done():
+						return
 					}
 					continue
 				}
-				c <- &ChangeEvent{
+				select {
+				case c <- &ChangeEvent{
 					data:   data,
 					source: eventSource,
+				}:
+				case <-ctx.Done():
+					return
 				}
 			}
 
 			// in any of the above cases we send exactly one event
-			sendNowDone <- 1
+			select {
+			case sendNowDone <- 1:
+			case <-ctx.Done():
+				return
+			}
 		case e, ok := <-watcher.Events:
 			if !ok {
 				return
@@ -103,13 +115,21 @@ func streamFileEvents(ctx context.Context, watcher *fsnotify.Watcher, c EventCha
 				if err != nil {
 					// check if the watchedFile (or the file behind the symlink) was removed
 					if _, ok := err.(*os.PathError); ok {
-						c <- &RemoveEvent{eventSource}
+						select {
+						case c <- &RemoveEvent{eventSource}:
+						case <-ctx.Done():
+							return
+						}
 						removeDirectFileWatcher()
 						continue
 					}
-					c <- &ErrorEvent{
+					select {
+					case c <- &ErrorEvent{
 						error:  errors.WithStack(err),
 						source: eventSource,
+					}:
+					case <-ctx.Done():
+						return
 					}
 					continue
 				}
@@ -129,15 +149,23 @@ func streamFileEvents(ctx context.Context, watcher *fsnotify.Watcher, c EventCha
 					//#nosec G304 -- false positive
 					data, err := os.ReadFile(watchedFile)
 					if err != nil {
-						c <- &ErrorEvent{
+						select {
+						case c <- &ErrorEvent{
 							error:  errors.WithStack(err),
 							source: eventSource,
+						}:
+						case <-ctx.Done():
+							return
 						}
 						continue
 					}
-					c <- &ChangeEvent{
+					select {
+					case c <- &ChangeEvent{
 						data:   data,
 						source: eventSource,
+					}:
+					case <-ctx.Done():
+						return
 					}
 				}
 			}
