@@ -50,7 +50,7 @@ jobs:
       - name: Start cockroach
         run:
           docker run --name cockroach -p 26257:26257 -d
-          cockroachdb/cockroach:v20.2.5 start-single-node --insecure
+          cockroachdb/cockroach:v22.2.5 start-single-node --insecure
       - name: Checkout repository
         uses: actions/checkout@v2
       - uses: actions/setup-go@v2
@@ -63,9 +63,9 @@ jobs:
           args: --timeout 2m
       - name: Install cockroach DB
         run: |
-          curl https://binaries.cockroachdb.com/cockroach-v21.1.2.linux-amd64.tgz | tar -xz
-          sudo cp -iv cockroach-v21.1.2.linux-amd64/cockroach /usr/local/bin/
-          rm -rf cockroach-v21.1.2.linux-amd64
+          curl https://binaries.cockroachdb.com/cockroach-v22.2.5.linux-amd64.tgz | tar -xz
+          sudo cp -iv cockroach-v22.2.5.linux-amd64/cockroach /usr/local/bin/
+          rm -rf cockroach-v22.2.5.linux-amd64
           cockroach version
       - name: Prepare nancy dependency list
         run: go list -json -deps > go.list

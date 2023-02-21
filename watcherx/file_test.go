@@ -37,7 +37,7 @@ func assertRemove(t *testing.T, e Event, src string) {
 	assert.Equal(t, &RemoveEvent{source(src)}, e)
 }
 
-func TestFileWatcher(t *testing.T) {
+func TestWatchFile(t *testing.T) {
 	t.Run("case=notifies on file write", func(t *testing.T) {
 		ctx, c, dir, cancel := setup(t)
 		defer cancel()
