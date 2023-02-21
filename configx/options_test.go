@@ -12,7 +12,8 @@ import (
 )
 
 func TestOptions(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	t.Run("case=does not load env if disabled", func(t *testing.T) {
 		schema := `{"type": "object", "properties": {"path": {"type": "string"}}}`

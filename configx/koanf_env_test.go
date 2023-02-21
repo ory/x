@@ -17,9 +17,12 @@ import (
 var kratosSchema []byte
 
 func TestNewKoanfEnvCache(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	ref, compiler, err := newCompiler(kratosSchema)
 	require.NoError(t, err)
-	schema, err := compiler.Compile(context.Background(), ref)
+	schema, err := compiler.Compile(ctx, ref)
 	require.NoError(t, err)
 
 	c := *schemaPathCacheConfig

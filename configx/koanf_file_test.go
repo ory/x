@@ -4,7 +4,6 @@
 package configx
 
 import (
-	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -17,15 +16,14 @@ import (
 )
 
 func TestKoanfFile(t *testing.T) {
-	setupFile := func(t *testing.T, fn, fc, subKey string) (*KoanfFile, context.CancelFunc) {
+	setupFile := func(t *testing.T, fn, fc, subKey string) *KoanfFile {
 		dir := t.TempDir()
 		fn = filepath.Join(dir, fn)
 		require.NoError(t, os.WriteFile(fn, []byte(fc), 0600))
 
-		ctx, cancel := context.WithCancel(context.Background())
-		kf, err := NewKoanfFileSubKey(ctx, fn, subKey)
+		kf, err := NewKoanfFileSubKey(fn, subKey)
 		require.NoError(t, err)
-		return kf, cancel
+		return kf
 	}
 
 	t.Run("case=reads json root file", func(t *testing.T) {
@@ -35,8 +33,7 @@ func TestKoanfFile(t *testing.T) {
 		encV, err := json.Marshal(v)
 		require.NoError(t, err)
 
-		kf, cancel := setupFile(t, "config.json", string(encV), "")
-		defer cancel()
+		kf := setupFile(t, "config.json", string(encV), "")
 
 		actual, err := kf.Read()
 		require.NoError(t, err)
@@ -50,8 +47,7 @@ func TestKoanfFile(t *testing.T) {
 		encV, err := yaml.Marshal(v)
 		require.NoError(t, err)
 
-		kf, cancel := setupFile(t, "config.yml", string(encV), "")
-		defer cancel()
+		kf := setupFile(t, "config.yml", string(encV), "")
 
 		actual, err := kf.Read()
 		require.NoError(t, err)
@@ -65,8 +61,7 @@ func TestKoanfFile(t *testing.T) {
 		encV, err := toml.Marshal(v)
 		require.NoError(t, err)
 
-		kf, cancel := setupFile(t, "config.toml", string(encV), "")
-		defer cancel()
+		kf := setupFile(t, "config.toml", string(encV), "")
 
 		actual, err := kf.Read()
 		require.NoError(t, err)
@@ -80,8 +75,7 @@ func TestKoanfFile(t *testing.T) {
 		encV, err := json.Marshal(v)
 		require.NoError(t, err)
 
-		kf, cancel := setupFile(t, "config.json", string(encV), "parent.of.config")
-		defer cancel()
+		kf := setupFile(t, "config.json", string(encV), "parent.of.config")
 
 		actual, err := kf.Read()
 		require.NoError(t, err)

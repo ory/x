@@ -46,6 +46,9 @@ func setEnvs(t testing.TB, envs [][2]string) {
 }
 
 func BenchmarkNewKoanf(b *testing.B) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	setEnvs(b, [][2]string{{"MUTATORS_HEADER_ENABLED", "true"}})
 	schemaPath := path.Join("stub/benchmark/schema.config.json")
 	for i := 0; i < b.N; i++ {
@@ -59,6 +62,9 @@ func BenchmarkNewKoanf(b *testing.B) {
 }
 
 func BenchmarkKoanf(b *testing.B) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	setEnvs(b, [][2]string{{"MUTATORS_HEADER_ENABLED", "true"}})
 	schemaPath := path.Join("stub/benchmark/schema.config.json")
 	k, err := newKoanf(ctx, schemaPath, []string{"stub/benchmark/benchmark.yaml"})

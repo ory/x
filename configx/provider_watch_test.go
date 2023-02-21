@@ -7,13 +7,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -26,78 +23,42 @@ import (
 	"github.com/ory/x/watcherx"
 )
 
-var ctx = context.Background()
-
-func tmpConfigFile(t *testing.T, dsn, foo string) *os.File {
+func tmpConfigFile(t *testing.T, dsn, foo string) (string, string) {
 	config := fmt.Sprintf("dsn: %s\nfoo: %s\n", dsn, foo)
 
-	tdir := filepath.Join(os.TempDir(), strconv.FormatInt(time.Now().UnixNano(), 10))
-	require.NoError(t,
-		os.MkdirAll(tdir, // DO NOT CHANGE THIS: https://github.com/fsnotify/fsnotify/issues/340
-			os.ModePerm))
-	configFile, err := os.CreateTemp(tdir, "config-*.yml")
-	require.NoError(t, err)
-	_, err = io.WriteString(configFile, config)
-	require.NoError(t, err)
-	require.NoError(t, configFile.Sync())
-	t.Cleanup(func() {
-		fmt.Printf("removing %s\n", configFile.Name())
-		_ = os.Remove(configFile.Name())
-	})
+	tdir := t.TempDir()
+	fn := "config.yml"
+	watcherx.KubernetesAtomicWrite(t, tdir, fn, config)
 
-	return configFile
+	return tdir, fn
 }
 
-func updateConfigFile(t *testing.T, c <-chan struct{}, configFile *os.File, dsn, foo, bar string) {
+func updateConfigFile(t *testing.T, c <-chan struct{}, dir, name, dsn, foo, bar string) {
 	config := fmt.Sprintf(`dsn: %s
 foo: %s
 bar: %s`, dsn, foo, bar)
 
-	_, err := configFile.Seek(0, 0)
-	require.NoError(t, err)
-	require.NoError(t, configFile.Truncate(0))
-	_, err = io.WriteString(configFile, config)
-	require.NoError(t, err)
-	require.NoError(t, configFile.Sync())
+	watcherx.KubernetesAtomicWrite(t, dir, name, config)
 	<-c // Wait for changes to propagate
 	time.Sleep(time.Millisecond)
 }
 
-func lsof(t *testing.T, file string) string {
+func assertNoOpenFDs(t require.TestingT, dir, name string) {
 	if runtime.GOOS == "windows" {
-		return ""
+		return
 	}
 	var b, be bytes.Buffer
 	// we are only interested in the file descriptors, so we use the `-F f` option
-	c := exec.Command("lsof", "-n", "-F", "f", file)
+	c := exec.Command("lsof", "-n", "-F", "f", filepath.Join(dir, name))
 	c.Stdout = &b
 	c.Stderr = &be
-	require.NoError(t, c.Run(), "stderr says: %s %s", be.String(), b.String())
-	return b.String()
-}
-
-func checkLsof(t *testing.T, file string) int {
-	if runtime.GOOS == "windows" {
-		return 0
-	}
-
-	lines := strings.Split(lsof(t, file), "\n")
-	var count int
-	for _, line := range lines {
-		// the output starts with "f" for each distinct file descriptor
-		if strings.HasPrefix(line, "f") {
-			count++
-		}
-	}
-	return count
-}
-
-func compareLsof(t *testing.T, file, atStart string, expected int) {
-	assert.Equal(t, expected, checkLsof(t, file), "\n\t%s\n\t%s", atStart, lsof(t, file))
+	exitErr := new(exec.ExitError)
+	require.ErrorAs(t, c.Run(), &exitErr, "got stout: %s\nstderr: %s", b.String(), be.String())
+	assert.Equal(t, 1, exitErr.ExitCode(), "got stout: %s\nstderr: %s", b.String(), be.String())
 }
 
 func TestReload(t *testing.T) {
-	setup := func(t *testing.T, cf *os.File, c chan<- struct{}, modifiers ...OptionModifier) (*Provider, *logrusx.Logger) {
+	setup := func(t *testing.T, dir, name string, c chan<- struct{}, modifiers ...OptionModifier) (*Provider, *logrusx.Logger) {
 		l := logrusx.New("configx", "test")
 		ctx, cancel := context.WithCancel(context.Background())
 		t.Cleanup(cancel)
@@ -110,27 +71,25 @@ func TestReload(t *testing.T) {
 			}),
 			WithContext(ctx),
 		)
-		p, err := newKoanf(ctx, "./stub/watch/config.schema.json", []string{cf.Name()}, modifiers...)
+		p, err := newKoanf(ctx, "./stub/watch/config.schema.json", []string{filepath.Join(dir, name)}, modifiers...)
 		require.NoError(t, err)
 		return p, l
 	}
 
 	t.Run("case=rejects not validating changes", func(t *testing.T) {
 		t.Parallel()
-		configFile := tmpConfigFile(t, "memory", "bar")
-		defer configFile.Close()
+		dir, name := tmpConfigFile(t, "memory", "bar")
 		c := make(chan struct{})
-		p, l := setup(t, configFile, c)
+		p, l := setup(t, dir, name, c)
 		hook := test.NewLocal(l.Entry.Logger)
 
-		atStart := checkLsof(t, configFile.Name())
-		lsofAtStart := lsof(t, configFile.Name())
+		assertNoOpenFDs(t, dir, name)
 
 		assert.Equal(t, []*logrus.Entry{}, hook.AllEntries())
 		assert.Equal(t, "memory", p.String("dsn"))
 		assert.Equal(t, "bar", p.String("foo"))
 
-		updateConfigFile(t, c, configFile, "memory", "not bar", "bar")
+		updateConfigFile(t, c, dir, name, "memory", "not bar", "bar")
 
 		entries := hook.AllEntries()
 		require.False(t, len(entries) > 4, "%+v", entries) // should be 2 but addresses flake https://github.com/ory/x/runs/2332130952
@@ -142,31 +101,29 @@ func TestReload(t *testing.T) {
 		assert.Equal(t, "bar", p.String("foo"))
 
 		// but it is still watching the files
-		updateConfigFile(t, c, configFile, "memory", "bar", "baz")
+		updateConfigFile(t, c, dir, name, "memory", "bar", "baz")
 		assert.Equal(t, "baz", p.String("bar"))
 
 		time.Sleep(time.Millisecond * 250)
 
-		compareLsof(t, configFile.Name(), lsofAtStart, atStart)
+		assertNoOpenFDs(t, dir, name)
 	})
 
 	t.Run("case=rejects to update immutable", func(t *testing.T) {
 		t.Parallel()
-		configFile := tmpConfigFile(t, "memory", "bar")
-		defer configFile.Close()
+		dir, name := tmpConfigFile(t, "memory", "bar")
 		c := make(chan struct{})
-		p, l := setup(t, configFile, c,
+		p, l := setup(t, dir, name, c,
 			WithImmutables("dsn"))
 		hook := test.NewLocal(l.Entry.Logger)
 
-		atStart := checkLsof(t, configFile.Name())
-		lsofAtStart := lsof(t, configFile.Name())
+		assertNoOpenFDs(t, dir, name)
 
 		assert.Equal(t, []*logrus.Entry{}, hook.AllEntries())
 		assert.Equal(t, "memory", p.String("dsn"))
 		assert.Equal(t, "bar", p.String("foo"))
 
-		updateConfigFile(t, c, configFile, "some db", "bar", "baz")
+		updateConfigFile(t, c, dir, name, "some db", "bar", "baz")
 
 		entries := hook.AllEntries()
 		require.False(t, len(entries) > 4, "%+v", entries) // should be 2 but addresses flake https://github.com/ory/x/runs/2332130952
@@ -176,18 +133,17 @@ func TestReload(t *testing.T) {
 		assert.Equal(t, "bar", p.String("foo"))
 
 		// but it is still watching the files
-		updateConfigFile(t, c, configFile, "memory", "bar", "baz")
+		updateConfigFile(t, c, dir, name, "memory", "bar", "baz")
 		assert.Equal(t, "baz", p.String("bar"))
 
-		compareLsof(t, configFile.Name(), lsofAtStart, atStart)
+		assertNoOpenFDs(t, dir, name)
 	})
 
 	t.Run("case=runs without validation errors", func(t *testing.T) {
 		t.Parallel()
-		configFile := tmpConfigFile(t, "some string", "bar")
-		defer configFile.Close()
+		dir, name := tmpConfigFile(t, "some string", "bar")
 		c := make(chan struct{})
-		p, l := setup(t, configFile, c)
+		p, l := setup(t, dir, name, c)
 		hook := test.NewLocal(l.Entry.Logger)
 
 		assert.Equal(t, []*logrus.Entry{}, hook.AllEntries())
@@ -197,29 +153,29 @@ func TestReload(t *testing.T) {
 
 	t.Run("case=runs and reloads", func(t *testing.T) {
 		t.Parallel()
-		configFile := tmpConfigFile(t, "some string", "bar")
-		defer configFile.Close()
+		dir, name := tmpConfigFile(t, "some string", "bar")
 		c := make(chan struct{})
-		p, l := setup(t, configFile, c)
+		p, l := setup(t, dir, name, c)
 		hook := test.NewLocal(l.Entry.Logger)
 
 		assert.Equal(t, []*logrus.Entry{}, hook.AllEntries())
 		assert.Equal(t, "some string", p.String("dsn"))
 		assert.Equal(t, "bar", p.String("foo"))
 
-		updateConfigFile(t, c, configFile, "memory", "bar", "baz")
+		updateConfigFile(t, c, dir, name, "memory", "bar", "baz")
 		assert.Equal(t, "baz", p.String("bar"))
 	})
 
 	t.Run("case=has with validation errors", func(t *testing.T) {
 		t.Parallel()
-		configFile := tmpConfigFile(t, "some string", "not bar")
-		defer configFile.Close()
+		dir, name := tmpConfigFile(t, "some string", "not bar")
 		l := logrusx.New("", "")
 		hook := test.NewLocal(l.Entry.Logger)
 
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		var b bytes.Buffer
-		_, err := newKoanf(ctx, "./stub/watch/config.schema.json", []string{configFile.Name()},
+		_, err := newKoanf(ctx, "./stub/watch/config.schema.json", []string{filepath.Join(dir, name)},
 			WithStandardValidationReporter(&b),
 			WithLogrusWatcher(l),
 		)
@@ -236,43 +192,68 @@ func TestReload(t *testing.T) {
 			t.Skip()
 		}
 
-		configFile := tmpConfigFile(t, "some string", "bar")
-		defer configFile.Close()
+		dir, name := tmpConfigFile(t, "some string", "bar")
 		c := make(chan struct{})
-		p, _ := setup(t, configFile, c)
+		p, _ := setup(t, dir, name, c)
 
-		atStart := checkLsof(t, configFile.Name())
-		lsofAtStart := lsof(t, configFile.Name())
-
-		assert.EqualValues(t, 1, atStart, lsofAtStart)
+		assertNoOpenFDs(t, dir, name)
 
 		for i := 0; i < 30; i++ {
 			t.Run(fmt.Sprintf("iteration=%d", i), func(t *testing.T) {
 				expected := []string{"foo", "bar", "baz"}[i%3]
-				updateConfigFile(t, c, configFile, "memory", "bar", expected)
-				require.EqualValues(t, atStart, checkLsof(t, configFile.Name()))
+				updateConfigFile(t, c, dir, name, "memory", "bar", expected)
+				assertNoOpenFDs(t, dir, name)
 				require.EqualValues(t, expected, p.String("bar"))
 			})
 		}
 
-		compareLsof(t, configFile.Name(), lsofAtStart, atStart)
+		assertNoOpenFDs(t, dir, name)
 	})
 
 	t.Run("case=callback can use the provider to get the new value", func(t *testing.T) {
 		t.Parallel()
 		dsn := "old"
 
-		f := tmpConfigFile(t, dsn, "bar")
+		dir, name := tmpConfigFile(t, dsn, "bar")
 		c := make(chan struct{})
 
 		var p *Provider
-		p, _ = setup(t, f, c, AttachWatcher(func(watcherx.Event, error) {
+		p, _ = setup(t, dir, name, c, AttachWatcher(func(watcherx.Event, error) {
 			dsn = p.String("dsn")
 		}))
 
 		// change dsn
-		updateConfigFile(t, c, f, "new", "bar", "bar")
+		updateConfigFile(t, c, dir, name, "new", "bar", "bar")
 
 		assert.Equal(t, "new", dsn)
 	})
+}
+
+type mockTestingT struct {
+	failed bool
+}
+
+func (m *mockTestingT) FailNow() {
+	m.failed = true
+}
+
+func (m *mockTestingT) Errorf(string, ...interface{}) {}
+
+var _ require.TestingT = (*mockTestingT)(nil)
+
+func TestAssertNoOpenFDs(t *testing.T) {
+	t.Parallel()
+
+	mt := &mockTestingT{}
+	dir := t.TempDir()
+	f, err := os.Create(filepath.Join(dir, "foo"))
+	require.NoError(t, err)
+
+	assertNoOpenFDs(mt, dir, "foo")
+	assert.True(t, mt.failed)
+
+	mt = &mockTestingT{}
+	require.NoError(t, f.Close())
+	assertNoOpenFDs(mt, dir, "foo")
+	assert.False(t, mt.failed)
 }

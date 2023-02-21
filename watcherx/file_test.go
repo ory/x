@@ -182,7 +182,7 @@ func TestFileWatcher(t *testing.T) {
 	//
 	//	require.NoError(t, WatchFile(ctx, filePath, c))
 	//
-	//	kubernetesAtomicWrite(t, dir, fileName, "foobarx")
+	//	KubernetesAtomicWrite(t, dir, fileName, "foobarx")
 	//
 	//	assertChange(t, <-c, "foobarx", filePath)
 	//})
@@ -197,12 +197,12 @@ func TestFileWatcher(t *testing.T) {
 
 		fileName := "example.file"
 		filePath := filepath.Join(dir, fileName)
-		kubernetesAtomicWrite(t, dir, fileName, "foobar")
+		KubernetesAtomicWrite(t, dir, fileName, "foobar")
 
 		_, err := WatchFile(ctx, filePath, c)
 		require.NoError(t, err)
 
-		kubernetesAtomicWrite(t, dir, fileName, "foobarx")
+		KubernetesAtomicWrite(t, dir, fileName, "foobarx")
 
 		assertChange(t, <-c, "foobarx", filePath)
 	})
