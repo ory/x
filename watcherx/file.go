@@ -13,8 +13,7 @@ import (
 )
 
 // WatchFile spawns a background goroutine to watch file, reporting any changes
-// to c. When initially starting to watch the file fails, c is closed. Watching
-// stops when ctx is canceled, at which point c is also closed.
+// to c. Watching stops when ctx is canceled.
 func WatchFile(ctx context.Context, file string, c EventChannel) (Watcher, error) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {

@@ -83,6 +83,9 @@ func RegisterConfigFlag(flags *pflag.FlagSet, fallback []string) {
 // 2. Config files (yaml, yml, toml, json)
 // 3. Command line flags
 // 4. Environment variables
+//
+// There will also be file-watchers started for all config files. To cancel the
+// watchers, cancel the context.
 func New(ctx context.Context, schema []byte, modifiers ...OptionModifier) (*Provider, error) {
 	validator, err := getSchema(ctx, schema)
 	if err != nil {
