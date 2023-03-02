@@ -5,11 +5,12 @@ package popx
 
 import (
 	"context"
+	"runtime"
 
 	"github.com/cockroachdb/cockroach-go/v2/crdb"
-	"github.com/jmoiron/sqlx"
-
 	"github.com/gobuffalo/pop/v6"
+	"github.com/jmoiron/sqlx"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type transactionContextKey int
@@ -35,7 +36,13 @@ func Transaction(ctx context.Context, connection *pop.Connection, callback func(
 				return err
 			}
 
+			attempt := 0
 			return crdb.ExecuteInTx(ctx, sqlxTxAdapter{transaction.TX.Tx}, func() error {
+				attempt++
+				if attempt > 1 {
+					caller := caller()
+					TransactionRetries.WithLabelValues(caller).Inc()
+				}
 				return callback(WithTransaction(ctx, transaction), transaction)
 			})
 		})
@@ -73,4 +80,36 @@ func (s sqlxTxAdapter) Commit(ctx context.Context) error {
 
 func (s sqlxTxAdapter) Rollback(ctx context.Context) error {
 	return s.Tx.Rollback()
+}
+
+var (
+	TransactionRetries = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "ory_x_popx_cockroach_transaction_retries_total",
+		Help: "Counts the number of automatic CockroachDB transaction retries",
+	}, []string{"caller"})
+	_             = TransactionRetries.WithLabelValues(unknownCaller) // make sure the metric is always present
+	unknownCaller = "unknown"
+)
+
+func caller() string {
+	pc := make([]uintptr, 3)
+	// The number stack frames to skip was determined by putting a breakpoint in
+	// ory/kratos and looking for the topmost frame which isn't from ory/x or
+	// gobuffalo/pop.
+	n := runtime.Callers(8, pc)
+	if n == 0 {
+		return unknownCaller
+	}
+	pc = pc[:n]
+	frames := runtime.CallersFrames(pc)
+	for {
+		frame, more := frames.Next()
+		if frame.Function != "" {
+			return frame.Function
+		}
+		if !more {
+			break
+		}
+	}
+	return unknownCaller
 }

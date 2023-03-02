@@ -12,6 +12,9 @@ import (
 	"github.com/cockroachdb/cockroach-go/v2/crdb"
 	"github.com/cockroachdb/cockroach-go/v2/testserver"
 	"github.com/gobuffalo/pop/v6"
+	"github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ory/x/sqlcon"
@@ -40,12 +43,22 @@ func newDB(t *testing.T) *pop.Connection {
 
 func TestTransactionRetryExpectedFailure(t *testing.T) {
 	c := newDB(t)
+	TransactionRetries.Reset()
 	require.Error(t, crdb.ExecuteTxGenericTest(context.Background(), popWriteSkewTest{c: c, t: t}))
+	labelName, labelValue, count := collectCount(t)
+	assert.Zero(t, labelName)
+	assert.Zero(t, labelValue)
+	assert.Zero(t, count, 0)
 }
 
 func TestTransactionRetrySuccess(t *testing.T) {
 	c := newDB(t)
+	TransactionRetries.Reset()
 	require.NoError(t, crdb.ExecuteTxGenericTest(context.Background(), popxWriteSkewTest{c: c, popWriteSkewTest: popWriteSkewTest{c: c, t: t}}))
+	labelName, labelValue, count := collectCount(t)
+	assert.Equal(t, "caller", labelName)
+	assert.Contains(t, labelValue, "ExecuteTxGenericTest")
+	assert.Greater(t, count, 0)
 }
 
 type table struct {
@@ -129,4 +142,29 @@ func (t popWriteSkewTest) UpdateBalance(
 		return err
 	}
 	return nil
+}
+
+func collectCount(t *testing.T) (labelName, labelValue string, count int) {
+	var (
+		mChan   = make(chan prometheus.Metric)
+		metrics []prometheus.Metric
+		done    = make(chan struct{})
+	)
+	go func() {
+		defer close(done)
+		for m := range mChan {
+			metrics = append(metrics, m)
+		}
+	}()
+	TransactionRetries.Collect(mChan)
+	close(mChan)
+	<-done
+	for _, m := range metrics {
+		var pb dto.Metric
+		require.NoError(t, m.Write(&pb))
+		require.NotNil(t, pb.Counter)
+		require.NotEmpty(t, pb.Label)
+		return *pb.Label[0].Name, *pb.Label[0].Value, int(*pb.Counter.Value)
+	}
+	return
 }
