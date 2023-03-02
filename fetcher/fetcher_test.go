@@ -4,12 +4,13 @@
 package fetcher
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/ory/x/httpx"
 
@@ -28,7 +29,7 @@ func TestFetcher(t *testing.T) {
 	ts := httptest.NewServer(router)
 	t.Cleanup(ts.Close)
 
-	file, err := ioutil.TempFile(os.TempDir(), "source.*.json")
+	file, err := os.CreateTemp(os.TempDir(), "source.*.json")
 	require.NoError(t, err)
 
 	_, err = file.WriteString(`{"foo":"baz"}`)
@@ -70,5 +71,14 @@ func TestFetcher(t *testing.T) {
 
 		assert.True(t, errors.Is(err, ErrUnknownScheme))
 		assert.Contains(t, err.Error(), "unknown-scheme")
+	})
+
+	t.Run("case=FetcherContext cancels the HTTP request", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+		_, err := NewFetcher().FetchContext(ctx, "https://config.invalid")
+		require.NotNil(t, err)
+
+		assert.ErrorIs(t, err, context.DeadlineExceeded)
 	})
 }

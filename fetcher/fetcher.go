@@ -5,6 +5,7 @@ package fetcher
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	stderrors "errors"
 	"io"
@@ -54,9 +55,15 @@ func NewFetcher(opts ...func(*opts)) *Fetcher {
 
 // Fetch fetches the file contents from the source.
 func (f *Fetcher) Fetch(source string) (*bytes.Buffer, error) {
+	return f.FetchContext(context.Background(), source)
+}
+
+// FetchContext fetches the file contents from the source and allows to pass a
+// context that is used for HTTP requests.
+func (f *Fetcher) FetchContext(ctx context.Context, source string) (*bytes.Buffer, error) {
 	switch s := stringsx.SwitchPrefix(source); {
 	case s.HasPrefix("http://"), s.HasPrefix("https://"):
-		return f.fetchRemote(source)
+		return f.fetchRemote(ctx, source)
 	case s.HasPrefix("file://"):
 		return f.fetchFile(strings.Replace(source, "file://", "", 1))
 	case s.HasPrefix("base64://"):
@@ -70,8 +77,12 @@ func (f *Fetcher) Fetch(source string) (*bytes.Buffer, error) {
 	}
 }
 
-func (f *Fetcher) fetchRemote(source string) (*bytes.Buffer, error) {
-	res, err := f.hc.Get(source)
+func (f *Fetcher) fetchRemote(ctx context.Context, source string) (*bytes.Buffer, error) {
+	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, source, nil)
+	if err != nil {
+		return nil, errors.Wrapf(err, "rule: %s", source)
+	}
+	res, err := f.hc.Do(req)
 	if err != nil {
 		return nil, errors.Wrapf(err, "rule: %s", source)
 	}
@@ -85,7 +96,7 @@ func (f *Fetcher) fetchRemote(source string) (*bytes.Buffer, error) {
 }
 
 func (f *Fetcher) fetchFile(source string) (*bytes.Buffer, error) {
-	fp, err := os.Open(source) //#nosec:G304
+	fp, err := os.Open(source) // #nosec:G304
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to fetch from source: %s", source)
 	}
