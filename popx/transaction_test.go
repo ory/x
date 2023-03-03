@@ -145,21 +145,13 @@ func (t popWriteSkewTest) UpdateBalance(
 }
 
 func collectCount(t *testing.T) (labelName, labelValue string, count int) {
-	var (
-		mChan   = make(chan prometheus.Metric)
-		metrics []prometheus.Metric
-		done    = make(chan struct{})
-	)
-	go func() {
-		defer close(done)
-		for m := range mChan {
-			metrics = append(metrics, m)
-		}
-	}()
+	// we expect exactly one metric
+	var mChan = make(chan prometheus.Metric, 100)
+	// .Collect() synchronously sends all metrics to the channel. When it returns, all metrics have been sent
 	TransactionRetries.Collect(mChan)
 	close(mChan)
-	<-done
-	for _, m := range metrics {
+	// as we only expect one metric, we try to read it from the channel and return immediately
+	for m := range mChan {
 		var pb dto.Metric
 		require.NoError(t, m.Write(&pb))
 		require.NotNil(t, pb.Counter)
