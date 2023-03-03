@@ -41,7 +41,7 @@ func Transaction(ctx context.Context, connection *pop.Connection, callback func(
 				attempt++
 				if attempt > 1 {
 					caller := caller()
-					TransactionRetries.WithLabelValues(caller).Inc()
+					transactionRetries.WithLabelValues(caller).Inc()
 				}
 				return callback(WithTransaction(ctx, transaction), transaction)
 			})
@@ -83,12 +83,13 @@ func (s sqlxTxAdapter) Rollback(ctx context.Context) error {
 }
 
 var (
-	TransactionRetries = prometheus.NewCounterVec(prometheus.CounterOpts{
+	transactionRetries = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "ory_x_popx_cockroach_transaction_retries_total",
 		Help: "Counts the number of automatic CockroachDB transaction retries",
 	}, []string{"caller"})
-	_             = TransactionRetries.WithLabelValues(unknownCaller) // make sure the metric is always present
-	unknownCaller = "unknown"
+	TransactionRetries prometheus.Collector = transactionRetries
+	_                                       = transactionRetries.WithLabelValues(unknownCaller) // make sure the metric is always present
+	unknownCaller                           = "unknown"
 )
 
 func caller() string {

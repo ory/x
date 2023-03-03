@@ -43,7 +43,7 @@ func newDB(t *testing.T) *pop.Connection {
 
 func TestTransactionRetryExpectedFailure(t *testing.T) {
 	c := newDB(t)
-	TransactionRetries.Reset()
+	transactionRetries.Reset()
 	require.Error(t, crdb.ExecuteTxGenericTest(context.Background(), popWriteSkewTest{c: c, t: t}))
 	labelName, labelValue, count := collectCount(t)
 	assert.Zero(t, labelName)
@@ -53,7 +53,7 @@ func TestTransactionRetryExpectedFailure(t *testing.T) {
 
 func TestTransactionRetrySuccess(t *testing.T) {
 	c := newDB(t)
-	TransactionRetries.Reset()
+	transactionRetries.Reset()
 	require.NoError(t, crdb.ExecuteTxGenericTest(context.Background(), popxWriteSkewTest{c: c, popWriteSkewTest: popWriteSkewTest{c: c, t: t}}))
 	labelName, labelValue, count := collectCount(t)
 	assert.Equal(t, "caller", labelName)
