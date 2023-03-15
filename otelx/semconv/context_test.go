@@ -1,3 +1,6 @@
+// Copyright © 2023 Ory Corp
+// SPDX-License-Identifier: Apache-2.0
+
 package semconv
 
 import (
@@ -22,8 +25,8 @@ func TestAttributesFromContext(t *testing.T) {
 	attrs := AttributesFromContext(ctx)
 	assert.Len(t, attrs, 3, "should deduplicate")
 	assert.Equal(t, []attribute.KeyValue{
-		attribute.String(attributeKeyNID.String(), nid.String()),
-		attribute.String(attributeKeyClientIP.String(), "127.0.0.1"),
-		attribute.String(attributeKeyIdentityID.String(), uid2.String()),
+		attribute.String(AttributeKeyNID.String(), nid.String()),
+		attribute.String(AttributeKeyClientIP.String(), "127.0.0.1"),
+		attribute.String(AttributeKeyIdentityID.String(), uid2.String()),
 	}, attrs, "last duplicate attribute wins")
 }

@@ -20,26 +20,26 @@ func (e Event) String() string {
 	return string(e)
 }
 
-type attributeKey string
+type AttributeKey string
 
-func (a attributeKey) String() string {
+func (a AttributeKey) String() string {
 	return string(a)
 }
 
 const (
-	attributeKeyIdentityID attributeKey = "IdentityID"
-	attributeKeyNID        attributeKey = "ProjectID"
-	attributeKeyClientIP   attributeKey = "ClientIP"
+	AttributeKeyIdentityID AttributeKey = "IdentityID"
+	AttributeKeyNID        AttributeKey = "ProjectID"
+	AttributeKeyClientIP   AttributeKey = "ClientIP"
 )
 
 func AttrIdentityID(val uuid.UUID) otelattr.KeyValue {
-	return otelattr.String(attributeKeyIdentityID.String(), val.String())
+	return otelattr.String(AttributeKeyIdentityID.String(), val.String())
 }
 
 func AttrNID(val uuid.UUID) otelattr.KeyValue {
-	return otelattr.String(attributeKeyNID.String(), val.String())
+	return otelattr.String(AttributeKeyNID.String(), val.String())
 }
 
 func AttrClientIP(val string) otelattr.KeyValue {
-	return otelattr.String(attributeKeyClientIP.String(), val)
+	return otelattr.String(AttributeKeyClientIP.String(), val)
 }
