@@ -4,21 +4,97 @@
 package prometheus_test
 
 import (
-	"net/http"
-	"net/http/httptest"
-	"testing"
-
-	prometheus "github.com/ory/x/prometheusx"
-
+	"context"
+	"github.com/davecgh/go-spew/spew"
+	pbTestproto "github.com/grpc-ecosystem/go-grpc-prometheus/examples/testproto"
 	"github.com/julienschmidt/httprouter"
+	prometheus "github.com/ory/x/prometheusx"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	ioprometheusclient "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/negroni"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
 )
 
-func TestMetrics(t *testing.T) {
+const (
+	pingDefaultValue   = "I like kittens."
+	countListResponses = 20
+)
+
+func TestGRPCMetrics(t *testing.T) {
+
+	serverListener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err, "must be able to allocate a port for serverListener")
+
+	// This is the point where we hook up the interceptor
+	server := grpc.NewServer(
+		grpc.StreamInterceptor(prometheus.StreamServerInterceptor),
+		grpc.UnaryInterceptor(prometheus.UnaryServerInterceptor),
+	)
+	pbTestproto.RegisterTestServiceServer(server, &testService{t})
+
+	go func() {
+		server.Serve(serverListener)
+	}()
+
+	clientConn, err := grpc.Dial(serverListener.Addr().String(), grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(2*time.Second))
+	require.NoError(t, err, "must not error on client Dial")
+	testClient := pbTestproto.NewTestServiceClient(clientConn)
+
+	ctx, cancel := context.WithTimeout(context.TODO(), 2*time.Second)
+
+	_, err = testClient.PingList(ctx, &pbTestproto.PingRequest{})
+	prometheus.Register(server)
+
+	//here be tests; after go-grpc-prometheus => server_test.go
+
+	n := negroni.New()
+	handler := func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+		prometheus.NewMetrics(testApp, prometheus.HTTPMetrics, "", "", "").Instrument(rw, next, r.RequestURI)(rw, r)
+	}
+	n.UseFunc(handler)
+
+	router := httprouter.New()
+	router.GET(testPath, func(rw http.ResponseWriter, r *http.Request, params httprouter.Params) {
+		rw.WriteHeader(http.StatusBadRequest)
+	})
+	router.GET(prometheus.MetricsPrometheusPath, func(rw http.ResponseWriter, r *http.Request, params httprouter.Params) {
+		promhttp.Handler().ServeHTTP(rw, r)
+	})
+	n.UseHandler(router)
+
+	ts := httptest.NewServer(n)
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + testPath)
+	require.NoError(t, err)
+	require.EqualValues(t, http.StatusBadRequest, resp.StatusCode)
+
+	promresp, err := http.Get(ts.URL + prometheus.MetricsPrometheusPath)
+	require.NoError(t, err)
+	require.EqualValues(t, http.StatusOK, promresp.StatusCode)
+
+	textParser := expfmt.TextParser{}
+	text, err := textParser.TextToMetricFamilies(promresp.Body)
+	spew.Dump(text)
+	require.NoError(t, err)
+
+	//here be no tests
+
+	cancel()
+	server.Stop()
+	serverListener.Close()
+}
+
+func TestHTTPMetrics(t *testing.T) {
 	testApp := "test_app"
 	testPath := "/test/path"
 
@@ -50,6 +126,7 @@ func TestMetrics(t *testing.T) {
 
 	textParser := expfmt.TextParser{}
 	text, err := textParser.TextToMetricFamilies(promresp.Body)
+	spew.Dump(text)
 	require.NoError(t, err)
 	require.EqualValues(t, "http_response_time_seconds", *text["http_response_time_seconds"].Name)
 	require.EqualValues(t, testPath, getLabelValue("endpoint", text["http_response_time_seconds"].Metric))
@@ -86,4 +163,33 @@ func getLabelValue(name string, metric []*ioprometheusclient.Metric) string {
 	}
 
 	return ""
+}
+
+type testService struct {
+	t *testing.T
+}
+
+func (s *testService) PingEmpty(ctx context.Context, _ *pbTestproto.Empty) (*pbTestproto.PingResponse, error) {
+	return &pbTestproto.PingResponse{Value: pingDefaultValue, Counter: 42}, nil
+}
+
+func (s *testService) Ping(ctx context.Context, ping *pbTestproto.PingRequest) (*pbTestproto.PingResponse, error) {
+	// Send user trailers and headers.
+	return &pbTestproto.PingResponse{Value: ping.Value, Counter: 42}, nil
+}
+
+func (s *testService) PingError(ctx context.Context, ping *pbTestproto.PingRequest) (*pbTestproto.Empty, error) {
+	code := codes.Code(ping.ErrorCodeReturned)
+	return nil, status.Errorf(code, "Userspace error.")
+}
+
+func (s *testService) PingList(ping *pbTestproto.PingRequest, stream pbTestproto.TestService_PingListServer) error {
+	if ping.ErrorCodeReturned != 0 {
+		return status.Errorf(codes.Code(ping.ErrorCodeReturned), "foobar")
+	}
+	// Send user trailers and headers.
+	for i := 0; i < countListResponses; i++ {
+		stream.Send(&pbTestproto.PingResponse{Value: ping.Value, Counter: int32(i)})
+	}
+	return nil
 }

@@ -4,11 +4,15 @@
 package prometheus
 
 import (
+	grpcPrometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
+	"github.com/prometheus/client_golang/prometheus"
 	"net/http"
 	"strings"
 	"sync"
 
 	"github.com/julienschmidt/httprouter"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 )
 
 type MetricsManager struct {
@@ -20,6 +24,13 @@ type MetricsManager struct {
 		sync.Mutex
 	}
 }
+
+var grpcMetrics = grpcPrometheus.NewServerMetrics()
+
+var dupa = prometheus.NewCounterVec(prometheus.CounterOpts{
+	Name: "demo_server_say_hello_method_handle_count",
+	Help: "Total number of RPCs handled on the server.",
+}, []string{"name"})
 
 func NewMetricsManager(app, version, hash, buildTime string) *MetricsManager {
 	return NewMetricsManagerWithPrefix(app, "", version, hash, buildTime)
@@ -37,6 +48,32 @@ func NewMetricsManagerWithPrefix(app, metricsPrefix, version, hash, buildTime st
 // Main middleware method to collect metrics for Prometheus.
 func (pmm *MetricsManager) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	pmm.prometheusMetrics.Instrument(rw, next, pmm.getLabelForPath(r))(rw, r)
+}
+
+//func Register(server *grpc.Server) {
+//	grpcPrometheus.Register(server)
+//}
+
+func StreamServerInterceptor(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+	//return grpcPrometheus.StreamServerInterceptor(srv, ss, info, handler)
+	f := grpcMetrics.StreamServerInterceptor()
+	return f(srv, ss, info, handler)
+}
+
+func UnaryServerInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	//return grpcPrometheus.UnaryServerInterceptor(ctx, req, info, handler)
+	f := grpcMetrics.UnaryServerInterceptor()
+	return f(ctx, req, info, handler)
+}
+
+func InitializeMetrics(server *grpc.Server) {
+	prometheus.MustRegister(dupa)
+	dupa.WithLabelValues("Test")
+	grpcMetrics.InitializeMetrics(server)
+}
+
+func Register(server *grpc.Server) {
+	grpcPrometheus.Register(server)
 }
 
 func (pmm *MetricsManager) RegisterRouter(router *httprouter.Router) {
