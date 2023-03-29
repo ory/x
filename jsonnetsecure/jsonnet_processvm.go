@@ -46,10 +46,10 @@ func (p *ProcessVM) EvaluateAnonymousSnippet(filename string, snippet string) (s
 	cmd.Env = []string{"GOMAXPROCS=1"}
 
 	if err := cmd.Run(); err != nil {
-		return "", errors.Wrap(err, stderr.String())
+		return "", fmt.Errorf("jsonnetsecure: %w (stdout=%q stderr=%q)", err, stdout.String(), stderr.String())
 	}
 	if stderr.Len() > 0 {
-		return "", fmt.Errorf("unexpected output on stderr: %q", stderr.String())
+		return "", fmt.Errorf("jsonnetsecure: unexpected output on stderr: %q", stderr.String())
 	}
 
 	return stdout.String(), nil
