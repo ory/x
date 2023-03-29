@@ -14,6 +14,7 @@ import (
 	"github.com/google/go-jsonnet"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/sync/errgroup"
 )
 
 func TestSecureVM(t *testing.T) {
@@ -155,6 +156,25 @@ func assertEqualVMOutput(t *testing.T, run func(factory func(t *testing.T) VM) s
 
 	assert.Equal(t, expectedOut, secureOut, "secure output incorrect")
 	assert.Equal(t, expectedOut, processOut, "process output incorrect")
+}
+
+func TestCreateMultipleProcessVMs(t *testing.T) {
+	ctx := context.Background()
+	wg := new(errgroup.Group)
+
+	for i := 0; i < 100; i++ {
+		wg.Go(func() error {
+			vm := MakeSecureVM(
+				WithProcessIsolatedVM(ctx),
+				WithJsonnetBinary(JsonnetTestBinary(t)),
+			)
+			_, err := vm.EvaluateAnonymousSnippet("test", "{a:1}")
+
+			return err
+		})
+	}
+
+	require.NoError(t, wg.Wait())
 }
 
 func BenchmarkIsolatedVM(b *testing.B) {

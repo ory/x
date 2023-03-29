@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/pkg/errors"
 )
 
@@ -25,34 +26,40 @@ func NewProcessVM(opts *vmOptions) VM {
 }
 
 func (p *ProcessVM) EvaluateAnonymousSnippet(filename string, snippet string) (string, error) {
-	ctx, cancel := context.WithTimeout(p.ctx, 1*time.Second)
-	defer cancel()
+	// We retry the process creation, because it sometimes times out.
+	const processVMTimeout = 1 * time.Second
+	return backoff.RetryWithData(func() (string, error) {
+		ctx, cancel := context.WithTimeout(p.ctx, processVMTimeout)
+		defer cancel()
 
-	var (
-		stdin          bytes.Buffer
-		stdout, stderr strings.Builder
-	)
-	p.params.Filename = filename
-	p.params.Snippet = snippet
+		var (
+			stdin          bytes.Buffer
+			stdout, stderr strings.Builder
+		)
+		p.params.Filename = filename
+		p.params.Snippet = snippet
 
-	if err := p.params.EncodeTo(&stdin); err != nil {
-		return "", errors.WithStack(err)
-	}
+		if err := p.params.EncodeTo(&stdin); err != nil {
+			return "", backoff.Permanent(errors.WithStack(err))
+		}
 
-	cmd := exec.CommandContext(ctx, p.path, p.args...) //nolint:gosec
-	cmd.Stdin = &stdin
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	cmd.Env = []string{"GOMAXPROCS=1"}
+		cmd := exec.CommandContext(ctx, p.path, p.args...) //nolint:gosec
+		cmd.Stdin = &stdin
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+		cmd.Env = []string{"GOMAXPROCS=1"}
 
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("jsonnetsecure: %w (stdout=%q stderr=%q)", err, stdout.String(), stderr.String())
-	}
-	if stderr.Len() > 0 {
-		return "", fmt.Errorf("jsonnetsecure: unexpected output on stderr: %q", stderr.String())
-	}
+		err := cmd.Run()
+		if stderr.Len() > 0 {
+			// If the process wrote to stderr, this means it started and we won't retry.
+			return "", backoff.Permanent(fmt.Errorf("jsonnetsecure: unexpected output on stderr: %q", stderr.String()))
+		}
+		if err != nil {
+			return "", fmt.Errorf("jsonnetsecure: %w (stdout=%q stderr=%q)", err, stdout.String(), stderr.String())
+		}
 
-	return stdout.String(), nil
+		return stdout.String(), nil
+	}, backoff.WithContext(backoff.NewExponentialBackOff(), p.ctx))
 }
 
 func (p *ProcessVM) ExtCode(key string, val string) {
