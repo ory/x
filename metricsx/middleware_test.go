@@ -15,8 +15,8 @@ func TestAnonymizePath(t *testing.T) {
 		o: &Options{WhitelistedPaths: []string{"/keys"}},
 	}
 
-	assert.Equal(t, "/keys/837b4168b57215f2ba0d4e64e57a653d6a6ecd6065e78598283209467d172373", m.anonymizePath("/keys/1234", "somesupersaltysalt"))
-	assert.Equal(t, "/keys", m.anonymizePath("/keys", "somesupersaltysalt"))
+	assert.Equal(t, "/keys", m.anonymizePath("/keys/1234"))
+	assert.Equal(t, "/keys", m.anonymizePath("/keys"))
 }
 
 func TestAnonymizeQuery(t *testing.T) {

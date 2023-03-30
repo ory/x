@@ -263,25 +263,18 @@ func (sw *Service) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.
 
 	latency := time.Since(start) / time.Millisecond
 
-	scheme := "https:"
-	if r.TLS == nil {
-		scheme = "http:"
-	}
-
-	path := sw.anonymizePath(r.URL.Path, sw.salt)
-	query := sw.anonymizeQuery(r.URL.Query(), sw.salt)
+	path := sw.anonymizePath(r.URL.Path)
 
 	// Collecting request info
 	stat, size := httpx.GetResponseMeta(rw)
 
 	if err := sw.c.Enqueue(analytics.Page{
 		UserId: sw.o.ClusterID,
-		Name:   path,
 		Properties: analytics.
 			NewProperties().
-			SetURL(scheme+"//"+sw.o.ClusterID+path+"?"+query).
 			SetPath(path).
-			SetName(path).
+			Set("host", r.Host).
+			Set("tls", r.TLS != nil).
 			Set("status", stat).
 			Set("size", size).
 			Set("latency", latency).
@@ -309,12 +302,9 @@ func (sw *Service) UnaryInterceptor(ctx context.Context, req interface{}, info *
 
 	if err := sw.c.Enqueue(analytics.Page{
 		UserId: sw.o.ClusterID,
-		Name:   info.FullMethod,
 		Properties: analytics.
 			NewProperties().
-			SetURL("grpc://"+sw.o.ClusterID+info.FullMethod).
 			SetPath(info.FullMethod).
-			SetName(info.FullMethod).
 			Set("status", status.Code(err)).
 			Set("latency", latency),
 		Context: sw.context,
@@ -336,7 +326,7 @@ func (sw *Service) Close() error {
 	return sw.c.Close()
 }
 
-func (sw *Service) anonymizePath(path string, salt string) string {
+func (sw *Service) anonymizePath(path string) string {
 	paths := sw.o.WhitelistedPaths
 	path = strings.ToLower(path)
 
@@ -344,8 +334,8 @@ func (sw *Service) anonymizePath(path string, salt string) string {
 		p = strings.ToLower(p)
 		if path == p {
 			return p
-		} else if strings.HasPrefix(path, p) {
-			return path[:len(p)] + "/" + Hash(path[len(p):]+"|"+salt)
+		} else if len(path) > len(p) && path[:len(p)+1] == p+"/" {
+			return p
 		}
 	}
 
