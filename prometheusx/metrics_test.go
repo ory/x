@@ -30,6 +30,8 @@ const (
 )
 
 func TestGRPCMetrics(t *testing.T) {
+	testApp := "test_app"
+	testPath := "/test/path"
 
 	serverListener, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err, "must be able to allocate a port for serverListener")
@@ -86,6 +88,17 @@ func TestGRPCMetrics(t *testing.T) {
 	text, err := textParser.TextToMetricFamilies(promresp.Body)
 	spew.Dump(text)
 	require.NoError(t, err)
+	require.EqualValues(t, "grpc_server_handled_total", *text["grpc_server_handled_total"].Name)
+	require.EqualValues(t, "Ping", getLabelValue("grpc_method", text["grpc_server_handled_total"].Metric))
+	require.EqualValues(t, "mwitkow.testproto.TestService", getLabelValue("grpc_service", text["grpc_server_handled_total"].Metric))
+
+	require.EqualValues(t, "grpc_server_msg_sent_total", *text["grpc_server_msg_sent_total"].Name)
+	require.EqualValues(t, "Ping", getLabelValue("grpc_method", text["grpc_server_msg_sent_total"].Metric))
+	require.EqualValues(t, "mwitkow.testproto.TestService", getLabelValue("grpc_service", text["grpc_server_msg_sent_total"].Metric))
+
+	require.EqualValues(t, "grpc_server_msg_received_total", *text["grpc_server_msg_received_total"].Name)
+	require.EqualValues(t, "Ping", getLabelValue("grpc_method", text["grpc_server_msg_received_total"].Metric))
+	require.EqualValues(t, "mwitkow.testproto.TestService", getLabelValue("grpc_service", text["grpc_server_msg_received_total"].Metric))
 
 	//here be no tests
 
