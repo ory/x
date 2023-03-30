@@ -248,6 +248,36 @@ type negroniMiddleware interface {
 	Status() int
 }
 
+func (sw *Service) UnaryInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	var start time.Time
+	if !sw.optOut {
+		start = time.Now()
+	}
+
+	resp, err := handler(ctx, req)
+	if sw.optOut {
+		return resp, err
+	}
+
+	latency := time.Since(start) / time.Millisecond
+	if err := sw.c.Enqueue(analytics.Page{
+		UserId: sw.o.ClusterID,
+		Name:   info.FullMethod,
+		Properties: analytics.
+			NewProperties().
+			SetURL("grpc://"+sw.o.ClusterID+info.FullMethod).
+			SetPath(info.FullMethod).
+			Set("status", status.Code(err)).
+			Set("latency", latency),
+		Context: sw.context,
+	}); err != nil {
+		sw.l.WithError(err).Debug("Could not commit telementry")
+		// do nothing...
+	}
+
+	return resp, err
+}
+
 // ServeHTTP is a middleware for sending meta information to segment.
 func (sw *Service) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	var start time.Time
@@ -256,13 +286,11 @@ func (sw *Service) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.
 	}
 
 	next(rw, r)
-
 	if sw.optOut {
 		return
 	}
 
 	latency := time.Since(start) / time.Millisecond
-
 	scheme := "https:"
 	if r.TLS == nil {
 		scheme = "http:"
@@ -273,59 +301,23 @@ func (sw *Service) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.
 
 	// Collecting request info
 	stat, size := httpx.GetResponseMeta(rw)
-
 	if err := sw.c.Enqueue(analytics.Page{
 		UserId: sw.o.ClusterID,
 		Name:   path,
 		Properties: analytics.
 			NewProperties().
-			SetURL(scheme+"//"+sw.o.ClusterID+path+"?"+query).
+			SetURL(scheme+"//"+r.URL.Host+path+"?"+query).
 			SetPath(path).
-			SetName(path).
 			Set("status", stat).
 			Set("size", size).
 			Set("latency", latency).
 			Set("method", r.Method),
 		Context: sw.context,
 	}); err != nil {
-		sw.l.WithError(err).Debug("Could not commit anonymized telemetry data")
+		sw.l.WithError(err).Debug("Could not commit telementry")
 		// do nothing...
 	}
 }
-
-func (sw *Service) UnaryInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	var start time.Time
-	if !sw.optOut {
-		start = time.Now()
-	}
-
-	resp, err := handler(ctx, req)
-
-	if sw.optOut {
-		return resp, err
-	}
-
-	latency := time.Since(start) / time.Millisecond
-
-	if err := sw.c.Enqueue(analytics.Page{
-		UserId: sw.o.ClusterID,
-		Name:   info.FullMethod,
-		Properties: analytics.
-			NewProperties().
-			SetURL("grpc://"+sw.o.ClusterID+info.FullMethod).
-			SetPath(info.FullMethod).
-			SetName(info.FullMethod).
-			Set("status", status.Code(err)).
-			Set("latency", latency),
-		Context: sw.context,
-	}); err != nil {
-		sw.l.WithError(err).Debug("Could not commit anonymized telemetry data")
-		// do nothing...
-	}
-
-	return resp, err
-}
-
 func (sw *Service) StreamInterceptor(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 	// this needs a bit of thought, but we don't have streaming RPCs currently anyway
 	sw.l.Info("The telemetry stream interceptor is not yet implemented!")
