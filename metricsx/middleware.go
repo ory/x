@@ -30,6 +30,7 @@ import (
 	"github.com/ory/x/cmdx"
 	"github.com/ory/x/logrusx"
 	"github.com/ory/x/resilience"
+	"github.com/ory/x/stringsx"
 
 	"github.com/gofrs/uuid"
 
@@ -198,7 +199,7 @@ func New(
 				Set("optedOut", optOut).
 				Set("instanceId", uuid.Must(uuid.NewV4()).String()).
 				Set("isDevelopment", o.IsDevelopment),
-			UserAgent: "github.com/ory/x/metricsx.Service/v0.0.1",
+			UserAgent: "github.com/ory/x/metricsx.Service/v0.0.2",
 		},
 	}
 
@@ -273,8 +274,7 @@ func (sw *Service) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.
 		Properties: analytics.
 			NewProperties().
 			SetPath(path).
-			Set("host", r.Host).
-			Set("tls", r.TLS != nil).
+			Set("host", stringsx.Coalesce(r.Header.Get("X-Forwarded-Host"), r.Host)).
 			Set("status", stat).
 			Set("size", size).
 			Set("latency", latency).
