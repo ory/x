@@ -5,7 +5,6 @@ package prometheus
 
 import (
 	grpcPrometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
-	"github.com/prometheus/client_golang/prometheus"
 	"net/http"
 	"strings"
 	"sync"
@@ -26,11 +25,6 @@ type MetricsManager struct {
 }
 
 var grpcMetrics = grpcPrometheus.NewServerMetrics()
-
-var dupa = prometheus.NewCounterVec(prometheus.CounterOpts{
-	Name: "demo_server_say_hello_method_handle_count",
-	Help: "Total number of RPCs handled on the server.",
-}, []string{"name"})
 
 func NewMetricsManager(app, version, hash, buildTime string) *MetricsManager {
 	return NewMetricsManagerWithPrefix(app, "", version, hash, buildTime)
@@ -64,12 +58,6 @@ func UnaryServerInterceptor(ctx context.Context, req interface{}, info *grpc.Una
 	//return grpcPrometheus.UnaryServerInterceptor(ctx, req, info, handler)
 	f := grpcMetrics.UnaryServerInterceptor()
 	return f(ctx, req, info, handler)
-}
-
-func InitializeMetrics(server *grpc.Server) {
-	prometheus.MustRegister(dupa)
-	dupa.WithLabelValues("Test")
-	grpcMetrics.InitializeMetrics(server)
 }
 
 func Register(server *grpc.Server) {

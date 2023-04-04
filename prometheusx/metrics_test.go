@@ -5,7 +5,6 @@ package prometheus_test
 
 import (
 	"context"
-	"github.com/davecgh/go-spew/spew"
 	pbTestproto "github.com/grpc-ecosystem/go-grpc-prometheus/examples/testproto"
 	"github.com/julienschmidt/httprouter"
 	prometheus "github.com/ory/x/prometheusx"
@@ -86,7 +85,6 @@ func TestGRPCMetrics(t *testing.T) {
 
 	textParser := expfmt.TextParser{}
 	text, err := textParser.TextToMetricFamilies(promresp.Body)
-	spew.Dump(text)
 	require.NoError(t, err)
 	require.EqualValues(t, "grpc_server_handled_total", *text["grpc_server_handled_total"].Name)
 	require.EqualValues(t, "Ping", getLabelValue("grpc_method", text["grpc_server_handled_total"].Metric))
@@ -139,7 +137,6 @@ func TestHTTPMetrics(t *testing.T) {
 
 	textParser := expfmt.TextParser{}
 	text, err := textParser.TextToMetricFamilies(promresp.Body)
-	spew.Dump(text)
 	require.NoError(t, err)
 	require.EqualValues(t, "http_response_time_seconds", *text["http_response_time_seconds"].Name)
 	require.EqualValues(t, testPath, getLabelValue("endpoint", text["http_response_time_seconds"].Metric))
