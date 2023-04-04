@@ -35,7 +35,6 @@ func TestGRPCMetrics(t *testing.T) {
 	serverListener, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err, "must be able to allocate a port for serverListener")
 
-	// This is the point where we hook up the interceptor
 	server := grpc.NewServer(
 		grpc.StreamInterceptor(prometheus.StreamServerInterceptor),
 		grpc.UnaryInterceptor(prometheus.UnaryServerInterceptor),
@@ -54,8 +53,6 @@ func TestGRPCMetrics(t *testing.T) {
 
 	_, err = testClient.PingList(ctx, &pbTestproto.PingRequest{})
 	prometheus.Register(server)
-
-	//here be tests; after go-grpc-prometheus => server_test.go
 
 	n := negroni.New()
 	handler := func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
@@ -97,8 +94,6 @@ func TestGRPCMetrics(t *testing.T) {
 	require.EqualValues(t, "grpc_server_msg_received_total", *text["grpc_server_msg_received_total"].Name)
 	require.EqualValues(t, "Ping", getLabelValue("grpc_method", text["grpc_server_msg_received_total"].Metric))
 	require.EqualValues(t, "mwitkow.testproto.TestService", getLabelValue("grpc_service", text["grpc_server_msg_received_total"].Metric))
-
-	//here be no tests
 
 	cancel()
 	server.Stop()
