@@ -4,10 +4,11 @@
 package prometheus
 
 import (
-	grpcPrometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"net/http"
 	"strings"
 	"sync"
+
+	grpcPrometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 
 	"github.com/julienschmidt/httprouter"
 	"golang.org/x/net/context"

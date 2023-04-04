@@ -5,9 +5,14 @@ package prometheus_test
 
 import (
 	"context"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
 	pbTestproto "github.com/grpc-ecosystem/go-grpc-prometheus/examples/testproto"
 	"github.com/julienschmidt/httprouter"
-	prometheus "github.com/ory/x/prometheusx"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	ioprometheusclient "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
@@ -16,11 +21,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"net"
-	"net/http"
-	"net/http/httptest"
-	"testing"
-	"time"
+
+	prometheus "github.com/ory/x/prometheusx"
 )
 
 const (
