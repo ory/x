@@ -44,10 +44,6 @@ func (pmm *MetricsManager) ServeHTTP(rw http.ResponseWriter, r *http.Request, ne
 	pmm.prometheusMetrics.Instrument(rw, next, pmm.getLabelForPath(r))(rw, r)
 }
 
-//func Register(server *grpc.Server) {
-//	grpcPrometheus.Register(server)
-//}
-
 func StreamServerInterceptor(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 	//return grpcPrometheus.StreamServerInterceptor(srv, ss, info, handler)
 	f := grpcMetrics.StreamServerInterceptor()
