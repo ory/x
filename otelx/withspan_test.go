@@ -6,10 +6,12 @@ package otelx
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
@@ -17,6 +19,18 @@ import (
 )
 
 var errPanic = errors.New("panic-error")
+
+type errWithReason struct {
+	error
+}
+
+func (*errWithReason) Reason() string {
+	return "some interesting error reason"
+}
+
+func (errWithReason) Debug() string {
+	return "verbose debugging information"
+}
 
 func TestWithSpan(t *testing.T) {
 	tracer := trace.NewNoopTracerProvider().Tracer("test")
@@ -51,13 +65,13 @@ func returnsNormally(ctx context.Context) (err error) {
 func returnsError(ctx context.Context) (err error) {
 	_, span := trace.SpanFromContext(ctx).TracerProvider().Tracer("").Start(ctx, "returnsError")
 	defer End(span, &err)
-	return errors.New("error from returnsError()")
+	return fmt.Errorf("wrapped: %w", &errWithReason{errors.New("error from returnsError()")})
 }
 
 func returnsNamedError(ctx context.Context) (err error) {
 	_, span := trace.SpanFromContext(ctx).TracerProvider().Tracer("").Start(ctx, "returnsNamedError")
 	defer End(span, &err)
-	err2 := errors.New("err2 message")
+	err2 := fmt.Errorf("%w", errWithReason{errors.New("err2 message")})
 	return err2
 }
 
@@ -78,15 +92,17 @@ func TestEnd(t *testing.T) {
 	assert.Equal(t, last(recorder).Name(), "returnsNormally")
 	assert.Equal(t, last(recorder).Status(), sdktrace.Status{codes.Unset, ""})
 
-	assert.Errorf(t, returnsError(ctx), "error from returnsError()")
+	assert.Error(t, returnsError(ctx))
 	require.NotEmpty(t, recorder.Ended())
 	assert.Equal(t, last(recorder).Name(), "returnsError")
-	assert.Equal(t, last(recorder).Status(), sdktrace.Status{codes.Error, "error from returnsError()"})
+	assert.Equal(t, last(recorder).Status(), sdktrace.Status{codes.Error, "wrapped: error from returnsError()"})
+	assert.Contains(t, last(recorder).Attributes(), attribute.String("error.reason", "some interesting error reason"))
 
 	assert.Errorf(t, returnsNamedError(ctx), "err2 message")
 	require.NotEmpty(t, recorder.Ended())
 	assert.Equal(t, last(recorder).Name(), "returnsNamedError")
 	assert.Equal(t, last(recorder).Status(), sdktrace.Status{codes.Error, "err2 message"})
+	assert.Contains(t, last(recorder).Attributes(), attribute.String("error.debug", "verbose debugging information"))
 
 	assert.PanicsWithError(t, "panic from panics()", func() { panics(ctx) })
 	require.NotEmpty(t, recorder.Ended())

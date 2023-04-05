@@ -5,8 +5,10 @@ package otelx
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -27,6 +29,7 @@ func WithSpan(ctx context.Context, name string, f func(context.Context) error, o
 			panic(r)
 		} else if err != nil {
 			span.SetStatus(codes.Error, err.Error())
+			setErrorTags(span, err)
 		}
 	}()
 	return f(ctx)
@@ -55,15 +58,36 @@ func End(span trace.Span, err *error) {
 		return
 	}
 	span.SetStatus(codes.Error, (*err).Error())
+	setErrorTags(span, *err)
 }
 
 func setErrorStatusPanic(span trace.Span, recovered any) {
 	switch e := recovered.(type) {
-	case error, string, fmt.Stringer:
+	case error:
+		span.SetStatus(codes.Error, "panic: "+e.Error())
+		setErrorTags(span, e)
+	case string, fmt.Stringer:
 		span.SetStatus(codes.Error, fmt.Sprintf("panic: %v", e))
 	default:
 		span.SetStatus(codes.Error, "panic")
 	case nil:
 		// nothing
+	}
+}
+
+func setErrorTags(span trace.Span, err error) {
+	if e := interface{ Reason() string }(nil); errors.As(err, &e) {
+		span.SetAttributes(attribute.String("error.reason", e.Reason()))
+	}
+	if e := interface{ Debug() string }(nil); errors.As(err, &e) {
+		span.SetAttributes(attribute.String("error.debug", e.Debug()))
+	}
+	if e := interface{ ID() string }(nil); errors.As(err, &e) {
+		span.SetAttributes(attribute.String("error.id", e.ID()))
+	}
+	if e := interface{ Details() map[string]interface{} }(nil); errors.As(err, &e) {
+		for k, v := range e.Details() {
+			span.SetAttributes(attribute.String("error.details."+k, fmt.Sprintf("%v", v)))
+		}
 	}
 }
