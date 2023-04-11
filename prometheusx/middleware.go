@@ -17,15 +17,11 @@ import (
 
 type MetricsManager struct {
 	prometheusMetrics *Metrics
-	//routers           []*httprouter.Router
-	//routersLock       sync.Mutex
-	routers struct {
+	routers           struct {
 		data []*httprouter.Router
 		sync.Mutex
 	}
 }
-
-var grpcMetrics = grpcPrometheus.NewServerMetrics()
 
 func NewMetricsManager(app, version, hash, buildTime string) *MetricsManager {
 	return NewMetricsManagerWithPrefix(app, "", version, hash, buildTime)
@@ -45,19 +41,17 @@ func (pmm *MetricsManager) ServeHTTP(rw http.ResponseWriter, r *http.Request, ne
 	pmm.prometheusMetrics.Instrument(rw, next, pmm.getLabelForPath(r))(rw, r)
 }
 
-func StreamServerInterceptor(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-	//return grpcPrometheus.StreamServerInterceptor(srv, ss, info, handler)
-	f := grpcMetrics.StreamServerInterceptor()
+func (pmm *MetricsManager) StreamServerInterceptor(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+	f := grpcPrometheus.StreamServerInterceptor
 	return f(srv, ss, info, handler)
 }
 
-func UnaryServerInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	//return grpcPrometheus.UnaryServerInterceptor(ctx, req, info, handler)
-	f := grpcMetrics.UnaryServerInterceptor()
+func (pmm *MetricsManager) UnaryServerInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	f := grpcPrometheus.UnaryServerInterceptor
 	return f(ctx, req, info, handler)
 }
 
-func Register(server *grpc.Server) {
+func (pmm *MetricsManager) Register(server *grpc.Server) {
 	grpcPrometheus.Register(server)
 }
 

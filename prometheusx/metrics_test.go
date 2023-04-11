@@ -5,11 +5,15 @@ package prometheus_test
 
 import (
 	"context"
+	"errors"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/ory/herodot"
+	"github.com/ory/x/logrusx"
 
 	pbTestproto "github.com/grpc-ecosystem/go-grpc-prometheus/examples/testproto"
 	"github.com/julienschmidt/httprouter"
@@ -36,10 +40,10 @@ func TestGRPCMetrics(t *testing.T) {
 
 	serverListener, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err, "must be able to allocate a port for serverListener")
-
+	pmm := prometheus.NewMetricsManager(testApp, "", "", "")
 	server := grpc.NewServer(
-		grpc.StreamInterceptor(prometheus.StreamServerInterceptor),
-		grpc.UnaryInterceptor(prometheus.UnaryServerInterceptor),
+		grpc.StreamInterceptor(pmm.StreamServerInterceptor),
+		grpc.UnaryInterceptor(pmm.UnaryServerInterceptor),
 	)
 	pbTestproto.RegisterTestServiceServer(server, &testService{t})
 
@@ -53,23 +57,24 @@ func TestGRPCMetrics(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.TODO(), 2*time.Second)
 
+	pmm.Register(server)
+
+	_, err = testClient.PingEmpty(ctx, &pbTestproto.Empty{})
 	_, err = testClient.PingList(ctx, &pbTestproto.PingRequest{})
-	prometheus.Register(server)
 
 	n := negroni.New()
-	handler := func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-		prometheus.NewMetrics(testApp, prometheus.HTTPMetrics, "", "", "").Instrument(rw, next, r.RequestURI)(rw, r)
-	}
-	n.UseFunc(handler)
 
 	router := httprouter.New()
+
+	pmm.RegisterRouter(router)
+	prometheus.NewHandler(herodot.NewJSONWriter(logrusx.New("Ory X", "test")), "test").SetRoutes(router)
+
 	router.GET(testPath, func(rw http.ResponseWriter, r *http.Request, params httprouter.Params) {
 		rw.WriteHeader(http.StatusBadRequest)
 	})
-	router.GET(prometheus.MetricsPrometheusPath, func(rw http.ResponseWriter, r *http.Request, params httprouter.Params) {
-		promhttp.Handler().ServeHTTP(rw, r)
-	})
+
 	n.UseHandler(router)
+	n.Use(pmm)
 
 	ts := httptest.NewServer(n)
 	defer ts.Close()
@@ -85,9 +90,16 @@ func TestGRPCMetrics(t *testing.T) {
 	textParser := expfmt.TextParser{}
 	text, err := textParser.TextToMetricFamilies(promresp.Body)
 	require.NoError(t, err)
+
 	require.EqualValues(t, "grpc_server_handled_total", *text["grpc_server_handled_total"].Name)
 	require.EqualValues(t, "Ping", getLabelValue("grpc_method", text["grpc_server_handled_total"].Metric))
 	require.EqualValues(t, "mwitkow.testproto.TestService", getLabelValue("grpc_service", text["grpc_server_handled_total"].Metric))
+	c, err := GetCounterValue(text["grpc_server_handled_total"].Metric, "PingEmpty", "OK")
+	require.NoError(t, err)
+	require.EqualValues(t, 1, c)
+	c, err = GetCounterValue(text["grpc_server_handled_total"].Metric, "PingList", "OK")
+	require.NoError(t, err)
+	require.EqualValues(t, 1, c)
 
 	require.EqualValues(t, "grpc_server_msg_sent_total", *text["grpc_server_msg_sent_total"].Name)
 	require.EqualValues(t, "Ping", getLabelValue("grpc_method", text["grpc_server_msg_sent_total"].Metric))
@@ -170,6 +182,24 @@ func getLabelValue(name string, metric []*ioprometheusclient.Metric) string {
 	}
 
 	return ""
+}
+
+func GetCounterValue(metrics []*ioprometheusclient.Metric, lvs ...string) (float64, error) {
+	for _, metric := range metrics {
+		lvl := len(lvs)
+		lvc := 0
+		for _, label := range metric.Label {
+			for _, lv := range lvs {
+				if lv == *label.Value {
+					lvc++
+				}
+			}
+		}
+		if lvc == lvl {
+			return *metric.Counter.Value, nil
+		}
+	}
+	return 0, errors.New("Counter value was not found")
 }
 
 type testService struct {

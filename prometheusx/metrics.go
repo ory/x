@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strconv"
 
+	grpcPrometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
+
 	"github.com/ory/x/httpx"
 
 	"github.com/pkg/errors"
@@ -82,6 +84,8 @@ func NewMetrics(app, metricsPrefix, version, hash, date string) *Metrics {
 	} else if err != nil {
 		panic(err)
 	}
+
+	grpcPrometheus.EnableHandlingTimeHistogram()
 
 	return pm
 }
