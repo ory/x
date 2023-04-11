@@ -11,11 +11,6 @@ import (
 
 type Event string
 
-const (
-	EventSessionIssued   Event = "SessionIssued"
-	EventIdentityCreated Event = "IdentityCreated"
-)
-
 func (e Event) String() string {
 	return string(e)
 }
