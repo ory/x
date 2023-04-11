@@ -123,7 +123,6 @@ func (h *Handler) SetVersionRoutes(r router, opts ...Options) {
 //
 //	Responses:
 //	  200: healthStatus
-//	  500: genericError
 func (h *Handler) Alive() http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		h.H.Write(rw, r, &swaggerHealthStatus{

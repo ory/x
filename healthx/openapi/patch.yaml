@@ -25,12 +25,6 @@
                     description: Always "ok".
                     type: string
           description: {{.ProjectHumanName}} is ready to accept connections.
-        '500':
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/genericError"
-          description: genericError
       summary: Check HTTP Server Status
       tags: {{ .HealthPathTags | toJson }}
 - op: replace
