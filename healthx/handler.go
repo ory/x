@@ -120,10 +120,11 @@ func (h *Handler) SetVersionRoutes(r router, opts ...Options) {
 //
 //	Produces:
 //	- application/json
+//	- text/plain
 //
 //	Responses:
 //	  200: healthStatus
-//	  500: genericError
+//	  default: unexpectedError
 func (h *Handler) Alive() http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		h.H.Write(rw, r, &swaggerHealthStatus{
@@ -131,6 +132,12 @@ func (h *Handler) Alive() http.Handler {
 		})
 	})
 }
+
+// swagger:model unexpectedError
+//
+//nolint:deadcode,unused
+//lint:ignore U1000 Used to generate Swagger and OpenAPI definitions
+type unexpectedError string
 
 // Ready returns an ok status if the instance is ready to handle HTTP requests and all ReadyCheckers are ok.
 //
@@ -149,10 +156,12 @@ func (h *Handler) Alive() http.Handler {
 //
 //	Produces:
 //	- application/json
+//	- text/plain
 //
 //	Responses:
 //	  200: healthStatus
 //	  503: healthNotReadyStatus
+//	  default: unexpectedError
 func (h *Handler) Ready(shareErrors bool) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		var notReady = swaggerNotReadyStatus{
