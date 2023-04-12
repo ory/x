@@ -7,7 +7,6 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/urfave/negroni"
 	"go.opentelemetry.io/otel/attribute"
 
 	"github.com/ory/x/httpx"
@@ -36,7 +35,7 @@ func AttributesFromContext(ctx context.Context) []attribute.KeyValue {
 	return attrs
 }
 
-var Middleware negroni.HandlerFunc = func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+func Middleware(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	next(rw, r.WithContext(ContextWithAttributes(r.Context(), AttrClientIP(httpx.ClientIP(r)))))
 }
 
