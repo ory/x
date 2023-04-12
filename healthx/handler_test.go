@@ -6,7 +6,7 @@ package healthx
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -67,7 +67,7 @@ func TestHealth(t *testing.T) {
 		response, err := c.Get(endpoint)
 		require.NoError(t, err)
 		require.EqualValues(t, http.StatusServiceUnavailable, response.StatusCode)
-		out, err := ioutil.ReadAll(response.Body)
+		out, err := io.ReadAll(response.Body)
 		require.NoError(t, err)
 		assert.Equal(t, "{\"error\":{\"code\":500,\"status\":\"Internal Server Error\",\"message\":\"not alive\"}}", strings.TrimSpace(string(out)))
 		return response

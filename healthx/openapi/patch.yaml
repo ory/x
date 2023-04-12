@@ -24,7 +24,13 @@
                   status:
                     description: Always "ok".
                     type: string
-          description: {{.ProjectHumanName}} is ready to accept connections.
+          description: '{{.ProjectHumanName}} is ready to accept connections.'
+        default:
+          content:
+            text/plain:
+              schema:
+                type: string
+          description: Unexpected error
       summary: Check HTTP Server Status
       tags: {{ .HealthPathTags | toJson }}
 - op: replace
@@ -53,7 +59,7 @@
                   status:
                     description: Always "ok".
                     type: string
-          description: {{.ProjectHumanName}} is ready to accept requests.
+          description: '{{.ProjectHumanName}} is ready to accept requests.'
         '503':
           content:
             application/json:
@@ -68,6 +74,12 @@
                     type: object
                 type: object
           description: Ory Kratos is not yet ready to accept requests.
+        default:
+          content:
+            text/plain:
+              schema:
+                type: string
+          description: Unexpected error
       summary: Check HTTP Server and Database Status
       tags: {{ .HealthPathTags | toJson }}
 - op: replace
