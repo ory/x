@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -281,7 +280,7 @@ func (t *HTTP) Decode(r *http.Request, destination interface{}, opts ...HTTPDeco
 		if c.expectJSONFlattened {
 			return t.decodeJSONForm(r, destination, c)
 		}
-		return t.decodeJSON(r, destination, c, false)
+		return t.decodeJSON(r, destination, c)
 	} else if httpx.HasContentType(r, httpContentTypeMultipartForm, httpContentTypeURLEncodedForm) {
 		return t.decodeForm(r, destination, c)
 	}
@@ -291,22 +290,22 @@ func (t *HTTP) Decode(r *http.Request, destination interface{}, opts ...HTTPDeco
 
 func (t *HTTP) requestBody(r *http.Request, o *httpDecoderOptions) (reader io.ReadCloser, err error) {
 	if strings.ToUpper(r.Method) == "GET" {
-		return ioutil.NopCloser(bytes.NewBufferString(r.URL.Query().Encode())), nil
+		return io.NopCloser(bytes.NewBufferString(r.URL.Query().Encode())), nil
 	}
 
 	if !o.keepRequestBody {
 		return r.Body, nil
 	}
 
-	bodyBytes, err := ioutil.ReadAll(r.Body)
+	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to read body")
 	}
 
 	_ = r.Body.Close() //  must close
-	r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+	r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
-	return ioutil.NopCloser(bytes.NewBuffer(bodyBytes)), nil
+	return io.NopCloser(bytes.NewBuffer(bodyBytes)), nil
 }
 
 func (t *HTTP) decodeJSONForm(r *http.Request, destination interface{}, o *httpDecoderOptions) error {
@@ -326,7 +325,7 @@ func (t *HTTP) decodeJSONForm(r *http.Request, destination interface{}, o *httpD
 
 	var interim json.RawMessage
 	if err := json.NewDecoder(reader).Decode(&interim); err != nil {
-		return err
+		return errors.WithStack(herodot.ErrBadRequest.WithError(err.Error()).WithReason("Unable to decode form as JSON."))
 	}
 
 	parsed := gjson.ParseBytes(interim)
@@ -539,27 +538,25 @@ func (t *HTTP) decodeURLValues(values url.Values, paths []jsonschemax.Path, o *h
 	return raw, nil
 }
 
-func (t *HTTP) decodeJSON(r *http.Request, destination interface{}, o *httpDecoderOptions, isRetry bool) error {
+func (t *HTTP) decodeJSON(r *http.Request, destination interface{}, o *httpDecoderOptions) error {
 	reader, err := t.requestBody(r, o)
 	if err != nil {
 		return err
 	}
 
-	raw, err := ioutil.ReadAll(reader)
+	raw, err := io.ReadAll(reader)
 	if err != nil {
 		return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Unable to read HTTP POST body: %s", err))
 	}
 
 	dc := json.NewDecoder(bytes.NewReader(raw))
-	if !isRetry {
-		dc.DisallowUnknownFields()
-	}
-	if err := json.NewDecoder(bytes.NewReader(raw)).Decode(destination); err != nil {
+	dc.DisallowUnknownFields()
+	if err := dc.Decode(destination); err != nil {
 		return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Unable to decode JSON payload: %s", err))
 	}
 
 	if err := t.validatePayload(r.Context(), raw, o); err != nil {
-		if o.expectJSONFlattened && strings.Contains(err.Error(), "json: unknown field") && !isRetry {
+		if o.expectJSONFlattened && strings.Contains(err.Error(), "json: unknown field") {
 			return t.decodeJSONForm(r, destination, o)
 		}
 		return err
