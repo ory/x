@@ -67,62 +67,62 @@ const (
 	hostConfigKey contextKey = "host config"
 )
 
-// director is a custom internal function for altering a http.Request
-func director(o *options) func(*http.Request) {
-	return func(r *http.Request) {
-		ctx := r.Context()
+// rewriter is a custom internal function for altering a http.Request
+func rewriter(o *options) func(*httputil.ProxyRequest) {
+	return func(r *httputil.ProxyRequest) {
+		ctx := r.Out.Context()
 		ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "x.proxy")
 		defer span.End()
 
-		c, err := o.getHostConfig(r)
+		c, err := o.getHostConfig(r.Out)
 		if err != nil {
-			o.onReqError(r, err)
+			o.onReqError(r.Out, err)
 			return
 		}
 
-		if forwardedProto := r.Header.Get("X-Forwarded-Proto"); forwardedProto != "" {
+		if forwardedProto := r.In.Header.Get("X-Forwarded-Proto"); forwardedProto != "" {
 			c.originalScheme = forwardedProto
-		} else if r.TLS == nil {
+		} else if r.Out.TLS == nil {
 			c.originalScheme = "http"
 		} else {
 			c.originalScheme = "https"
 		}
-		if forwardedHost := r.Header.Get("X-Forwarded-Host"); forwardedHost != "" {
+		if forwardedHost := r.In.Header.Get("X-Forwarded-Host"); forwardedHost != "" {
 			c.originalHost = forwardedHost
 		} else {
-			c.originalHost = r.Host
+			c.originalHost = r.In.Host
 		}
 
-		*r = *r.WithContext(context.WithValue(ctx, hostConfigKey, c))
-		headerRequestRewrite(r, c)
+		*r.Out = *r.Out.WithContext(context.WithValue(ctx, hostConfigKey, c))
+		headerRequestRewrite(r.Out, c)
 
 		var body []byte
 		var cb *compressableBody
 
-		if r.ContentLength != 0 {
-			body, cb, err = readBody(r.Header, r.Body)
+		if r.Out.ContentLength != 0 {
+			body, cb, err = readBody(r.Out.Header, r.Out.Body)
 			if err != nil {
-				o.onReqError(r, err)
+				o.onReqError(r.Out, err)
 				return
 			}
 		}
 
 		for _, m := range o.reqMiddlewares {
-			if body, err = m(r, c, body); err != nil {
-				o.onReqError(r, err)
+			if body, err = m(r.Out, c, body); err != nil {
+				o.onReqError(r.Out, err)
 				return
 			}
 		}
 
 		n, err := cb.Write(body)
 		if err != nil {
-			o.onReqError(r, err)
+			o.onReqError(r.Out, err)
 			return
 		}
 
-		r.Header.Del("Content-Length")
-		r.ContentLength = int64(n)
-		r.Body = cb
+		r.Out.Header.Del("Content-Length")
+		r.Out.ContentLength = int64(n)
+		r.Out.Body = cb
 	}
 }
 
@@ -252,7 +252,7 @@ func New(hostMapper HostMapper, opts ...Options) http.Handler {
 	}
 
 	rp := &httputil.ReverseProxy{
-		Director:       director(o),
+		Rewrite:        rewriter(o),
 		ModifyResponse: modifyResponse(o),
 		Transport:      o.transport,
 		ErrorHandler:   o.errHandler,
