@@ -81,7 +81,7 @@ require (
 	gonum.org/v1/plot v0.0.0-20200111075622-4abb28f724d5
 	google.golang.org/grpc v1.36.0
 	gopkg.in/DataDog/dd-trace-go.v1 v1.27.0
-	gopkg.in/square/go-jose.v2 v2.2.2
+	github.com/go-jose/go-jose/v3 v3.0.0
 )
 
 go 1.16

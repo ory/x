@@ -3,7 +3,7 @@ package josex
 import (
 	"crypto"
 
-	"gopkg.in/square/go-jose.v2"
+	"github.com/go-jose/go-jose/v3"
 )
 
 // ToPublicKey returns the public key of the given private key.

@@ -20,6 +20,7 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
+	github.com/go-jose/go-jose/v3 v3.0.0
 	github.com/go-openapi/jsonpointer v0.19.5
 	github.com/go-openapi/runtime v0.24.2
 	github.com/go-sql-driver/mysql v1.7.0
@@ -89,7 +90,6 @@ require (
 	gonum.org/v1/plot v0.12.0
 	google.golang.org/grpc v1.50.1
 	google.golang.org/protobuf v1.28.1
-	gopkg.in/square/go-jose.v2 v2.6.0
 )
 
 require (

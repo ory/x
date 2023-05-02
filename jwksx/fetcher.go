@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/go-jose/go-jose/v3"
 	"github.com/pkg/errors"
-	"gopkg.in/square/go-jose.v2"
 )
 
 // Fetcher is a small helper for fetching JSON Web Keys from remote endpoints.
