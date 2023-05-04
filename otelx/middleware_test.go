@@ -52,3 +52,42 @@ func TestShouldNotTraceHealthEndpoint(t *testing.T) {
 		})
 	}
 }
+
+func TestTraceHandlerSpanName(t *testing.T) {
+	testCases := []struct {
+		path         string
+		expectedName string
+		opts         []otelhttp.Option
+	}{
+		{
+			path:         "testPath",
+			expectedName: "/testPath",
+			opts:         []otelhttp.Option{},
+		},
+		{
+			path:         "testPath",
+			expectedName: "/overwritten/name",
+			opts: []otelhttp.Option{
+				otelhttp.WithSpanNameFormatter(func(operation string, r *http.Request) string {
+					return "/overwritten/name"
+				}),
+			},
+		},
+	}
+	for _, test := range testCases {
+		recorder := tracetest.NewSpanRecorder()
+		tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(recorder))
+
+		opts := append([]otelhttp.Option{
+			otelhttp.WithTracerProvider(tp),
+		}, test.opts...)
+
+		req := httptest.NewRequest(http.MethodGet, "https://api.example.com/"+test.path, nil)
+		h := TraceHandler(negroni.New(), opts...)
+		h.ServeHTTP(negroni.NewResponseWriter(httptest.NewRecorder()), req)
+
+		spans := recorder.Ended()
+		assert.Len(t, spans, 1)
+		assert.Equal(t, test.expectedName, spans[0].Name())
+	}
+}
