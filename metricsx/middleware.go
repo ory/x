@@ -285,8 +285,7 @@ func (sw *Service) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.
 		return
 	}
 
-	latency := time.Since(start) / time.Millisecond
-
+	latency := time.Since(start).Milliseconds()
 	path := sw.anonymizePath(r.URL.Path)
 
 	// Collecting request info
@@ -300,7 +299,7 @@ func (sw *Service) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.
 		UrlHost:        stringsx.Coalesce(r.Header.Get("X-Forwarded-Host"), r.Host),
 		UrlPath:        path,
 		RequestCode:    stat,
-		RequestLatency: math.Round(latency.Seconds()),
+		RequestLatency: float64(latency),
 	}); err != nil {
 		sw.l.WithError(err).Debug("Could not commit anonymized telemetry data")
 		// do nothing...
@@ -319,7 +318,7 @@ func (sw *Service) UnaryInterceptor(ctx context.Context, req interface{}, info *
 		return resp, err
 	}
 
-	latency := time.Since(start) / time.Millisecond
+	latency := time.Since(start).Milliseconds()
 
 	if err := sw.c.Enqueue(analytics.Page{
 		InstanceId:   sw.instanceId,
@@ -328,7 +327,7 @@ func (sw *Service) UnaryInterceptor(ctx context.Context, req interface{}, info *
 
 		UrlPath:        info.FullMethod,
 		RequestCode:    int(status.Code(err)),
-		RequestLatency: latency.Seconds(),
+		RequestLatency: float64(latency),
 	}); err != nil {
 		sw.l.WithError(err).Debug("Could not commit anonymized telemetry data")
 		// do nothing...
