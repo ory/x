@@ -299,7 +299,7 @@ func (sw *Service) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.
 		UrlHost:        stringsx.Coalesce(r.Header.Get("X-Forwarded-Host"), r.Host),
 		UrlPath:        path,
 		RequestCode:    stat,
-		RequestLatency: float64(latency),
+		RequestLatency: int(latency),
 	}); err != nil {
 		sw.l.WithError(err).Debug("Could not commit anonymized telemetry data")
 		// do nothing...
@@ -327,7 +327,7 @@ func (sw *Service) UnaryInterceptor(ctx context.Context, req interface{}, info *
 
 		UrlPath:        info.FullMethod,
 		RequestCode:    int(status.Code(err)),
-		RequestLatency: float64(latency),
+		RequestLatency: int(latency),
 	}); err != nil {
 		sw.l.WithError(err).Debug("Could not commit anonymized telemetry data")
 		// do nothing...
