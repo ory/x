@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	jsonpatch "github.com/evanphx/json-patch"
+	jsonpatch "github.com/evanphx/json-patch/v5"
 )
 
 var opAllowList = map[string]struct{}{
