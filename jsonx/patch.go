@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	jsonpatch "github.com/evanphx/json-patch"
+	jsonpatch "github.com/evanphx/json-patch/v5"
 )
 
 var opAllowList = map[string]struct{}{
@@ -47,7 +47,10 @@ func ApplyJSONPatch(p json.RawMessage, object interface{}, denyPaths ...string) 
 		return err
 	}
 
-	modified, err := patch.Apply(original)
+	options := jsonpatch.NewApplyOptions()
+	options.EnsurePathExistsOnAdd = true
+
+	modified, err := patch.ApplyWithOptions(original, options)
 	if err != nil {
 		return err
 	}

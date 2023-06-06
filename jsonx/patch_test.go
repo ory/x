@@ -17,6 +17,9 @@ type TestType struct {
 		Field1 bool
 		Field2 []int
 	}
+	FieldNull *struct {
+		Field1 any
+	}
 }
 
 func TestApplyJSONPatch(t *testing.T) {
@@ -112,6 +115,17 @@ func TestApplyJSONPatch(t *testing.T) {
 		rawPatch := []byte(`[{"op": "add", "path": "/Field2/-", "value": "bar"}]`)
 		expected := deepcopy.Copy(object).(TestType)
 		expected.Field2 = append(expected.Field2, "bar")
+		obj := deepcopy.Copy(object).(TestType)
+		require.NoError(t, ApplyJSONPatch(rawPatch, &obj, "/Field1"))
+		require.Equal(t, expected, obj)
+	})
+	t.Run("case=patch object field when object null", func(t *testing.T) {
+		rawPatch := []byte(`[{"op": "add", "path": "/FieldNull/Field1", "value": "bar"}]`)
+		expected := deepcopy.Copy(object).(TestType)
+		expected.FieldNull = &struct {
+			Field1 any
+		}{}
+		expected.FieldNull.Field1 = "bar"
 		obj := deepcopy.Copy(object).(TestType)
 		require.NoError(t, ApplyJSONPatch(rawPatch, &obj, "/Field1"))
 		require.Equal(t, expected, obj)
