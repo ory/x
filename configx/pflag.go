@@ -6,8 +6,8 @@ package configx
 import (
 	"strings"
 
-	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/providers/posflag"
+	"github.com/knadh/koanf/v2"
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 
