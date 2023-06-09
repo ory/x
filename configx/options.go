@@ -15,7 +15,7 @@ import (
 	"github.com/ory/jsonschema/v3"
 	"github.com/ory/x/logrusx"
 
-	"github.com/knadh/koanf"
+	"github.com/knadh/koanf/v2"
 
 	"github.com/ory/x/watcherx"
 )

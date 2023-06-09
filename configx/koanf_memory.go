@@ -6,8 +6,8 @@ package configx
 import (
 	"context"
 
-	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/json"
+	"github.com/knadh/koanf/v2"
 
 	"github.com/pkg/errors"
 
