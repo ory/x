@@ -550,7 +550,6 @@ func (t *HTTP) decodeJSON(r *http.Request, destination interface{}, o *httpDecod
 	}
 
 	dc := json.NewDecoder(bytes.NewReader(raw))
-	dc.DisallowUnknownFields()
 	if err := dc.Decode(destination); err != nil {
 		return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Unable to decode JSON payload: %s", err))
 	}
