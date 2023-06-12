@@ -40,7 +40,12 @@ func NewHandler(handler http.Handler, operation string, opts ...otelhttp.Option)
 
 // TraceHandler wraps otelx.NewHandler, passing the URL path as the span name.
 func TraceHandler(h http.Handler, opts ...otelhttp.Option) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		NewHandler(h, r.URL.Path, opts...).ServeHTTP(w, r)
-	})
+	// Use a span formatter to set the span name to the URL path, rather than passing in the operation to NewHandler.
+	// This allows us to use the same handler for multiple routes.
+	middlewareOpts := []otelhttp.Option{
+		otelhttp.WithSpanNameFormatter(func(operation string, r *http.Request) string {
+			return r.URL.Path
+		}),
+	}
+	return NewHandler(h, "", append(middlewareOpts, opts...)...)
 }

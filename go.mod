@@ -15,7 +15,7 @@ require (
 	github.com/cockroachdb/cockroach-go/v2 v2.2.16
 	github.com/dgraph-io/ristretto v0.1.1
 	github.com/docker/docker v20.10.24+incompatible
-	github.com/evanphx/json-patch v5.6.0+incompatible
+	github.com/evanphx/json-patch/v5 v5.6.0
 	github.com/fatih/structs v1.1.0
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/ghodss/yaml v1.0.0
@@ -39,13 +39,19 @@ require (
 	github.com/jandelgado/gcov2lcov v1.0.5
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/julienschmidt/httprouter v1.3.0
-	github.com/knadh/koanf v1.4.4
+	github.com/knadh/koanf/maps v0.1.1
+	github.com/knadh/koanf/parsers/json v0.1.0
+	github.com/knadh/koanf/parsers/toml v0.1.0
+	github.com/knadh/koanf/parsers/yaml v0.1.0
+	github.com/knadh/koanf/providers/posflag v0.1.0
+	github.com/knadh/koanf/providers/rawbytes v0.1.0
+	github.com/knadh/koanf/v2 v2.0.1
 	github.com/lib/pq v1.10.7
 	github.com/luna-duclos/instrumentedsql v1.1.3
 	github.com/markbates/pkger v0.17.1
 	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
-	github.com/ory/analytics-go/v4 v4.0.3
+	github.com/ory/analytics-go/v5 v5.0.1
 	github.com/ory/dockertest/v3 v3.9.1
 	github.com/ory/go-acc v0.2.9-0.20230103102148-6b1c9a70dbbe
 	github.com/ory/herodot v0.9.13
@@ -106,7 +112,7 @@ require (
 	github.com/containerd/continuity v0.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/docker/cli v20.10.21+incompatible // indirect
-	github.com/docker/distribution v2.8.1+incompatible // indirect
+	github.com/docker/distribution v2.8.2+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
