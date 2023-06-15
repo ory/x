@@ -4,7 +4,6 @@
 package popx
 
 import (
-	"fmt"
 	"sort"
 
 	"github.com/gobuffalo/pop/v6"
@@ -18,23 +17,18 @@ type Migration struct {
 	Version string
 	// Name of the migration (create_widgets)
 	Name string
-	// Direction of the migration (up)
+	// Direction of the migration (up|down)
 	Direction string
-	// Type of migration (sql)
+	// Type of migration (sql|go)
 	Type string
 	// DB type (all|postgres|mysql...)
 	DBType string
-	// Runner function to run/execute the migration
+	// Runner function to run/execute the migration. Will be wrapped in a
+	// database transaction. Mutually exclusive with RunnerNoTx
 	Runner func(Migration, *pop.Connection, *pop.Tx) error
-}
-
-// Run the migration. Returns an error if there is
-// no mf.Runner defined.
-func (mf Migration) Run(c *pop.Connection, tx *pop.Tx) error {
-	if mf.Runner == nil {
-		return fmt.Errorf("no runner defined for %s", mf.Path)
-	}
-	return mf.Runner(mf, c, tx)
+	// RunnerNoTx function to run/execute the migration. NOT wrapped in a
+	// database transaction. Mutually exclusive with Runner.
+	RunnerNoTx func(Migration, *pop.Connection) error
 }
 
 // Migrations is a collection of Migration

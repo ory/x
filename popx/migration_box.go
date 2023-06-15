@@ -4,6 +4,7 @@
 package popx
 
 import (
+	"fmt"
 	"io"
 	"io/fs"
 	"regexp"
@@ -246,7 +247,18 @@ func (fm *MigrationBox) hasDownMigrationWithVersion(version string) bool {
 func (fm *MigrationBox) check() error {
 	for _, up := range fm.Migrations["up"] {
 		if !fm.hasDownMigrationWithVersion(up.Version) {
-			return errors.Errorf("migration %s has no corresponding down migration", up.Version)
+			return fmt.Errorf("migration %s has no corresponding down migration", up.Version)
+		}
+
+	}
+	for _, m := range fm.Migrations {
+		for _, n := range m {
+			if n.Runner == nil && n.RunnerNoTx == nil {
+				return fmt.Errorf("no runner defined for %s", n.Version)
+			}
+			if n.Runner != nil && n.RunnerNoTx != nil {
+				return fmt.Errorf("incompatible transaction and non-transaction runners defined for %s", n.Version)
+			}
 		}
 	}
 	return nil

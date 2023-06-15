@@ -101,18 +101,20 @@ func (m *Migrator) UpTo(ctx context.Context, step int) (applied int, err error) 
 		mtn := m.sanitizedMigrationTableName(c)
 		mfs := m.Migrations["up"].SortAndFilter(c.Dialect.Name())
 		for _, mi := range mfs {
+			l := m.l.WithField("version", mi.Version).WithField("migration_name", mi.Name).WithField("migration_file", mi.Path)
+
 			exists, err := c.Where("version = ?", mi.Version).Exists(mtn)
 			if err != nil {
 				return errors.Wrapf(err, "problem checking for migration version %s", mi.Version)
 			}
 
 			if exists {
-				m.l.WithField("version", mi.Version).Debug("Migration has already been applied, skipping.")
+				l.Debug("Migration has already been applied, skipping.")
 				continue
 			}
 
 			if len(mi.Version) > 14 {
-				m.l.WithField("version", mi.Version).Debug("Migration has not been applied but it might be a legacy migration, investigating.")
+				l.Debug("Migration has not been applied but it might be a legacy migration, investigating.")
 
 				legacyVersion := mi.Version[:14]
 				exists, err = c.Where("version = ?", legacyVersion).Exists(mtn)
@@ -121,7 +123,7 @@ func (m *Migrator) UpTo(ctx context.Context, step int) (applied int, err error) 
 				}
 
 				if exists {
-					m.l.WithField("version", mi.Version).WithField("legacy_version", legacyVersion).WithField("migration_table", mtn).Debug("Migration has already been applied in a legacy migration run. Updating version in migration table.")
+					l.WithField("legacy_version", legacyVersion).WithField("migration_table", mtn).Debug("Migration has already been applied in a legacy migration run. Updating version in migration table.")
 					if err := m.isolatedTransaction(ctx, "init-migrate", func(conn *pop.Connection) error {
 						// We do not want to remove the legacy migration version or subsequent migrations might be applied twice.
 						//
@@ -141,23 +143,43 @@ func (m *Migrator) UpTo(ctx context.Context, step int) (applied int, err error) 
 				}
 			}
 
-			m.l.WithField("version", mi.Version).Debug("Migration has not yet been applied, running migration.")
+			l.Info("Migration has not yet been applied, running migration.")
 
-			if err = m.isolatedTransaction(ctx, "up", func(conn *pop.Connection) error {
-				if err := mi.Run(conn, conn.TX); err != nil {
+			if mi.Runner == nil && mi.RunnerNoTx == nil {
+				return fmt.Errorf("no runner defined for %s", mi.Path)
+			}
+			if mi.Runner != nil && mi.RunnerNoTx != nil {
+				return fmt.Errorf("incompatible transaction and non-transaction runners defined for %s", mi.Path)
+			}
+
+			if mi.Runner != nil {
+				err := m.isolatedTransaction(ctx, "up", func(conn *pop.Connection) error {
+					if err := mi.Runner(mi, conn, conn.TX); err != nil {
+						return err
+					}
+
+					// #nosec G201 - mtn is a system-wide const
+					if err := conn.RawQuery(fmt.Sprintf("INSERT INTO %s (version) VALUES (?)", mtn), mi.Version).Exec(); err != nil {
+						return errors.Wrapf(err, "problem inserting migration version %s", mi.Version)
+					}
+					return nil
+				})
+				if err != nil {
+					return err
+				}
+			} else {
+				l.Warn("Migration has requested running outside a transaction. Proceed with caution.")
+				if err := mi.RunnerNoTx(mi, c); err != nil {
 					return err
 				}
 
 				// #nosec G201 - mtn is a system-wide const
-				if _, err = conn.TX.Exec(fmt.Sprintf("INSERT INTO %s (version) VALUES ('%s')", mtn, mi.Version)); err != nil {
-					return errors.Wrapf(err, "problem inserting migration version %s", mi.Version)
+				if err := c.RawQuery(fmt.Sprintf("INSERT INTO %s (version) VALUES (?)", mtn), mi.Version).Exec(); err != nil {
+					return errors.Wrapf(err, "problem inserting migration version %s. YOUR DATABASE MAY BE IN AN INCONSISTENT STATE! MANUAL INTERVENTION REQUIRED!", mi.Version)
 				}
-				return nil
-			}); err != nil {
-				return err
 			}
 
-			m.l.Debugf("> %s", mi.Name)
+			l.Infof("> %s applied successfully", mi.Name)
 			applied++
 			if step > 0 && applied >= step {
 				break
@@ -215,21 +237,40 @@ func (m *Migrator) Down(ctx context.Context, step int) error {
 				return errors.Errorf("migration version %s does not exist", mi.Version)
 			}
 
-			err = m.isolatedTransaction(ctx, "down", func(conn *pop.Connection) error {
-				err := mi.Run(conn, conn.TX)
+			if mi.Runner == nil && mi.RunnerNoTx == nil {
+				return fmt.Errorf("no runner defined for %s", mi.Path)
+			}
+			if mi.Runner != nil && mi.RunnerNoTx != nil {
+				return fmt.Errorf("incompatible transaction and non-transaction runners defined for %s", mi.Path)
+			}
+
+			if mi.Runner != nil {
+				err := m.isolatedTransaction(ctx, "down", func(conn *pop.Connection) error {
+					err := mi.Runner(mi, conn, conn.TX)
+					if err != nil {
+						return err
+					}
+
+					// #nosec G201 - mtn is a system-wide const
+					if err := conn.RawQuery(fmt.Sprintf("DELETE FROM %s WHERE version = ?", mtn), mi.Version).Exec(); err != nil {
+						return errors.Wrapf(err, "problem deleting migration version %s", mi.Version)
+					}
+
+					return nil
+				})
+				if err != nil {
+					return err
+				}
+			} else {
+				err := mi.RunnerNoTx(mi, c)
 				if err != nil {
 					return err
 				}
 
 				// #nosec G201 - mtn is a system-wide const
-				if err = conn.RawQuery(fmt.Sprintf("DELETE FROM %s WHERE version = ?", mtn), mi.Version).Exec(); err != nil {
-					return errors.Wrapf(err, "problem deleting migration version %s", mi.Version)
+				if err := c.RawQuery(fmt.Sprintf("DELETE FROM %s WHERE version = ?", mtn), mi.Version).Exec(); err != nil {
+					return errors.Wrapf(err, "problem deleting migration version %s. YOUR DATABASE MAY BE IN AN INCONSISTENT STATE! MANUAL INTERVENTION REQUIRED!", mi.Version)
 				}
-
-				return nil
-			})
-			if err != nil {
-				return err
 			}
 
 			m.l.Debugf("< %s", mi.Name)
@@ -510,13 +551,6 @@ func (m *Migrator) DumpMigrationSchema(ctx context.Context) error {
 		return err
 	}
 	return nil
-}
-
-func (m *Migrator) wrapSpan(ctx context.Context, opName string, f func(ctx context.Context, span trace.Span) error) error {
-	span, ctx := m.startSpan(ctx, opName)
-	defer span.End()
-
-	return f(ctx, span)
 }
 
 func (m *Migrator) startSpan(ctx context.Context, opName string) (trace.Span, context.Context) {
