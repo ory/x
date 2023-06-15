@@ -158,7 +158,7 @@ func startPostgreSQL(version string) (*dockertest.Resource, error) {
 		return nil, errors.Wrap(err, "Could not connect to docker")
 	}
 
-	resource, err := pool.Run("postgres", stringsx.Coalesce(version, "11.8"), []string{"POSTGRES_PASSWORD=secret", "POSTGRES_DB=postgres"})
+	resource, err := pool.Run("postgres", stringsx.Coalesce(version, "11.8"), []string{"PGUSER=postgres", "POSTGRES_PASSWORD=secret", "POSTGRES_DB=postgres"})
 	if err == nil {
 		resources = append(resources, resource)
 	}
@@ -218,7 +218,7 @@ func RunTestPostgreSQLWithVersion(t testing.TB, version string) string {
 		return dsn
 	}
 
-	resource, err := startPostgreSQL("")
+	resource, err := startPostgreSQL(version)
 	require.NoError(t, err)
 	return fmt.Sprintf("postgres://postgres:secret@127.0.0.1:%s/postgres?sslmode=disable", resource.GetPort("5432/tcp"))
 }
