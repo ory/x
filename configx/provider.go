@@ -23,8 +23,6 @@ import (
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/trace"
 
 	"github.com/ory/jsonschema/v3"
 	"github.com/ory/x/jsonschemax"
@@ -38,8 +36,6 @@ type tuple struct {
 	Value interface{}
 }
 
-const tracingComponent = "github.com/ory/x/configx"
-
 type Provider struct {
 	l sync.RWMutex
 	*koanf.Koanf
@@ -51,7 +47,6 @@ type Provider struct {
 	onChanges                []func(watcherx.Event, error)
 	onValidationError        func(k *koanf.Koanf, err error)
 	excludeFieldsFromTracing []string
-	tracer                   trace.Tracer
 
 	forcedValues []tuple
 	baseValues   []tuple
@@ -102,7 +97,6 @@ func New(ctx context.Context, schema []byte, modifiers ...OptionModifier) (*Prov
 		excludeFieldsFromTracing: []string{"dsn", "secret", "password", "key"},
 		logger:                   logrusx.New("discarding config logger", "", logrusx.UseLogger(l)),
 		Koanf:                    koanf.NewWithConf(koanf.Conf{Delim: Delimiter, StrictMerge: true}),
-		tracer:                   otel.Tracer(tracingComponent),
 	}
 
 	for _, m := range modifiers {
@@ -219,9 +213,6 @@ func (p *Provider) validate(k *koanf.Koanf) error {
 // - https://github.com/knadh/koanf/issues/77
 // - https://github.com/knadh/koanf/pull/47
 func (p *Provider) newKoanf() (_ *koanf.Koanf, err error) {
-	_, span := p.tracer.Start(context.Background(), LoadSpanOpName)
-	defer otelx.End(span, &err)
-
 	k := koanf.New(Delimiter)
 
 	for _, provider := range p.providers {
@@ -246,11 +237,6 @@ func (p *Provider) newKoanf() (_ *koanf.Koanf, err error) {
 	}
 
 	return k, nil
-}
-
-// SetTracer sets the tracer.
-func (p *Provider) SetTracer(_ context.Context, t *otelx.Tracer) {
-	p.tracer = t.Provider().Tracer(tracingComponent)
 }
 
 func (p *Provider) runOnChanges(e watcherx.Event, err error) {
