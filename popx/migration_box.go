@@ -29,7 +29,6 @@ type (
 		goMigrations     Migrations
 	}
 	MigrationContent   func(mf Migration, c *pop.Connection, r []byte, usingTemplate bool) (string, error)
-	GoMigration        func(c *pop.Tx) error
 	MigrationBoxOption func(*MigrationBox) *MigrationBox
 )
 
