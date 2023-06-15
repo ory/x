@@ -54,12 +54,8 @@ type Service struct {
 
 // Hash returns a hashed string of the value.
 func Hash(value string) string {
-	hash := sha256.New()
-	_, err := hash.Write([]byte(value))
-	if err != nil {
-		panic("unable to hash value")
-	}
-	return hex.EncodeToString(hash.Sum(nil))
+	sha := sha256.Sum256([]byte(value))
+	return hex.EncodeToString(sha[:])
 }
 
 // Options configures the metrics service.
