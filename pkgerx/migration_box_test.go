@@ -4,7 +4,7 @@
 package pkgerx
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -25,7 +25,7 @@ func TestMigrationBoxTemplating(t *testing.T) {
 		"tableName": "test_table_name",
 	}
 
-	expectedMigration, err := ioutil.ReadFile(filepath.Join("testdata", "0_sql_create_tablename_template.expected.sql"))
+	expectedMigration, err := os.ReadFile(filepath.Join("testdata", "0_sql_create_tablename_template.expected.sql"))
 	require.NoError(t, err)
 
 	c := dockertest.ConnectToTestCockroachDBPop(t)

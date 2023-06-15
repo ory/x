@@ -5,7 +5,7 @@ package cmdx
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -22,7 +22,7 @@ func TestAskForConfirmation(t *testing.T) {
 
 		AskForConfirmation(testQuestion, stdin, stdout)
 
-		prompt, err := ioutil.ReadAll(stdout)
+		prompt, err := io.ReadAll(stdout)
 		require.NoError(t, err)
 		assert.Contains(t, string(prompt), testQuestion)
 	})
@@ -73,7 +73,7 @@ func TestAskForConfirmation(t *testing.T) {
 
 			AskForConfirmation(testQuestion, stdin, stdout)
 
-			output, err := ioutil.ReadAll(stdout)
+			output, err := io.ReadAll(stdout)
 			require.NoError(t, err)
 			assert.Equal(t, 2, bytes.Count(output, []byte(testQuestion)))
 		}

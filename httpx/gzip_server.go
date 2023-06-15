@@ -8,7 +8,6 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strings"
 )
@@ -48,7 +47,7 @@ func (c *CompressionRequestReader) ServeHTTP(w http.ResponseWriter, r *http.Requ
 				return
 			}
 
-			r.Body = ioutil.NopCloser(&b)
+			r.Body = io.NopCloser(&b)
 		case "identity":
 			fallthrough
 		case "":

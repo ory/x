@@ -40,7 +40,6 @@ func (r Base64Reader) Read(p []byte) (n int, err error) {
 		// Strip =
 		case 0x3D:
 			n = i
-			break
 		default:
 		}
 	}

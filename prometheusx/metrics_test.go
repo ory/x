@@ -60,7 +60,9 @@ func TestGRPCMetrics(t *testing.T) {
 	pmm.Register(server)
 
 	_, err = testClient.PingEmpty(ctx, &pbTestproto.Empty{})
+	require.NoError(t, err)
 	_, err = testClient.PingList(ctx, &pbTestproto.PingRequest{})
+	require.NoError(t, err)
 
 	n := negroni.New()
 

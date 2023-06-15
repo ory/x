@@ -18,7 +18,7 @@ func Has(haystack []string, needle string) bool {
 // HasI returns true if the needle is in the haystack (case-insensitive)
 func HasI(haystack []string, needle string) bool {
 	for _, current := range haystack {
-		if strings.ToLower(current) == strings.ToLower(needle) {
+		if strings.EqualFold(current, needle) {
 			return true
 		}
 	}

@@ -7,7 +7,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"math"
 	"net/http"
 	"net/url"
@@ -58,7 +57,7 @@ func Hash(value string) string {
 	hash := sha256.New()
 	_, err := hash.Write([]byte(value))
 	if err != nil {
-		panic(fmt.Sprintf("unable to hash value"))
+		panic("unable to hash value")
 	}
 	return hex.EncodeToString(hash.Sum(nil))
 }
@@ -265,11 +264,6 @@ func (sw *Service) Track() {
 		}
 		time.Sleep(sw.o.MemoryInterval)
 	}
-}
-
-type negroniMiddleware interface {
-	Size() int
-	Status() int
 }
 
 // ServeHTTP is a middleware for sending meta information to segment.

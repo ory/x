@@ -7,31 +7,13 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
-	"sync"
 	"testing"
 
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/ory/dockertest/v3"
 )
-
-var (
-	mysqlURL     string
-	postgresURL  string
-	cockroachURL string
-	resources    []*dockertest.Resource
-	lock         sync.RWMutex
-)
-
-func merge(u string, query url.Values) string {
-	if strings.Contains(u, "?") {
-		return u + "&" + query.Encode()
-	}
-	return u + "?" + query.Encode()
-}
 
 func TestClassifyDSN(t *testing.T) {
 	for k, tc := range [][]string{

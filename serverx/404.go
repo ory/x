@@ -41,6 +41,4 @@ var DefaultNotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *htt
 	w.Header().Set("Content-Type", contentType+"; charset=utf-8")
 	w.WriteHeader(http.StatusNotFound)
 	_, _ = w.Write(body) // #nosec
-
-	return
 })

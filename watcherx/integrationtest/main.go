@@ -6,7 +6,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 
 	"github.com/ory/x/watcherx"
@@ -30,7 +30,11 @@ func main() {
 		switch e := (<-c).(type) {
 		case *watcherx.ChangeEvent:
 			var data []byte
-			data, err = ioutil.ReadAll(e.Reader())
+			data, err = io.ReadAll(e.Reader())
+			if err != nil {
+				_, _ = fmt.Fprintf(os.Stderr, "could not read data: %+v\n", err)
+				os.Exit(1)
+			}
 			fmt.Printf("got change event:\nData: %s,\nSrc: %s\n", data, e.Source())
 		case *watcherx.RemoveEvent:
 			fmt.Printf("got remove event:\nSrc: %s\n", e.Source())

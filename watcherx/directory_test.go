@@ -5,7 +5,6 @@ package watcherx
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -43,6 +42,7 @@ func TestWatchDirectory(t *testing.T) {
 		require.NoError(t, err)
 
 		_, err = fmt.Fprintf(f, "content")
+		require.NoError(t, err)
 		require.NoError(t, f.Close())
 
 		assertChange(t, <-c, "content", fileName)
@@ -156,11 +156,11 @@ func TestWatchDirectory(t *testing.T) {
 	})
 
 	t.Run("case=sends event when requested", func(t *testing.T) {
-		ctx, c, dir, cancel := setup(t)
+		ctx, _, dir, cancel := setup(t)
 		defer cancel()
 
 		// buffered channel to allow usage of DispatchNow().done
-		c = make(EventChannel, 4)
+		c := make(EventChannel, 4)
 
 		files := map[string]string{
 			"a":                     "foo",
@@ -171,7 +171,7 @@ func TestWatchDirectory(t *testing.T) {
 		for fn, fc := range files {
 			fp := filepath.Join(dir, fn)
 			require.NoError(t, os.MkdirAll(filepath.Dir(fp), 0700))
-			require.NoError(t, ioutil.WriteFile(fp, []byte(fc), 0600))
+			require.NoError(t, os.WriteFile(fp, []byte(fc), 0600))
 		}
 
 		d, err := WatchDirectory(ctx, dir, c)

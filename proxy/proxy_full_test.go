@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
@@ -250,7 +249,7 @@ func TestFullIntegration(t *testing.T) {
 			},
 			handler: func(assert *assert.Assertions, w http.ResponseWriter, r *http.Request) {
 				assert.Equal("noauth.example.com", r.Host)
-				b, err := ioutil.ReadAll(r.Body)
+				b, err := io.ReadAll(r.Body)
 				assert.NoError(err)
 				assert.Equal("this is a new body", string(b))
 
@@ -271,8 +270,7 @@ func TestFullIntegration(t *testing.T) {
 			},
 			reqMiddleware: func(req *http.Request, config *HostConfig, body []byte) ([]byte, error) {
 				req.Host = "noauth.example.com"
-				body = []byte("this is a new body")
-				return body, nil
+				return []byte("this is a new body"), nil
 			},
 			respMiddleware: func(resp *http.Response, config *HostConfig, body []byte) ([]byte, error) {
 				resp.Header.Add("Some-Header", "1234")
@@ -295,7 +293,6 @@ func TestFullIntegration(t *testing.T) {
 				return req
 			},
 			assertResponse: func(t *testing.T, r *http.Response) {
-				return
 			},
 			onErrReq: func(request *http.Request, err error) {
 				assert.Error(t, err)
@@ -318,7 +315,6 @@ func TestFullIntegration(t *testing.T) {
 				return req
 			},
 			assertResponse: func(t *testing.T, r *http.Response) {
-				return
 			},
 			respMiddleware: func(resp *http.Response, config *HostConfig, body []byte) ([]byte, error) {
 				return nil, errors.New("some response middleware error")

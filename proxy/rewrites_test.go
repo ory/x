@@ -329,6 +329,7 @@ func TestHelpers(t *testing.T) {
 			assert.Equal(t, "this is compressed", string(rawBody))
 
 			_, err = writer.Write([]byte("should compress"))
+			require.NoError(t, err)
 			assert.NotEqual(t, "should compress", writer.buf.String())
 
 			r, err := gzip.NewReader(&writer.buf)

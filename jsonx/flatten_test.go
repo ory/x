@@ -5,7 +5,7 @@ package jsonx
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,7 +13,7 @@ import (
 )
 
 func TestFlatten(t *testing.T) {
-	f, err := ioutil.ReadFile("./stub/random.json")
+	f, err := os.ReadFile("./stub/random.json")
 	require.NoError(t, err)
 
 	for k, tc := range []struct {

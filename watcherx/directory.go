@@ -5,7 +5,6 @@ package watcherx
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -84,7 +83,7 @@ func handleEvent(e fsnotify.Event, w *fsnotify.Watcher, c EventChannel) {
 		}
 
 		//#nosec G304 -- false positive
-		data, err := ioutil.ReadFile(e.Name)
+		data, err := os.ReadFile(e.Name)
 		if err != nil {
 			c <- &ErrorEvent{
 				error:  err,
@@ -116,7 +115,7 @@ func streamDirectoryEvents(ctx context.Context, w *fsnotify.Watcher, c EventChan
 				}
 				if !info.IsDir() {
 					//#nosec G304 -- false positive
-					data, err := ioutil.ReadFile(path)
+					data, err := os.ReadFile(path)
 					if err != nil {
 						c <- &ErrorEvent{
 							error:  err,
