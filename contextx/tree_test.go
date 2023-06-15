@@ -12,6 +12,6 @@ import (
 
 func TestTreeContext(t *testing.T) {
 	assert.True(t, IsRootContext(RootContext))
-	assert.True(t, IsRootContext(context.WithValue(RootContext, "foo", "bar")))
+	assert.True(t, IsRootContext(context.WithValue(RootContext, "foo", "bar"))) //lint:ignore SA1029 builtin type for context is OK in test
 	assert.False(t, IsRootContext(context.Background()))
 }

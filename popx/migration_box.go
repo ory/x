@@ -127,7 +127,7 @@ func WithTestdata(t *testing.T, testdata fs.FS) MigrationBoxOption {
 	}
 }
 
-var emptySQLReplace = regexp.MustCompile("(?m)^(\\s*--.*|\\s*)$")
+var emptySQLReplace = regexp.MustCompile(`(?m)^(\s*--.*|\s*)$`)
 
 func isMigrationEmpty(content string) bool {
 	return len(strings.ReplaceAll(emptySQLReplace.ReplaceAllString(content, ""), "\n", "")) == 0

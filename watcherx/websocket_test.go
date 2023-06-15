@@ -43,7 +43,7 @@ func TestWatchWebsocket(t *testing.T) {
 		s := httptest.NewServer(handler)
 		defer s.Close()
 
-		u := urlx.ParseOrPanic("ws" + strings.TrimLeft(s.URL, "http"))
+		u := urlx.ParseOrPanic("ws" + strings.TrimPrefix(s.URL, "http"))
 		_, err = WatchWebsocket(ctx, u, c)
 		require.NoError(t, err)
 
@@ -73,7 +73,7 @@ func TestWatchWebsocket(t *testing.T) {
 		defer s.Close()
 
 		ctx2, cancel2 := context.WithCancel(context.Background())
-		u := urlx.ParseOrPanic("ws" + strings.TrimLeft(s.URL, "http"))
+		u := urlx.ParseOrPanic("ws" + strings.TrimPrefix(s.URL, "http"))
 		_, err = WatchWebsocket(ctx2, u, c)
 		require.NoError(t, err)
 
@@ -100,7 +100,7 @@ func TestWatchWebsocket(t *testing.T) {
 		s := httptest.NewServer(handler)
 		defer s.Close()
 
-		u := urlx.ParseOrPanic("ws" + strings.TrimLeft(s.URL, "http"))
+		u := urlx.ParseOrPanic("ws" + strings.TrimPrefix(s.URL, "http"))
 		_, err = WatchWebsocket(ctxClient, u, c)
 		require.NoError(t, err)
 
@@ -128,7 +128,7 @@ func TestWatchWebsocket(t *testing.T) {
 
 		ctxClient1, cancelClient1 := context.WithCancel(context.Background())
 		defer cancelClient1()
-		u := urlx.ParseOrPanic("ws" + strings.TrimLeft(s.URL, "http"))
+		u := urlx.ParseOrPanic("ws" + strings.TrimPrefix(s.URL, "http"))
 		_, err = WatchWebsocket(ctxClient1, u, c)
 		require.NoError(t, err)
 
@@ -169,7 +169,7 @@ func TestWatchWebsocket(t *testing.T) {
 		ctxClient1, cancelClient1 := context.WithCancel(context.Background())
 		defer cancelClient1()
 
-		u := urlx.ParseOrPanic("ws" + strings.TrimLeft(s.URL, "http"))
+		u := urlx.ParseOrPanic("ws" + strings.TrimPrefix(s.URL, "http"))
 		_, err = WatchWebsocket(ctxClient1, u, c1)
 		require.NoError(t, err)
 
@@ -190,11 +190,11 @@ func TestWatchWebsocket(t *testing.T) {
 	})
 
 	t.Run("case=sends event when requested", func(t *testing.T) {
-		ctxServer, c, dir, cancel := setup(t)
+		ctxServer, _, dir, cancel := setup(t)
 		defer cancel()
 
 		// buffered channel to allow usage of DispatchNow().done
-		c = make(EventChannel, 1)
+		c := make(EventChannel, 1)
 
 		hook := &test.Hook{}
 		l := logrusx.New("", "", logrusx.WithHook(hook))
@@ -211,7 +211,7 @@ func TestWatchWebsocket(t *testing.T) {
 		ctxClient, cancelClient := context.WithCancel(context.Background())
 		defer cancelClient()
 
-		u := urlx.ParseOrPanic("ws" + strings.TrimLeft(s.URL, "http"))
+		u := urlx.ParseOrPanic("ws" + strings.TrimPrefix(s.URL, "http"))
 		d, err := WatchWebsocket(ctxClient, u, c)
 		require.NoError(t, err)
 		done, err := d.DispatchNow()

@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"testing"
@@ -63,7 +62,7 @@ func CheckResponse(err error, expectedStatusCode int, response *http.Response) {
 	Must(err, "Command failed because error occurred: %s", err)
 
 	if response.StatusCode != expectedStatusCode {
-		out, err := ioutil.ReadAll(response.Body)
+		out, err := io.ReadAll(response.Body)
 		if err != nil {
 			out = []byte{}
 		}

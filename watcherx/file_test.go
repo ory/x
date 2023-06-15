@@ -208,11 +208,11 @@ func TestWatchFile(t *testing.T) {
 	})
 
 	t.Run("case=sends event when requested", func(t *testing.T) {
-		ctx, c, dir, cancel := setup(t)
+		ctx, _, dir, cancel := setup(t)
 		defer cancel()
 
 		// buffered channel to allow usage of DispatchNow().done
-		c = make(EventChannel, 1)
+		c := make(EventChannel, 1)
 
 		fn := filepath.Join(dir, "example.file")
 		initialContent := "initial content"

@@ -5,7 +5,7 @@ package migratest
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -15,7 +15,7 @@ import (
 )
 
 func ContainsExpectedIds(t *testing.T, path string, ids []string) {
-	files, err := ioutil.ReadDir(path)
+	files, err := os.ReadDir(path)
 	require.NoError(t, err)
 
 	for _, f := range files {
@@ -29,7 +29,7 @@ func ContainsExpectedIds(t *testing.T, path string, ids []string) {
 func CompareWithFixture(t *testing.T, actual interface{}, prefix string, id string) {
 	location := filepath.Join("fixtures", prefix, id+".json")
 	//#nosec G304 -- false positive
-	expected, err := ioutil.ReadFile(location)
+	expected, err := os.ReadFile(location)
 	WriteFixtureOnError(t, err, actual, location)
 
 	actualJSON, err := json.Marshal(actual)

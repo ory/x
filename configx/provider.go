@@ -239,6 +239,10 @@ func (p *Provider) newKoanf() (_ *koanf.Koanf, err error) {
 	return k, nil
 }
 
+// SetTracer does nothing. DEPRECATED without replacement.
+func (p *Provider) SetTracer(_ context.Context, _ *otelx.Tracer) {
+}
+
 func (p *Provider) runOnChanges(e watcherx.Event, err error) {
 	for k := range p.onChanges {
 		p.onChanges[k](e, err)

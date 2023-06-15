@@ -5,7 +5,7 @@ package httpx
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -33,7 +33,7 @@ func WaitForEndpointWithClient(ctx context.Context, client *http.Client, endpoin
 		}
 		defer res.Body.Close()
 
-		body, err := ioutil.ReadAll(res.Body)
+		body, err := io.ReadAll(res.Body)
 		if err != nil {
 			return err
 		}

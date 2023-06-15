@@ -9,8 +9,6 @@ import (
 	"net/url"
 	"runtime"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 func cleanURLQuery(in url.Values) (out url.Values) {
@@ -42,16 +40,4 @@ func maxParallelism() int {
 		return maxProcs
 	}
 	return numCPU
-}
-
-func parseQuery(dsn string) (clean string, query url.Values, err error) {
-	query = url.Values{}
-	parts := strings.Split(dsn, "?")
-	clean = parts[0]
-	if len(parts) == 2 {
-		if query, err = url.ParseQuery(parts[1]); err != nil {
-			return "", query, errors.WithStack(err)
-		}
-	}
-	return
 }

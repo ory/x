@@ -36,8 +36,6 @@ const (
 	tracingComponent = "github.com/ory/x/popx"
 )
 
-var mrx = regexp.MustCompile(`^(\d+)_([^.]+)(\.[a-z0-9]+)?\.(up|down)\.(sql|fizz)$`)
-
 type migrationRow struct {
 	Version     string `db:"version"`
 	VersionSelf int    `db:"version_self"`

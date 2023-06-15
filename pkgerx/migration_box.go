@@ -6,7 +6,6 @@ package pkgerx
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 	"text/template"
@@ -35,7 +34,7 @@ type (
 
 func templatingMigrationContent(params map[string]interface{}) func(pop.Migration, *pop.Connection, io.Reader, bool) (string, error) {
 	return func(mf pop.Migration, c *pop.Connection, r io.Reader, usingTemplate bool) (string, error) {
-		b, err := ioutil.ReadAll(r)
+		b, err := io.ReadAll(r)
 		if err != nil {
 			return "", nil
 		}
@@ -159,7 +158,7 @@ func (fm *MigrationBox) findMigrations(runner func(f io.Reader) func(mf pop.Migr
 		}
 		defer file.Close()
 
-		content, err := ioutil.ReadAll(file)
+		content, err := io.ReadAll(file)
 		if err != nil {
 			return errors.WithStack(err)
 		}

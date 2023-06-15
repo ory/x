@@ -6,7 +6,7 @@ package dockertest
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"regexp"
@@ -489,7 +489,7 @@ func DumpSchema(ctx context.Context, t *testing.T, db string) string {
 		Tty: true,
 	})
 	require.NoError(t, err)
-	dump, err := ioutil.ReadAll(resp.Reader)
+	dump, err := io.ReadAll(resp.Reader)
 	require.NoError(t, err, "%s", dump)
 
 	return StripDump(string(dump))

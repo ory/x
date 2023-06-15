@@ -5,7 +5,6 @@ package jsonnetx
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/bmatcuk/doublestar/v2"
@@ -43,7 +42,7 @@ var LintCommand = &cobra.Command{
 				}
 
 				//#nosec G304 -- false positive
-				content, err := ioutil.ReadFile(file)
+				content, err := os.ReadFile(file)
 				cmdx.Must(err, `Unable to read file "%s" because: %s`, file, err)
 
 				if linter.LintSnippet(jsonnet.MakeVM(), os.Stderr, []linter.Snippet{{FileName: file, Code: string(content)}}) {

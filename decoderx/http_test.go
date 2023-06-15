@@ -5,7 +5,6 @@ package decoderx
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -25,8 +24,6 @@ import (
 
 	"github.com/ory/jsonschema/v3"
 )
-
-var ctx = context.Background()
 
 func newRequest(t *testing.T, method, url string, body io.Reader, ct string) *http.Request {
 	req := httptest.NewRequest(method, url, body)

@@ -34,7 +34,7 @@ func (at *OnExit) Add(f func()) {
 	at.once.Do(func() {
 		go func() {
 			c := make(chan os.Signal, 1)
-			signal.Notify(c, syscall.SIGINT, syscall.SIGKILL, syscall.SIGTERM)
+			signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 			<-c
 			at.Exit(interruptedExitCode)
 		}()

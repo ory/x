@@ -4,7 +4,7 @@
 package pkgerx
 
 import (
-	"io/ioutil"
+	"io"
 
 	"github.com/ory/x/ioutilx"
 
@@ -26,5 +26,5 @@ func Read(f pkging.File, err error) ([]byte, error) {
 		return nil, err
 	}
 	defer (func() { _ = f.Close() })()
-	return ioutil.ReadAll(f)
+	return io.ReadAll(f)
 }

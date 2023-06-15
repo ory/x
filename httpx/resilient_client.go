@@ -4,7 +4,6 @@
 package httpx
 
 import (
-	"context"
 	"io"
 	"log"
 	"net/http"
@@ -19,7 +18,6 @@ import (
 )
 
 type resilientOptions struct {
-	ctx                  context.Context
 	c                    *http.Client
 	l                    interface{}
 	retryWaitMin         time.Duration
@@ -115,7 +113,7 @@ func NewResilientClient(opts ...ResilientOptions) *retryablehttp.Client {
 		f(o)
 	}
 
-	if o.noInternalIPs == true {
+	if o.noInternalIPs {
 		o.c.Transport = &NoInternalIPRoundTripper{
 			RoundTripper:         o.c.Transport,
 			internalIPExceptions: o.internalIPExceptions,

@@ -33,7 +33,7 @@ func NewChangeFeedConnection(ctx context.Context, l *logrusx.Logger, dsn string)
 	}
 
 	_, _, _, _, cleanedDSN := sqlcon.ParseConnectionOptions(l, dsn)
-	cleanedDSN = strings.Replace(dsn, "cockroach://", "postgres://", 1)
+	cleanedDSN = strings.Replace(cleanedDSN, "cockroach://", "postgres://", 1)
 	l.WithField("component", "github.com/ory/x/watcherx.NewChangeFeedConnection").Info("Opening watcherx database connection.")
 	cx, err := sqlx.Open("pgx", cleanedDSN)
 	if err != nil {
@@ -265,7 +265,7 @@ func newRingBuffer(capacity int) *ringBuffer {
 	return &ringBuffer{
 		capacity: capacity,
 		seen:     make(map[ringBufferKey]struct{}, capacity),
-		keys:     make([]ringBufferKey, capacity, capacity),
+		keys:     make([]ringBufferKey, capacity),
 	}
 }
 
