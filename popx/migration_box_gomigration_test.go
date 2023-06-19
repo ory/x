@@ -6,6 +6,7 @@ package popx_test
 import (
 	"context"
 	"database/sql"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -159,138 +160,141 @@ func TestGoMigrations(t *testing.T) {
 		tt := &test{}
 		assert.ErrorIs(t, c.Where("i=1").First(tt), sql.ErrNoRows, "%+v", tt)
 	})
+}
 
-	t.Run("tc=must configure either transactional or non-transactional runner", func(t *testing.T) {
-		mb, err := popx.NewMigrationBox(empty, popx.NewMigrator(nil, logrusx.New("", ""), nil, 0), popx.WithGoMigrations(
-			popx.Migrations{
-				{
-					Path:      "transactional",
-					Version:   "1",
-					Name:      "gomigration_tx",
-					Direction: "up",
-					Type:      "go",
-					DBType:    "all",
-					RunnerNoTx: func(m popx.Migration, c *pop.Connection) error {
-						return nil
-					},
-					Runner: func(m popx.Migration, c *pop.Connection, tx *pop.Tx) error {
-						return nil
-					},
+func TestIncompatibleRunners(t *testing.T) {
+	mb, err := popx.NewMigrationBox(empty, popx.NewMigrator(nil, logrusx.New("", ""), nil, 0), popx.WithGoMigrations(
+		popx.Migrations{
+			{
+				Path:      "transactional",
+				Version:   "1",
+				Name:      "gomigration_tx",
+				Direction: "up",
+				Type:      "go",
+				DBType:    "all",
+				RunnerNoTx: func(m popx.Migration, c *pop.Connection) error {
+					return nil
 				},
-				{
-					Path:      "transactional",
-					Version:   "1",
-					Name:      "gomigration_tx",
-					Direction: "down",
-					Type:      "go",
-					DBType:    "all",
-					RunnerNoTx: func(m popx.Migration, c *pop.Connection) error {
-						return nil
-					},
-				},
-			}))
-		require.ErrorContains(t, err, "incompatible transaction and non-transaction runners defined")
-		require.Nil(t, mb)
-
-		mb, err = popx.NewMigrationBox(empty, popx.NewMigrator(nil, logrusx.New("", ""), nil, 0), popx.WithGoMigrations(
-			popx.Migrations{
-				{
-					Path:       "transactional",
-					Version:    "1",
-					Name:       "gomigration_tx",
-					Direction:  "up",
-					Type:       "go",
-					DBType:     "all",
-					RunnerNoTx: nil,
-					Runner:     nil,
-				},
-				{
-					Path:       "transactional",
-					Version:    "1",
-					Name:       "gomigration_tx",
-					Direction:  "down",
-					Type:       "go",
-					DBType:     "all",
-					RunnerNoTx: nil,
-					Runner:     nil,
-				},
-			}))
-		require.ErrorContains(t, err, "no runner defined")
-		require.Nil(t, mb)
-	})
-
-	t.Run("tc=run outside a transaction", func(t *testing.T) {
-		c, err := pop.NewConnection(&pop.ConnectionDetails{
-			URL: "sqlite://file::memory:?_fk=true",
-		})
-		require.NoError(t, err)
-		require.NoError(t, c.Open())
-
-		require.NoError(t, c.RawQuery("CREATE TABLE tests (i INTEGER, j INTEGER)").Exec())
-
-		up1, up2 := make(chan struct{}), make(chan struct{})
-		down1, down2 := make(chan struct{}), make(chan struct{})
-		mb, err := popx.NewMigrationBox(empty, popx.NewMigrator(c, logrusx.New("", ""), nil, 0), popx.WithGoMigrations(
-			popx.Migrations{
-				{
-					Path:      "gomigration_1",
-					Version:   "20220215110652",
-					Name:      "gomigration_1",
-					Direction: "up",
-					Type:      "go",
-					DBType:    "all",
-					RunnerNoTx: func(m popx.Migration, c *pop.Connection) error {
-						if err := c.RawQuery("INSERT INTO tests (i, j) VALUES (8, 9)").Exec(); err != nil {
-							return errors.WithStack(err)
-						}
-						close(up1)
-						<-up2
-						return nil
-					},
-				},
-				{
-					Path:      "gomigration_1",
-					Version:   "20220215110652",
-					Name:      "gomigration_1",
-					Direction: "down",
-					Type:      "go",
-					DBType:    "all",
-					RunnerNoTx: func(m popx.Migration, c *pop.Connection) error {
-						if err := c.RawQuery("INSERT INTO tests (i, j) VALUES (-1, -2)").Exec(); err != nil {
-							return errors.WithStack(err)
-						}
-						close(down1)
-						<-down2
-						return nil
-					},
+				Runner: func(m popx.Migration, c *pop.Connection, tx *pop.Tx) error {
+					return nil
 				},
 			},
-		))
-		require.NoError(t, err)
-		errs := make(chan error, 10)
-		go func() {
-			errs <- mb.Up(context.Background())
-		}()
-		type test struct {
-			I int `db:"i"`
-			J int `db:"j"`
-		}
-		tt := &test{}
-		<-up1
-		assert.NoError(t, c.Where("i=8").First(tt))
-		assert.Equal(t, 8, tt.I)
-		assert.Equal(t, 9, tt.J)
-		close(up2)
-		assert.NoError(t, <-errs)
+			{
+				Path:      "transactional",
+				Version:   "1",
+				Name:      "gomigration_tx",
+				Direction: "down",
+				Type:      "go",
+				DBType:    "all",
+				RunnerNoTx: func(m popx.Migration, c *pop.Connection) error {
+					return nil
+				},
+			},
+		}))
+	require.ErrorContains(t, err, "incompatible transaction and non-transaction runners defined")
+	require.Nil(t, mb)
 
-		go func() {
-			errs <- mb.Down(context.Background(), 20)
-		}()
-		<-down1
-		assert.NoError(t, c.Where("i=-1").First(tt))
-		assert.Equal(t, -1, tt.I)
-		assert.Equal(t, -2, tt.J)
-		close(down2)
-		assert.NoError(t, <-errs)
+	mb, err = popx.NewMigrationBox(empty, popx.NewMigrator(nil, logrusx.New("", ""), nil, 0), popx.WithGoMigrations(
+		popx.Migrations{
+			{
+				Path:       "transactional",
+				Version:    "1",
+				Name:       "gomigration_tx",
+				Direction:  "up",
+				Type:       "go",
+				DBType:     "all",
+				RunnerNoTx: nil,
+				Runner:     nil,
+			},
+			{
+				Path:       "transactional",
+				Version:    "1",
+				Name:       "gomigration_tx",
+				Direction:  "down",
+				Type:       "go",
+				DBType:     "all",
+				RunnerNoTx: nil,
+				Runner:     nil,
+			},
+		}))
+	require.ErrorContains(t, err, "no runner defined")
+	require.Nil(t, mb)
+}
+
+func TestNoTransaction(t *testing.T) {
+	c, err := pop.NewConnection(&pop.ConnectionDetails{
+		URL: "sqlite://file::memory:?_fk=true",
 	})
+	require.NoError(t, err)
+	require.NoError(t, c.Open())
+
+	require.NoError(t, c.RawQuery("CREATE TABLE tests (id INTEGER, j INTEGER)").Exec())
+
+	up1, up2 := make(chan struct{}), make(chan struct{})
+	down1, down2 := make(chan struct{}), make(chan struct{})
+	rnd := rand.NewSource(time.Now().Unix())
+	i1, i2, j1, j2 := rnd.Int63(), rnd.Int63(), rnd.Int63(), rnd.Int63()
+	mb, err := popx.NewMigrationBox(empty, popx.NewMigrator(c, logrusx.New("", ""), nil, 0), popx.WithGoMigrations(
+		popx.Migrations{
+			{
+				Path:      "gomigration_1",
+				Version:   "20220215110652",
+				Name:      "gomigration_1",
+				Direction: "up",
+				Type:      "go",
+				DBType:    "all",
+				RunnerNoTx: func(m popx.Migration, c *pop.Connection) error {
+					if _, err := c.Store.Exec("INSERT INTO tests (id, j) VALUES (?, ?)", i1, j1); err != nil {
+						return errors.WithStack(err)
+					}
+					close(up1)
+					<-up2
+					return nil
+				},
+			},
+			{
+				Path:      "gomigration_1",
+				Version:   "20220215110652",
+				Name:      "gomigration_1",
+				Direction: "down",
+				Type:      "go",
+				DBType:    "all",
+				RunnerNoTx: func(m popx.Migration, c *pop.Connection) error {
+					if _, err := c.Store.Exec("INSERT INTO tests (id, j) VALUES (?, ?)", i2, j2); err != nil {
+						return errors.WithStack(err)
+					}
+					close(down1)
+					<-down2
+					return nil
+				},
+			},
+		},
+	))
+	require.NoError(t, err)
+	errs := make(chan error, 10)
+	go func() {
+		errs <- mb.Up(context.Background())
+	}()
+	type test struct {
+		ID int64 `db:"id"`
+		J  int64 `db:"j"`
+	}
+	<-up1
+	tt := &test{}
+	assert.NoError(t, c.Find(tt, i1))
+	assert.Equal(t, i1, tt.ID)
+	assert.Equal(t, j1, tt.J)
+	close(up2)
+	assert.NoError(t, <-errs)
+
+	go func() {
+		errs <- mb.Down(context.Background(), 20)
+	}()
+	<-down1
+	tt = &test{}
+	assert.NoError(t, c.Find(tt, i2))
+	assert.Equal(t, i2, tt.ID)
+	assert.Equal(t, j2, tt.J)
+	close(down2)
+	assert.NoError(t, <-errs)
 }
