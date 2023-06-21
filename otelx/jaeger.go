@@ -67,8 +67,10 @@ func SetupJaeger(t *Tracer, tracerName string, c *Config) (trace.Tracer, error) 
 	// Simply add propagation.TraceContext{} and propagation.Baggage{}
 	// here to enable those as well.
 	prop := propagation.NewCompositeTextMapPropagator(
+		propagation.TraceContext{},
 		jaegerPropagator.Jaeger{},
 		b3.New(b3.WithInjectEncoding(b3.B3MultipleHeader|b3.B3SingleHeader)),
+		propagation.Baggage{},
 	)
 	otel.SetTextMapPropagator(prop)
 	return tp.Tracer(tracerName), nil
