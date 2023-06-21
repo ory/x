@@ -223,12 +223,12 @@ func TestIncompatibleRunners(t *testing.T) {
 
 func TestNoTransaction(t *testing.T) {
 	c, err := pop.NewConnection(&pop.ConnectionDetails{
-		URL: "sqlite://file::memory:?_fk=true",
+		URL: "sqlite://file::memory:",
 	})
 	require.NoError(t, err)
 	require.NoError(t, c.Open())
 
-	require.NoError(t, c.RawQuery("CREATE TABLE tests (id INTEGER, j INTEGER)").Exec())
+	require.NoError(t, c.RawQuery("CREATE TABLE tests (i INTEGER, j INTEGER)").Exec())
 
 	up1, up2 := make(chan struct{}), make(chan struct{})
 	down1, down2 := make(chan struct{}), make(chan struct{})
@@ -237,14 +237,14 @@ func TestNoTransaction(t *testing.T) {
 	mb, err := popx.NewMigrationBox(empty, popx.NewMigrator(c, logrusx.New("", ""), nil, 0), popx.WithGoMigrations(
 		popx.Migrations{
 			{
-				Path:      "gomigration_1",
-				Version:   "20220215110652",
-				Name:      "gomigration_1",
+				Path:      "gomigration_notx",
+				Version:   "1",
+				Name:      "gomigration no transaction",
 				Direction: "up",
 				Type:      "go",
 				DBType:    "all",
 				RunnerNoTx: func(m popx.Migration, c *pop.Connection) error {
-					if _, err := c.Store.Exec("INSERT INTO tests (id, j) VALUES (?, ?)", i1, j1); err != nil {
+					if _, err := c.Store.Exec("INSERT INTO tests (i, j) VALUES (?, ?)", i1, j1); err != nil {
 						return errors.WithStack(err)
 					}
 					close(up1)
@@ -253,14 +253,14 @@ func TestNoTransaction(t *testing.T) {
 				},
 			},
 			{
-				Path:      "gomigration_1",
-				Version:   "20220215110652",
-				Name:      "gomigration_1",
+				Path:      "gomigration_notx",
+				Version:   "1",
+				Name:      "gomigration no transaction",
 				Direction: "down",
 				Type:      "go",
 				DBType:    "all",
 				RunnerNoTx: func(m popx.Migration, c *pop.Connection) error {
-					if _, err := c.Store.Exec("INSERT INTO tests (id, j) VALUES (?, ?)", i2, j2); err != nil {
+					if _, err := c.Store.Exec("INSERT INTO tests (i, j) VALUES (?, ?)", i2, j2); err != nil {
 						return errors.WithStack(err)
 					}
 					close(down1)
@@ -275,15 +275,10 @@ func TestNoTransaction(t *testing.T) {
 	go func() {
 		errs <- mb.Up(context.Background())
 	}()
-	type test struct {
-		ID int64 `db:"id"`
-		J  int64 `db:"j"`
-	}
 	<-up1
-	tt := &test{}
-	assert.NoError(t, c.Find(tt, i1))
-	assert.Equal(t, i1, tt.ID)
-	assert.Equal(t, j1, tt.J)
+	var j int64
+	require.NoError(t, c.Store.Get(&j, "SELECT j FROM tests WHERE i = ?", i1))
+	assert.Equal(t, j1, j)
 	close(up2)
 	assert.NoError(t, <-errs)
 
@@ -291,10 +286,9 @@ func TestNoTransaction(t *testing.T) {
 		errs <- mb.Down(context.Background(), 20)
 	}()
 	<-down1
-	tt = &test{}
-	assert.NoError(t, c.Find(tt, i2))
-	assert.Equal(t, i2, tt.ID)
-	assert.Equal(t, j2, tt.J)
+	j = 0
+	require.NoError(t, c.Store.Get(&j, "SELECT j FROM tests WHERE i = ?", i2))
+	assert.Equal(t, j2, j)
 	close(down2)
 	assert.NoError(t, <-errs)
 }
