@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/mohae/deepcopy"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -20,6 +21,7 @@ type TestType struct {
 	FieldNull *struct {
 		Field1 any
 	}
+	OmitEmptyField string `json:"OmitEmptyField,omitempty"`
 }
 
 func TestApplyJSONPatch(t *testing.T) {
@@ -122,37 +124,47 @@ func TestApplyJSONPatch(t *testing.T) {
 	t.Run("case=patch object field when object null", func(t *testing.T) {
 		rawPatch := []byte(`[{"op": "add", "path": "/FieldNull/Field1", "value": "bar"}]`)
 		expected := deepcopy.Copy(object).(TestType)
-		expected.FieldNull = &struct {
-			Field1 any
-		}{}
-		expected.FieldNull.Field1 = "bar"
+		expected.FieldNull = &struct{ Field1 any }{Field1: "bar"}
 		obj := deepcopy.Copy(object).(TestType)
 		require.NoError(t, ApplyJSONPatch(rawPatch, &obj, "/Field1"))
+		require.Equal(t, expected, obj)
+	})
+	t.Run("case=replace non-existing path adds value", func(t *testing.T) {
+		rawPatch := []byte(`[{"op": "replace", "path": "/OmitEmptyField", "value": "boo"}]`)
+		expected := deepcopy.Copy(object).(TestType)
+		expected.OmitEmptyField = "boo"
+		obj := deepcopy.Copy(object).(TestType)
+		require.NoError(t, ApplyJSONPatch(rawPatch, &obj))
 		require.Equal(t, expected, obj)
 	})
 
 	t.Run("suite=invalid patches", func(t *testing.T) {
 		cases := []struct {
-			name  string
-			patch []byte
+			name      string
+			patch     []byte
+			assertErr assert.ErrorAssertionFunc
 		}{{
-			name:  "test",
-			patch: []byte(`[{"op": "test", "path": "/"}]`),
+			name:      "test",
+			patch:     []byte(`[{"op": "test", "path": "/"}]`),
+			assertErr: assert.Error,
 		}, {
-			name:  "add",
-			patch: []byte(`[{"op": "add", "path": "/"}]`),
+			name:      "add",
+			patch:     []byte(`[{"op": "add", "path": "/"}]`),
+			assertErr: assert.NoError,
 		}, {
-			name:  "remove",
-			patch: []byte(`[{"op": "add", "path": "/"}]`),
+			name:      "remove",
+			patch:     []byte(`[{"op": "add", "path": "/"}]`),
+			assertErr: assert.NoError,
 		}, {
-			name:  "replace",
-			patch: []byte(`[{"op": "add", "path": "/"}]`),
+			name:      "replace",
+			patch:     []byte(`[{"op": "add", "path": "/"}]`),
+			assertErr: assert.NoError,
 		}}
 
 		for _, tc := range cases {
-			t.Run(tc.name, func(_ *testing.T) {
+			t.Run("case="+tc.name, func(t *testing.T) {
 				obj := &TestType{}
-				ApplyJSONPatch(tc.patch, &obj)
+				tc.assertErr(t, ApplyJSONPatch(tc.patch, &obj))
 			})
 		}
 	})

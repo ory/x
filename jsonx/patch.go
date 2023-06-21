@@ -6,14 +6,40 @@ package jsonx
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
 
-	jsonpatch "github.com/evanphx/json-patch/v5"
+	"github.com/evanphx/json-patch/v5"
+
+	"github.com/ory/x/pointerx"
 )
 
 var opAllowList = map[string]struct{}{
 	"add":     {},
 	"remove":  {},
 	"replace": {},
+}
+
+func isUnsupported(op jsonpatch.Operation) bool {
+	_, ok := opAllowList[op.Kind()]
+
+	return !ok
+}
+
+func isElementAccess(path string) bool {
+	if path == "" {
+		return false
+	}
+	elements := strings.Split(path, "/")
+	lastElement := elements[len(elements)-1:][0]
+	if lastElement == "-" {
+		return true
+	}
+	if _, err := strconv.Atoi(lastElement); err == nil {
+		return true
+	}
+
+	return false
 }
 
 func ApplyJSONPatch(p json.RawMessage, object interface{}, denyPaths ...string) error {
@@ -29,16 +55,21 @@ func ApplyJSONPatch(p json.RawMessage, object interface{}, denyPaths ...string) 
 
 	for _, op := range patch {
 		// Some operations are buggy, see https://github.com/evanphx/json-patch/pull/158
-		if _, ok := opAllowList[op.Kind()]; !ok {
+		if isUnsupported(op) {
 			return fmt.Errorf("unsupported operation: %s", op.Kind())
 		}
-
 		path, err := op.Path()
 		if err != nil {
 			return fmt.Errorf("error parsing patch operations: %v", err)
 		}
 		if _, ok := denySet[path]; ok {
 			return fmt.Errorf("patch includes denied path: %s", path)
+		}
+
+		// JSON patch officially rejects replacing paths that don't exist, but we want to be more tolerant.
+		// Therefore, we will ensure that all paths that we want to replace exist in the original document.
+		if op.Kind() == "replace" && !isElementAccess(path) {
+			op["op"] = pointerx.Ptr(json.RawMessage(`"add"`))
 		}
 	}
 
