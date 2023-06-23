@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+enum Source {
+  SOURCE_PUBLIC_NETWORK = 0;
+  SOURCE_SELF_HOSTED = 1;
+}
+
+message Event {
+  string name = 7;
+  int64 version = 4;
+  string timestamp = 3;
+  string project_id = 2;
+  map<string, string> event_attributes = 6;
+  Source source = 8;
+
+  reserved 1;
+}
