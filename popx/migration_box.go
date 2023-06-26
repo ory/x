@@ -249,5 +249,13 @@ func (fm *MigrationBox) check() error {
 			return errors.Errorf("migration %s has no corresponding down migration", up.Version)
 		}
 	}
+
+	for _, m := range fm.Migrations {
+		for _, n := range m {
+			if err := n.Valid(); err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
