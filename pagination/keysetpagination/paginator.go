@@ -84,33 +84,33 @@ func (p *Paginator) ToOptions() []Option {
 	}
 }
 
-func (p *Paginator) multipleOrderFieldsQuery(q *pop.Query, idField string, cols map[string]*columns.Column, quote func(string) string) {
+func (p *Paginator) multipleOrderFieldsQuery(q *pop.Query, idField string, cols map[string]*columns.Column, quoteAndContextualize func(string) string) {
 	tokenParts := p.Token().Parse(idField)
 	idValue := tokenParts[idField]
 
 	column, ok := cols[p.additionalColumn.name]
 	if !ok {
-		q.Where(fmt.Sprintf(`%s > ?`, quote(idField)), idValue)
+		q.Where(fmt.Sprintf(`%s > ?`, quoteAndContextualize(idField)), idValue)
 		return
 	}
 
-	quoteName := quote(column.Name)
+	quoteName := quoteAndContextualize(column.Name)
 
 	value, ok := tokenParts[column.Name]
 
 	if !ok {
-		q.Where(fmt.Sprintf(`%s > ?`, quote(idField)), idValue)
+		q.Where(fmt.Sprintf(`%s > ?`, quoteAndContextualize(idField)), idValue)
 		return
 	}
 
 	sign, keyword, err := p.additionalColumn.order.extract()
 	if err != nil {
-		q.Where(fmt.Sprintf(`%s > ?`, quote(idField)), idValue)
+		q.Where(fmt.Sprintf(`%s > ?`, quoteAndContextualize(idField)), idValue)
 		return
 	}
 
 	q.
-		Where(fmt.Sprintf("(%s %s ? OR (%s = ? AND %s > ?))", quoteName, sign, quoteName, quote(idField)), value, value, idValue).
+		Where(fmt.Sprintf("(%s %s ? OR (%s = ? AND %s > ?))", quoteName, sign, quoteName, quoteAndContextualize(idField)), value, value, idValue).
 		Order(fmt.Sprintf("%s %s", quoteName, keyword))
 
 }
@@ -130,10 +130,14 @@ func Paginate[I any, PI interface {
 }](p *Paginator) pop.ScopeFunc {
 	model := pop.Model{Value: new(I)}
 	id := model.IDField()
+	tableName := model.Alias()
 	return func(q *pop.Query) *pop.Query {
-		eid := q.Connection.Dialect.Quote(id)
+		eid := q.Connection.Dialect.Quote(tableName + "." + id)
 
-		p.multipleOrderFieldsQuery(q, id, model.Columns().Cols, q.Connection.Dialect.Quote)
+		quoteAndContextualize := func(name string) string {
+			return q.Connection.Dialect.Quote(tableName + "." + name)
+		}
+		p.multipleOrderFieldsQuery(q, id, model.Columns().Cols, quoteAndContextualize)
 
 		return q.
 			Limit(p.Size() + 1).
