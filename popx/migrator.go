@@ -145,11 +145,8 @@ func (m *Migrator) UpTo(ctx context.Context, step int) (applied int, err error) 
 
 			l.Info("Migration has not yet been applied, running migration.")
 
-			if mi.Runner == nil && mi.RunnerNoTx == nil {
-				return fmt.Errorf("no runner defined for %s", mi.Path)
-			}
-			if mi.Runner != nil && mi.RunnerNoTx != nil {
-				return fmt.Errorf("incompatible transaction and non-transaction runners defined for %s", mi.Path)
+			if err := mi.Valid(); err != nil {
+				return err
 			}
 
 			if mi.Runner != nil {
@@ -237,11 +234,8 @@ func (m *Migrator) Down(ctx context.Context, step int) error {
 				return errors.Errorf("migration version %s does not exist", mi.Version)
 			}
 
-			if mi.Runner == nil && mi.RunnerNoTx == nil {
-				return fmt.Errorf("no runner defined for %s", mi.Path)
-			}
-			if mi.Runner != nil && mi.RunnerNoTx != nil {
-				return fmt.Errorf("incompatible transaction and non-transaction runners defined for %s", mi.Path)
+			if err := mi.Valid(); err != nil {
+				return err
 			}
 
 			if mi.Runner != nil {

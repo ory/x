@@ -6,6 +6,8 @@ package popx
 import (
 	"sort"
 
+	"github.com/pkg/errors"
+
 	"github.com/gobuffalo/pop/v6"
 )
 
@@ -29,6 +31,16 @@ type Migration struct {
 	// RunnerNoTx function to run/execute the migration. NOT wrapped in a
 	// database transaction. Mutually exclusive with Runner.
 	RunnerNoTx func(Migration, *pop.Connection) error
+}
+
+func (m Migration) Valid() error {
+	if m.Runner == nil && m.RunnerNoTx == nil {
+		return errors.Errorf("no runner defined for %s", m.Path)
+	}
+	if m.Runner != nil && m.RunnerNoTx != nil {
+		return errors.Errorf("incompatible transaction and non-transaction runners defined for %s", m.Path)
+	}
+	return nil
 }
 
 // Migrations is a collection of Migration
