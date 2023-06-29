@@ -2,11 +2,6 @@ module github.com/ory/x
 
 go 1.19
 
-replace (
-	github.com/dgrijalva/jwt-go => github.com/golang-jwt/jwt v3.2.2+incompatible // https://github.com/dgrijalva/jwt-go/issues/482
-	github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2 // https://github.com/advisories/GHSA-c3h9-896r-86jm
-)
-
 require (
 	github.com/avast/retry-go/v4 v4.3.0
 	github.com/bmatcuk/doublestar/v2 v2.0.4
@@ -95,7 +90,6 @@ require (
 	gonum.org/v1/plot v0.12.0
 	google.golang.org/grpc v1.50.1
 	google.golang.org/protobuf v1.28.1
-	gopkg.in/square/go-jose.v2 v2.6.0
 )
 
 require (

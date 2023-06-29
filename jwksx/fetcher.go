@@ -9,7 +9,7 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	"gopkg.in/square/go-jose.v2"
+	"github.com/square/go-jose/v3"
 )
 
 // Fetcher is a small helper for fetching JSON Web Keys from remote endpoints.
