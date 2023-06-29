@@ -22,7 +22,7 @@ import (
 	"errors"
 	"fmt"
 
-	"gopkg.in/square/go-jose.v2"
+	"github.com/square/go-jose/v3"
 )
 
 // LoadJSONWebKey returns a *jose.JSONWebKey for a given JSON string.
