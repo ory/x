@@ -1,6 +1,6 @@
 module github.com/ory/x
 
-go 1.19
+go 1.20
 
 require (
 	github.com/avast/retry-go/v4 v4.3.0
@@ -15,6 +15,7 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
+	github.com/go-jose/go-jose/v3 v3.0.0
 	github.com/go-openapi/jsonpointer v0.19.5
 	github.com/go-openapi/runtime v0.24.2
 	github.com/go-sql-driver/mysql v1.7.0
@@ -63,7 +64,6 @@ require (
 	github.com/spf13/cast v1.5.0
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5
-	github.com/square/go-jose/v3 v3.0.0-20200630053402-0a67ce9b0693
 	github.com/stretchr/testify v1.8.1
 	github.com/tidwall/gjson v1.14.3
 	github.com/tidwall/pretty v1.2.1
