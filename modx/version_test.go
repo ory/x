@@ -68,7 +68,7 @@ require (
 	github.com/spf13/cast v1.3.2-0.20200723214538-8d17101741c8
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.5
-	github.com/square/go-jose/v3 v3.0.0-20200630053402-0a67ce9b0693
+	github.com/go-jose/go-jose/v3 v3.0.0-20200630053402-0a67ce9b0693
 	github.com/stretchr/testify v1.6.1
 	github.com/tidwall/gjson v1.3.2
 	github.com/tidwall/sjson v1.0.4
