@@ -92,9 +92,6 @@ func (m *Migrator) Up(ctx context.Context) error {
 func (m *Migrator) UpTo(ctx context.Context, step int) (applied int, err error) {
 	span, ctx := m.startSpan(ctx, MigrationUpOpName)
 	defer span.End()
-	span.AddEvent("up_to_step", trace.WithAttributes(
-		attribute.Int("up_to_step", step),
-	))
 
 	c := m.Connection.WithContext(ctx)
 	err = m.exec(ctx, func() error {
