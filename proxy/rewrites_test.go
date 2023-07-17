@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"strings"
 	"testing"
@@ -50,6 +51,19 @@ func TestRewrites(t *testing.T) {
 		assert.Equal(t, "/bar", req.URL.Path)
 	})
 
+	t.Run("suite=HTTPS override", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodGet, "http://example.com/foo/bar", nil)
+		require.NoError(t, err)
+
+		c := &HostConfig{}
+		c.setScheme(&httputil.ProxyRequest{In: req, Out: &http.Request{}})
+		assert.Equal(t, "http", c.originalScheme)
+
+		c.ForceOriginalSchemeHTTPS = true
+		c.setScheme(&httputil.ProxyRequest{In: req, Out: &http.Request{}})
+		assert.Equal(t, "https", c.originalScheme)
+	})
+
 	t.Run("suit=HeaderResponse", func(t *testing.T) {
 		newOKResp := func(cookie, location string) *http.Response {
 			header := http.Header{}
@@ -68,6 +82,7 @@ func TestRewrites(t *testing.T) {
 				ContentLength: 0,
 			}
 		}
+
 		t.Run("case=replace location and cookie", func(t *testing.T) {
 			upstreamHost := "some-project-1234.oryapis.com"
 
