@@ -82,7 +82,7 @@ func rewriter(o *options) func(*httputil.ProxyRequest) {
 
 		if forwardedProto := r.In.Header.Get("X-Forwarded-Proto"); forwardedProto != "" {
 			c.originalScheme = forwardedProto
-		} else if r.Out.TLS == nil {
+		} else if r.In.TLS == nil {
 			c.originalScheme = "http"
 		} else {
 			c.originalScheme = "https"
