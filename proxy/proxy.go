@@ -58,6 +58,8 @@ type (
 		// originalScheme is the original scheme of the request.
 		// This value will be maintained internally by the proxy.
 		originalScheme string
+		// ForceOriginalSchemeHTTP forces the original scheme to be https if enabled.
+		ForceOriginalSchemeHTTPS bool
 	}
 	Options    func(*options)
 	contextKey string
@@ -80,7 +82,9 @@ func rewriter(o *options) func(*httputil.ProxyRequest) {
 			return
 		}
 
-		if forwardedProto := r.In.Header.Get("X-Forwarded-Proto"); forwardedProto != "" {
+		if c.ForceOriginalSchemeHTTPS {
+			c.originalScheme = "https"
+		} else if forwardedProto := r.In.Header.Get("X-Forwarded-Proto"); forwardedProto != "" {
 			c.originalScheme = forwardedProto
 		} else if r.In.TLS == nil {
 			c.originalScheme = "http"
