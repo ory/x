@@ -52,6 +52,9 @@ type (
 		// PathPrefix is a prefix that is prepended on the original host,
 		// but removed before forwarding.
 		PathPrefix string
+		// TrustForwardedHosts is a flag that indicates whether the proxy should trust the
+		// X-Forwarded-* headers or not.
+		TrustForwardedHeaders bool
 		// originalHost the original hostname the request is coming from.
 		// This value will be maintained internally by the proxy.
 		originalHost string
@@ -100,6 +103,10 @@ func rewriter(o *options) func(*httputil.ProxyRequest) {
 		if err != nil {
 			o.onReqError(r.Out, err)
 			return
+		}
+
+		if c.TrustForwardedHeaders {
+			r.SetXForwarded()
 		}
 
 		c.setScheme(r)
