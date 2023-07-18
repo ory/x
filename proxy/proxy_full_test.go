@@ -102,11 +102,12 @@ func TestFullIntegration(t *testing.T) {
 	onErrorResp := make(chan CustomErrorResp)
 
 	proxy := httptest.NewTLSServer(New(
-		func(_ context.Context, r *http.Request) (*HostConfig, error) {
-			return (<-hostMapper)(r)
+		func(ctx context.Context, r *http.Request) (context.Context, *HostConfig, error) {
+			c, err := (<-hostMapper)(r)
+			return ctx, c, err
 		},
 		WithTransport(upstreamServer.Client().Transport),
-		WithReqMiddleware(func(req *http.Request, config *HostConfig, body []byte) ([]byte, error) {
+		WithReqMiddleware(func(req *httputil.ProxyRequest, config *HostConfig, body []byte) ([]byte, error) {
 			f := <-reqMiddleware
 			if f == nil {
 				return body, nil
@@ -268,8 +269,8 @@ func TestFullIntegration(t *testing.T) {
 				assert.Equal(t, "OK", string(body))
 				assert.Equal(t, "1234", r.Header.Get("Some-Header"))
 			},
-			reqMiddleware: func(req *http.Request, config *HostConfig, body []byte) ([]byte, error) {
-				req.Host = "noauth.example.com"
+			reqMiddleware: func(req *httputil.ProxyRequest, config *HostConfig, body []byte) ([]byte, error) {
+				req.Out.Host = "noauth.example.com"
 				return []byte("this is a new body"), nil
 			},
 			respMiddleware: func(resp *http.Response, config *HostConfig, body []byte) ([]byte, error) {
@@ -538,8 +539,8 @@ func TestBetweenReverseProxies(t *testing.T) {
 	revProxyHandler := httputil.NewSingleHostReverseProxy(urlx.ParseOrPanic(target.URL))
 	revProxy := httptest.NewServer(revProxyHandler)
 
-	thisProxy := httptest.NewServer(New(func(ctx context.Context, _ *http.Request) (*HostConfig, error) {
-		return &HostConfig{
+	thisProxy := httptest.NewServer(New(func(ctx context.Context, _ *http.Request) (context.Context, *HostConfig, error) {
+		return ctx, &HostConfig{
 			CookieDomain:   "sh",
 			UpstreamHost:   urlx.ParseOrPanic(revProxy.URL).Host,
 			UpstreamScheme: urlx.ParseOrPanic(revProxy.URL).Scheme,
@@ -635,8 +636,8 @@ func TestProxyProtoMix(t *testing.T) {
 		upstream.Transport = targetServer.Client().Transport
 		upstreamServer := upstreamServerFunc(upstream)
 
-		proxy := httptest.NewServer(New(func(ctx context.Context, r *http.Request) (*HostConfig, error) {
-			return &HostConfig{
+		proxy := httptest.NewServer(New(func(ctx context.Context, r *http.Request) (context.Context, *HostConfig, error) {
+			return ctx, &HostConfig{
 				CookieDomain:   exposedHost,
 				UpstreamHost:   urlx.ParseOrPanic(upstreamServer.URL).Host,
 				UpstreamScheme: urlx.ParseOrPanic(upstreamServer.URL).Scheme,
@@ -760,8 +761,8 @@ func TestProxyWebsocketRequests(t *testing.T) {
 	}
 
 	setupProxy := func(targetServer *httptest.Server) *httptest.Server {
-		proxy := httptest.NewServer(New(func(ctx context.Context, r *http.Request) (*HostConfig, error) {
-			return &HostConfig{
+		proxy := httptest.NewServer(New(func(ctx context.Context, r *http.Request) (context.Context, *HostConfig, error) {
+			return ctx, &HostConfig{
 				UpstreamHost:   urlx.ParseOrPanic(targetServer.URL).Host,
 				UpstreamScheme: urlx.ParseOrPanic(targetServer.URL).Scheme,
 				TargetHost:     urlx.ParseOrPanic(targetServer.URL).Host,
