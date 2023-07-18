@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/evanphx/json-patch/v5"
+	jsonpatch "github.com/evanphx/json-patch/v5"
 
 	"github.com/ory/x/pointerx"
 )
