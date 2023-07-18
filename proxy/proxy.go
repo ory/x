@@ -17,7 +17,7 @@ import (
 
 type (
 	RespMiddleware func(resp *http.Response, config *HostConfig, body []byte) ([]byte, error)
-	ReqMiddleware  func(req *http.Request, config *HostConfig, body []byte) ([]byte, error)
+	ReqMiddleware  func(req *httputil.ProxyRequest, config *HostConfig, body []byte) ([]byte, error)
 	HostMapper     func(ctx context.Context, r *http.Request) (*HostConfig, error)
 	options        struct {
 		hostMapper      HostMapper
@@ -99,7 +99,7 @@ func rewriter(o *options) func(*httputil.ProxyRequest) {
 		ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, "x.proxy")
 		defer span.End()
 
-		c, err := o.getHostConfig(r.Out)
+		c, err := o.getHostConfig(r.In)
 		if err != nil {
 			o.onReqError(r.Out, err)
 			return
@@ -127,7 +127,7 @@ func rewriter(o *options) func(*httputil.ProxyRequest) {
 		}
 
 		for _, m := range o.reqMiddlewares {
-			if body, err = m(r.Out, c, body); err != nil {
+			if body, err = m(r, c, body); err != nil {
 				o.onReqError(r.Out, err)
 				return
 			}
