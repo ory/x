@@ -5,11 +5,10 @@ package proxy
 
 import (
 	"context"
+	"github.com/pkg/errors"
 	"log"
 	"net/http"
 	"net/http/httputil"
-
-	"github.com/pkg/errors"
 
 	"github.com/rs/cors"
 	"go.opentelemetry.io/otel"
@@ -107,6 +106,16 @@ func rewriter(o *options) func(*httputil.ProxyRequest) {
 
 		if c.TrustForwardedHeaders {
 			r.SetXForwarded()
+			headers := []string{
+				"X-Forwarded-Host",
+				"X-Forwarded-Proto",
+				"X-Forwarded-For",
+			}
+			for _, h := range headers {
+				if v := r.In.Header.Get(h); v != "" {
+					r.Out.Header.Set(h, v)
+				}
+			}
 		}
 
 		c.setScheme(r)
