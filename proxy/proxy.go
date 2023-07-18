@@ -58,6 +58,8 @@ type (
 		// originalScheme is the original scheme of the request.
 		// This value will be maintained internally by the proxy.
 		originalScheme string
+		// ForceOriginalSchemeHTTP forces the original scheme to be https if enabled.
+		ForceOriginalSchemeHTTPS bool
 	}
 	Options    func(*options)
 	contextKey string
@@ -66,6 +68,26 @@ type (
 const (
 	hostConfigKey contextKey = "host config"
 )
+
+func (c *HostConfig) setScheme(r *httputil.ProxyRequest) {
+	if c.ForceOriginalSchemeHTTPS {
+		c.originalScheme = "https"
+	} else if forwardedProto := r.In.Header.Get("X-Forwarded-Proto"); forwardedProto != "" {
+		c.originalScheme = forwardedProto
+	} else if r.In.TLS == nil {
+		c.originalScheme = "http"
+	} else {
+		c.originalScheme = "https"
+	}
+}
+
+func (c *HostConfig) setHost(r *httputil.ProxyRequest) {
+	if forwardedHost := r.In.Header.Get("X-Forwarded-Host"); forwardedHost != "" {
+		c.originalHost = forwardedHost
+	} else {
+		c.originalHost = r.In.Host
+	}
+}
 
 // rewriter is a custom internal function for altering a http.Request
 func rewriter(o *options) func(*httputil.ProxyRequest) {
@@ -80,18 +102,8 @@ func rewriter(o *options) func(*httputil.ProxyRequest) {
 			return
 		}
 
-		if forwardedProto := r.In.Header.Get("X-Forwarded-Proto"); forwardedProto != "" {
-			c.originalScheme = forwardedProto
-		} else if r.In.TLS == nil {
-			c.originalScheme = "http"
-		} else {
-			c.originalScheme = "https"
-		}
-		if forwardedHost := r.In.Header.Get("X-Forwarded-Host"); forwardedHost != "" {
-			c.originalHost = forwardedHost
-		} else {
-			c.originalHost = r.In.Host
-		}
+		c.setScheme(r)
+		c.setHost(r)
 
 		*r.Out = *r.Out.WithContext(context.WithValue(ctx, hostConfigKey, c))
 		headerRequestRewrite(r.Out, c)
