@@ -105,7 +105,6 @@ func rewriter(o *options) func(*httputil.ProxyRequest) {
 		}
 
 		if c.TrustForwardedHeaders {
-			r.SetXForwarded()
 			headers := []string{
 				"X-Forwarded-Host",
 				"X-Forwarded-Proto",
