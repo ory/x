@@ -24,7 +24,7 @@ root
 child1
 
 <[some argument]>
-`}
+`, Example: "{{ .CommandPath }} --whatever"}
 	child2 = &cobra.Command{Use: "child2", Run: noopRun, Long: `A sample text
 child2
 

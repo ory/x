@@ -25,6 +25,12 @@ child1
 root child1 [flags]
 ```
 
+### Examples
+
+```
+root child1 --whatever
+```
+
 ### Options
 
 ```

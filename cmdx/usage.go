@@ -54,23 +54,25 @@ Use "{{.CommandPath}} [command] --help" for more information about a command.{{e
 // The data for the template is the command itself. Especially useful are `.Root.Name` and `.CommandPath`.
 // This will be inherited by all subcommands, so enabling it on the root command is sufficient.
 func EnableUsageTemplating(cmds ...*cobra.Command) {
-	cobra.AddTemplateFunc("insertTemplate", func(cmd *cobra.Command, tmpl string) (string, error) {
-		t := template.New("")
-		t.Funcs(usageTemplateFuncs)
-		t, err := t.Parse(tmpl)
-		if err != nil {
-			return "", err
-		}
-		var out bytes.Buffer
-		if err := t.Execute(&out, cmd); err != nil {
-			return "", err
-		}
-		return out.String(), nil
-	})
+	cobra.AddTemplateFunc("insertTemplate", TemplateCommandField)
 	for _, cmd := range cmds {
 		cmd.SetHelpTemplate(helpTemplate)
 		cmd.SetUsageTemplate(usageTemplate)
 	}
+}
+
+func TemplateCommandField(cmd *cobra.Command, field string) (string, error) {
+	t := template.New("")
+	t.Funcs(usageTemplateFuncs)
+	t, err := t.Parse(field)
+	if err != nil {
+		return "", err
+	}
+	var out bytes.Buffer
+	if err := t.Execute(&out, cmd); err != nil {
+		return "", err
+	}
+	return out.String(), nil
 }
 
 // DisableUsageTemplating resets the commands usage template to the default.

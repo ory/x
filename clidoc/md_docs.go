@@ -16,6 +16,7 @@ package clidoc
 import (
 	"bytes"
 	"fmt"
+	"github.com/ory/x/cmdx"
 	"html"
 	"io"
 	"os"
@@ -62,7 +63,12 @@ func GenMarkdownCustom(cmd *cobra.Command, w io.Writer, linkHandler func(string)
 	buf.WriteString(cmd.Short + "\n\n")
 	if len(cmd.Long) > 0 {
 		buf.WriteString("### Synopsis\n\n")
-		buf.WriteString(cmd.Long + "\n\n")
+		long, err := cmdx.TemplateCommandField(cmd, cmd.Long)
+		if err != nil {
+			buf.WriteString(fmt.Sprintf("<!-- Error rendering cmd.Long: %s -->\n\n", err.Error()))
+			long = cmd.Long
+		}
+		buf.WriteString(long + "\n\n")
 	}
 
 	if cmd.Runnable() {
@@ -71,7 +77,12 @@ func GenMarkdownCustom(cmd *cobra.Command, w io.Writer, linkHandler func(string)
 
 	if len(cmd.Example) > 0 {
 		buf.WriteString("### Examples\n\n")
-		buf.WriteString(fmt.Sprintf("```\n%s\n```\n\n", cmd.Example))
+		example, err := cmdx.TemplateCommandField(cmd, cmd.Example)
+		if err != nil {
+			buf.WriteString(fmt.Sprintf("<!-- Error rendering cmd.Example: %s -->\n\n", err.Error()))
+			example = cmd.Example
+		}
+		buf.WriteString(fmt.Sprintf("```\n%s\n```\n\n", example))
 	}
 
 	if err := printOptions(buf, cmd, name); err != nil {
