@@ -16,13 +16,14 @@ package clidoc
 import (
 	"bytes"
 	"fmt"
-	"github.com/ory/x/cmdx"
 	"html"
 	"io"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/ory/x/cmdx"
 
 	"github.com/spf13/cobra"
 )
