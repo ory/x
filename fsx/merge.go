@@ -98,7 +98,7 @@ func (m mergedFS) ReadDir(name string) ([]fs.DirEntry, error) {
 		}
 		entries = append(entries, e...)
 	}
-	if entries == nil {
+	if len(entries) == 0 {
 		return nil, errors.WithStack(fs.ErrNotExist)
 	}
 
@@ -147,11 +147,16 @@ func (d *dirEntries) clean() {
 
 	for i := 1; i < len(*d); i++ {
 		if (*d)[i-1].Name() == (*d)[i].Name() {
-			if len(*d)-i >= 2 {
-				*d = append((*d)[:i+1], (*d)[i+2:]...)
-			} else {
-				*d = (*d)[:len(*d)-1]
+			if len(*d)-i == 1 {
+				// remove the last entry; we're done
+				*d = (*d)[:i]
+				return
 			}
+			// remove the duplicate entry at index i
+			*d = append((*d)[:i], (*d)[i+1:]...)
+
+			// need to check the same index again
+			i--
 		}
 	}
 }
@@ -177,28 +182,31 @@ func (m *mergedFile) Close() error {
 }
 
 func (m *mergedFile) ReadDir(n int) ([]fs.DirEntry, error) {
-	entries := m.unprocessedDirEntries
-
-	if len(entries) < n || n <= 0 {
-		allEOF := true
-		for _, f := range m.files {
-			if f, ok := f.(fs.ReadDirFile); ok {
-				e, err := f.ReadDir(n)
-				switch {
-				case !errors.Is(err, io.EOF):
-					allEOF = false
-				case errors.Is(err, fs.ErrNotExist), errors.Is(err, io.EOF):
-				case err != nil:
-					return nil, err
-				}
-				entries = append(entries, e...)
-			}
-		}
-		if allEOF {
-			if n > 0 {
-				return entries, io.EOF
-			}
+	if m.unprocessedDirEntries != nil {
+		if n <= 0 {
+			entries := m.unprocessedDirEntries
+			m.unprocessedDirEntries = nil
 			return entries, nil
+		}
+		if n >= len(m.unprocessedDirEntries) {
+			entries := m.unprocessedDirEntries
+			m.unprocessedDirEntries = nil
+			return entries, io.EOF
+		}
+
+		var entries dirEntries
+		entries, m.unprocessedDirEntries = m.unprocessedDirEntries[:n], m.unprocessedDirEntries[n:]
+		return entries, nil
+	}
+
+	var entries dirEntries
+	for _, f := range m.files {
+		if f, ok := f.(fs.ReadDirFile); ok {
+			e, err := f.ReadDir(-1)
+			if err != nil && !errors.Is(err, fs.ErrNotExist) {
+				return nil, err
+			}
+			entries = append(entries, e...)
 		}
 	}
 	if entries == nil {
@@ -216,6 +224,8 @@ func (m *mergedFile) ReadDir(n int) ([]fs.DirEntry, error) {
 		return entries, io.EOF
 	}
 
-	entries, m.unprocessedDirEntries = entries[:n], entries[n:]
+	if n <= len(entries) && n > 0 {
+		entries, m.unprocessedDirEntries = entries[:n], entries[n:]
+	}
 	return entries, nil
 }
