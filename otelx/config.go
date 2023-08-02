@@ -20,9 +20,10 @@ type ZipkinConfig struct {
 }
 
 type OTLPConfig struct {
-	ServerURL string       `json:"server_url"`
-	Insecure  bool         `json:"insecure"`
-	Sampling  OTLPSampling `json:"sampling"`
+	ServerURL           string       `json:"server_url"`
+	Insecure            bool         `json:"insecure"`
+	Sampling            OTLPSampling `json:"sampling"`
+	AuthorizationHeader string       `json:"authorization_header"`
 }
 
 type JaegerSampling struct {
