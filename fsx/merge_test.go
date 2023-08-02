@@ -20,18 +20,48 @@ func TestMergeFS(t *testing.T) {
 		"b":     &fstest.MapFile{},
 		"dir/d": &fstest.MapFile{},
 	}
-	m := Merge(a, b)
-
-	assert.NoError(t, fstest.TestFS(m, "a", "b", "dir", "dir/c", "dir/d"))
-
 	x := fstest.MapFS{
 		"x":     &fstest.MapFile{},
 		"dir/y": &fstest.MapFile{},
 	}
 
-	m2 := Merge(m, x)
-	assert.NoError(t, fstest.TestFS(m2, "a", "b", "dir", "dir/c", "dir/d", "dir/y", "x"))
+	assert.NoError(t, fstest.TestFS(
+		Merge(a, b),
+		"a",
+		"b",
+		"dir",
+		"dir/c",
+		"dir/d",
+	))
 
-	m2 = mergefs.Merge(mergefs.Merge(a, b), x)
-	assert.NoError(t, fstest.TestFS(m2, "a", "b", "dir", "dir/c", "dir/d", "dir/y", "x"))
+	assert.NoError(t, fstest.TestFS(
+		Merge(a, b, x),
+		"a",
+		"b",
+		"dir",
+		"dir/c",
+		"dir/d",
+		"dir/y",
+		"x",
+	))
+
+	assert.Error(t, fstest.TestFS(
+		mergefs.Merge(a, b),
+		"a",
+		"b",
+		"dir",
+		"dir/c",
+		"dir/d",
+	))
+
+	assert.Error(t, fstest.TestFS(
+		mergefs.Merge(mergefs.Merge(a, b), x),
+		"a",
+		"b",
+		"dir",
+		"dir/c",
+		"dir/d",
+		"dir/y",
+		"x",
+	))
 }
