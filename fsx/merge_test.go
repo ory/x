@@ -7,6 +7,7 @@ import (
 	"testing"
 	"testing/fstest"
 
+	"github.com/laher/mergefs"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,4 +23,15 @@ func TestMergeFS(t *testing.T) {
 	m := Merge(a, b)
 
 	assert.NoError(t, fstest.TestFS(m, "a", "b", "dir", "dir/c", "dir/d"))
+
+	x := fstest.MapFS{
+		"x":     &fstest.MapFile{},
+		"dir/y": &fstest.MapFile{},
+	}
+
+	m2 := Merge(m, x)
+	assert.NoError(t, fstest.TestFS(m2, "a", "b", "dir", "dir/c", "dir/d", "dir/y", "x"))
+
+	m2 = mergefs.Merge(mergefs.Merge(a, b), x)
+	assert.NoError(t, fstest.TestFS(m2, "a", "b", "dir", "dir/c", "dir/d", "dir/y", "x"))
 }
