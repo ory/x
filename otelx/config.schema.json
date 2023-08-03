@@ -134,6 +134,10 @@
                   "examples": [0.4]
                 }
               }
+            },
+            "authorization_header": {
+              "type": "string",
+              "examples": ["Bearer 2389s8fs9d8fus9f"]
             }
           }
         }

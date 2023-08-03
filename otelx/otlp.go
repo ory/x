@@ -29,6 +29,12 @@ func SetupOTLP(t *Tracer, tracerName string, c *Config) (trace.Tracer, error) {
 		clientOpts = append(clientOpts, otlptracehttp.WithInsecure())
 	}
 
+	if c.Providers.OTLP.AuthorizationHeader != "" {
+		clientOpts = append(clientOpts,
+			otlptracehttp.WithHeaders(map[string]string{"Authorization": c.Providers.OTLP.AuthorizationHeader}),
+		)
+	}
+
 	exp, err := otlptrace.New(
 		ctx, otlptracehttp.NewClient(clientOpts...),
 	)
