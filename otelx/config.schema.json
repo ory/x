@@ -16,6 +16,11 @@
       "description": "Specifies the service name to use on the tracer.",
       "examples": ["Ory Hydra", "Ory Kratos", "Ory Keto", "Ory Oathkeeper"]
     },
+    "deployment_environment": {
+      "type": "string",
+      "description": "Specifies the deployment environment to use on the tracer.",
+      "examples": ["development", "staging", "production"]
+    },
     "providers": {
       "type": "object",
       "additionalProperties": false,

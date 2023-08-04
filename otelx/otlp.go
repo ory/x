@@ -47,6 +47,7 @@ func SetupOTLP(t *Tracer, tracerName string, c *Config) (trace.Tracer, error) {
 		sdktrace.WithResource(resource.NewWithAttributes(
 			semconv.SchemaURL,
 			semconv.ServiceNameKey.String(c.ServiceName),
+			semconv.DeploymentEnvironmentKey.String(c.DeploymentEnvironment),
 		)),
 		sdktrace.WithSampler(sdktrace.ParentBased(sdktrace.TraceIDRatioBased(
 			c.Providers.OTLP.Sampling.SamplingRatio,
