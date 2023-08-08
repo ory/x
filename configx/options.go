@@ -44,6 +44,12 @@ func WithImmutables(immutables ...string) OptionModifier {
 	}
 }
 
+func WithExceptImmutables(exceptImmutables ...string) OptionModifier {
+	return func(p *Provider) {
+		p.exceptImmutables = append(p.exceptImmutables, exceptImmutables...)
+	}
+}
+
 func WithFlags(flags *pflag.FlagSet) OptionModifier {
 	return func(p *Provider) {
 		p.flags = flags
