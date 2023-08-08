@@ -22,11 +22,11 @@ type RequestParameters struct {
 	// reference. The next page can be any number and some numbers might return an empty list.
 	//
 	// For example, page 2 might not follow after page 1. And even if page 3 and 5 exist, but page 4 might not exist.
+	// The first page can be retrieved by omitting this parameter. Following page pointers will be returned in the
+	// `Link` header.
 	//
 	// required: false
 	// in: query
-	// default: 1
-	// min: 1
 	Page int `json:"page"`
 }
 
@@ -58,5 +58,8 @@ type ResponseHeaderAnnotation struct {
 	// The X-Total-Count HTTP Header
 	//
 	// The `X-Total-Count` header contains the total number of items in the collection.
+	//
+	// DEPRECATED: This header will be removed eventually. Please use the `Link` header
+	// instead to check whether you are on the last page.
 	TotalCount int `json:"x-total-count"`
 }
