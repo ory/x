@@ -39,7 +39,7 @@ type tuple struct {
 type Provider struct {
 	l sync.RWMutex
 	*koanf.Koanf
-	immutables []string
+	immutables, exceptImmutables []string
 
 	schema                   []byte
 	flags                    *pflag.FlagSet
@@ -249,6 +249,18 @@ func (p *Provider) runOnChanges(e watcherx.Event, err error) {
 	}
 }
 
+func deleteOtherKeys(k *koanf.Koanf, keys []string) {
+outer:
+	for _, key := range k.Keys() {
+		for _, ik := range keys {
+			if key == ik {
+				continue outer
+			}
+		}
+		k.Delete(key)
+	}
+}
+
 func (p *Provider) reload(e watcherx.Event) {
 	p.l.Lock()
 
@@ -264,10 +276,20 @@ func (p *Provider) reload(e watcherx.Event) {
 		return // unlocks & runs changes in defer
 	}
 
-	for _, key := range p.immutables {
-		if !reflect.DeepEqual(p.Koanf.Get(key), nk.Get(key)) {
-			err = NewImmutableError(key, fmt.Sprintf("%v", p.Koanf.Get(key)), fmt.Sprintf("%v", nk.Get(key)))
-			return // unlocks & runs changes in defer
+	oldImmutables, newImmutables := p.Koanf.Copy(), nk.Copy()
+	deleteOtherKeys(oldImmutables, p.immutables)
+	deleteOtherKeys(newImmutables, p.immutables)
+
+	for _, key := range p.exceptImmutables {
+		oldImmutables.Delete(key)
+		newImmutables.Delete(key)
+	}
+	if !reflect.DeepEqual(oldImmutables.Raw(), newImmutables.Raw()) {
+		for _, key := range p.immutables {
+			if !reflect.DeepEqual(oldImmutables.Get(key), newImmutables.Get(key)) {
+				err = NewImmutableError(key, fmt.Sprintf("%v", p.Koanf.Get(key)), fmt.Sprintf("%v", nk.Get(key)))
+				return // unlocks & runs changes in defer
+			}
 		}
 	}
 

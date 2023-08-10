@@ -139,6 +139,31 @@ func TestReload(t *testing.T) {
 		assertNoOpenFDs(t, dir, name)
 	})
 
+	t.Run("case=allows to update excepted immutable", func(t *testing.T) {
+		t.Parallel()
+		config := `{"foo": {"bar": "a", "baz": "b"}}`
+
+		dir := t.TempDir()
+		name := "config.json"
+		watcherx.KubernetesAtomicWrite(t, dir, name, config)
+
+		c := make(chan struct{})
+		p, _ := setup(t, dir, name, c,
+			WithImmutables("foo"),
+			WithExceptImmutables("foo.baz"),
+			SkipValidation())
+
+		assert.Equal(t, "a", p.String("foo.bar"))
+		assert.Equal(t, "b", p.String("foo.baz"))
+
+		config = `{"foo": {"bar": "a", "baz": "x"}}`
+		watcherx.KubernetesAtomicWrite(t, dir, name, config)
+		<-c
+		time.Sleep(time.Millisecond)
+
+		assert.Equal(t, "x", p.String("foo.baz"))
+	})
+
 	t.Run("case=runs without validation errors", func(t *testing.T) {
 		t.Parallel()
 		dir, name := tmpConfigFile(t, "some string", "bar")
