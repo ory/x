@@ -3,6 +3,7 @@ module github.com/ory/x
 go 1.20
 
 require (
+	github.com/auth0/go-jwt-middleware v1.0.1
 	github.com/avast/retry-go/v4 v4.3.0
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
@@ -12,6 +13,7 @@ require (
 	github.com/docker/docker v20.10.24+incompatible
 	github.com/evanphx/json-patch/v5 v5.6.0
 	github.com/fatih/structs v1.1.0
+	github.com/form3tech-oss/jwt-go v3.2.2+incompatible
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
@@ -58,6 +60,7 @@ require (
 	github.com/prometheus/client_golang v1.13.0
 	github.com/prometheus/client_model v0.3.0
 	github.com/prometheus/common v0.37.0
+	github.com/rakutentech/jwk-go v1.1.3
 	github.com/rs/cors v1.8.2
 	github.com/seatgeek/logrus-gelf-formatter v0.0.0-20210414080842-5b05eb8ff761
 	github.com/sirupsen/logrus v1.9.0
