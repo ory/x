@@ -36,7 +36,8 @@ func CheckOrigin(allowedOrigins []string, origin string) bool {
 		// Note: for origins and methods matching, the spec requires a case-sensitive matching.
 		// As it may be error-prone, we chose to ignore the spec here.
 		// https://github.com/rs/cors/blob/066574eebbd0f5f1b6cd1154a160cc292ac1835e/cors.go#L132-L133
-		prefix, suffix, found := strings.Cut(strings.ToLower(o), "*")
+		o = strings.ToLower(o)
+		prefix, suffix, found := strings.Cut(o, "*")
 		if !found {
 			// not a pattern, check for equality
 			if o == origin {
