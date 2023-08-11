@@ -132,10 +132,11 @@ func Paginate[I any, PI interface {
 	id := model.IDField()
 	tableName := model.Alias()
 	return func(q *pop.Query) *pop.Query {
-		eid := q.Connection.Dialect.Quote(tableName + "." + id)
+		quote := q.Connection.Dialect.Quote
+		eid := quote(tableName) + "." + quote(id)
 
 		quoteAndContextualize := func(name string) string {
-			return q.Connection.Dialect.Quote(tableName + "." + name)
+			return quote(tableName) + "." + quote(name)
 		}
 		p.multipleOrderFieldsQuery(q, id, model.Columns().Cols, quoteAndContextualize)
 
