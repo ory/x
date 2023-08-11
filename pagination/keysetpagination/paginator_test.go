@@ -49,7 +49,7 @@ func TestPaginator(t *testing.T) {
 		q = q.Scope(Paginate[testItem](paginator))
 
 		sql, args := q.ToSQL(&pop.Model{Value: new(testItem)})
-		assert.Equal(t, "SELECT test_items.created_at, test_items.pk FROM test_items AS test_items WHERE `test_items.pk` > ? ORDER BY `test_items.pk` ASC LIMIT 11", sql)
+		assert.Equal(t, "SELECT test_items.created_at, test_items.pk FROM test_items AS test_items WHERE `test_items`.`pk` > ? ORDER BY `test_items`.`pk` ASC LIMIT 11", sql)
 		assert.Equal(t, []interface{}{"token"}, args)
 	})
 
