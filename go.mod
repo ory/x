@@ -95,6 +95,8 @@ require (
 	google.golang.org/protobuf v1.30.0
 )
 
+require github.com/gobwas/glob v0.2.3 // indirect
+
 require (
 	git.sr.ht/~sbinet/gg v0.3.1 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect

@@ -28,20 +28,23 @@ func TestNoPrivateIPs(t *testing.T) {
 	_, port, err := net.SplitHostPort(target.Host)
 	require.NoError(t, err)
 
-	allowed := "http://localhost:" + port + "/foobar"
+	allowedURL := "http://localhost:" + port + "/foobar"
+	allowedGlob := "http://localhost:" + port + "/glob/*"
 
 	c := NewResilientClient(
 		ResilientClientWithMaxRetry(1),
 		ResilientClientDisallowInternalIPs(),
-		ResilientClientAllowInternalIPRequestsTo(allowed),
+		ResilientClientAllowInternalIPRequestsTo(allowedURL, allowedGlob),
 	)
 
 	for destination, passes := range map[string]bool{
-		"http://127.0.0.1:" + port:             false,
-		"http://localhost:" + port:             false,
-		"http://192.168.178.5:" + port:         false,
-		allowed:                                true,
-		"http://localhost:" + port + "/FOOBAR": false,
+		"http://127.0.0.1:" + port:                   false,
+		"http://localhost:" + port:                   false,
+		"http://192.168.178.5:" + port:               false,
+		allowedURL:                                   true,
+		"http://localhost:" + port + "/glob/bar":     true,
+		"http://localhost:" + port + "/glob/bar/baz": false,
+		"http://localhost:" + port + "/FOOBAR":       false,
 	} {
 		_, err := c.Get(destination)
 		if !passes {
