@@ -98,11 +98,11 @@ func ResilientClientDisallowInternalIPs() ResilientOptions {
 	}
 }
 
-// ResilientClientAllowInternalIPRequestsTo allows requests to the exact matching URLs even
+// ResilientClientAllowInternalIPRequestsTo allows requests to the glob-matching URLs even
 // if they are internal IPs.
-func ResilientClientAllowInternalIPRequestsTo(urls ...string) ResilientOptions {
+func ResilientClientAllowInternalIPRequestsTo(urlGlobs ...string) ResilientOptions {
 	return func(o *resilientOptions) {
-		o.internalIPExceptions = urls
+		o.internalIPExceptions = urlGlobs
 	}
 }
 

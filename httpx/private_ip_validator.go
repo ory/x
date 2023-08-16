@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gobwas/glob"
 	"github.com/pkg/errors"
 )
 
@@ -94,7 +95,11 @@ func (n NoInternalIPRoundTripper) RoundTrip(request *http.Request) (*http.Respon
 	incoming.RawQuery = ""
 	incoming.RawFragment = ""
 	for _, exception := range n.internalIPExceptions {
-		if incoming.String() == exception {
+		compiled, err := glob.Compile(exception, '.', '/')
+		if err != nil {
+			return nil, err
+		}
+		if compiled.Match(incoming.String()) {
 			return rt.RoundTrip(request)
 		}
 	}
