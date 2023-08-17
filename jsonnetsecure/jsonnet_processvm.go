@@ -8,6 +8,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"io"
 	"os/exec"
 	"strings"
@@ -26,10 +28,19 @@ func NewProcessVM(opts *vmOptions) VM {
 }
 
 func (p *ProcessVM) EvaluateAnonymousSnippet(filename string, snippet string) (string, error) {
+	ctx, span := trace.SpanFromContext(p.ctx).TracerProvider().Tracer("").Start(p.ctx, "jsonnetsecure.ProcessVM.EvaluateAnonymousSnippet")
+	defer span.End()
+
 	// We retry the process creation, because it sometimes times out.
 	const processVMTimeout = 1 * time.Second
-	return backoff.RetryWithData(func() (string, error) {
-		ctx, cancel := context.WithTimeout(p.ctx, processVMTimeout)
+	return backoff.RetryWithData(func() (_ string, err error) {
+		defer func() {
+			if err != nil {
+				span.AddEvent("retry", trace.WithAttributes(attribute.String("error", err.Error())))
+			}
+		}()
+
+		ctx, cancel := context.WithTimeout(ctx, processVMTimeout)
 		defer cancel()
 
 		var (
@@ -49,7 +60,7 @@ func (p *ProcessVM) EvaluateAnonymousSnippet(filename string, snippet string) (s
 		cmd.Stderr = &stderr
 		cmd.Env = []string{"GOMAXPROCS=1"}
 
-		err := cmd.Run()
+		err = cmd.Run()
 		if stderr.Len() > 0 {
 			// If the process wrote to stderr, this means it started and we won't retry.
 			return "", backoff.Permanent(fmt.Errorf("jsonnetsecure: unexpected output on stderr: %q", stderr.String()))
@@ -59,7 +70,7 @@ func (p *ProcessVM) EvaluateAnonymousSnippet(filename string, snippet string) (s
 		}
 
 		return stdout.String(), nil
-	}, backoff.WithContext(backoff.NewExponentialBackOff(), p.ctx))
+	}, backoff.WithContext(backoff.NewExponentialBackOff(), ctx))
 }
 
 func (p *ProcessVM) ExtCode(key string, val string) {
