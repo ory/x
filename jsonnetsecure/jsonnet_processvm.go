@@ -13,7 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"go.opentelemetry.io/otel/attribute"
+	"github.com/ory/x/otelx"
+
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/cenkalti/backoff/v4"
@@ -29,17 +30,15 @@ func NewProcessVM(opts *vmOptions) VM {
 }
 
 func (p *ProcessVM) EvaluateAnonymousSnippet(filename string, snippet string) (string, error) {
-	ctx, span := trace.SpanFromContext(p.ctx).TracerProvider().Tracer("").Start(p.ctx, "jsonnetsecure.ProcessVM.EvaluateAnonymousSnippet")
+	tracer := trace.SpanFromContext(p.ctx).TracerProvider().Tracer("")
+	ctx, span := tracer.Start(p.ctx, "jsonnetsecure.ProcessVM.EvaluateAnonymousSnippet")
 	defer span.End()
 
 	// We retry the process creation, because it sometimes times out.
 	const processVMTimeout = 1 * time.Second
 	return backoff.RetryWithData(func() (_ string, err error) {
-		defer func() {
-			if err != nil {
-				span.AddEvent("retry", trace.WithAttributes(attribute.String("error", err.Error())))
-			}
-		}()
+		ctx, span := tracer.Start(ctx, "jsonnetsecure.ProcessVM.EvaluateAnonymousSnippet.run")
+		defer otelx.End(span, &err)
 
 		ctx, cancel := context.WithTimeout(ctx, processVMTimeout)
 		defer cancel()
