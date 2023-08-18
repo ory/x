@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"go.opentelemetry.io/otel/attribute"
+
 	"github.com/ory/x/otelx"
 
 	"go.opentelemetry.io/otel/trace"
@@ -31,7 +33,7 @@ func NewProcessVM(opts *vmOptions) VM {
 
 func (p *ProcessVM) EvaluateAnonymousSnippet(filename string, snippet string) (string, error) {
 	tracer := trace.SpanFromContext(p.ctx).TracerProvider().Tracer("")
-	ctx, span := tracer.Start(p.ctx, "jsonnetsecure.ProcessVM.EvaluateAnonymousSnippet")
+	ctx, span := tracer.Start(p.ctx, "jsonnetsecure.ProcessVM.EvaluateAnonymousSnippet", trace.WithAttributes(attribute.String("filename", filename)))
 	defer span.End()
 
 	// We retry the process creation, because it sometimes times out.
