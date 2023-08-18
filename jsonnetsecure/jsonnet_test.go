@@ -18,6 +18,8 @@ import (
 )
 
 func TestSecureVM(t *testing.T) {
+	testBinary := JsonnetTestBinary(t)
+
 	for _, optCase := range []struct {
 		name string
 		opts []Option
@@ -25,7 +27,7 @@ func TestSecureVM(t *testing.T) {
 		{"none", []Option{}},
 		{"process vm", []Option{
 			WithProcessIsolatedVM(context.Background()),
-			WithJsonnetBinary(JsonnetTestBinary(t)),
+			WithJsonnetBinary(testBinary),
 		}},
 	} {
 		t.Run("options="+optCase.name, func(t *testing.T) {
@@ -114,7 +116,7 @@ func TestSecureVM(t *testing.T) {
 		defer cancel()
 		vm := MakeSecureVM(
 			WithProcessIsolatedVM(ctx),
-			WithJsonnetBinary(JsonnetTestBinary(t)),
+			WithJsonnetBinary(testBinary),
 		)
 		result, err := vm.EvaluateAnonymousSnippet("test", snippet)
 		require.Error(t, err)
@@ -161,12 +163,13 @@ func assertEqualVMOutput(t *testing.T, run func(factory func(t *testing.T) VM) s
 func TestCreateMultipleProcessVMs(t *testing.T) {
 	ctx := context.Background()
 	wg := new(errgroup.Group)
+	testBinary := JsonnetTestBinary(t)
 
 	for i := 0; i < 100; i++ {
 		wg.Go(func() error {
 			vm := MakeSecureVM(
 				WithProcessIsolatedVM(ctx),
-				WithJsonnetBinary(JsonnetTestBinary(t)),
+				WithJsonnetBinary(testBinary),
 			)
 			_, err := vm.EvaluateAnonymousSnippet("test", "{a:1}")
 
