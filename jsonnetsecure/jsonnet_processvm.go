@@ -31,10 +31,10 @@ func NewProcessVM(opts *vmOptions) VM {
 	}
 }
 
-func (p *ProcessVM) EvaluateAnonymousSnippet(filename string, snippet string) (string, error) {
+func (p *ProcessVM) EvaluateAnonymousSnippet(filename string, snippet string) (_ string, err error) {
 	tracer := trace.SpanFromContext(p.ctx).TracerProvider().Tracer("")
 	ctx, span := tracer.Start(p.ctx, "jsonnetsecure.ProcessVM.EvaluateAnonymousSnippet", trace.WithAttributes(attribute.String("filename", filename)))
-	defer span.End()
+	defer otelx.End(span, &err)
 
 	// We retry the process creation, because it sometimes times out.
 	const processVMTimeout = 1 * time.Second
