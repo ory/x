@@ -454,8 +454,9 @@ func (p *Provider) CORS(prefix string, defaults cors.Options) (cors.Options, boo
 
 func (p *Provider) TracingConfig(serviceName string) *otelx.Config {
 	return &otelx.Config{
-		ServiceName: p.StringF("tracing.service_name", serviceName),
-		Provider:    p.String("tracing.provider"),
+		ServiceName:           p.StringF("tracing.service_name", serviceName),
+		DeploymentEnvironment: p.StringF("tracing.deployment_environment", ""),
+		Provider:              p.String("tracing.provider"),
 		Providers: otelx.ProvidersConfig{
 			Jaeger: otelx.JaegerConfig{
 				Sampling: otelx.JaegerSampling{
