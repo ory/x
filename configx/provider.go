@@ -314,6 +314,33 @@ func (p *Provider) watchForFileChanges(ctx context.Context, c watcherx.EventChan
 	}
 }
 
+// DirtyPatch patches individual config keys without reloading the full config
+//
+// WARNING! This method is only useful to override existing keys in string or number
+// format. DO NOT use this method to override arrays, maps, or other complex types.
+//
+// This method DOES NOT validate the config against the config JSON schema. If you
+// need to validate the config, use the Set method instead.
+//
+// This method can not be used to remove keys from the config as that is not
+// possible without reloading the full config.
+func (p *Provider) DirtyPatch(key string, value any) error {
+	p.l.Lock()
+	defer p.l.Unlock()
+
+	t := tuple{Key: key, Value: value}
+	kc := NewKoanfConfmap([]tuple{t})
+
+	p.forcedValues = append(p.forcedValues, t)
+	p.providers = append(p.providers, kc)
+
+	if err := p.Koanf.Load(kc, nil, []koanf.Option{}...); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (p *Provider) Set(key string, value interface{}) error {
 	p.l.Lock()
 	defer p.l.Unlock()
