@@ -8,6 +8,11 @@ import (
 	"crypto/sha256"
 	"time"
 
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+
+	"github.com/ory/x/otelx"
+
 	"github.com/dgraph-io/ristretto"
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/pkg/errors"
@@ -120,7 +125,11 @@ func (f *FetcherNext) ResolveKeyFromLocations(ctx context.Context, locations []s
 }
 
 // fetch fetches the JWK set from the given location and if enabled, may use the cache to look up the JWK set.
-func (f *FetcherNext) fetch(ctx context.Context, location string, opts *fetcherNextOptions) (jwk.Set, error) {
+func (f *FetcherNext) fetch(ctx context.Context, location string, opts *fetcherNextOptions) (_ jwk.Set, err error) {
+	tracer := trace.SpanFromContext(ctx).TracerProvider().Tracer("")
+	ctx, span := tracer.Start(ctx, "jwksx.FetcherNext.fetch", trace.WithAttributes(attribute.String("location", location)))
+	defer otelx.End(span, &err)
+
 	cacheKey := sha256.Sum256([]byte(location))
 	if opts.useCache {
 		if result, found := f.cache.Get(cacheKey[:]); found {
