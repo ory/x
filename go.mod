@@ -3,6 +3,7 @@ module github.com/ory/x
 go 1.20
 
 require (
+	github.com/auth0/go-jwt-middleware v1.0.1
 	github.com/avast/retry-go/v4 v4.3.0
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
@@ -12,6 +13,7 @@ require (
 	github.com/docker/docker v20.10.24+incompatible
 	github.com/evanphx/json-patch/v5 v5.6.0
 	github.com/fatih/structs v1.1.0
+	github.com/form3tech-oss/jwt-go v3.2.5+incompatible
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
@@ -22,6 +24,7 @@ require (
 	github.com/gobuffalo/fizz v1.14.4
 	github.com/gobuffalo/httptest v1.5.2
 	github.com/gobuffalo/pop/v6 v6.0.8
+	github.com/gobwas/glob v0.2.3
 	github.com/goccy/go-yaml v1.9.6
 	github.com/gofrs/uuid v4.3.0+incompatible
 	github.com/golang/mock v1.6.0
@@ -42,6 +45,7 @@ require (
 	github.com/knadh/koanf/providers/posflag v0.1.0
 	github.com/knadh/koanf/providers/rawbytes v0.1.0
 	github.com/knadh/koanf/v2 v2.0.1
+	github.com/laher/mergefs v0.1.1
 	github.com/lestrrat-go/jwx v1.2.26
 	github.com/lib/pq v1.10.7
 	github.com/luna-duclos/instrumentedsql v1.1.3
@@ -59,6 +63,7 @@ require (
 	github.com/prometheus/client_golang v1.13.0
 	github.com/prometheus/client_model v0.3.0
 	github.com/prometheus/common v0.37.0
+	github.com/rakutentech/jwk-go v1.1.3
 	github.com/rs/cors v1.8.2
 	github.com/seatgeek/logrus-gelf-formatter v0.0.0-20210414080842-5b05eb8ff761
 	github.com/sirupsen/logrus v1.9.0
@@ -106,6 +111,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/containerd/continuity v0.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
 	github.com/docker/cli v20.10.21+incompatible // indirect
 	github.com/docker/distribution v2.8.2+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
@@ -154,6 +160,10 @@ require (
 	github.com/joho/godotenv v1.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
+	github.com/lestrrat-go/backoff/v2 v2.0.8 // indirect
+	github.com/lestrrat-go/blackmagic v1.0.1 // indirect
+	github.com/lestrrat-go/httpcc v1.0.1 // indirect
+	github.com/lestrrat-go/iter v1.0.2 // indirect
 	github.com/lestrrat-go/option v1.0.1 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect

@@ -1,15 +1,19 @@
+// Copyright © 2023 Ory Corp
+// SPDX-License-Identifier: Apache-2.0
+
 package jwksx
 
 import (
 	"context"
 	"crypto/sha256"
+	"time"
+
 	"github.com/dgraph-io/ristretto"
 	"github.com/lestrrat-go/jwx/jwk"
-	"github.com/ory/x/fetcher"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
-	"net/url"
-	"time"
+
+	"github.com/ory/x/fetcher"
 )
 
 var ErrUnableToFindKeyID = errors.New("specified JWK kid can not be found in the JWK sets")
@@ -59,7 +63,11 @@ func WithCacheEnabled() FetcherNextOption {
 	}
 }
 
-func (f *FetcherNext) ResolveKey(ctx context.Context, locations []url.URL, modifiers ...FetcherNextOption) (jwk.Key, error) {
+func (f *FetcherNext) ResolveKey(ctx context.Context, locations string, modifiers ...FetcherNextOption) (jwk.Key, error) {
+	return f.ResolveKeyFromLocations(ctx, []string{locations}, modifiers...)
+}
+
+func (f *FetcherNext) ResolveKeyFromLocations(ctx context.Context, locations []string, modifiers ...FetcherNextOption) (jwk.Key, error) {
 	opts := new(fetcherNextOptions)
 	for _, m := range modifiers {
 		m(opts)
@@ -74,7 +82,7 @@ func (f *FetcherNext) ResolveKey(ctx context.Context, locations []url.URL, modif
 	for k := range locations {
 		location := locations[k]
 		eg.Go(func() error {
-			remoteSet, err := f.fetch(ctx, location.String(), opts)
+			remoteSet, err := f.fetch(ctx, location, opts)
 			if err != nil {
 				return err
 			}
@@ -115,7 +123,7 @@ func (f *FetcherNext) ResolveKey(ctx context.Context, locations []url.URL, modif
 func (f *FetcherNext) fetch(ctx context.Context, location string, opts *fetcherNextOptions) (jwk.Set, error) {
 	cacheKey := sha256.Sum256([]byte(location))
 	if opts.useCache {
-		if result, found := f.cache.Get(cacheKey); found {
+		if result, found := f.cache.Get(cacheKey[:]); found {
 			return result.(jwk.Set), nil
 		}
 	}
@@ -131,7 +139,7 @@ func (f *FetcherNext) fetch(ctx context.Context, location string, opts *fetcherN
 	}
 
 	if opts.useCache {
-		f.cache.SetWithTTL(sha256.Sum256([]byte(location)), set, 1, opts.cacheTTL)
+		f.cache.SetWithTTL(cacheKey[:], set, 1, opts.cacheTTL)
 	}
 
 	return set, nil
