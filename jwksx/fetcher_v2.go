@@ -6,6 +6,8 @@ package jwksx
 import (
 	"context"
 	"crypto/sha256"
+	"github.com/hashicorp/go-retryablehttp"
+	"github.com/ory/x/fetcher"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -17,33 +19,29 @@ import (
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
-
-	"github.com/ory/x/fetcher"
 )
 
 var ErrUnableToFindKeyID = errors.New("specified JWK kid can not be found in the JWK sets")
 
 type (
 	fetcherNextOptions struct {
-		forceKID string
-		cacheTTL time.Duration
-		useCache bool
+		forceKID   string
+		cacheTTL   time.Duration
+		useCache   bool
+		httpClient *retryablehttp.Client
 	}
 	// FetcherNext is a JWK fetcher that can be used to fetch JWKs from multiple locations.
 	FetcherNext struct {
-		// Fetcher is the underlying https/file/base64 fetcher used to fetch the byte stream.
-		Fetcher *fetcher.Fetcher `json:"fetcher,omitempty"`
-		cache   *ristretto.Cache
+		cache *ristretto.Cache
 	}
 	// FetcherNextOption is a functional option for the FetcherNext.
 	FetcherNextOption func(*fetcherNextOptions)
 )
 
 // NewFetcherNext returns a new FetcherNext instance.
-func NewFetcherNext(fetcher *fetcher.Fetcher, cache *ristretto.Cache) *FetcherNext {
+func NewFetcherNext(cache *ristretto.Cache) *FetcherNext {
 	return &FetcherNext{
-		Fetcher: fetcher,
-		cache:   cache,
+		cache: cache,
 	}
 }
 
@@ -65,6 +63,13 @@ func WithCacheTTL(ttl time.Duration) FetcherNextOption {
 func WithCacheEnabled() FetcherNextOption {
 	return func(o *fetcherNextOptions) {
 		o.useCache = true
+	}
+}
+
+// WithHTTPClient will use the given HTTP client to fetch the JSON Web Keys.
+func WithHTTPClient(c *retryablehttp.Client) FetcherNextOption {
+	return func(o *fetcherNextOptions) {
+		o.httpClient = c
 	}
 }
 
@@ -137,7 +142,12 @@ func (f *FetcherNext) fetch(ctx context.Context, location string, opts *fetcherN
 		}
 	}
 
-	result, err := f.Fetcher.FetchContext(ctx, location)
+	var fopts []fetcher.Modifier
+	if opts.httpClient != nil {
+		fopts = append(fopts, fetcher.WithClient(opts.httpClient))
+	}
+
+	result, err := fetcher.NewFetcher(fopts...).FetchContext(ctx, location)
 	if err != nil {
 		return nil, err
 	}

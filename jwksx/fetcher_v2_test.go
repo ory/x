@@ -5,6 +5,8 @@ package jwksx
 
 import (
 	"context"
+	"github.com/hashicorp/go-retryablehttp"
+	"github.com/pkg/errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -14,7 +16,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ory/x/fetcher"
 	"github.com/ory/x/snapshotx"
 )
 
@@ -46,6 +47,15 @@ const (
 }`
 )
 
+type brokenTransport struct{}
+
+var _ http.RoundTripper = new(brokenTransport)
+var errBroken = errors.New("broken")
+
+func (b brokenTransport) RoundTrip(_ *http.Request) (*http.Response, error) {
+	return nil, errBroken
+}
+
 func TestFetcherNext(t *testing.T) {
 	ctx := context.Background()
 	cache, _ := ristretto.NewCache(&ristretto.Config{
@@ -58,10 +68,7 @@ func TestFetcherNext(t *testing.T) {
 			return 1
 		},
 	})
-	f := NewFetcherNext(
-		fetcher.NewFetcher(),
-		cache,
-	)
+	f := NewFetcherNext(cache)
 
 	createRemoteProvider := func(called *int, payload string) *httptest.Server {
 		cache.Clear()
@@ -183,6 +190,18 @@ func TestFetcherNext(t *testing.T) {
 			assert.Equal(t, called, 2)
 
 			snapshotx.SnapshotT(t, k)
+		})
+
+		t.Run("case=with broken HTTP client", func(t *testing.T) {
+			var called int
+			ts := createRemoteProvider(&called, keys)
+
+			broken := retryablehttp.NewClient()
+			broken.RetryMax = 0
+			broken.HTTPClient.Transport = new(brokenTransport)
+
+			_, err := f.ResolveKey(ctx, ts.URL, WithHTTPClient(broken))
+			require.ErrorIs(t, err, errBroken)
 		})
 	})
 }
