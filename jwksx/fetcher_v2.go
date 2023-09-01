@@ -6,9 +6,11 @@ package jwksx
 import (
 	"context"
 	"crypto/sha256"
-	"github.com/hashicorp/go-retryablehttp"
-	"github.com/ory/x/fetcher"
 	"time"
+
+	"github.com/hashicorp/go-retryablehttp"
+
+	"github.com/ory/x/fetcher"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"

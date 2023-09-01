@@ -5,12 +5,13 @@ package jwksx
 
 import (
 	"context"
-	"github.com/hashicorp/go-retryablehttp"
-	"github.com/pkg/errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/go-retryablehttp"
+	"github.com/pkg/errors"
 
 	"github.com/dgraph-io/ristretto"
 	"github.com/stretchr/testify/assert"
