@@ -13,6 +13,8 @@ import (
 )
 
 // Fetcher is a small helper for fetching JSON Web Keys from remote endpoints.
+//
+// DEPRECATED: Use FetcherNext instead.
 type Fetcher struct {
 	sync.RWMutex
 	remote string
@@ -21,6 +23,8 @@ type Fetcher struct {
 }
 
 // NewFetcher returns a new fetcher that can download JSON Web Keys from remote endpoints.
+//
+// DEPRECATED: Use FetcherNext instead.
 func NewFetcher(remote string) *Fetcher {
 	return &Fetcher{
 		remote: remote,
@@ -30,6 +34,8 @@ func NewFetcher(remote string) *Fetcher {
 }
 
 // GetKey retrieves a JSON Web Key from the cache, fetches it from a remote if it is not yet cached or returns an error.
+//
+// DEPRECATED: Use FetcherNext instead.
 func (f *Fetcher) GetKey(kid string) (*jose.JSONWebKey, error) {
 	f.RLock()
 	if k, ok := f.keys[kid]; ok {

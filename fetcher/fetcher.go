@@ -44,8 +44,10 @@ func newOpts() *opts {
 	}
 }
 
+type Modifier func(*opts)
+
 // NewFetcher creates a new fetcher instance.
-func NewFetcher(opts ...func(*opts)) *Fetcher {
+func NewFetcher(opts ...Modifier) *Fetcher {
 	o := newOpts()
 	for _, f := range opts {
 		f(o)
