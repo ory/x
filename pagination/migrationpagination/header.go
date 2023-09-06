@@ -5,7 +5,9 @@ package migrationpagination
 
 // swagger:model mixedPaginationRequestParameters
 type RequestParameters struct {
-	// Items per Page
+	// Deprecated Items per Page
+	//
+	// DEPRECATED: Please use `page_token` instead. This parameter will be removed in the future.
 	//
 	// This is the number of items per page.
 	//
@@ -16,7 +18,9 @@ type RequestParameters struct {
 	// max: 1000
 	PerPage int `json:"per_page"`
 
-	// Pagination Page
+	// Deprecated Pagination Page
+	//
+	// DEPRECATED: Please use `page_token` instead. This parameter will be removed in the future.
 	//
 	// This value is currently an integer, but it is not sequential. The value is not the page number, but a
 	// reference. The next page can be any number and some numbers might return an empty list.
@@ -28,6 +32,29 @@ type RequestParameters struct {
 	// required: false
 	// in: query
 	Page int `json:"page"`
+
+	// Page Size
+	//
+	// This is the number of items per page to return. For details on pagination please head over to the
+	// [pagination documentation](https://www.ory.sh/docs/ecosystem/api-design#pagination).
+	//
+	// required: false
+	// in: query
+	// default: 250
+	// min: 1
+	// max: 500
+	PageSize int `json:"page_size"`
+
+	// Next Page Token
+	//
+	// The next page token. For details on pagination please head over to the
+	// [pagination documentation](https://www.ory.sh/docs/ecosystem/api-design#pagination).
+	//
+	// required: false
+	// in: query
+	// default: 1
+	// min: 1
+	PageToken string `json:"page_token"`
 }
 
 // Pagination Response Header

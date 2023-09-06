@@ -35,8 +35,8 @@ type RequestParameters struct {
 
 	// Items per Page
 	//
-	// This is the number of items per page to return.
-	// For details on pagination please head over to the [pagination documentation](https://www.ory.sh/docs/ecosystem/api-design#pagination).
+	// This is the number of items per page to return. For details on pagination please head over to the
+	// [pagination documentation](https://www.ory.sh/docs/ecosystem/api-design#pagination).
 	//
 	// required: false
 	// in: query
@@ -47,8 +47,8 @@ type RequestParameters struct {
 
 	// Next Page Token
 	//
-	// The next page token.
-	// For details on pagination please head over to the [pagination documentation](https://www.ory.sh/docs/ecosystem/api-design#pagination).
+	// The next page token. For details on pagination please head over to the
+	// [pagination documentation](https://www.ory.sh/docs/ecosystem/api-design#pagination).
 	//
 	// required: false
 	// in: query
