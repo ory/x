@@ -12,7 +12,7 @@ import (
 
 // PaginationResult represents a parsed result of the link HTTP header.
 type PaginationResult struct {
-	// NextToken is the next page token.
+	// NextToken is the next page token. If it's empty, there is no next page.
 	NextToken string
 
 	// FirstToken is the first page token.
