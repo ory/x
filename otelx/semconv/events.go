@@ -22,9 +22,10 @@ func (a AttributeKey) String() string {
 }
 
 const (
-	AttributeKeyIdentityID AttributeKey = "IdentityID"
-	AttributeKeyNID        AttributeKey = "ProjectID"
-	AttributeKeyClientIP   AttributeKey = "ClientIP"
+	AttributeKeyIdentityID  AttributeKey = "IdentityID"
+	AttributeKeyNID         AttributeKey = "ProjectID"
+	AttributeKeyClientIP    AttributeKey = "ClientIP"
+	AttributeKeyGeoLocation AttributeKey = "GeoLocation"
 )
 
 func AttrIdentityID(val uuid.UUID) otelattr.KeyValue {
@@ -37,4 +38,8 @@ func AttrNID(val uuid.UUID) otelattr.KeyValue {
 
 func AttrClientIP(val string) otelattr.KeyValue {
 	return otelattr.String(AttributeKeyClientIP.String(), val)
+}
+
+func AttrGeoLocation(val []string) otelattr.KeyValue {
+	return otelattr.StringSlice(AttributeKeyGeoLocation.String(), val)
 }
