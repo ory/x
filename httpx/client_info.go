@@ -9,6 +9,12 @@ import (
 	"strings"
 )
 
+type GeoLocation struct {
+	City    string
+	Region  string
+	Country string
+}
+
 func GetClientIPAddressesWithoutInternalIPs(ipAddresses []string) (string, error) {
 	var res string
 
@@ -34,5 +40,13 @@ func ClientIP(r *http.Request) string {
 		return ip
 	} else {
 		return r.RemoteAddr
+	}
+}
+
+func ClientGeoLocation(r *http.Request) *GeoLocation {
+	return &GeoLocation{
+		City:    r.Header.Get("Cf-Ipcity"),
+		Region:  r.Header.Get("Cf-Region-Code"),
+		Country: r.Header.Get("Cf-Ipcountry"),
 	}
 }

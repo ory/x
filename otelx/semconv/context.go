@@ -36,7 +36,14 @@ func AttributesFromContext(ctx context.Context) []attribute.KeyValue {
 }
 
 func Middleware(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	next(rw, r.WithContext(ContextWithAttributes(r.Context(), AttrClientIP(httpx.ClientIP(r)))))
+	ctx := ContextWithAttributes(r.Context(),
+		append(
+			AttrGeoLocation(*httpx.ClientGeoLocation(r)),
+			AttrClientIP(httpx.ClientIP(r)),
+		)...,
+	)
+
+	next(rw, r.WithContext(ctx))
 }
 
 func reverse[S ~[]E, E any](s S) {

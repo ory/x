@@ -7,6 +7,8 @@ package semconv
 import (
 	"github.com/gofrs/uuid"
 	otelattr "go.opentelemetry.io/otel/attribute"
+
+	"github.com/ory/x/httpx"
 )
 
 type Event string
@@ -22,9 +24,12 @@ func (a AttributeKey) String() string {
 }
 
 const (
-	AttributeKeyIdentityID AttributeKey = "IdentityID"
-	AttributeKeyNID        AttributeKey = "ProjectID"
-	AttributeKeyClientIP   AttributeKey = "ClientIP"
+	AttributeKeyIdentityID         AttributeKey = "IdentityID"
+	AttributeKeyNID                AttributeKey = "ProjectID"
+	AttributeKeyClientIP           AttributeKey = "ClientIP"
+	AttributeKeyGeoLocationCity    AttributeKey = "GeoLocationCity"
+	AttributeKeyGeoLocationRegion  AttributeKey = "GeoLocationRegion"
+	AttributeKeyGeoLocationCountry AttributeKey = "GeoLocationCountry"
 )
 
 func AttrIdentityID(val uuid.UUID) otelattr.KeyValue {
@@ -37,4 +42,20 @@ func AttrNID(val uuid.UUID) otelattr.KeyValue {
 
 func AttrClientIP(val string) otelattr.KeyValue {
 	return otelattr.String(AttributeKeyClientIP.String(), val)
+}
+
+func AttrGeoLocation(val httpx.GeoLocation) []otelattr.KeyValue {
+	geoLocationAttributes := make([]otelattr.KeyValue, 0, 3)
+
+	if val.City != "" {
+		geoLocationAttributes = append(geoLocationAttributes, otelattr.String(AttributeKeyGeoLocationCity.String(), val.City))
+	}
+	if val.Country != "" {
+		geoLocationAttributes = append(geoLocationAttributes, otelattr.String(AttributeKeyGeoLocationCountry.String(), val.Country))
+	}
+	if val.Region != "" {
+		geoLocationAttributes = append(geoLocationAttributes, otelattr.String(AttributeKeyGeoLocationRegion.String(), val.Region))
+	}
+
+	return geoLocationAttributes
 }

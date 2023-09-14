@@ -58,3 +58,35 @@ func TestClientIP(t *testing.T) {
 		assert.Equal(t, "1.0.0.4", ClientIP(req))
 	})
 }
+
+func TestClientGeoLocation(t *testing.T) {
+	req := http.Request{
+		Header: http.Header{},
+	}
+	req.Header.Add("cf-ipcity", "Berlin")
+	req.Header.Add("cf-ipcountry", "Germany")
+	req.Header.Add("cf-region-code", "BE")
+
+	t.Run("cf-ipcity", func(t *testing.T) {
+		req := req.Clone(context.Background())
+		assert.Equal(t, "Berlin", ClientGeoLocation(req).City)
+	})
+
+	t.Run("cf-ipcountry", func(t *testing.T) {
+		req := req.Clone(context.Background())
+		assert.Equal(t, "Germany", ClientGeoLocation(req).Country)
+	})
+
+	t.Run("cf-region-code", func(t *testing.T) {
+		req := req.Clone(context.Background())
+		assert.Equal(t, "BE", ClientGeoLocation(req).Region)
+	})
+
+	t.Run("empty", func(t *testing.T) {
+		req := req.Clone(context.Background())
+		req.Header.Del("cf-ipcity")
+		req.Header.Del("cf-ipcountry")
+		req.Header.Del("cf-region-code")
+		assert.Equal(t, GeoLocation{}, *ClientGeoLocation(req))
+	})
+}
