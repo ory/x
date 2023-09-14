@@ -36,16 +36,12 @@ func AttributesFromContext(ctx context.Context) []attribute.KeyValue {
 }
 
 func Middleware(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	var clientGeoLocation []string
-	if r.Header.Get("Cf-Ipcity") != "" {
-		clientGeoLocation = append(clientGeoLocation, r.Header.Get("Cf-Ipcity"))
-	}
-	if r.Header.Get("Cf-Ipcountry") != "" {
-		clientGeoLocation = append(clientGeoLocation, r.Header.Get("Cf-Ipcountry"))
-	}
+
 	ctx := ContextWithAttributes(r.Context(),
-		AttrClientIP(httpx.ClientIP(r)),
-		AttrGeoLocation(clientGeoLocation),
+		append(
+			AttrGeoLocation(httpx.ClientGeoLocation(r)),
+			AttrClientIP(httpx.ClientIP(r)),
+		)...,
 	)
 
 	next(rw, r.WithContext(ctx))

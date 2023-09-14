@@ -10,6 +10,8 @@ import (
 	"github.com/gofrs/uuid"
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/attribute"
+
+	"github.com/ory/x/httpx"
 )
 
 func TestAttributesFromContext(t *testing.T) {
@@ -21,13 +23,20 @@ func TestAttributesFromContext(t *testing.T) {
 	assert.Len(t, AttributesFromContext(ctx), 1)
 
 	uid1, uid2 := uuid.Must(uuid.NewV4()), uuid.Must(uuid.NewV4())
-	ctx = ContextWithAttributes(ctx, AttrIdentityID(uid1), AttrClientIP("127.0.0.1"), AttrIdentityID(uid2), AttrGeoLocation([]string{"Berlin", "Germany"}))
+	location := httpx.GeoLocation{
+		City:    "Berlin",
+		Country: "Germany",
+		Region:  "BE",
+	}
+	ctx = ContextWithAttributes(ctx, append(AttrGeoLocation(location), AttrIdentityID(uid1), AttrClientIP("127.0.0.1"), AttrIdentityID(uid2))...)
 	attrs := AttributesFromContext(ctx)
-	assert.Len(t, attrs, 4, "should deduplicate")
-	assert.Equal(t, []attribute.KeyValue{
+	assert.Len(t, attrs, 6, "should deduplicate")
+	assert.EqualValues(t, []attribute.KeyValue{
 		attribute.String(AttributeKeyNID.String(), nid.String()),
+		attribute.String(AttributeKeyGeoLocationCity.String(), "Berlin"),
+		attribute.String(AttributeKeyGeoLocationCountry.String(), "Germany"),
+		attribute.String(AttributeKeyGeoLocationRegion.String(), "BE"),
 		attribute.String(AttributeKeyClientIP.String(), "127.0.0.1"),
 		attribute.String(AttributeKeyIdentityID.String(), uid2.String()),
-		attribute.StringSlice(AttributeKeyGeoLocation.String(), []string{"Berlin", "Germany"}),
 	}, attrs, "last duplicate attribute wins")
 }
