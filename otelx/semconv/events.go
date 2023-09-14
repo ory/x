@@ -45,7 +45,7 @@ func AttrClientIP(val string) otelattr.KeyValue {
 }
 
 func AttrGeoLocation(val httpx.GeoLocation) []otelattr.KeyValue {
-	var geoLocationAttributes []otelattr.KeyValue
+	geoLocationAttributes := make([]otelattr.KeyValue, 0, 3)
 
 	if val.City != "" {
 		geoLocationAttributes = append(geoLocationAttributes, otelattr.String(AttributeKeyGeoLocationCity.String(), val.City))

@@ -36,10 +36,9 @@ func AttributesFromContext(ctx context.Context) []attribute.KeyValue {
 }
 
 func Middleware(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-
 	ctx := ContextWithAttributes(r.Context(),
 		append(
-			AttrGeoLocation(httpx.ClientGeoLocation(r)),
+			AttrGeoLocation(*httpx.ClientGeoLocation(r)),
 			AttrClientIP(httpx.ClientIP(r)),
 		)...,
 	)

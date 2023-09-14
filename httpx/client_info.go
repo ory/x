@@ -43,18 +43,10 @@ func ClientIP(r *http.Request) string {
 	}
 }
 
-func ClientGeoLocation(r *http.Request) GeoLocation {
-	var clientGeoLocation GeoLocation
-
-	if r.Header.Get("Cf-Ipcity") != "" {
-		clientGeoLocation.City = r.Header.Get("Cf-Ipcity")
+func ClientGeoLocation(r *http.Request) *GeoLocation {
+	return &GeoLocation{
+		City:    r.Header.Get("Cf-Ipcity"),
+		Region:  r.Header.Get("Cf-Region-Code"),
+		Country: r.Header.Get("Cf-Ipcountry"),
 	}
-	if r.Header.Get("Cf-Region-Code") != "" {
-		clientGeoLocation.Region = r.Header.Get("Cf-Region-Code")
-	}
-	if r.Header.Get("Cf-Ipcountry") != "" {
-		clientGeoLocation.Country = r.Header.Get("Cf-Ipcountry")
-	}
-
-	return clientGeoLocation
 }
