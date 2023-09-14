@@ -87,6 +87,6 @@ func TestClientGeoLocation(t *testing.T) {
 		req.Header.Del("cf-ipcity")
 		req.Header.Del("cf-ipcountry")
 		req.Header.Del("cf-region-code")
-		assert.Equal(t, GeoLocation{}, ClientGeoLocation(req))
+		assert.Equal(t, GeoLocation{}, *ClientGeoLocation(req))
 	})
 }
