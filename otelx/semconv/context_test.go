@@ -31,7 +31,7 @@ func TestAttributesFromContext(t *testing.T) {
 	ctx = ContextWithAttributes(ctx, append(AttrGeoLocation(location), AttrIdentityID(uid1), AttrClientIP("127.0.0.1"), AttrIdentityID(uid2))...)
 	attrs := AttributesFromContext(ctx)
 	assert.Len(t, attrs, 6, "should deduplicate")
-	assert.EqualValues(t, []attribute.KeyValue{
+	assert.Equal(t, []attribute.KeyValue{
 		attribute.String(AttributeKeyNID.String(), nid.String()),
 		attribute.String(AttributeKeyGeoLocationCity.String(), "Berlin"),
 		attribute.String(AttributeKeyGeoLocationCountry.String(), "Germany"),
