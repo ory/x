@@ -19,8 +19,8 @@ import (
 )
 
 // Optionally, Config.Providers.Jaeger.LocalAgentAddress can be set.
-// NOTE: If Config.Providers.Jaeger.Sampling.ServerURL is not specfied,
-// AlwaysSample is used.
+// NOTE: If Config.Providers.Jaeger.Sampling.ServerURL is not specified,
+// the otel spec default `ParentBased(AlwaysSample())` is used.
 func SetupJaeger(t *Tracer, tracerName string, c *Config) (trace.Tracer, error) {
 	host, port, err := net.SplitHostPort(c.Providers.Jaeger.LocalAgentAddress)
 	if err != nil {
@@ -54,7 +54,7 @@ func SetupJaeger(t *Tracer, tracerName string, c *Config) (trace.Tracer, error) 
 		)
 		tpOpts = append(tpOpts, sdktrace.WithSampler(jaegerRemoteSampler))
 	} else {
-		tpOpts = append(tpOpts, sdktrace.WithSampler(sdktrace.AlwaysSample()))
+		tpOpts = append(tpOpts, sdktrace.WithSampler(sdktrace.ParentBased(sdktrace.AlwaysSample())))
 	}
 	tp := sdktrace.NewTracerProvider(tpOpts...)
 	otel.SetTracerProvider(tp)
