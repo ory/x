@@ -109,6 +109,10 @@ func FinalizeDSN(l *logrusx.Logger, dsn string) string {
 		q.Set("multiStatements", "true")
 		q.Set("parseTime", "true")
 
+		// Thius causes an UPDATE to return the number of matching rows instead of
+		// the number of rows changed. This ensures compatibility with PostgreSQL and SQLite behavior.
+		q.Set("clientFoundRows", "true")
+
 		return fmt.Sprintf("%s?%s", parts[0], q.Encode())
 	}
 
