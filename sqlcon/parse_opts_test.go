@@ -102,11 +102,11 @@ func TestFinalizeDSN(t *testing.T) {
 	}{
 		{
 			dsn:      "mysql://localhost",
-			expected: "mysql://localhost?multiStatements=true&parseTime=true",
+			expected: "mysql://localhost?clientFoundRows=true&multiStatements=true&parseTime=true",
 		},
 		{
-			dsn:      "mysql://localhost?multiStatements=true&parseTime=true",
-			expected: "mysql://localhost?multiStatements=true&parseTime=true",
+			dsn:      "mysql://localhost?multiStatements=true&parseTime=true&clientFoundRows=false",
+			expected: "mysql://localhost?clientFoundRows=true&multiStatements=true&parseTime=true",
 		},
 		{
 			dsn:      "postgres://localhost",

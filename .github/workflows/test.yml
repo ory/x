@@ -60,7 +60,7 @@ jobs:
         uses: golangci/golangci-lint-action@v3
         with:
           skip-go-installation: true
-          args: --timeout 2m
+          args: --timeout 5m
       - name: Install cockroach DB
         run: |
           curl https://binaries.cockroachdb.com/cockroach-v22.2.5.linux-amd64.tgz | tar -xz
