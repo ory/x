@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/peterhellberg/link"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -26,19 +27,22 @@ func TestHeader(t *testing.T) {
 
 	Header(r, u, p)
 
-	links := r.HeaderMap["Link"]
-	require.Len(t, links, 2)
-	assert.Contains(t, links[0], "page_token=default")
-	assert.Contains(t, links[1], "page_token=next")
+	assert.Len(t, r.Result().Header.Values("link"), 1, "make sure we send one header with multiple comma-separated values rather than multiple headers")
 
-	t.Run("with isLast", func(t *testing.T) {
-		p.isLast = true
+	links := link.ParseResponse(r.Result())
+	assert.Contains(t, links, "first")
+	assert.Contains(t, links["first"].URI, "page_token=default")
 
-		Header(r, u, p)
+	assert.Contains(t, links, "next")
+	assert.Contains(t, links["next"].URI, "page_token=next")
 
-		links := r.HeaderMap["Link"]
-		require.Len(t, links, 1)
-		assert.Contains(t, links[0], "page_token=default")
-	})
+	p.isLast = true
+	r = httptest.NewRecorder()
+	Header(r, u, p)
+	links = link.ParseResponse(r.Result())
 
+	assert.Contains(t, links, "first")
+	assert.Contains(t, links["first"].URI, "page_token=default")
+
+	assert.NotContains(t, links, "next")
 }
