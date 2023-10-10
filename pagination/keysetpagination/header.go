@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -83,11 +84,11 @@ func header(u *url.URL, rel, token string, size int) string {
 // It contains links to the first and next page, if one exists.
 func Header(w http.ResponseWriter, u *url.URL, p *Paginator) {
 	size := p.Size()
-	w.Header().Set("Link", header(u, "first", p.defaultToken.Encode(), size))
-
-	if !p.IsLast() {
-		w.Header().Add("Link", header(u, "next", p.Token().Encode(), size))
+	link := []string{header(u, "first", p.defaultToken.Encode(), size)}
+	if !p.isLast {
+		link = append(link, header(u, "next", p.Token().Encode(), size))
 	}
+	w.Header().Set("Link", strings.Join(link, ","))
 }
 
 // Parse returns the pagination options from the URL query.
@@ -104,7 +105,7 @@ func Parse(q url.Values, p PageTokenConstructor) ([]Option, error) {
 		}
 		opts = append(opts, WithToken(parsed))
 	}
-	if q.Has("page_size") {
+	if q.Get("page_size") != "" {
 		size, err := strconv.Atoi(q.Get("page_size"))
 		if err != nil {
 			return nil, errors.WithStack(err)
