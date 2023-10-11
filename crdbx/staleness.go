@@ -23,7 +23,7 @@ type ConsistencyRequestParameters struct {
 	// The default consistency guarantee can be changed in the Ory Network Console or using the Ory CLI with
 	// `ory patch project --replace '/database/default_consistency_level="strong"'`.
 	//
-	// This feature is fully functional only in Ory Network.
+	// This feature is fully functional only in Ory Network and currently experimental.
 	//
 	// required: false
 	// in: query
