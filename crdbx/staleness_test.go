@@ -1,10 +1,15 @@
+// Copyright © 2023 Ory Corp
+// SPDX-License-Identifier: Apache-2.0
+
 package crdbx
 
 import (
-	"github.com/ory/x/urlx"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/ory/x/urlx"
 )
 
 func TestConsistencyLevelFromString(t *testing.T) {

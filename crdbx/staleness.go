@@ -1,9 +1,14 @@
+// Copyright © 2023 Ory Corp
+// SPDX-License-Identifier: Apache-2.0
+
 package crdbx
 
 import (
-	"github.com/gobuffalo/pop/v6"
-	"github.com/ory/x/sqlcon"
 	"net/http"
+
+	"github.com/gobuffalo/pop/v6"
+
+	"github.com/ory/x/sqlcon"
 )
 
 // Control API consistency guarantees
