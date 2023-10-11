@@ -27,7 +27,7 @@ type ConsistencyRequestParameters struct {
 	//
 	// required: false
 	// in: query
-	Consistency ConsistencyLevel `json:"per_page"`
+	Consistency ConsistencyLevel `json:"consistency"`
 }
 
 // ConsistencyLevel is the consistency level.
