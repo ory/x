@@ -24,6 +24,7 @@ func TestConsistencyLevelFromRequest(t *testing.T) {
 	assert.Equal(t, ConsistencyLevelStrong, ConsistencyLevelFromRequest(&http.Request{URL: urlx.ParseOrPanic("/?consistency=strong")}))
 	assert.Equal(t, ConsistencyLevelEventual, ConsistencyLevelFromRequest(&http.Request{URL: urlx.ParseOrPanic("/?consistency=eventual")}))
 	assert.Equal(t, ConsistencyLevelStrong, ConsistencyLevelFromRequest(&http.Request{URL: urlx.ParseOrPanic("/?consistency=asdf")}))
+	assert.Equal(t, ConsistencyLevelUnset, ConsistencyLevelFromRequest(&http.Request{URL: urlx.ParseOrPanic("/?consistency")}))
 
 }
 

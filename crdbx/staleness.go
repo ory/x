@@ -66,7 +66,7 @@ func ConsistencyLevelFromString(in string) ConsistencyLevel {
 	case string(ConsistencyLevelEventual):
 		return ConsistencyLevelEventual
 	case string(ConsistencyLevelUnset):
-		return ConsistencyLevelStrong
+		return ConsistencyLevelUnset
 	}
 	return ConsistencyLevelStrong
 }
