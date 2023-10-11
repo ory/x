@@ -6,6 +6,8 @@ package crdbx
 import (
 	"net/http"
 
+	"github.com/ory/x/dbal"
+
 	"github.com/gobuffalo/pop/v6"
 
 	"github.com/ory/x/sqlcon"
@@ -66,15 +68,26 @@ func ConsistencyLevelFromString(in string) ConsistencyLevel {
 
 // SetTransactionConsistency sets the transaction consistency level for CockroachDB.
 func SetTransactionConsistency(c *pop.Connection, level ConsistencyLevel, fallback ConsistencyLevel) error {
-	if c.Dialect.Name() != "cockroach" {
-		// Only CockroachDB supports this.
+	q := getTransactionConsistencyQuery(c.Dialect.Name(), level, fallback)
+	if len(q) == 0 {
 		return nil
+	}
+
+	return sqlcon.HandleError(c.RawQuery(q).Exec())
+}
+
+const transactionFollowerReadTimestamp = "SET TRANSACTION AS OF SYSTEM TIME follower_read_timestamp()"
+
+func getTransactionConsistencyQuery(dialect string, level ConsistencyLevel, fallback ConsistencyLevel) string {
+	if dialect != dbal.DriverCockroachDB {
+		// Only CockroachDB supports this.
+		return ""
 	}
 
 	switch level {
 	case ConsistencyLevelStrong:
 		// Nothing to do
-		return nil
+		return ""
 	case ConsistencyLevelEventual:
 		// Jumps to end of function
 	case ConsistencyLevelUnset:
@@ -82,11 +95,11 @@ func SetTransactionConsistency(c *pop.Connection, level ConsistencyLevel, fallba
 	default:
 		if fallback != ConsistencyLevelEventual {
 			// Nothing to do
-			return nil
+			return ""
 		}
 
 		// Jumps to end of function
 	}
 
-	return sqlcon.HandleError(c.RawQuery("SET TRANSACTION AS OF SYSTEM TIME follower_read_timestamp()").Exec())
+	return transactionFollowerReadTimestamp
 }

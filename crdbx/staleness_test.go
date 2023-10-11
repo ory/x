@@ -4,6 +4,7 @@
 package crdbx
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -26,6 +27,47 @@ func TestConsistencyLevelFromRequest(t *testing.T) {
 
 }
 
-func TestSetTransactionConsistency(t *testing.T) {
-	t.Fatalf("todo")
+func TestGetTransactionConsistency(t *testing.T) {
+	for k, tc := range []struct {
+		in       ConsistencyLevel
+		fallback ConsistencyLevel
+		dialect  string
+		expected string
+	}{
+		{
+			in:       ConsistencyLevelUnset,
+			fallback: ConsistencyLevelStrong,
+			dialect:  "cockroach",
+			expected: "",
+		},
+		{
+			in:       ConsistencyLevelStrong,
+			fallback: ConsistencyLevelStrong,
+			dialect:  "cockroach",
+			expected: "",
+		},
+		{
+			in:       ConsistencyLevelStrong,
+			fallback: ConsistencyLevelEventual,
+			dialect:  "cockroach",
+			expected: "",
+		},
+		{
+			in:       ConsistencyLevelUnset,
+			fallback: ConsistencyLevelEventual,
+			dialect:  "cockroach",
+			expected: transactionFollowerReadTimestamp,
+		},
+		{
+			in:       ConsistencyLevelEventual,
+			fallback: ConsistencyLevelEventual,
+			dialect:  "cockroach",
+			expected: transactionFollowerReadTimestamp,
+		},
+	} {
+		t.Run(fmt.Sprintf("case=%d", k), func(t *testing.T) {
+			q := getTransactionConsistencyQuery(tc.dialect, tc.in, tc.fallback)
+			assert.EqualValues(t, tc.expected, q)
+		})
+	}
 }
