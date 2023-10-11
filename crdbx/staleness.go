@@ -10,15 +10,12 @@ import (
 //
 // swagger:model consistencyRequestParameters
 type ConsistencyRequestParameters struct {
-	// Read Consistency Level
+	// Read Consistency Level (experimental)
 	//
 	// The read consistency level determines the consistency guarantee for reads and queries:
 	//
 	// - strong (slow): The read is guaranteed to return the most recent data committed at the start of the read.
 	// - eventual (very fast): The result will return data that is about 4.8 seconds old.
-	//
-	// Ory Network projects created before October 2023 default to strong consistency and projects created after
-	// October 2023 default to eventual consistency, if this parameter is not set.
 	//
 	// The default consistency guarantee can be changed in the Ory Network Console or using the Ory CLI with
 	// `ory patch project --replace '/database/default_consistency_level="strong"'`.
