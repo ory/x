@@ -14,7 +14,7 @@ import (
 )
 
 func TestConsistencyLevelFromString(t *testing.T) {
-	assert.Equal(t, ConsistencyLevelStrong, ConsistencyLevelFromString(""))
+	assert.Equal(t, ConsistencyLevelUnset, ConsistencyLevelFromString(""))
 	assert.Equal(t, ConsistencyLevelStrong, ConsistencyLevelFromString("strong"))
 	assert.Equal(t, ConsistencyLevelEventual, ConsistencyLevelFromString("eventual"))
 	assert.Equal(t, ConsistencyLevelStrong, ConsistencyLevelFromString("lol"))
@@ -24,6 +24,7 @@ func TestConsistencyLevelFromRequest(t *testing.T) {
 	assert.Equal(t, ConsistencyLevelStrong, ConsistencyLevelFromRequest(&http.Request{URL: urlx.ParseOrPanic("/?consistency=strong")}))
 	assert.Equal(t, ConsistencyLevelEventual, ConsistencyLevelFromRequest(&http.Request{URL: urlx.ParseOrPanic("/?consistency=eventual")}))
 	assert.Equal(t, ConsistencyLevelStrong, ConsistencyLevelFromRequest(&http.Request{URL: urlx.ParseOrPanic("/?consistency=asdf")}))
+	assert.Equal(t, ConsistencyLevelUnset, ConsistencyLevelFromRequest(&http.Request{URL: urlx.ParseOrPanic("/?consistency")}))
 
 }
 
