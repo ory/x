@@ -14,7 +14,7 @@ import (
 )
 
 func TestConsistencyLevelFromString(t *testing.T) {
-	assert.Equal(t, ConsistencyLevelStrong, ConsistencyLevelFromString(""))
+	assert.Equal(t, ConsistencyLevelUnset, ConsistencyLevelFromString(""))
 	assert.Equal(t, ConsistencyLevelStrong, ConsistencyLevelFromString("strong"))
 	assert.Equal(t, ConsistencyLevelEventual, ConsistencyLevelFromString("eventual"))
 	assert.Equal(t, ConsistencyLevelStrong, ConsistencyLevelFromString("lol"))
