@@ -4,6 +4,7 @@
 package fetcher
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"fmt"
@@ -16,7 +17,6 @@ import (
 
 	"github.com/gobuffalo/httptest"
 	"github.com/julienschmidt/httprouter"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -67,9 +67,8 @@ func TestFetcher(t *testing.T) {
 
 	t.Run("case=returns proper error on unknown scheme", func(t *testing.T) {
 		_, err := NewFetcher().Fetch("unknown-scheme://foo")
-		require.NotNil(t, err)
 
-		assert.True(t, errors.Is(err, ErrUnknownScheme))
+		assert.ErrorIs(t, err, ErrUnknownScheme)
 		assert.Contains(t, err.Error(), "unknown-scheme")
 	})
 
@@ -77,8 +76,20 @@ func TestFetcher(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
 		_, err := NewFetcher().FetchContext(ctx, "https://config.invalid")
-		require.NotNil(t, err)
 
 		assert.ErrorIs(t, err, context.DeadlineExceeded)
+	})
+
+	t.Run("case=with-limit", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write(bytes.Repeat([]byte("test"), 1000))
+		}))
+		t.Cleanup(srv.Close)
+
+		_, err := NewFetcher(WithMaxHTTPMaxBytes(3999)).Fetch(srv.URL)
+		assert.ErrorIs(t, err, bytes.ErrTooLarge)
+
+		_, err = NewFetcher(WithMaxHTTPMaxBytes(4000)).Fetch(srv.URL)
+		assert.NoError(t, err)
 	})
 }
