@@ -34,7 +34,7 @@ type ConsistencyRequestParameters struct {
 // swagger:enum ConsistencyLevel
 type ConsistencyLevel string
 
-var (
+const (
 	// ConsistencyLevelUnset is the unset / default consistency level.
 	ConsistencyLevelUnset ConsistencyLevel = ""
 	// ConsistencyLevelStrong is the strong consistency level.
