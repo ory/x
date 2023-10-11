@@ -6,6 +6,8 @@ import (
 	"net/http"
 )
 
+// Control API consistency guarantees
+//
 // swagger:model consistencyRequestParameters
 type ConsistencyRequestParameters struct {
 	// Read Consistency Level
@@ -26,10 +28,11 @@ type ConsistencyRequestParameters struct {
 	// required: false
 	// in: query
 	// example: eventual
-	Consistency string `json:"per_page"`
+	Consistency ConsistencyLevel `json:"per_page"`
 }
 
 // ConsistencyLevel is the consistency level.
+// swagger:enum ConsistencyLevel
 type ConsistencyLevel string
 
 var (
