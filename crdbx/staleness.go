@@ -27,7 +27,6 @@ type ConsistencyRequestParameters struct {
 	//
 	// required: false
 	// in: query
-	// example: eventual
 	Consistency ConsistencyLevel `json:"per_page"`
 }
 
