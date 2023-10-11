@@ -25,7 +25,7 @@ type ConsistencyRequestParameters struct {
 	// - eventual (very fast): The result will return data that is about 4.8 seconds old.
 	//
 	// The default consistency guarantee can be changed in the Ory Network Console or using the Ory CLI with
-	// `ory patch project --replace '/database/default_consistency_level="strong"'`.
+	// `ory patch project --replace '/serve/default_consistency_level="strong"'`.
 	//
 	// This feature is fully functional only in Ory Network and currently experimental.
 	//
