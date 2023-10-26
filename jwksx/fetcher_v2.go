@@ -131,6 +131,19 @@ func (f *FetcherNext) ResolveKeyFromLocations(ctx context.Context, locations []s
 	return key, nil
 }
 
+type JwkParseError struct {
+	msg   string
+	cause error
+}
+
+func (e JwkParseError) Error() string {
+	return e.msg
+}
+
+func (e JwkParseError) Unwrap() error {
+	return e.cause
+}
+
 // fetch fetches the JWK set from the given location and if enabled, may use the cache to look up the JWK set.
 func (f *FetcherNext) fetch(ctx context.Context, location string, opts *fetcherNextOptions) (_ jwk.Set, err error) {
 	tracer := trace.SpanFromContext(ctx).TracerProvider().Tracer("")
@@ -156,7 +169,7 @@ func (f *FetcherNext) fetch(ctx context.Context, location string, opts *fetcherN
 
 	set, err := jwk.ParseReader(result)
 	if err != nil {
-		return nil, err
+		return nil, &JwkParseError{msg: "failed to parse JWK set", cause: err}
 	}
 
 	if opts.useCache {
