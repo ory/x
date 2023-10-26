@@ -8,6 +8,8 @@ import (
 	"crypto/sha256"
 	"time"
 
+	"github.com/ory/herodot"
+
 	"github.com/hashicorp/go-retryablehttp"
 
 	"github.com/ory/x/fetcher"
@@ -156,7 +158,7 @@ func (f *FetcherNext) fetch(ctx context.Context, location string, opts *fetcherN
 
 	set, err := jwk.ParseReader(result)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(herodot.ErrBadRequest.WithReason("failed to parse JWK set").WithWrap(err))
 	}
 
 	if opts.useCache {
