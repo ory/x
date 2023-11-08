@@ -126,7 +126,9 @@ func buildInsertQueryValues[T any](dialect string, mapper *reflectx.Mapper, colu
 			case "updated_at":
 				field.Set(reflect.ValueOf(now))
 			case "id":
-				if field.Interface().(uuid.UUID) != uuid.Nil {
+				if value, ok := field.Interface().(uuid.UUID); ok && value != uuid.Nil {
+					break // breaks switch, not for
+				} else if value, ok := field.Interface().(string); ok && len(value) > 0 {
 					break // breaks switch, not for
 				} else if dialect == dbal.DriverCockroachDB {
 					// This is a special case:
