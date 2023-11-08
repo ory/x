@@ -220,8 +220,8 @@ func Create[T any](ctx context.Context, p *TracerConnection, models []*T, opts .
 		queryArgs.TableName,
 		queryArgs.ColumnsDecl,
 		queryArgs.Placeholders,
-		returningClause,
 		options.onConflict,
+		returningClause,
 	))
 
 	rows, err := conn.TX.QueryContext(ctx, query, values...)
