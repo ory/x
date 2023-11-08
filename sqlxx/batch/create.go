@@ -167,14 +167,31 @@ func buildInsertQueryValues[T any](dialect string, mapper *reflectx.Mapper, colu
 	return values, nil
 }
 
+type createOptions struct {
+	onConflict string
+}
+
+type option func(*createOptions)
+
+func OnConflictDoNothing() func(*createOptions) {
+	return func(o *createOptions) {
+		o.onConflict = "ON CONFLICT DO NOTHING"
+	}
+}
+
 // Create batch-inserts the given models into the database using a single INSERT statement.
 // The models are either all created or none.
-func Create[T any](ctx context.Context, p *TracerConnection, models []*T) (err error) {
+func Create[T any](ctx context.Context, p *TracerConnection, models []*T, opts ...option) (err error) {
 	ctx, span := p.Tracer.Tracer().Start(ctx, "persistence.sql.batch.Create")
 	defer otelx.End(span, &err)
 
 	if len(models) == 0 {
 		return nil
+	}
+
+	options := &createOptions{}
+	for _, opt := range opts {
+		opt(options)
 	}
 
 	var v T
@@ -199,11 +216,12 @@ func Create[T any](ctx context.Context, p *TracerConnection, models []*T) (err e
 	}
 
 	query := conn.Dialect.TranslateSQL(fmt.Sprintf(
-		"INSERT INTO %s (%s) VALUES\n%s\n%s",
+		"INSERT INTO %s (%s) VALUES\n%s\n%s\n%s",
 		queryArgs.TableName,
 		queryArgs.ColumnsDecl,
 		queryArgs.Placeholders,
 		returningClause,
+		options.onConflict,
 	))
 
 	rows, err := conn.TX.QueryContext(ctx, query, values...)
