@@ -399,8 +399,6 @@ func (t *HTTP) decodeForm(r *http.Request, destination interface{}, o *httpDecod
 }
 
 func (t *HTTP) decodeURLValues(values url.Values, paths []jsonschemax.Path, o *httpDecoderOptions) (json.RawMessage, error) {
-	var f float64
-	var b bool
 	raw := json.RawMessage(`{}`)
 	for key := range values {
 		for _, path := range paths {
@@ -411,6 +409,7 @@ func (t *HTTP) decodeURLValues(values url.Values, paths []jsonschemax.Path, o *h
 					raw, err = sjson.SetBytes(raw, path.Name, values[key])
 				case []float64:
 					for k, v := range values[key] {
+						var f float64
 						if f, err = strconv.ParseFloat(v, 64); err != nil {
 							switch o.handleParseErrors {
 							case ParseErrorIgnoreConversionErrors:
@@ -430,6 +429,7 @@ func (t *HTTP) decodeURLValues(values url.Values, paths []jsonschemax.Path, o *h
 					}
 				case []bool:
 					for k, v := range values[key] {
+						var b bool
 						if b, err = strconv.ParseBool(v); err != nil {
 							switch o.handleParseErrors {
 							case ParseErrorIgnoreConversionErrors:
@@ -458,6 +458,7 @@ func (t *HTTP) decodeURLValues(values url.Values, paths []jsonschemax.Path, o *h
 						v = "false"
 					}
 
+					var b bool
 					if b, err = strconv.ParseBool(v); err != nil {
 						switch o.handleParseErrors {
 						case ParseErrorIgnoreConversionErrors:
@@ -482,6 +483,7 @@ func (t *HTTP) decodeURLValues(values url.Values, paths []jsonschemax.Path, o *h
 						v = "0.0"
 					}
 
+					var f float64
 					if f, err = strconv.ParseFloat(v, 64); err != nil {
 						switch o.handleParseErrors {
 						case ParseErrorIgnoreConversionErrors:
