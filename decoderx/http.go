@@ -409,7 +409,8 @@ func (t *HTTP) decodeURLValues(values url.Values, paths []jsonschemax.Path, o *h
 					raw, err = sjson.SetBytes(raw, path.Name, values[key])
 				case []float64:
 					for k, v := range values[key] {
-						if f, err := strconv.ParseFloat(v, 64); err != nil {
+						var f float64
+						if f, err = strconv.ParseFloat(v, 64); err != nil {
 							switch o.handleParseErrors {
 							case ParseErrorIgnoreConversionErrors:
 								raw, err = sjson.SetBytes(raw, path.Name+"."+strconv.Itoa(k), v)
@@ -428,12 +429,13 @@ func (t *HTTP) decodeURLValues(values url.Values, paths []jsonschemax.Path, o *h
 					}
 				case []bool:
 					for k, v := range values[key] {
-						if f, err := strconv.ParseBool(v); err != nil {
+						var b bool
+						if b, err = strconv.ParseBool(v); err != nil {
 							switch o.handleParseErrors {
 							case ParseErrorIgnoreConversionErrors:
 								raw, err = sjson.SetBytes(raw, path.Name+"."+strconv.Itoa(k), v)
 							case ParseErrorUseEmptyValueOnConversionErrors:
-								raw, err = sjson.SetBytes(raw, path.Name+"."+strconv.Itoa(k), f)
+								raw, err = sjson.SetBytes(raw, path.Name+"."+strconv.Itoa(k), b)
 							case ParseErrorReturnOnConversionErrors:
 								return nil, errors.WithStack(herodot.ErrBadRequest.WithReasonf("Expected value to be a boolean.").
 									WithDetail("parse_error", err.Error()).
@@ -442,7 +444,7 @@ func (t *HTTP) decodeURLValues(values url.Values, paths []jsonschemax.Path, o *h
 									WithDetail("value", v))
 							}
 						} else {
-							raw, err = sjson.SetBytes(raw, path.Name+"."+strconv.Itoa(k), f)
+							raw, err = sjson.SetBytes(raw, path.Name+"."+strconv.Itoa(k), b)
 						}
 					}
 				case []interface{}:
@@ -456,12 +458,13 @@ func (t *HTTP) decodeURLValues(values url.Values, paths []jsonschemax.Path, o *h
 						v = "false"
 					}
 
-					if f, err := strconv.ParseBool(v); err != nil {
+					var b bool
+					if b, err = strconv.ParseBool(v); err != nil {
 						switch o.handleParseErrors {
 						case ParseErrorIgnoreConversionErrors:
 							raw, err = sjson.SetBytes(raw, path.Name, v)
 						case ParseErrorUseEmptyValueOnConversionErrors:
-							raw, err = sjson.SetBytes(raw, path.Name, f)
+							raw, err = sjson.SetBytes(raw, path.Name, b)
 						case ParseErrorReturnOnConversionErrors:
 							return nil, errors.WithStack(herodot.ErrBadRequest.WithReasonf("Expected value to be a boolean.").
 								WithDetail("parse_error", err.Error()).
@@ -469,7 +472,7 @@ func (t *HTTP) decodeURLValues(values url.Values, paths []jsonschemax.Path, o *h
 								WithDetail("value", values.Get(key)))
 						}
 					} else {
-						raw, err = sjson.SetBytes(raw, path.Name, f)
+						raw, err = sjson.SetBytes(raw, path.Name, b)
 					}
 				case float64:
 					v := values.Get(key)
@@ -480,7 +483,8 @@ func (t *HTTP) decodeURLValues(values url.Values, paths []jsonschemax.Path, o *h
 						v = "0.0"
 					}
 
-					if f, err := strconv.ParseFloat(v, 64); err != nil {
+					var f float64
+					if f, err = strconv.ParseFloat(v, 64); err != nil {
 						switch o.handleParseErrors {
 						case ParseErrorIgnoreConversionErrors:
 							raw, err = sjson.SetBytes(raw, path.Name, v)
