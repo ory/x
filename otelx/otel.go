@@ -89,7 +89,7 @@ func (t *Tracer) WithOTLP(other trace.Tracer) *Tracer {
 	return &Tracer{other}
 }
 
-// Provider returns a TracerProvider which in turn yieds this tracer unmodified.
+// Provider returns a TracerProvider which in turn yields this tracer unmodified.
 func (t *Tracer) Provider() trace.TracerProvider {
 	return tracerProvider{t.Tracer()}
 }

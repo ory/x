@@ -4,6 +4,7 @@
 package httpx
 
 import (
+	"context"
 	"io"
 	"log"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/trace"
+	"golang.org/x/oauth2"
 
 	"github.com/hashicorp/go-retryablehttp"
 
@@ -19,6 +21,8 @@ import (
 
 type resilientOptions struct {
 	c                    *http.Client
+	oauthConfig          *oauth2.Config
+	oauthToken           *oauth2.Token
 	l                    interface{}
 	retryWaitMin         time.Duration
 	retryWaitMax         time.Duration
@@ -31,7 +35,7 @@ type resilientOptions struct {
 func newResilientOptions() *resilientOptions {
 	connTimeout := time.Minute
 	return &resilientOptions{
-		c:            &http.Client{Timeout: connTimeout},
+		c:            &http.Client{Timeout: connTimeout, Transport: http.DefaultTransport},
 		retryWaitMin: 1 * time.Second,
 		retryWaitMax: 30 * time.Second,
 		retryMax:     4,
@@ -41,13 +45,6 @@ func newResilientOptions() *resilientOptions {
 
 // ResilientOptions is a set of options for the ResilientClient.
 type ResilientOptions func(o *resilientOptions)
-
-// ResilientClientWithClient sets the underlying http client to use.
-func ResilientClientWithClient(c *http.Client) ResilientOptions {
-	return func(o *resilientOptions) {
-		o.c = c
-	}
-}
 
 // ResilientClientWithTracer wraps the http clients transport with a tracing instrumentation
 func ResilientClientWithTracer(tracer trace.Tracer) ResilientOptions {
@@ -114,23 +111,38 @@ func NewResilientClient(opts ...ResilientOptions) *retryablehttp.Client {
 	}
 
 	if o.noInternalIPs {
-		o.c.Transport = &NoInternalIPRoundTripper{
-			RoundTripper:         o.c.Transport,
-			internalIPExceptions: o.internalIPExceptions,
-		}
+		o.c.Transport = NewNoInternalIPRoundTripper(o.internalIPExceptions)
 	}
 
 	if o.tracer != nil {
 		o.c.Transport = otelhttp.NewTransport(o.c.Transport)
 	}
 
-	return &retryablehttp.Client{
-		HTTPClient:   o.c,
-		Logger:       o.l,
-		RetryWaitMin: o.retryWaitMin,
-		RetryWaitMax: o.retryWaitMax,
-		RetryMax:     o.retryMax,
-		CheckRetry:   retryablehttp.DefaultRetryPolicy,
-		Backoff:      retryablehttp.DefaultBackoff,
-	}
+	cl := retryablehttp.NewClient()
+	cl.HTTPClient = o.c
+	cl.Logger = o.l
+	cl.RetryWaitMin = o.retryWaitMin
+	cl.RetryWaitMax = o.retryWaitMax
+	cl.RetryMax = o.retryMax
+	cl.CheckRetry = retryablehttp.DefaultRetryPolicy
+	cl.Backoff = retryablehttp.DefaultBackoff
+	return cl
+}
+
+// SetOAuth2 modifies the given client to enable OAuth2 authentication. Requests
+// with the client should always use the returned context.
+//
+//	client := http.NewResilientClient(opts...)
+//	ctx, client = httpx.SetOAuth2(ctx, client, oauth2Config, oauth2Token)
+//	req, err := retryablehttp.NewRequestWithContext(ctx, ...)
+//	if err != nil { /* ... */ }
+//	res, err := client.Do(req)
+func SetOAuth2(ctx context.Context, cl *retryablehttp.Client, c OAuth2Config, t *oauth2.Token) (context.Context, *retryablehttp.Client) {
+	ctx = context.WithValue(ctx, oauth2.HTTPClient, cl.HTTPClient)
+	cl.HTTPClient = c.Client(ctx, t)
+	return ctx, cl
+}
+
+type OAuth2Config interface {
+	Client(context.Context, *oauth2.Token) *http.Client
 }

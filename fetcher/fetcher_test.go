@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ory/x/httpx"
+	"github.com/hashicorp/go-retryablehttp"
 
 	"github.com/gobuffalo/httptest"
 	"github.com/julienschmidt/httprouter"
@@ -35,9 +35,10 @@ func TestFetcher(t *testing.T) {
 	_, err = file.WriteString(`{"foo":"baz"}`)
 	require.NoError(t, err)
 	require.NoError(t, file.Close())
-
+	rClient := retryablehttp.NewClient()
+	rClient.HTTPClient = ts.Client()
 	for fc, fetcher := range []*Fetcher{
-		NewFetcher(WithClient(httpx.NewResilientClient(httpx.ResilientClientWithClient(ts.Client())))),
+		NewFetcher(WithClient(rClient)),
 		NewFetcher(),
 	} {
 		for k, tc := range []struct {

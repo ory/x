@@ -10,10 +10,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/ory/x/httpx"
 )
 
 var handler http.HandlerFunc = func(w http.ResponseWriter, r *http.Request) {
@@ -26,6 +25,9 @@ func TestReadFileFromAllSources(t *testing.T) {
 
 	sslTS := httptest.NewTLSServer(handler)
 	defer sslTS.Close()
+
+	rClient := retryablehttp.NewClient()
+	rClient.HTTPClient = sslTS.Client()
 
 	for k, tc := range []struct {
 		opts                []Option
@@ -49,7 +51,7 @@ func TestReadFileFromAllSources(t *testing.T) {
 
 		{src: ts.URL, expectedBody: "hello world"},
 		{src: sslTS.URL, expectedErrContains: "x509:"},
-		{src: sslTS.URL, expectedBody: "hello world", opts: []Option{WithHTTPClient(httpx.NewResilientClient(httpx.ResilientClientWithClient(sslTS.Client())))}},
+		{src: sslTS.URL, expectedBody: "hello world", opts: []Option{WithHTTPClient(rClient)}},
 		{src: sslTS.URL, expectedErr: "http(s) loader disabled", opts: []Option{WithDisabledHTTPLoader()}},
 
 		{src: "file://stub/text.txt", expectedErr: "file loader disabled", opts: []Option{WithDisabledFileLoader()}},

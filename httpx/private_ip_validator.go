@@ -6,12 +6,10 @@ package httpx
 import (
 	"fmt"
 	"net"
-	"net/http"
+	"net/netip"
 	"net/url"
-	"syscall"
-	"time"
 
-	"github.com/gobwas/glob"
+	"code.dny.dev/ssrf"
 	"github.com/pkg/errors"
 )
 
@@ -69,83 +67,28 @@ func DisallowIPPrivateAddresses(ipOrHostnameOrURL string) error {
 	}
 
 	for _, ip := range ips {
-		if ip.IsPrivate() || ip.IsLoopback() || ip.IsUnspecified() {
-			return ErrPrivateIPAddressDisallowed(fmt.Errorf("%s is not a public IP address", ip))
+		ip, err := netip.ParseAddr(ip.String())
+		if err != nil {
+			return ErrPrivateIPAddressDisallowed(errors.WithStack(err)) // should be unreacheable
+		}
+
+		if ip.Is4() {
+			for _, deny := range ssrf.IPv4DeniedPrefixes {
+				if deny.Contains(ip) {
+					return ErrPrivateIPAddressDisallowed(fmt.Errorf("%s is not a public IP address", ip))
+				}
+			}
+		} else {
+			if !ssrf.IPv6GlobalUnicast.Contains(ip) {
+				return ErrPrivateIPAddressDisallowed(fmt.Errorf("%s is not a public IP address", ip))
+			}
+			for _, net := range ssrf.IPv6DeniedPrefixes {
+				if net.Contains(ip) {
+					return ErrPrivateIPAddressDisallowed(fmt.Errorf("%s is not a public IP address", ip))
+				}
+			}
 		}
 	}
 
 	return nil
-}
-
-var _ http.RoundTripper = (*NoInternalIPRoundTripper)(nil)
-
-// NoInternalIPRoundTripper is a RoundTripper that disallows internal IP addresses.
-type NoInternalIPRoundTripper struct {
-	http.RoundTripper
-	internalIPExceptions []string
-}
-
-func (n NoInternalIPRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
-	rt := http.DefaultTransport
-	if n.RoundTripper != nil {
-		rt = n.RoundTripper
-	}
-
-	incoming := IncomingRequestURL(request)
-	incoming.RawQuery = ""
-	incoming.RawFragment = ""
-	for _, exception := range n.internalIPExceptions {
-		compiled, err := glob.Compile(exception, '.', '/')
-		if err != nil {
-			return nil, err
-		}
-		if compiled.Match(incoming.String()) {
-			return rt.RoundTrip(request)
-		}
-	}
-
-	if err := DisallowIPPrivateAddresses(incoming.Hostname()); err != nil {
-		return nil, err
-	}
-
-	return rt.RoundTrip(request)
-}
-
-var NoInternalDialer = &net.Dialer{
-	Timeout:   30 * time.Second,
-	KeepAlive: 30 * time.Second,
-	Control: func(network, address string, _ syscall.RawConn) error {
-		if !(network == "tcp4" || network == "tcp6") {
-			return ErrPrivateIPAddressDisallowed(fmt.Errorf("%s is not a safe network type", network))
-		}
-
-		host, _, err := net.SplitHostPort(address)
-		if err != nil {
-			return ErrPrivateIPAddressDisallowed(fmt.Errorf("%s is not a valid host/port pair: %s", address, err))
-		}
-
-		ip := net.ParseIP(host)
-		if ip == nil {
-			return ErrPrivateIPAddressDisallowed(fmt.Errorf("%s is not a valid IP address", host))
-		}
-
-		if ip.IsPrivate() || ip.IsLoopback() || ip.IsUnspecified() {
-			return ErrPrivateIPAddressDisallowed(fmt.Errorf("%s is not a public IP address", ip))
-		}
-
-		return nil
-	},
-}
-
-// NoInternalTransport
-//
-// DEPRECATED: do not use
-var NoInternalTransport http.RoundTripper = &http.Transport{
-	Proxy:                 http.ProxyFromEnvironment,
-	DialContext:           NoInternalDialer.DialContext,
-	ForceAttemptHTTP2:     true,
-	MaxIdleConns:          100,
-	IdleConnTimeout:       90 * time.Second,
-	TLSHandshakeTimeout:   10 * time.Second,
-	ExpectContinueTimeout: 1 * time.Second,
 }
