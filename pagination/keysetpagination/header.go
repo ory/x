@@ -65,24 +65,20 @@ type ResponseHeaders struct {
 	//	</admin/sessions?page_size=250&page_token={last_item_uuid}; rel="first",/admin/sessions?page_size=250&page_token=>; rel="next"
 	//
 	Link string `json:"link"`
-
-	// The X-Total-Count HTTP Header
-	//
-	// The `X-Total-Count` header contains the total number of items in the collection.
-	TotalCount int `json:"x-total-count"`
 }
 
-func header(u *url.URL, rel, token string, size int) string {
+func header(u url.URL, rel, token string, size int) string {
 	q := u.Query()
 	q.Set("page_token", token)
 	q.Set("page_size", strconv.Itoa(size))
 	u.RawQuery = q.Encode()
-	return fmt.Sprintf("<%s>; rel=\"%s\"", u.String(), rel)
+	url.escape
+	return fmt.Sprintf("<%s>; rel=%q", url.QueryEscape(u.String()), rel)
 }
 
 // Header adds the Link header for the page encoded by the paginator.
 // It contains links to the first and next page, if one exists.
-func Header(w http.ResponseWriter, u *url.URL, p *Paginator) {
+func Header(w http.ResponseWriter, u url.URL, p *Paginator) {
 	size := p.Size()
 	link := []string{header(u, "first", p.defaultToken.Encode(), size)}
 	if !p.isLast {
