@@ -21,6 +21,10 @@ var (
 	AlphaUpperNum = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 	// AlphaLower contains runes [abcdefghijklmnopqrstuvwxyz].
 	AlphaLower = []rune("abcdefghijklmnopqrstuvwxyz")
+	// AlphaUpperVowels contains runes [AEIOUY].
+	AlphaUpperVowels = []rune("AEIOUY")
+	// AlphaUpperNoVowels contains runes [BCDFGHJKLMNPQRSTVWXZ].
+	AlphaUpperNoVowels = []rune("BCDFGHJKLMNPQRSTVWXZ")
 	// AlphaUpper contains runes [ABCDEFGHIJKLMNOPQRSTUVWXYZ].
 	AlphaUpper = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	// Numeric contains runes [0123456789].
