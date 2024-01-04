@@ -168,6 +168,26 @@ func TestParse(t *testing.T) {
 		_, err := Parse(url.Values{"page_size": {"invalid-int"}}, NewStringPageToken)
 		require.ErrorIs(t, err, strconv.ErrSyntax)
 	})
+
+	t.Run("empty tokens and page sizes work as if unset, empty values are skipped", func(t *testing.T) {
+		opts, err := Parse(url.Values{}, NewStringPageToken)
+		require.NoError(t, err)
+		paginator := GetPaginator(append(opts, WithDefaultToken(StringPageToken("default")))...)
+		assert.Equal(t, "default", paginator.Token().Encode())
+		assert.Equal(t, 100, paginator.Size())
+
+		opts, err = Parse(url.Values{"page_token": {""}, "page_size": {""}}, NewStringPageToken)
+		require.NoError(t, err)
+		paginator = GetPaginator(append(opts, WithDefaultToken(StringPageToken("default2")))...)
+		assert.Equal(t, "default2", paginator.Token().Encode())
+		assert.Equal(t, 100, paginator.Size())
+
+		opts, err = Parse(url.Values{"page_token": {"", "foo", ""}, "page_size": {"", "123", ""}}, NewStringPageToken)
+		require.NoError(t, err)
+		paginator = GetPaginator(append(opts, WithDefaultToken(StringPageToken("default3")))...)
+		assert.Equal(t, "foo", paginator.Token().Encode())
+		assert.Equal(t, 123, paginator.Size())
+	})
 }
 
 func TestPaginateWithAdditionalColumn(t *testing.T) {
