@@ -9,7 +9,7 @@ require (
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
 	github.com/cenkalti/backoff/v4 v4.2.1
-	github.com/cockroachdb/cockroach-go/v2 v2.2.16
+	github.com/cockroachdb/cockroach-go/v2 v2.3.5
 	github.com/dgraph-io/ristretto v0.1.1
 	github.com/docker/docker v20.10.24+incompatible
 	github.com/evanphx/json-patch/v5 v5.6.0

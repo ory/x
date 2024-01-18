@@ -11,7 +11,7 @@ import (
 )
 
 func NewLocalTestCRDBServer(t testing.TB) string {
-	ts, err := testserver.NewTestServer()
+	ts, err := testserver.NewTestServer(testserver.CustomVersionOpt("23.1.13"))
 	require.NoError(t, err)
 	t.Cleanup(ts.Stop)
 
