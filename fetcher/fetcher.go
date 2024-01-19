@@ -6,13 +6,16 @@ package fetcher
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
 	stderrors "errors"
 	"io"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/dgraph-io/ristretto"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/pkg/errors"
 
@@ -24,11 +27,15 @@ import (
 type Fetcher struct {
 	hc    *retryablehttp.Client
 	limit int64
+	cache *ristretto.Cache
+	ttl   time.Duration
 }
 
 type opts struct {
 	hc    *retryablehttp.Client
 	limit int64
+	cache *ristretto.Cache
+	ttl   time.Duration
 }
 
 var ErrUnknownScheme = stderrors.New("unknown scheme")
@@ -48,6 +55,16 @@ func WithMaxHTTPMaxBytes(limit int64) Modifier {
 	}
 }
 
+func WithCache(cache *ristretto.Cache, ttl time.Duration) Modifier {
+	return func(o *opts) {
+		if ttl < 0 {
+			return
+		}
+		o.cache = cache
+		o.ttl = ttl
+	}
+}
+
 func newOpts() *opts {
 	return &opts{
 		hc: httpx.NewResilientClient(),
@@ -62,41 +79,58 @@ func NewFetcher(opts ...Modifier) *Fetcher {
 	for _, f := range opts {
 		f(o)
 	}
-	return &Fetcher{hc: o.hc, limit: o.limit}
+	return &Fetcher{hc: o.hc, limit: o.limit, cache: o.cache, ttl: o.ttl}
 }
 
 // Fetch fetches the file contents from the source.
-func (f *Fetcher) Fetch(source string) (*bytes.Buffer, error) {
+func (f *Fetcher) Fetch(source string) ([]byte, error) {
 	return f.FetchContext(context.Background(), source)
 }
 
 // FetchContext fetches the file contents from the source and allows to pass a
 // context that is used for HTTP requests.
-func (f *Fetcher) FetchContext(ctx context.Context, source string) (*bytes.Buffer, error) {
+func (f *Fetcher) FetchContext(ctx context.Context, source string) ([]byte, error) {
 	switch s := stringsx.SwitchPrefix(source); {
 	case s.HasPrefix("http://"), s.HasPrefix("https://"):
 		return f.fetchRemote(ctx, source)
 	case s.HasPrefix("file://"):
-		return f.fetchFile(strings.Replace(source, "file://", "", 1))
+		return f.fetchFile(strings.TrimPrefix(source, "file://"))
 	case s.HasPrefix("base64://"):
-		src, err := base64.StdEncoding.DecodeString(strings.Replace(source, "base64://", "", 1))
+		src, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(source, "base64://"))
 		if err != nil {
-			return nil, errors.Wrapf(err, "rule: %s", source)
+			return nil, errors.Wrapf(err, "base64decode: %s", source)
 		}
-		return bytes.NewBuffer(src), nil
+		return src, nil
 	default:
 		return nil, errors.Wrap(ErrUnknownScheme, s.ToUnknownPrefixErr().Error())
 	}
 }
 
-func (f *Fetcher) fetchRemote(ctx context.Context, source string) (*bytes.Buffer, error) {
+func (f *Fetcher) fetchRemote(ctx context.Context, source string) (b []byte, err error) {
+	if f.cache != nil {
+		cacheKey := sha256.Sum256([]byte(source))
+		if v, ok := f.cache.Get(cacheKey[:]); ok {
+			cached := v.([]byte)
+			b = make([]byte, len(cached))
+			copy(b, cached)
+			return b, nil
+		}
+		defer func() {
+			if err == nil && len(b) > 0 {
+				toCache := make([]byte, len(b))
+				copy(toCache, b)
+				f.cache.SetWithTTL(cacheKey[:], toCache, int64(len(toCache)), f.ttl)
+			}
+		}()
+	}
+
 	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodGet, source, nil)
 	if err != nil {
-		return nil, errors.Wrapf(err, "rule: %s", source)
+		return nil, errors.Wrapf(err, "new request: %s", source)
 	}
 	res, err := f.hc.Do(req)
 	if err != nil {
-		return nil, errors.Wrapf(err, "rule: %s", source)
+		return nil, errors.Wrap(err, source)
 	}
 	defer res.Body.Close()
 
@@ -113,27 +147,23 @@ func (f *Fetcher) fetchRemote(ctx context.Context, source string) (*bytes.Buffer
 		if err != nil {
 			return nil, err
 		}
-		return &buf, nil
+		return buf.Bytes(), nil
 	}
-	return f.toBuffer(res.Body)
+	return io.ReadAll(res.Body)
 }
 
-func (f *Fetcher) fetchFile(source string) (*bytes.Buffer, error) {
+func (f *Fetcher) fetchFile(source string) ([]byte, error) {
 	fp, err := os.Open(source) // #nosec:G304
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to fetch from source: %s", source)
+		return nil, errors.Wrapf(err, "unable to open file: %s", source)
 	}
-	defer func() {
-		_ = fp.Close()
-	}()
-
-	return f.toBuffer(fp)
-}
-
-func (f *Fetcher) toBuffer(r io.Reader) (*bytes.Buffer, error) {
-	var b bytes.Buffer
-	if _, err := io.Copy(&b, r); err != nil {
-		return nil, err
+	defer fp.Close()
+	b, err := io.ReadAll(fp)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to read file: %s", source)
 	}
-	return &b, nil
+	if err := fp.Close(); err != nil {
+		return nil, errors.Wrapf(err, "unable to close file: %s", source)
+	}
+	return b, nil
 }

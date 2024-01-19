@@ -10,9 +10,11 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/dgraph-io/ristretto"
 	"github.com/hashicorp/go-retryablehttp"
 
 	"github.com/gobuffalo/httptest"
@@ -61,7 +63,7 @@ func TestFetcher(t *testing.T) {
 			t.Run(fmt.Sprintf("config=%d/case=%d", fc, k), func(t *testing.T) {
 				actual, err := fetcher.Fetch(tc.source)
 				require.NoError(t, err)
-				assert.JSONEq(t, tc.expect, actual.String())
+				assert.JSONEq(t, tc.expect, string(actual))
 			})
 		}
 	}
@@ -92,5 +94,42 @@ func TestFetcher(t *testing.T) {
 
 		_, err = NewFetcher(WithMaxHTTPMaxBytes(4000)).Fetch(srv.URL)
 		assert.NoError(t, err)
+	})
+
+	t.Run("case=with-cache", func(t *testing.T) {
+		var hits int32
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("toodaloo"))
+			atomic.AddInt32(&hits, 1)
+		}))
+		t.Cleanup(srv.Close)
+
+		cache, err := ristretto.NewCache(&ristretto.Config{
+			NumCounters: 100 * 10,
+			MaxCost:     100,
+			BufferItems: 64,
+		})
+		require.NoError(t, err)
+
+		f := NewFetcher(WithCache(cache, time.Hour))
+
+		res, err := f.Fetch(srv.URL)
+		require.NoError(t, err)
+		require.Equal(t, "toodaloo", string(res))
+
+		require.EqualValues(t, 1, atomic.LoadInt32(&hits))
+
+		f.cache.Wait()
+
+		for i := 0; i < 100; i++ {
+			res2, err := f.Fetch(srv.URL)
+			require.NoError(t, err)
+			require.Equal(t, "toodaloo", string(res2))
+			if &res == &res2 {
+				t.Fatalf("cache should not return the same pointer")
+			}
+		}
+
+		require.EqualValues(t, 1, atomic.LoadInt32(&hits))
 	})
 }
