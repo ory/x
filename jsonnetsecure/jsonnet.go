@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/dgraph-io/ristretto"
 	"github.com/google/go-jsonnet"
 )
 
@@ -31,10 +32,11 @@ type (
 	}
 
 	ProcessVM struct {
-		ctx    context.Context
-		path   string
-		args   []string
-		params processParameters
+		ctx          context.Context
+		path         string
+		args         []string
+		params       processParameters
+		snippetCache *ristretto.Cache
 	}
 
 	vmOptions struct {
@@ -42,6 +44,7 @@ type (
 		jsonnetBinaryPath string
 		args              []string
 		ctx               context.Context
+		snippetCache      *ristretto.Cache
 	}
 
 	Option func(o *vmOptions)
@@ -71,6 +74,12 @@ func WithJsonnetBinary(jsonnetBinaryPath string) Option {
 func WithProcessArgs(args ...string) Option {
 	return func(o *vmOptions) {
 		o.args = args
+	}
+}
+
+func WithSnippetCache(cache *ristretto.Cache) Option {
+	return func(o *vmOptions) {
+		o.snippetCache = cache
 	}
 }
 

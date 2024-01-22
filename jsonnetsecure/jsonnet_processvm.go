@@ -25,9 +25,10 @@ import (
 
 func NewProcessVM(opts *vmOptions) VM {
 	return &ProcessVM{
-		path: opts.jsonnetBinaryPath,
-		args: opts.args,
-		ctx:  opts.ctx,
+		path:         opts.jsonnetBinaryPath,
+		args:         opts.args,
+		ctx:          opts.ctx,
+		snippetCache: opts.snippetCache,
 	}
 }
 
@@ -35,6 +36,18 @@ func (p *ProcessVM) EvaluateAnonymousSnippet(filename string, snippet string) (_
 	tracer := trace.SpanFromContext(p.ctx).TracerProvider().Tracer("")
 	ctx, span := tracer.Start(p.ctx, "jsonnetsecure.ProcessVM.EvaluateAnonymousSnippet", trace.WithAttributes(attribute.String("filename", filename)))
 	defer otelx.End(span, &err)
+
+	if p.snippetCache != nil {
+		if _, ok := p.snippetCache.Get(snippet); ok {
+			_, span := tracer.Start(p.ctx, "jsonnetsecure.ProcessVM.EvaluateAnonymousSnippet.InMemory", trace.WithAttributes(attribute.String("filename", filename)))
+			defer otelx.End(span, &err)
+			result, err := evaluateJsonnetSnippet(&p.params)
+			if err != nil {
+				return "", errors.Wrap(err, "failed to evaluate snippet")
+			}
+			return result, nil
+		}
+	}
 
 	// We retry the process creation, because it sometimes times out.
 	const processVMTimeout = 1 * time.Second
@@ -69,6 +82,10 @@ func (p *ProcessVM) EvaluateAnonymousSnippet(filename string, snippet string) (_
 		}
 		if err != nil {
 			return "", fmt.Errorf("jsonnetsecure: %w (stdout=%q stderr=%q)", err, stdout.String(), stderr.String())
+		}
+
+		if p.snippetCache != nil {
+			p.snippetCache.Set(snippet, nil, 1)
 		}
 
 		return stdout.String(), nil

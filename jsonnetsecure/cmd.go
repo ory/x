@@ -22,22 +22,8 @@ func NewJsonnetCmd() *cobra.Command {
 			if err := params.DecodeFrom(cmd.InOrStdin()); err != nil {
 				return err
 			}
-			vm := MakeSecureVM()
 
-			for _, it := range params.ExtCodes {
-				vm.ExtCode(it.Key, it.Value)
-			}
-			for _, it := range params.ExtVars {
-				vm.ExtVar(it.Key, it.Value)
-			}
-			for _, it := range params.TLACodes {
-				vm.TLACode(it.Key, it.Value)
-			}
-			for _, it := range params.TLAVars {
-				vm.TLAVar(it.Key, it.Value)
-			}
-
-			result, err := vm.EvaluateAnonymousSnippet(params.Filename, params.Snippet)
+			result, err := evaluateJsonnetSnippet(&params)
 			if err != nil {
 				return errors.Wrap(err, "failed to evaluate snippet")
 			}
@@ -51,4 +37,23 @@ func NewJsonnetCmd() *cobra.Command {
 	}
 
 	return cmd
+}
+
+func evaluateJsonnetSnippet(params *processParameters) (string, error) {
+	vm := MakeSecureVM()
+
+	for _, it := range params.ExtCodes {
+		vm.ExtCode(it.Key, it.Value)
+	}
+	for _, it := range params.ExtVars {
+		vm.ExtVar(it.Key, it.Value)
+	}
+	for _, it := range params.TLACodes {
+		vm.TLACode(it.Key, it.Value)
+	}
+	for _, it := range params.TLAVars {
+		vm.TLAVar(it.Key, it.Value)
+	}
+
+	return vm.EvaluateAnonymousSnippet(params.Filename, params.Snippet)
 }

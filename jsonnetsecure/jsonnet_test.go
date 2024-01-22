@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dgraph-io/ristretto"
 	"github.com/google/go-jsonnet"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -108,6 +109,24 @@ func TestSecureVM(t *testing.T) {
 				return out
 			})
 		})
+	})
+
+	t.Run("case=caching", func(t *testing.T) {
+		snippet := "{a:1}"
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		cache, err := ristretto.NewCache(&ristretto.Config{NumCounters: 1000, MaxCost: 1000, BufferItems: 1000})
+		require.NoError(t, err)
+		vm := MakeSecureVM(
+			WithProcessIsolatedVM(ctx),
+			WithSnippetCache(cache),
+			WithJsonnetBinary(testBinary),
+		)
+
+		for i := 0; i < 10; i++ {
+			_, err = vm.EvaluateAnonymousSnippet("test", snippet)
+			require.NoError(t, err)
+		}
 	})
 
 	t.Run("case=process isolation", func(t *testing.T) {

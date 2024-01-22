@@ -7,6 +7,8 @@ import (
 	"context"
 	"os"
 	"testing"
+
+	"github.com/dgraph-io/ristretto"
 )
 
 type (
@@ -27,6 +29,7 @@ type (
 	// running the current binary with the provided subcommand.
 	DefaultProvider struct {
 		Subcommand string
+		Cache      *ristretto.Cache
 	}
 )
 
@@ -50,5 +53,6 @@ func (p *DefaultProvider) JsonnetVM(ctx context.Context) (VM, error) {
 		WithProcessIsolatedVM(ctx),
 		WithJsonnetBinary(self),
 		WithProcessArgs(p.Subcommand),
+		WithSnippetCache(p.Cache),
 	), nil
 }
