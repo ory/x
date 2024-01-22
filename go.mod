@@ -1,6 +1,6 @@
 module github.com/ory/x
 
-go 1.20
+go 1.21
 
 require (
 	code.dny.dev/ssrf v0.2.0
@@ -29,13 +29,14 @@ require (
 	github.com/goccy/go-yaml v1.9.6
 	github.com/gofrs/uuid v4.3.0+incompatible
 	github.com/golang/mock v1.6.0
-	github.com/google/go-jsonnet v0.19.0
+	github.com/google/go-jsonnet v0.20.0
 	github.com/gorilla/websocket v1.5.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/hashicorp/go-retryablehttp v0.7.1
 	github.com/inhies/go-bytesize v0.0.0-20220417184213-4913239db9cf
 	github.com/jackc/pgconn v1.13.0
 	github.com/jackc/pgx/v4 v4.17.2
+	github.com/jackc/puddle/v2 v2.1.2
 	github.com/jandelgado/gcov2lcov v1.0.5
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/julienschmidt/httprouter v1.3.0
@@ -205,6 +206,7 @@ require (
 	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
 	go.mongodb.org/mongo-driver v1.10.3 // indirect
 	go.opentelemetry.io/otel/metric v1.21.0 // indirect
+	go.uber.org/atomic v1.10.0 // indirect
 	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa // indirect
 	golang.org/x/image v0.14.0 // indirect
 	golang.org/x/sys v0.14.0 // indirect

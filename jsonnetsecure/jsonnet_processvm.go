@@ -13,14 +13,12 @@ import (
 	"strings"
 	"time"
 
-	"go.opentelemetry.io/otel/attribute"
-
-	"github.com/ory/x/otelx"
-
-	"go.opentelemetry.io/otel/trace"
-
 	"github.com/cenkalti/backoff/v4"
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+
+	"github.com/ory/x/otelx"
 )
 
 func NewProcessVM(opts *vmOptions) VM {
@@ -94,6 +92,11 @@ func (p *ProcessVM) TLAVar(key string, val string) {
 func (pp *processParameters) EncodeTo(w io.Writer) error {
 	return json.NewEncoder(w).Encode(pp)
 }
+
 func (pp *processParameters) DecodeFrom(r io.Reader) error {
 	return json.NewDecoder(r).Decode(pp)
+}
+
+func (pp *processParameters) Decode(d []byte) error {
+	return json.Unmarshal(d, pp)
 }
