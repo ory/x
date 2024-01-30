@@ -163,6 +163,56 @@ func (ns *NullBool) UnmarshalJSON(data []byte) error {
 	return errors.WithStack(json.Unmarshal(data, &ns.Bool))
 }
 
+// FalsyNullBool represents a bool that may be null.
+// It JSON decodes to false if null.
+//
+// swagger:type bool
+// swagger:model falsyNullBool
+type FalsyNullBool struct {
+	Bool  bool
+	Valid bool // Valid is true if Bool is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *FalsyNullBool) Scan(value interface{}) error {
+	var d = sql.NullBool{}
+	if err := d.Scan(value); err != nil {
+		return err
+	}
+
+	ns.Bool = d.Bool
+	ns.Valid = d.Valid
+	return nil
+}
+
+// Value implements the driver Valuer interface.
+func (ns FalsyNullBool) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return ns.Bool, nil
+}
+
+// MarshalJSON returns m as the JSON encoding of m.
+func (ns FalsyNullBool) MarshalJSON() ([]byte, error) {
+	if !ns.Valid {
+		return []byte("false"), nil
+	}
+	return json.Marshal(ns.Bool)
+}
+
+// UnmarshalJSON sets *m to a copy of data.
+func (ns *FalsyNullBool) UnmarshalJSON(data []byte) error {
+	if ns == nil {
+		return errors.New("json.RawMessage: UnmarshalJSON on nil pointer")
+	}
+	if len(data) == 0 || string(data) == "null" {
+		return nil
+	}
+	ns.Valid = true
+	return errors.WithStack(json.Unmarshal(data, &ns.Bool))
+}
+
 // swagger:type string
 // swagger:model nullString
 type NullString string
