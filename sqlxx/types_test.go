@@ -64,6 +64,42 @@ func TestNullBoolMarshalJSON(t *testing.T) {
 	}
 }
 
+func TestNullBoolDefaultFalseMarshalJSON(t *testing.T) {
+	type outer struct {
+		Bool *FalsyNullBool `json:"null_bool,omitempty"`
+	}
+
+	for k, tc := range []struct {
+		in       *outer
+		expected string
+	}{
+		{in: &outer{&FalsyNullBool{Valid: false, Bool: true}}, expected: "{\"null_bool\":false}"},
+		{in: &outer{&FalsyNullBool{Valid: false, Bool: false}}, expected: "{\"null_bool\":false}"},
+		{in: &outer{&FalsyNullBool{Valid: true, Bool: true}}, expected: "{\"null_bool\":true}"},
+		{in: &outer{&FalsyNullBool{Valid: true, Bool: false}}, expected: "{\"null_bool\":false}"},
+		{in: &outer{}, expected: "{}"},
+	} {
+		t.Run(fmt.Sprintf("case=%d", k), func(t *testing.T) {
+			out, err := json.Marshal(tc.in)
+			require.NoError(t, err)
+			assert.EqualValues(t, tc.expected, string(out))
+
+			var actual outer
+			require.NoError(t, json.Unmarshal(out, &actual))
+			if tc.in.Bool == nil {
+				assert.Nil(t, actual.Bool)
+				return
+			} else if !tc.in.Bool.Valid {
+				assert.False(t, actual.Bool.Bool)
+				return
+			}
+
+			assert.EqualValues(t, tc.in.Bool.Bool, actual.Bool.Bool)
+			assert.EqualValues(t, tc.in.Bool.Valid, actual.Bool.Valid)
+		})
+	}
+}
+
 func TestNullInt64MarshalJSON(t *testing.T) {
 	type outer struct {
 		Int64 *NullInt64 `json:"null_int,omitempty"`
