@@ -83,13 +83,23 @@ func NewFetcher(opts ...Modifier) *Fetcher {
 }
 
 // Fetch fetches the file contents from the source.
-func (f *Fetcher) Fetch(source string) ([]byte, error) {
+func (f *Fetcher) Fetch(source string) (*bytes.Buffer, error) {
 	return f.FetchContext(context.Background(), source)
 }
 
 // FetchContext fetches the file contents from the source and allows to pass a
 // context that is used for HTTP requests.
-func (f *Fetcher) FetchContext(ctx context.Context, source string) ([]byte, error) {
+func (f *Fetcher) FetchContext(ctx context.Context, source string) (*bytes.Buffer, error) {
+	b, err := f.FetchBytes(ctx, source)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewBuffer(b), nil
+}
+
+// FetchBytes fetches the file contents from the source and allows to pass a
+// context that is used for HTTP requests.
+func (f *Fetcher) FetchBytes(ctx context.Context, source string) ([]byte, error) {
 	switch s := stringsx.SwitchPrefix(source); {
 	case s.HasPrefix("http://"), s.HasPrefix("https://"):
 		return f.fetchRemote(ctx, source)

@@ -4,7 +4,6 @@
 package jwksx
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"time"
@@ -157,7 +156,7 @@ func (f *FetcherNext) fetch(ctx context.Context, location string, opts *fetcherN
 		return nil, err
 	}
 
-	set, err := jwk.ParseReader(bytes.NewBuffer(result))
+	set, err := jwk.ParseReader(result)
 	if err != nil {
 		return nil, errors.WithStack(herodot.ErrBadRequest.WithReason("failed to parse JWK set").WithWrap(err))
 	}

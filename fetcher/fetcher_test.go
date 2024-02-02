@@ -63,7 +63,7 @@ func TestFetcher(t *testing.T) {
 			t.Run(fmt.Sprintf("config=%d/case=%d", fc, k), func(t *testing.T) {
 				actual, err := fetcher.Fetch(tc.source)
 				require.NoError(t, err)
-				assert.JSONEq(t, tc.expect, string(actual))
+				assert.JSONEq(t, tc.expect, actual.String())
 			})
 		}
 	}
@@ -115,7 +115,7 @@ func TestFetcher(t *testing.T) {
 
 		res, err := f.Fetch(srv.URL)
 		require.NoError(t, err)
-		require.Equal(t, "toodaloo", string(res))
+		require.Equal(t, "toodaloo", res.String())
 
 		require.EqualValues(t, 1, atomic.LoadInt32(&hits))
 
@@ -124,7 +124,7 @@ func TestFetcher(t *testing.T) {
 		for i := 0; i < 100; i++ {
 			res2, err := f.Fetch(srv.URL)
 			require.NoError(t, err)
-			require.Equal(t, "toodaloo", string(res2))
+			require.Equal(t, "toodaloo", res2.String())
 			if &res == &res2 {
 				t.Fatalf("cache should not return the same pointer")
 			}
