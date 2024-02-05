@@ -156,7 +156,8 @@ func (w worker) destroy() {
 
 func (w worker) eval(ctx context.Context, processParams []byte) (output string, err error) {
 	tracer := trace.SpanFromContext(ctx).TracerProvider().Tracer("")
-	ctx, span := tracer.Start(ctx, "jsonnetsecure.worker.eval")
+	ctx, span := tracer.Start(ctx, "jsonnetsecure.worker.eval",
+		trace.WithAttributes(attribute.Int("cmd.Process.Pid", w.cmd.Process.Pid)))
 	defer otelx.End(span, &err)
 
 	select {

@@ -8,8 +8,10 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/http/httptrace"
 	"time"
 
+	"go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/oauth2"
@@ -29,17 +31,19 @@ type resilientOptions struct {
 	retryMax             int
 	noInternalIPs        bool
 	internalIPExceptions []string
+	ipV6                 bool
 	tracer               trace.Tracer
 }
 
 func newResilientOptions() *resilientOptions {
 	connTimeout := time.Minute
 	return &resilientOptions{
-		c:            &http.Client{Timeout: connTimeout, Transport: http.DefaultTransport},
+		c:            &http.Client{Timeout: connTimeout},
 		retryWaitMin: 1 * time.Second,
 		retryWaitMax: 30 * time.Second,
 		retryMax:     4,
 		l:            log.New(io.Discard, "", log.LstdFlags),
+		ipV6:         true,
 	}
 }
 
@@ -103,6 +107,12 @@ func ResilientClientAllowInternalIPRequestsTo(urlGlobs ...string) ResilientOptio
 	}
 }
 
+func ResilientClientNoIPv6() ResilientOptions {
+	return func(o *resilientOptions) {
+		o.ipV6 = false
+	}
+}
+
 // NewResilientClient creates a new ResilientClient.
 func NewResilientClient(opts ...ResilientOptions) *retryablehttp.Client {
 	o := newResilientOptions()
@@ -111,11 +121,19 @@ func NewResilientClient(opts ...ResilientOptions) *retryablehttp.Client {
 	}
 
 	if o.noInternalIPs {
-		o.c.Transport = NewNoInternalIPRoundTripper(o.internalIPExceptions)
+		o.c.Transport = &noInternalIPRoundTripper{
+			onWhitelist:          ifelse(o.ipV6, allowInternalAllowIPv6, allowInternalProhibitIPv6),
+			notOnWhitelist:       ifelse(o.ipV6, prohibitInternalAllowIPv6, prohibitInternalProhibitIPv6),
+			internalIPExceptions: o.internalIPExceptions,
+		}
+	} else {
+		o.c.Transport = ifelse(o.ipV6, allowInternalAllowIPv6, allowInternalProhibitIPv6)
 	}
 
 	if o.tracer != nil {
-		o.c.Transport = otelhttp.NewTransport(o.c.Transport)
+		o.c.Transport = otelhttp.NewTransport(o.c.Transport, otelhttp.WithClientTrace(func(ctx context.Context) *httptrace.ClientTrace {
+			return otelhttptrace.NewClientTrace(ctx, otelhttptrace.WithoutHeaders(), otelhttptrace.WithoutSubSpans())
+		}))
 	}
 
 	cl := retryablehttp.NewClient()
@@ -145,4 +163,11 @@ func SetOAuth2(ctx context.Context, cl *retryablehttp.Client, c OAuth2Config, t 
 
 type OAuth2Config interface {
 	Client(context.Context, *oauth2.Token) *http.Client
+}
+
+func ifelse[A any](b bool, x, y A) A {
+	if b {
+		return x
+	}
+	return y
 }
