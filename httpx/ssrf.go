@@ -4,6 +4,7 @@
 package httpx
 
 import (
+	"context"
 	"net"
 	"net/http"
 	"net/netip"
@@ -23,41 +24,12 @@ type noInternalIPRoundTripper struct {
 // NewNoInternalIPRoundTripper creates a RoundTripper that disallows
 // non-publicly routable IP addresses, except for URLs matching the given
 // exception globs.
+// Deprecated: Use ResilientClientDisallowInternalIPs instead.
 func NewNoInternalIPRoundTripper(exceptions []string) http.RoundTripper {
-	if len(exceptions) > 0 {
-		prohibitInternal := newSSRFTransport(ssrf.New(
-			ssrf.WithAnyPort(),
-			ssrf.WithNetworks("tcp4", "tcp6"),
-		))
-
-		allowInternal := newSSRFTransport(ssrf.New(
-			ssrf.WithAnyPort(),
-			ssrf.WithNetworks("tcp4", "tcp6"),
-			ssrf.WithAllowedV4Prefixes(
-				netip.MustParsePrefix("10.0.0.0/8"),     // Private-Use (RFC 1918)
-				netip.MustParsePrefix("127.0.0.0/8"),    // Loopback (RFC 1122, Section 3.2.1.3))
-				netip.MustParsePrefix("169.254.0.0/16"), // Link Local (RFC 3927)
-				netip.MustParsePrefix("172.16.0.0/12"),  // Private-Use (RFC 1918)
-				netip.MustParsePrefix("192.168.0.0/16"), // Private-Use (RFC 1918)
-			),
-			ssrf.WithAllowedV6Prefixes(
-				netip.MustParsePrefix("::1/128"),  // Loopback (RFC 4193)
-				netip.MustParsePrefix("fc00::/7"), // Unique Local (RFC 4193)
-			),
-		))
-		return noInternalIPRoundTripper{
-			onWhitelist:          allowInternal,
-			notOnWhitelist:       prohibitInternal,
-			internalIPExceptions: exceptions,
-		}
-	}
-	prohibitInternal := newSSRFTransport(ssrf.New(
-		ssrf.WithAnyPort(),
-		ssrf.WithNetworks("tcp4", "tcp6"),
-	))
-	return noInternalIPRoundTripper{
-		onWhitelist:    prohibitInternal,
-		notOnWhitelist: prohibitInternal,
+	return &noInternalIPRoundTripper{
+		onWhitelist:          allowInternalAllowIPv6,
+		notOnWhitelist:       prohibitInternalAllowIPv6,
+		internalIPExceptions: exceptions,
 	}
 }
 
@@ -79,23 +51,89 @@ func (n noInternalIPRoundTripper) RoundTrip(request *http.Request) (*http.Respon
 	return n.notOnWhitelist.RoundTrip(request)
 }
 
-func newSSRFTransport(g *ssrf.Guardian) http.RoundTripper {
-	t := newDefaultTransport()
-	t.DialContext = (&net.Dialer{Control: g.Safe}).DialContext
-	return t
+var (
+	prohibitInternalAllowIPv6    http.RoundTripper
+	prohibitInternalProhibitIPv6 http.RoundTripper
+	allowInternalAllowIPv6       http.RoundTripper
+	allowInternalProhibitIPv6    http.RoundTripper
+)
+
+func init() {
+	t, d := newDefaultTransport()
+	d.Control = ssrf.New(
+		ssrf.WithAnyPort(),
+		ssrf.WithNetworks("tcp4", "tcp6"),
+	).Safe
+	prohibitInternalAllowIPv6 = t
 }
 
-func newDefaultTransport() *http.Transport {
+func init() {
+	t, d := newDefaultTransport()
+	d.Control = ssrf.New(
+		ssrf.WithAnyPort(),
+		ssrf.WithNetworks("tcp4"),
+	).Safe
+	t.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+		return d.DialContext(ctx, "tcp4", addr)
+	}
+	prohibitInternalProhibitIPv6 = t
+}
+
+func init() {
+	t, d := newDefaultTransport()
+	d.Control = ssrf.New(
+		ssrf.WithAnyPort(),
+		ssrf.WithNetworks("tcp4", "tcp6"),
+		ssrf.WithAllowedV4Prefixes(
+			netip.MustParsePrefix("10.0.0.0/8"),     // Private-Use (RFC 1918)
+			netip.MustParsePrefix("127.0.0.0/8"),    // Loopback (RFC 1122, Section 3.2.1.3))
+			netip.MustParsePrefix("169.254.0.0/16"), // Link Local (RFC 3927)
+			netip.MustParsePrefix("172.16.0.0/12"),  // Private-Use (RFC 1918)
+			netip.MustParsePrefix("192.168.0.0/16"), // Private-Use (RFC 1918)
+		),
+		ssrf.WithAllowedV6Prefixes(
+			netip.MustParsePrefix("::1/128"),  // Loopback (RFC 4193)
+			netip.MustParsePrefix("fc00::/7"), // Unique Local (RFC 4193)
+		),
+	).Safe
+	allowInternalAllowIPv6 = t
+}
+
+func init() {
+	t, d := newDefaultTransport()
+	d.Control = ssrf.New(
+		ssrf.WithAnyPort(),
+		ssrf.WithNetworks("tcp4"),
+		ssrf.WithAllowedV4Prefixes(
+			netip.MustParsePrefix("10.0.0.0/8"),     // Private-Use (RFC 1918)
+			netip.MustParsePrefix("127.0.0.0/8"),    // Loopback (RFC 1122, Section 3.2.1.3))
+			netip.MustParsePrefix("169.254.0.0/16"), // Link Local (RFC 3927)
+			netip.MustParsePrefix("172.16.0.0/12"),  // Private-Use (RFC 1918)
+			netip.MustParsePrefix("192.168.0.0/16"), // Private-Use (RFC 1918)
+		),
+		ssrf.WithAllowedV6Prefixes(
+			netip.MustParsePrefix("::1/128"),  // Loopback (RFC 4193)
+			netip.MustParsePrefix("fc00::/7"), // Unique Local (RFC 4193)
+		),
+	).Safe
+	t.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+		return d.DialContext(ctx, "tcp4", addr)
+	}
+	allowInternalProhibitIPv6 = t
+}
+
+func newDefaultTransport() (*http.Transport, *net.Dialer) {
+	dialer := net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
 	return &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
+		Proxy:                 http.ProxyFromEnvironment,
+		DialContext:           dialer.DialContext,
 		ForceAttemptHTTP2:     true,
 		MaxIdleConns:          100,
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
-	}
+	}, &dialer
 }
