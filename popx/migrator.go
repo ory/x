@@ -94,18 +94,24 @@ func (m *Migrator) UpTo(ctx context.Context, step int) (applied int, err error) 
 	defer span.End()
 
 	c := m.Connection.WithContext(ctx)
+	mtn := m.sanitizedMigrationTableName(c)
+
+	var appliedMigrations []migrationRow
+	err = c.RawQuery(fmt.Sprintf("SELECT * FROM %s", mtn)).All(&appliedMigrations)
+	if err != nil && !errIsTableNotFound(err) {
+		return 0, errors.Wrap(err, "migration up: unable to fetch applied migrations")
+	}
+	appliedMigrationsMap := make(map[string]struct{}, len(appliedMigrations))
+	for _, am := range appliedMigrations {
+		appliedMigrationsMap[am.Version] = struct{}{}
+	}
+
 	err = m.exec(ctx, func() error {
-		mtn := m.sanitizedMigrationTableName(c)
 		mfs := m.Migrations["up"].SortAndFilter(c.Dialect.Name())
 		for _, mi := range mfs {
 			l := m.l.WithField("version", mi.Version).WithField("migration_name", mi.Name).WithField("migration_file", mi.Path)
 
-			exists, err := c.Where("version = ?", mi.Version).Exists(mtn)
-			if err != nil {
-				return errors.Wrapf(err, "problem checking for migration version %s", mi.Version)
-			}
-
-			if exists {
+			if _, exists := appliedMigrationsMap[mi.Version]; exists {
 				l.Debug("Migration has already been applied, skipping.")
 				continue
 			}
@@ -114,12 +120,8 @@ func (m *Migrator) UpTo(ctx context.Context, step int) (applied int, err error) 
 				l.Debug("Migration has not been applied but it might be a legacy migration, investigating.")
 
 				legacyVersion := mi.Version[:14]
-				exists, err = c.Where("version = ?", legacyVersion).Exists(mtn)
-				if err != nil {
-					return errors.Wrapf(err, "problem checking for migration version %s", mi.Version)
-				}
 
-				if exists {
+				if _, exists := appliedMigrationsMap[legacyVersion]; exists {
 					l.WithField("legacy_version", legacyVersion).WithField("migration_table", mtn).Debug("Migration has already been applied in a legacy migration run. Updating version in migration table.")
 					if err := m.isolatedTransaction(ctx, "init-migrate", func(conn *pop.Connection) error {
 						// We do not want to remove the legacy migration version or subsequent migrations might be applied twice.
