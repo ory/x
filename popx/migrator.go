@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"regexp"
 	"sort"
@@ -116,7 +117,7 @@ func (m *Migrator) UpTo(ctx context.Context, step int) (applied int, err error) 
 				legacyVersion := mi.Version[:14]
 				exists, err = c.Where("version = ?", legacyVersion).Exists(mtn)
 				if err != nil {
-					return errors.Wrapf(err, "problem checking for migration version %s", mi.Version)
+					return errors.Wrapf(err, "problem checking for legacy migration version %s", legacyVersion)
 				}
 
 				if exists {
@@ -191,27 +192,37 @@ func (m *Migrator) UpTo(ctx context.Context, step int) (applied int, err error) 
 
 // Down runs pending "down" migrations and rolls back the
 // database by the specified number of steps.
-func (m *Migrator) Down(ctx context.Context, step int) error {
+func (m *Migrator) Down(ctx context.Context, steps int) error {
 	span, ctx := m.startSpan(ctx, MigrationDownOpName)
 	defer span.End()
 
+	if steps <= 0 {
+		steps = math.MaxInt
+	}
+
 	c := m.Connection.WithContext(ctx)
-	return m.exec(ctx, func() error {
+	return m.exec(ctx, func() (err error) {
 		mtn := m.sanitizedMigrationTableName(c)
 		count, err := c.Count(mtn)
 		if err != nil {
 			return errors.Wrap(err, "migration down: unable count existing migration")
 		}
+		steps = min(steps, count)
+
 		mfs := m.Migrations["down"].SortAndFilter(c.Dialect.Name(), sort.Reverse)
-		// skip all ran migration
-		if len(mfs) > count {
-			mfs = mfs[len(mfs)-count:]
-		}
-		// run only required steps
-		if step > 0 && len(mfs) >= step {
-			mfs = mfs[:step]
-		}
-		for _, mi := range mfs {
+
+		reverted := 0
+		defer func() {
+			m.l.Debugf("Successfully reverted %d migrations.", reverted)
+			if err != nil {
+				m.l.WithError(err).Error("Problem reverting migrations.")
+			}
+		}()
+		for i, mi := range mfs {
+			if i >= steps {
+				break
+			}
+			l := m.l.WithField("version", mi.Version).WithField("migration_name", mi.Name).WithField("migration_file", mi.Path)
 			exists, err := c.Where("version = ?", mi.Version).Exists(mtn)
 			if err != nil {
 				return errors.Wrapf(err, "problem checking for migration version %s", mi.Version)
@@ -221,11 +232,11 @@ func (m *Migrator) Down(ctx context.Context, step int) error {
 				legacyVersion := mi.Version[:14]
 				legacyVersionExists, err := c.Where("version = ?", legacyVersion).Exists(mtn)
 				if err != nil {
-					return errors.Wrapf(err, "problem checking for migration version %s", mi.Version)
+					return errors.Wrapf(err, "problem checking for legacy migration version %s", legacyVersion)
 				}
 
 				if !legacyVersionExists {
-					return errors.Wrapf(err, "problem checking for migration version %s", legacyVersion)
+					return errors.Errorf("neither normal (%s) nor legacy migration (%s) exist", mi.Version, legacyVersion)
 				}
 			} else if !exists {
 				return errors.Errorf("migration version %s does not exist", mi.Version)
@@ -264,7 +275,8 @@ func (m *Migrator) Down(ctx context.Context, step int) error {
 				}
 			}
 
-			m.l.Debugf("< %s", mi.Name)
+			l.Infof("< %s applied successfully", mi.Name)
+			reverted++
 		}
 		return nil
 	})
