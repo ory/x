@@ -4,6 +4,7 @@
 package snapshotx
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -25,6 +26,7 @@ type (
 	}
 	exceptPaths      []string
 	exceptNestedKeys []string
+	replacement      struct{ str, replacement string }
 )
 
 func (e exceptPaths) apply(t *testing.T, raw []byte) []byte {
@@ -42,12 +44,20 @@ func (e exceptNestedKeys) apply(t *testing.T, raw []byte) []byte {
 	return deleteMatches(t, "", parsed, e, []string{}, raw)
 }
 
+func (r *replacement) apply(_ *testing.T, raw []byte) []byte {
+	return bytes.ReplaceAll(raw, []byte(r.str), []byte(r.replacement))
+}
+
 func ExceptPaths(keys ...string) ExceptOpt {
 	return exceptPaths(keys)
 }
 
 func ExceptNestedKeys(nestedKeys ...string) ExceptOpt {
 	return exceptNestedKeys(nestedKeys)
+}
+
+func WithReplacement(str, replace string) ExceptOpt {
+	return &replacement{str: str, replacement: replace}
 }
 
 func SnapshotTJSON(t *testing.T, compare []byte, except ...ExceptOpt) {
