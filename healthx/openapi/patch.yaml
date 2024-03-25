@@ -17,13 +17,7 @@
           content:
             application/json:
               schema:
-                required:
-                  - status
-                type: object
-                properties:
-                  status:
-                    description: Always "ok".
-                    type: string
+                "$ref": "#/components/schemas/healthStatus"
           description: '{{.ProjectHumanName}} is ready to accept connections.'
         default:
           content:
@@ -52,27 +46,13 @@
           content:
             application/json:
               schema:
-                required:
-                  - status
-                type: object
-                properties:
-                  status:
-                    description: Always "ok".
-                    type: string
+                "$ref": "#/components/schemas/healthStatus"
           description: '{{.ProjectHumanName}} is ready to accept requests.'
         '503':
           content:
             application/json:
               schema:
-                required:
-                  - errors
-                properties:
-                  errors:
-                    additionalProperties:
-                      type: string
-                    description: Errors contains a list of errors that caused the not ready status.
-                    type: object
-                type: object
+                "$ref": "#/components/schemas/healthNotReadyStatus"
           description: Ory Kratos is not yet ready to accept requests.
         default:
           content:
@@ -100,13 +80,7 @@
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - version
-                properties:
-                  version:
-                    description: The version of {{.ProjectHumanName}}.
-                    type: string
+                "$ref": "#/components/schemas/serviceVersion"
           description: Returns the {{.ProjectHumanName}} version.
       summary: Return Running Software Version.
       tags: {{ .HealthPathTags | toJson }}

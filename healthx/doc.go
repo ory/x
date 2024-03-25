@@ -6,12 +6,16 @@ package healthx
 
 import "strings"
 
+// The health status of the service.
+//
 // swagger:model healthStatus
 type swaggerHealthStatus struct {
 	// Status always contains "ok".
 	Status string `json:"status"`
 }
 
+// The not ready status of the service.
+//
 // swagger:model healthNotReadyStatus
 type swaggerNotReadyStatus struct {
 	// Errors contains a list of errors that caused the not ready status.
@@ -26,7 +30,9 @@ func (s swaggerNotReadyStatus) Error() string {
 	return strings.Join(errs, "; ")
 }
 
-// swagger:model version
+// The service's version.
+//
+// swagger:model serviceVersion
 type swaggerVersion struct {
 	// Version is the service's version.
 	Version string `json:"version"`
