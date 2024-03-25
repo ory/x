@@ -99,7 +99,7 @@ require (
 	golang.org/x/sync v0.5.0
 	gonum.org/v1/plot v0.12.0
 	google.golang.org/grpc v1.59.0
-	google.golang.org/protobuf v1.31.0
+	google.golang.org/protobuf v1.33.0
 )
 
 require (
