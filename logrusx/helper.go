@@ -21,15 +21,17 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/ory/x/errorsx"
+	"github.com/ory/x/stringslice"
 )
 
 type Logger struct {
 	*logrus.Entry
-	leakSensitive bool
-	redactionText string
-	opts          []Option
-	name          string
-	version       string
+	leakSensitive         bool
+	redactionText         string
+	redactableHTTPHeaders []string
+	opts                  []Option
+	name                  string
+	version               string
 }
 
 var opts = otelhttptrace.WithPropagators(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
@@ -59,7 +61,7 @@ func (l *Logger) HTTPHeadersRedacted(h http.Header) map[string]interface{} {
 
 	for key, value := range h {
 		keyLower := strings.ToLower(key)
-		if keyLower == "authorization" || keyLower == "cookie" || keyLower == "set-cookie" {
+		if keyLower == "authorization" || keyLower == "cookie" || keyLower == "set-cookie" || stringslice.HasI(l.redactableHTTPHeaders, keyLower) {
 			headers[keyLower] = l.maybeRedact(value)
 		} else {
 			headers[keyLower] = h.Get(key)

@@ -29,6 +29,16 @@
       "type": "string",
       "title": "Sensitive log value redaction text",
       "description": "Text to use, when redacting sensitive log value."
+    },
+    "redactable_http_headers": {
+      "type": "array",
+      "title": "Redactable HTTP headers",
+      "description": "Additional HTTP headers to redact in the logs.",
+      "items": {
+        "type": "string"
+      },
+      "examples": [["X-Auth-Token", "X-Authenticated-User"]],
+      "uniqueItems": true
     }
   },
   "additionalProperties": false
