@@ -30,9 +30,7 @@ func (s swaggerNotReadyStatus) Error() string {
 	return strings.Join(errs, "; ")
 }
 
-// The service's version.
-//
-// swagger:model serviceVersion
+// swagger:model version
 type swaggerVersion struct {
 	// Version is the service's version.
 	Version string `json:"version"`
