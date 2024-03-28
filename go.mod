@@ -18,7 +18,7 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
-	github.com/go-jose/go-jose/v3 v3.0.1
+	github.com/go-jose/go-jose/v3 v3.0.3
 	github.com/go-openapi/jsonpointer v0.19.5
 	github.com/go-openapi/runtime v0.24.2
 	github.com/go-sql-driver/mysql v1.7.0
