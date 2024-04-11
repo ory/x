@@ -161,11 +161,18 @@ func DefaultBefore(entry *logrusx.Logger, req *http.Request, remoteAddr string) 
 
 // DefaultAfter is the default func assigned to *Middleware.After
 func DefaultAfter(entry *logrusx.Logger, req *http.Request, res negroni.ResponseWriter, latency time.Duration, name string) *logrusx.Logger {
-	return entry.WithRequest(req).WithField("http_response", map[string]interface{}{
+	e := entry.WithRequest(req).WithField("http_response", map[string]any{
 		"status":      res.Status(),
 		"size":        res.Size(),
 		"text_status": http.StatusText(res.Status()),
 		"took":        latency,
 		"headers":     entry.HTTPHeadersRedacted(res.Header()),
 	})
+	if el := TotalExternalLatency(req.Context()); el > 0 {
+		e = e.WithFields(map[string]any{
+			"took_internal": latency - el,
+			"took_external": el,
+		})
+	}
+	return e
 }
