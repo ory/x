@@ -52,10 +52,10 @@ func (n noInternalIPRoundTripper) RoundTrip(request *http.Request) (*http.Respon
 }
 
 var (
-	prohibitInternalAllowIPv6,
-	prohibitInternalProhibitIPv6,
-	allowInternalAllowIPv6,
-	allowInternalProhibitIPv6 http.RoundTripper
+	prohibitInternalAllowIPv6    http.RoundTripper
+	prohibitInternalProhibitIPv6 http.RoundTripper
+	allowInternalAllowIPv6       http.RoundTripper
+	allowInternalProhibitIPv6    http.RoundTripper
 )
 
 func init() {
@@ -64,7 +64,7 @@ func init() {
 		ssrf.WithAnyPort(),
 		ssrf.WithNetworks("tcp4", "tcp6"),
 	).Safe
-	prohibitInternalAllowIPv6 = &MeasureExternalLatencyTransport{Transport: t}
+	prohibitInternalAllowIPv6 = t
 }
 
 func init() {
@@ -76,7 +76,7 @@ func init() {
 	t.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
 		return d.DialContext(ctx, "tcp4", addr)
 	}
-	prohibitInternalProhibitIPv6 = &MeasureExternalLatencyTransport{Transport: t}
+	prohibitInternalProhibitIPv6 = t
 }
 
 func init() {
@@ -96,7 +96,7 @@ func init() {
 			netip.MustParsePrefix("fc00::/7"), // Unique Local (RFC 4193)
 		),
 	).Safe
-	allowInternalAllowIPv6 = &MeasureExternalLatencyTransport{Transport: t}
+	allowInternalAllowIPv6 = t
 }
 
 func init() {
@@ -119,15 +119,15 @@ func init() {
 	t.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
 		return d.DialContext(ctx, "tcp4", addr)
 	}
-	allowInternalProhibitIPv6 = &MeasureExternalLatencyTransport{Transport: t}
+	allowInternalProhibitIPv6 = t
 }
 
 func newDefaultTransport() (*http.Transport, *net.Dialer) {
-	dialer := &net.Dialer{
+	dialer := net.Dialer{
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
 	}
-	transport := &http.Transport{
+	return &http.Transport{
 		Proxy:                 http.ProxyFromEnvironment,
 		DialContext:           dialer.DialContext,
 		ForceAttemptHTTP2:     true,
@@ -135,6 +135,5 @@ func newDefaultTransport() (*http.Transport, *net.Dialer) {
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
-	}
-	return transport, dialer
+	}, &dialer
 }

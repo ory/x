@@ -10,14 +10,19 @@ import (
 	"time"
 )
 
-// ExternalCallsMiddleware is a middleware that sets up the request context to measure external calls.
-// It has to be used before any other middleware that reads the final external latency.
-func ExternalCallsMiddleware(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+// WithEnableExternalLatencyMeasurement returns a context that measures external latencies.
+func WithEnableExternalLatencyMeasurement(ctx context.Context) context.Context {
 	container := contextContainer{
 		latencies: make([]externalLatency, 0),
 	}
+	return context.WithValue(ctx, internalLatencyKey, &container)
+}
+
+// ExternalCallsMiddleware is a middleware that sets up the request context to measure external calls.
+// It has to be used before any other middleware that reads the final external latency.
+func ExternalCallsMiddleware(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	next(rw, r.WithContext(
-		context.WithValue(r.Context(), internalLatencyKey, &container),
+		WithEnableExternalLatencyMeasurement(r.Context()),
 	))
 }
 
