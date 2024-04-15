@@ -37,8 +37,8 @@ func StartMeasureExternalCall(ctx context.Context, cause, detail string, start t
 	})
 }
 
-// TotalExternalLatency returns the total duration of all external calls.
-func TotalExternalLatency(ctx context.Context) (total time.Duration) {
+// totalExternalLatency returns the total duration of all external calls.
+func totalExternalLatency(ctx context.Context) (total time.Duration) {
 	if _, ok := ctx.Value(disableExternalLatencyMeasurement).(bool); ok {
 		return 0
 	}

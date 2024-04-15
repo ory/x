@@ -169,7 +169,7 @@ func DefaultAfter(entry *logrusx.Logger, req *http.Request, res negroni.Response
 		"took":        latency,
 		"headers":     entry.HTTPHeadersRedacted(res.Header()),
 	})
-	if el := TotalExternalLatency(req.Context()); el > 0 {
+	if el := totalExternalLatency(req.Context()); el > 0 {
 		e = e.WithFields(map[string]any{
 			"took_internal": latency - el,
 			"took_external": el,

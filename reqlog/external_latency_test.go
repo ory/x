@@ -36,7 +36,7 @@ func TestExternalLatencyMiddleware(t *testing.T) {
 				}()
 			}
 			wg.Wait()
-			total := TotalExternalLatency(r.Context())
+			total := totalExternalLatency(r.Context())
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"total": total,
 			})
