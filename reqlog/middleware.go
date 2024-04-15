@@ -139,6 +139,7 @@ func (m *Middleware) ServeHTTP(rw http.ResponseWriter, r *http.Request, next htt
 		nrw = negroni.NewResponseWriter(rw)
 	}
 
+	r = r.WithContext(WithEnableExternalLatencyMeasurement(r.Context()))
 	next(nrw, r)
 
 	latency := m.clock.Since(start)

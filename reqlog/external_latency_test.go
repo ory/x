@@ -16,47 +16,28 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"
 	"golang.org/x/sync/errgroup"
-
-	"github.com/ory/x/assertx"
 )
 
 func TestExternalLatencyMiddleware(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ExternalCallsMiddleware(w, r, func(w http.ResponseWriter, r *http.Request) {
-			var (
-				wg         sync.WaitGroup
-				res0, res1 string
-				err        error
-			)
+		NewMiddleware().ServeHTTP(w, r, func(w http.ResponseWriter, r *http.Request) {
+			var wg sync.WaitGroup
 
 			wg.Add(3)
-			go func() {
-				res0 = MeasureExternalCall(r.Context(), "", "", func() string {
+			for i := range 3 {
+				ctx := r.Context()
+				if i%3 == 0 {
+					ctx = WithDisableExternalLatencyMeasurement(ctx)
+				}
+				go func() {
+					defer StartMeasureExternalCall(ctx, "", "", time.Now())
 					time.Sleep(100 * time.Millisecond)
-					return "foo"
-				})
-				wg.Done()
-			}()
-			go func() {
-				res1, err = MeasureExternalCallErr(r.Context(), "", "", func() (string, error) {
-					time.Sleep(100 * time.Millisecond)
-					return "bar", nil
-				})
-				wg.Done()
-			}()
-			go func() {
-				_ = MeasureExternalCall(WithDisableExternalLatencyMeasurement(r.Context()), "", "", func() error {
-					time.Sleep(100 * time.Millisecond)
-					return nil
-				})
-				wg.Done()
-			}()
+					wg.Done()
+				}()
+			}
 			wg.Wait()
 			total := TotalExternalLatency(r.Context())
 			_ = json.NewEncoder(w).Encode(map[string]any{
-				"res0":  res0,
-				"res1":  res1,
-				"err":   err,
 				"total": total,
 			})
 		})
@@ -83,13 +64,8 @@ func TestExternalLatencyMiddleware(t *testing.T) {
 	require.NoError(t, eg.Wait())
 
 	for _, body := range bodies {
-		assertx.EqualAsJSONExcept(t, map[string]any{
-			"res0": "foo",
-			"res1": "bar",
-			"err":  nil,
-		}, json.RawMessage(body), []string{"total"})
-
 		actualTotal := gjson.GetBytes(body, "total").Int()
 		assert.GreaterOrEqual(t, actualTotal, int64(200*time.Millisecond), string(body))
+		assert.Less(t, actualTotal, int64(300*time.Millisecond), string(body))
 	}
 }
