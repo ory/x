@@ -13,12 +13,16 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
 
@@ -65,8 +69,8 @@ type zipkinSpanRequest struct {
 	Tags map[string]string
 }
 
-func TestJaegerTracer(t *testing.T) {
-	done := make(chan struct{})
+// runTestJaegerAgent starts a mock server listening on a random port for Jaeger spans sent over UDP.
+func runTestJaegerAgent(t *testing.T, errs *errgroup.Group, done chan<- struct{}) net.Conn {
 	addr := "127.0.0.1:0"
 
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
@@ -74,8 +78,6 @@ func TestJaegerTracer(t *testing.T) {
 
 	srv, err := net.ListenUDP("udp", udpAddr)
 	require.NoError(t, err)
-
-	errs := errgroup.Group{}
 
 	errs.Go(func() error {
 		t.Logf("Starting test UDP server for Jaeger spans on %s", srv.LocalAddr().String())
@@ -91,7 +93,7 @@ func TestJaegerTracer(t *testing.T) {
 				continue
 			}
 			if len(buf) != 0 {
-				t.Log("recieved span!")
+				t.Log("received span!")
 				done <- struct{}{}
 			}
 			break
@@ -99,12 +101,24 @@ func TestJaegerTracer(t *testing.T) {
 		return nil
 	})
 
+	return srv
+}
+
+func TestJaegerTracer(t *testing.T) {
+	done := make(chan struct{})
+	errs := errgroup.Group{}
+
+	srv := runTestJaegerAgent(t, &errs, done)
+
 	jt, err := New(testTracingComponent, logrusx.New("ory/x", "1"), &Config{
 		ServiceName: "Ory X",
 		Provider:    "jaeger",
 		Providers: ProvidersConfig{
 			Jaeger: JaegerConfig{
 				LocalAgentAddress: srv.LocalAddr().String(),
+				Sampling: JaegerSampling{
+					TraceIdRatio: 1,
+				},
 			},
 		},
 	})
@@ -112,6 +126,52 @@ func TestJaegerTracer(t *testing.T) {
 
 	trc := jt.Tracer()
 	_, span := trc.Start(context.Background(), "testSpan")
+	span.SetAttributes(attribute.Bool("testAttribute", true))
+	span.End()
+
+	select {
+	case <-done:
+	case <-time.After(15 * time.Second):
+		t.Fatalf("Test server did not receive spans")
+	}
+	require.NoError(t, errs.Wait())
+}
+
+func TestJaegerTracerRespectsParentSamplingDecision(t *testing.T) {
+	done := make(chan struct{})
+	errs := errgroup.Group{}
+
+	srv := runTestJaegerAgent(t, &errs, done)
+
+	jt, err := New(testTracingComponent, logrusx.New("ory/x", "1"), &Config{
+		ServiceName: "Ory X",
+		Provider:    "jaeger",
+		Providers: ProvidersConfig{
+			Jaeger: JaegerConfig{
+				LocalAgentAddress: srv.LocalAddr().String(),
+				Sampling: JaegerSampling{
+					// Effectively disable local sampling.
+					TraceIdRatio: 0,
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	traceId := strings.Repeat("a", 32)
+	spanId := strings.Repeat("b", 16)
+	sampledFlag := "1"
+	traceHeaders := map[string]string{"uber-trace-id": traceId + ":" + spanId + ":0:" + sampledFlag}
+
+	ctx := otel.GetTextMapPropagator().Extract(context.Background(), propagation.MapCarrier(traceHeaders))
+	spanContext := trace.SpanContextFromContext(ctx)
+
+	assert.True(t, spanContext.IsValid())
+	assert.True(t, spanContext.IsSampled())
+	assert.True(t, spanContext.IsRemote())
+
+	trc := jt.Tracer()
+	_, span := trc.Start(ctx, "testSpan", trace.WithLinks(trace.Link{SpanContext: spanContext}))
 	span.SetAttributes(attribute.Bool("testAttribute", true))
 	span.End()
 
