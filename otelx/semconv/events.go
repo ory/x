@@ -31,6 +31,8 @@ const (
 	AttributeKeyGeoLocationRegion  AttributeKey = "GeoLocationRegion"
 	AttributeKeyGeoLocationCountry AttributeKey = "GeoLocationCountry"
 	AttributeKeyWorkspace          AttributeKey = "WorkspaceID"
+	AttributeKeySubscriptionID     AttributeKey = "SubscriptionID"
+	AttributeKeyProjectEnvironment AttributeKey = "ProjectEnvironment"
 )
 
 func AttrIdentityID(val uuid.UUID) otelattr.KeyValue {
@@ -43,6 +45,14 @@ func AttrNID(val uuid.UUID) otelattr.KeyValue {
 
 func AttrWorkspace(val uuid.UUID) otelattr.KeyValue {
 	return otelattr.String(AttributeKeyWorkspace.String(), val.String())
+}
+
+func AttrSubscription(val uuid.UUID) otelattr.KeyValue {
+	return otelattr.String(AttributeKeySubscriptionID.String(), val.String())
+}
+
+func AttrProjectEnvironment(val string) otelattr.KeyValue {
+	return otelattr.String(AttributeKeyProjectEnvironment.String(), val)
 }
 
 func AttrClientIP(val string) otelattr.KeyValue {
