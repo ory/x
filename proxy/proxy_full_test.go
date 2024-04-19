@@ -86,20 +86,20 @@ func (rt *testingRoundTripper) RoundTrip(req *http.Request) (*http.Response, err
 }
 
 func TestFullIntegration(t *testing.T) {
-	upstream, upstreamHandler := httpx.NewChanHandler(0)
+	upstream, upstreamHandler := httpx.NewChanHandler(1)
 	upstreamServer := httptest.NewTLSServer(upstream)
 	defer upstreamServer.Close()
 
 	// create the proxy
-	hostMapper := make(chan func(*http.Request) (*HostConfig, error))
-	reqMiddleware := make(chan ReqMiddleware)
-	respMiddleware := make(chan RespMiddleware)
+	hostMapper := make(chan func(*http.Request) (*HostConfig, error), 1)
+	reqMiddleware := make(chan ReqMiddleware, 1)
+	respMiddleware := make(chan RespMiddleware, 1)
 
 	type CustomErrorReq func(*http.Request, error)
 	type CustomErrorResp func(*http.Response, error) error
 
-	onErrorReq := make(chan CustomErrorReq)
-	onErrorResp := make(chan CustomErrorResp)
+	onErrorReq := make(chan CustomErrorReq, 1)
+	onErrorResp := make(chan CustomErrorResp, 1)
 
 	proxy := httptest.NewTLSServer(New(
 		func(ctx context.Context, r *http.Request) (context.Context, *HostConfig, error) {
@@ -122,17 +122,20 @@ func TestFullIntegration(t *testing.T) {
 			return f(resp, config, body)
 		}),
 		WithOnError(func(request *http.Request, err error) {
-			f := <-onErrorReq
-			if f == nil {
-				return
+			select {
+			case f := <-onErrorReq:
+				f(request, err)
+			default:
+				t.Errorf("unexpected error: %+v", err)
 			}
-			f(request, err)
 		}, func(response *http.Response, err error) error {
-			f := <-onErrorResp
-			if f == nil {
-				return nil
+			select {
+			case f := <-onErrorResp:
+				return f(response, err)
+			default:
+				t.Errorf("unexpected error: %+v", err)
+				return err
 			}
-			return f(response, err)
 		})))
 
 	cl := proxy.Client()
@@ -315,8 +318,7 @@ func TestFullIntegration(t *testing.T) {
 				req.Host = "auth.example.com"
 				return req
 			},
-			assertResponse: func(t *testing.T, r *http.Response) {
-			},
+			assertResponse: func(t *testing.T, r *http.Response) {},
 			respMiddleware: func(resp *http.Response, config *HostConfig, body []byte) ([]byte, error) {
 				return nil, errors.New("some response middleware error")
 			},
@@ -495,37 +497,55 @@ func TestFullIntegration(t *testing.T) {
 		},
 	} {
 		t.Run("case="+tc.desc, func(t *testing.T) {
-			go func() {
-				hostMapper <- func(r *http.Request) (*HostConfig, error) {
-					host := r.Host
-					hc, err := tc.hostMapper(host)
-					if err == nil {
-						hc.UpstreamHost = urlx.ParseOrPanic(upstreamServer.URL).Host
-						hc.UpstreamScheme = urlx.ParseOrPanic(upstreamServer.URL).Scheme
-						hc.TargetHost = hc.UpstreamHost
-						hc.TargetScheme = hc.UpstreamScheme
-					}
-					return hc, err
+			hostMapper <- func(r *http.Request) (*HostConfig, error) {
+				host := r.Host
+				hc, err := tc.hostMapper(host)
+				if err == nil {
+					hc.UpstreamHost = urlx.ParseOrPanic(upstreamServer.URL).Host
+					hc.UpstreamScheme = urlx.ParseOrPanic(upstreamServer.URL).Scheme
+					hc.TargetHost = hc.UpstreamHost
+					hc.TargetScheme = hc.UpstreamScheme
 				}
+				return hc, err
+			}
+			if tc.onErrReq != nil {
+				onErrorReq <- tc.onErrReq
+			}
+			if tc.onErrResp != nil {
+				onErrorResp <- tc.onErrResp
+			}
+
+			if tc.onErrReq == nil {
+				// we will only send a request if there is no request error
 				reqMiddleware <- tc.reqMiddleware
+				respMiddleware <- tc.respMiddleware
 				upstreamHandler <- func(w http.ResponseWriter, r *http.Request) {
 					t := &remoteT{t: t, w: w, r: r}
 					tc.handler(assert.New(t), t, r)
 				}
-				respMiddleware <- tc.respMiddleware
-			}()
-
-			go func() {
-				onErrorReq <- tc.onErrReq
-			}()
-
-			go func() {
-				onErrorResp <- tc.onErrResp
-			}()
+			}
 
 			resp, err := cl.Do(tc.request(t))
 			require.NoError(t, err)
 			tc.assertResponse(t, resp)
+
+			select {
+			case <-hostMapper:
+				t.Fatal("host mapper not consumed")
+			case <-reqMiddleware:
+				t.Fatal("req middleware not consumed")
+			case <-respMiddleware:
+				t.Fatal("resp middleware not consumed")
+			case <-onErrorReq:
+				t.Fatal("req error not consumed")
+			case <-onErrorResp:
+				t.Fatal("resp error not consumed")
+			default:
+				if len(upstreamHandler) != 0 {
+					t.Fatal("upstream handler not consumed")
+				}
+				return
+			}
 		})
 	}
 }
