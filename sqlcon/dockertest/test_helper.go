@@ -46,8 +46,10 @@ type dockerPool interface {
 	RunWithOptions(opts *dockertest.RunOptions, hcOpts ...func(*dc.HostConfig)) (*dockertest.Resource, error)
 }
 
-var resources = []*dockertest.Resource{}
-var pool dockerPool
+var (
+	resources = []*dockertest.Resource{}
+	pool      dockerPool
+)
 
 func getPool() (dockerPool, error) {
 	if pool != nil {
@@ -240,7 +242,6 @@ func startMySQL(version string) (*dockertest.Resource, error) {
 	}
 
 	resource, err := pool.RunWithOptions(&dockertest.RunOptions{
-		Platform:   "linux/amd64",
 		Repository: "mysql",
 		Tag:        stringsx.Coalesce(version, "8.0.26"),
 		Env: []string{
@@ -267,7 +268,7 @@ func runMySQLCleanup(version string) (string, func(), error) {
 		return "", func() {}, err
 	}
 
-	return fmt.Sprintf("mysql://root:secret@(localhost:%s)/mysql?parseTime=true&multiStatements=true", resource.GetPort("3306/tcp")),
+	return fmt.Sprintf("mysql://root:secret@tcp(localhost:%s)/mysql?parseTime=true&multiStatements=true", resource.GetPort("3306/tcp")),
 		func() { _ = pool.Purge(resource) }, nil
 }
 
