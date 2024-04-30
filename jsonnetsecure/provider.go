@@ -33,7 +33,7 @@ type (
 	}
 )
 
-func NewTestProvider(t *testing.T) *TestProvider {
+func NewTestProvider(t testing.TB) *TestProvider {
 	pool := NewProcessPool(runtime.GOMAXPROCS(0))
 	t.Cleanup(pool.Close)
 	return &TestProvider{JsonnetTestBinary(t), pool}
