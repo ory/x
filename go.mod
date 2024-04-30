@@ -96,7 +96,7 @@ require (
 	go.uber.org/goleak v1.2.1
 	golang.org/x/crypto v0.21.0
 	golang.org/x/mod v0.14.0
-	golang.org/x/net v0.21.0
+	golang.org/x/net v0.23.0
 	golang.org/x/oauth2 v0.14.0
 	golang.org/x/sync v0.5.0
 	gonum.org/v1/plot v0.12.0
