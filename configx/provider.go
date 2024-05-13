@@ -499,6 +499,7 @@ func (p *Provider) TracingConfig(serviceName string) *otelx.Config {
 				},
 			},
 			OTLP: otelx.OTLPConfig{
+				Transport: p.String("tracing.providers.otlp.transport"),
 				ServerURL: p.String("tracing.providers.otlp.server_url"),
 				Insecure:  p.Bool("tracing.providers.otlp.insecure"),
 				Sampling: otelx.OTLPSampling{

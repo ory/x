@@ -103,6 +103,12 @@
           "additionalProperties": false,
           "description": "Configures the OTLP tracing backend.",
           "properties": {
+            "protocol": {
+              "type": "string",
+              "description": "The protocol to use for the OTLP exporter.",
+              "enum": ["http", "grpc"],
+              "examples": ["http"]
+            },
             "server_url": {
               "type": "string",
               "description": "The endpoint of the OTLP exporter (HTTP) where spans should be sent to.",
