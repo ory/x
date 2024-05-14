@@ -106,8 +106,8 @@
             "protocol": {
               "type": "string",
               "description": "The protocol to use for the OTLP exporter.",
-              "enum": ["http", "grpc"],
-              "examples": ["http"]
+              "enum": ["HTTP", "GRPC"],
+              "examples": ["HTTP"]
             },
             "server_url": {
               "type": "string",
