@@ -103,9 +103,9 @@
           "additionalProperties": false,
           "description": "Configures the OTLP tracing backend.",
           "properties": {
-            "protocol": {
+            "transport": {
               "type": "string",
-              "description": "The protocol to use for the OTLP exporter.",
+              "description": "The transport to use for the OTLP exporter.",
               "enum": ["HTTP", "GRPC"],
               "examples": ["HTTP"]
             },
