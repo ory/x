@@ -107,6 +107,25 @@ func (l *Logger) WithRequest(r *http.Request) *Logger {
 	return ll
 }
 
+func (l *Logger) WithSpan(sc trace.Span) *Logger {
+	if sc == nil {
+		return l
+	}
+	spanCtx := sc.SpanContext()
+	if !spanCtx.IsValid() {
+		return l
+	}
+
+	traces := map[string]string{}
+	if spanCtx.HasTraceID() {
+		traces["trace_id"] = spanCtx.TraceID().String()
+	}
+	if spanCtx.HasSpanID() {
+		traces["span_id"] = spanCtx.SpanID().String()
+	}
+	return l.WithField("otel", traces)
+}
+
 func (l *Logger) Logf(level logrus.Level, format string, args ...interface{}) {
 	if !l.leakSensitive {
 		for i, arg := range args {
