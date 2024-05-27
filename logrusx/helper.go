@@ -95,7 +95,7 @@ func (l *Logger) WithRequest(r *http.Request) *Logger {
 		_, _, spanCtx = otelhttptrace.Extract(r.Context(), r, opts)
 	}
 	if spanCtx.IsValid() {
-		traces := map[string]string{}
+		traces := make(map[string]string, 2)
 		if spanCtx.HasTraceID() {
 			traces["trace_id"] = spanCtx.TraceID().String()
 		}
@@ -107,16 +107,13 @@ func (l *Logger) WithRequest(r *http.Request) *Logger {
 	return ll
 }
 
-func (l *Logger) WithSpan(sc trace.Span) *Logger {
-	if sc == nil {
-		return l
-	}
-	spanCtx := sc.SpanContext()
+func (l *Logger) WithSpanFromContext(ctx context.Context) *Logger {
+	spanCtx := trace.SpanContextFromContext(ctx)
 	if !spanCtx.IsValid() {
 		return l
 	}
 
-	traces := map[string]string{}
+	traces := make(map[string]string, 2)
 	if spanCtx.HasTraceID() {
 		traces["trace_id"] = spanCtx.TraceID().String()
 	}
