@@ -95,7 +95,7 @@ func (l *Logger) WithRequest(r *http.Request) *Logger {
 		_, _, spanCtx = otelhttptrace.Extract(r.Context(), r, opts)
 	}
 	if spanCtx.IsValid() {
-		traces := map[string]string{}
+		traces := make(map[string]string, 2)
 		if spanCtx.HasTraceID() {
 			traces["trace_id"] = spanCtx.TraceID().String()
 		}
@@ -105,6 +105,22 @@ func (l *Logger) WithRequest(r *http.Request) *Logger {
 		ll = ll.WithField("otel", traces)
 	}
 	return ll
+}
+
+func (l *Logger) WithSpanFromContext(ctx context.Context) *Logger {
+	spanCtx := trace.SpanContextFromContext(ctx)
+	if !spanCtx.IsValid() {
+		return l
+	}
+
+	traces := make(map[string]string, 2)
+	if spanCtx.HasTraceID() {
+		traces["trace_id"] = spanCtx.TraceID().String()
+	}
+	if spanCtx.HasSpanID() {
+		traces["span_id"] = spanCtx.SpanID().String()
+	}
+	return l.WithField("otel", traces)
 }
 
 func (l *Logger) Logf(level logrus.Level, format string, args ...interface{}) {
