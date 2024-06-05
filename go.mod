@@ -13,7 +13,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/cockroachdb/cockroach-go/v2 v2.3.5
 	github.com/dgraph-io/ristretto v0.1.1
-	github.com/docker/docker v20.10.24+incompatible
+	github.com/docker/docker v26.1.3+incompatible
 	github.com/evanphx/json-patch/v5 v5.6.0
 	github.com/fatih/structs v1.1.0
 	github.com/form3tech-oss/jwt-go v3.2.5+incompatible
@@ -101,7 +101,7 @@ require (
 	golang.org/x/sync v0.5.0
 	gonum.org/v1/plot v0.12.0
 	google.golang.org/grpc v1.59.0
-	google.golang.org/protobuf v1.33.0
+	google.golang.org/protobuf v1.34.1
 )
 
 require (
@@ -118,7 +118,7 @@ require (
 	github.com/containerd/continuity v0.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
-	github.com/docker/cli v20.10.21+incompatible // indirect
+	github.com/docker/cli v26.1.3+incompatible // indirect
 	github.com/docker/distribution v2.8.2+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
