@@ -20,6 +20,7 @@ type ZipkinConfig struct {
 }
 
 type OTLPConfig struct {
+	Transport           string       `json:"transport"`
 	ServerURL           string       `json:"server_url"`
 	Insecure            bool         `json:"insecure"`
 	Sampling            OTLPSampling `json:"sampling"`
