@@ -56,7 +56,7 @@ var (
 )
 
 func NewProcessPool(size int) Pool {
-	size = max(1, min(size, math.MaxInt32))
+	size = max(5, min(size, math.MaxInt32))
 	pud, err := puddle.NewPool(&puddle.Config[worker]{
 		MaxSize:     int32(size),
 		Constructor: newWorker,
