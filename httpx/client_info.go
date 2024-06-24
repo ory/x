@@ -33,6 +33,8 @@ func GetClientIPAddressesWithoutInternalIPs(ipAddresses []string) (string, error
 func ClientIP(r *http.Request) string {
 	if trueClientIP := r.Header.Get("True-Client-IP"); trueClientIP != "" {
 		return trueClientIP
+	} else if cfConnectingIP := r.Header.Get("Cf-Connecting-IP"); cfConnectingIP != "" {
+		return cfConnectingIP
 	} else if realClientIP := r.Header.Get("X-Real-IP"); realClientIP != "" {
 		return realClientIP
 	} else if forwardedIP := r.Header.Get("X-Forwarded-For"); forwardedIP != "" {

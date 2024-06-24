@@ -33,26 +33,35 @@ func TestClientIP(t *testing.T) {
 		Header:     http.Header{},
 	}
 	req.Header.Add("true-client-ip", "1.0.0.1")
-	req.Header.Add("x-real-ip", "1.0.0.2")
+	req.Header.Add("cf-connecting-ip", "1.0.0.2")
+	req.Header.Add("x-real-ip", "1.0.0.3")
 	req.Header.Add("x-forwarded-for", "192.168.1.1,1.0.0.3,10.0.0.1")
 	t.Run("true-client-ip", func(t *testing.T) {
 		req := req.Clone(context.Background())
 		assert.Equal(t, "1.0.0.1", ClientIP(req))
 	})
-	t.Run("x-real-ip", func(t *testing.T) {
+	t.Run("cf-connecting-ip", func(t *testing.T) {
 		req := req.Clone(context.Background())
 		req.Header.Del("true-client-ip")
 		assert.Equal(t, "1.0.0.2", ClientIP(req))
 	})
+	t.Run("x-real-ip", func(t *testing.T) {
+		req := req.Clone(context.Background())
+		req.Header.Del("true-client-ip")
+		req.Header.Del("cf-connecting-ip")
+		assert.Equal(t, "1.0.0.3", ClientIP(req))
+	})
 	t.Run("x-forwarded-for", func(t *testing.T) {
 		req := req.Clone(context.Background())
 		req.Header.Del("true-client-ip")
+		req.Header.Del("cf-connecting-ip")
 		req.Header.Del("x-real-ip")
 		assert.Equal(t, "1.0.0.3", ClientIP(req))
 	})
 	t.Run("remote-addr", func(t *testing.T) {
 		req := req.Clone(context.Background())
 		req.Header.Del("true-client-ip")
+		req.Header.Del("cf-connecting-ip")
 		req.Header.Del("x-real-ip")
 		req.Header.Del("x-forwarded-for")
 		assert.Equal(t, "1.0.0.4", ClientIP(req))
