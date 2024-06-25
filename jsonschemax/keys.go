@@ -11,14 +11,13 @@ import (
 	"fmt"
 	"math/big"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
 
 	"github.com/ory/jsonschema/v3"
-
-	"github.com/ory/x/stringslice"
 )
 
 type (
@@ -268,7 +267,7 @@ func listPaths(schema *jsonschema.Schema, parent *jsonschema.Schema, parents []s
 						types = append(types, is.Ref.Types...)
 					}
 				}
-				types = stringslice.Unique(types)
+				types = slices.Compact(types)
 				if len(types) == 1 {
 					switch types[0] {
 					case "boolean":

@@ -10,12 +10,14 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"testing"
 
 	"golang.org/x/sync/errgroup"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/require"
 
 	"github.com/pkg/errors"
@@ -25,9 +27,9 @@ import (
 
 var (
 	// ErrNilDependency is returned if a dependency is missing.
-	ErrNilDependency = errors.New("a dependency was expected to be defined but is nil. Please open an issue with the stack trace")
+	ErrNilDependency = fmt.Errorf("a dependency was expected to be defined but is nil. Please open an issue with the stack trace")
 	// ErrNoPrintButFail is returned to detect a failure state that was already reported to the user in some way
-	ErrNoPrintButFail = errors.New("this error should never be printed")
+	ErrNoPrintButFail = fmt.Errorf("this error should never be printed")
 
 	debugStdout, debugStderr = io.Discard, io.Discard
 )
@@ -48,6 +50,7 @@ func FailSilently(cmd *cobra.Command) error {
 }
 
 // Must fatals with the optional message if err is not nil.
+// Deprecated: do not use this function in commands, as it makes it impossible to test them. Instead, return the error.
 func Must(err error, message string, args ...interface{}) {
 	if err == nil {
 		return
@@ -58,6 +61,7 @@ func Must(err error, message string, args ...interface{}) {
 }
 
 // CheckResponse fatals if err is nil or the response.StatusCode does not match the expectedStatusCode
+// Deprecated: do not use this function in commands, as it makes it impossible to test them. Instead, return the error.
 func CheckResponse(err error, expectedStatusCode int, response *http.Response) {
 	Must(err, "Command failed because error occurred: %s", err)
 
@@ -85,6 +89,7 @@ Response payload:
 }
 
 // FormatResponse takes an object and prints a json.MarshalIdent version of it or fatals.
+// Deprecated: do not use this function in commands, as it makes it impossible to test them. Instead, return the error.
 func FormatResponse(o interface{}) string {
 	out, err := json.MarshalIndent(o, "", "\t")
 	Must(err, `Command failed because an error occurred while prettifying output: %s`, err)
@@ -92,6 +97,7 @@ func FormatResponse(o interface{}) string {
 }
 
 // Fatalf prints to os.Stderr and exists with code 1.
+// Deprecated: do not use this function in commands, as it makes it impossible to test them. Instead, return the error.
 func Fatalf(message string, args ...interface{}) {
 	if len(args) > 0 {
 		_, _ = fmt.Fprintf(os.Stderr, message+"\n", args...)
@@ -102,6 +108,7 @@ func Fatalf(message string, args ...interface{}) {
 }
 
 // ExpectDependency expects every dependency to be not nil or it fatals.
+// Deprecated: do not use this function in commands, as it makes it impossible to test them. Instead, return the error.
 func ExpectDependency(logger *logrusx.Logger, dependencies ...interface{}) {
 	if logger == nil {
 		panic("missing logger for dependency check")
@@ -224,4 +231,23 @@ func (c *CommandExecuter) ExecNoErr(t require.TestingT, args ...string) string {
 
 func (c *CommandExecuter) ExecExpectedErr(t require.TestingT, args ...string) string {
 	return ExecExpectedErrCtx(c.Ctx, t, c.New(), append(c.PersistentArgs, args...)...)
+}
+
+type URL struct {
+	url.URL
+}
+
+var _ pflag.Value = (*URL)(nil)
+
+func (u *URL) Set(s string) error {
+	uu, err := url.Parse(s)
+	if err != nil {
+		return err
+	}
+	u.URL = *uu
+	return nil
+}
+
+func (*URL) Type() string {
+	return "url"
 }

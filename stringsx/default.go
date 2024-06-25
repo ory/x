@@ -3,9 +3,7 @@
 
 package stringsx
 
+// Deprecated: use Coalesce instead
 func DefaultIfEmpty(s string, defaultValue string) string {
-	if len(s) == 0 {
-		return defaultValue
-	}
-	return s
+	return Coalesce(s, defaultValue)
 }

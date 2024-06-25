@@ -4,27 +4,19 @@
 package stringslice
 
 import (
+	"slices"
 	"strings"
 	"unicode"
 )
 
 // Filter applies the provided filter function and removes all items from the slice for which the filter function returns true.
-// This function uses append and might cause
-func Filter(values []string, filter func(string) bool) (ret []string) {
-	for _, value := range values {
-		if !filter(value) {
-			ret = append(ret, value)
-		}
-	}
-
-	if ret == nil {
-		return []string{}
-	}
-
-	return
+// Deprecated: use slices.DeleteFunc instead (changes semantics: the original slice is modified)
+func Filter(values []string, filter func(string) bool) []string {
+	return slices.DeleteFunc(slices.Clone(values), filter)
 }
 
 // TrimEmptyFilter applies the strings.TrimFunc function and removes all empty strings
+// Deprecated: use slices.DeleteFunc instead (changes semantics: the original slice is modified)
 func TrimEmptyFilter(values []string, trim func(rune) bool) (ret []string) {
 	return Filter(values, func(value string) bool {
 		return strings.TrimFunc(value, trim) == ""
@@ -32,6 +24,7 @@ func TrimEmptyFilter(values []string, trim func(rune) bool) (ret []string) {
 }
 
 // TrimSpaceEmptyFilter applies the strings.TrimSpace function and removes all empty strings
+// Deprecated: use slices.DeleteFunc with strings.TrimSpace instead (changes semantics: the original slice is modified)
 func TrimSpaceEmptyFilter(values []string) []string {
 	return TrimEmptyFilter(values, unicode.IsSpace)
 }

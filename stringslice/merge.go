@@ -3,12 +3,10 @@
 
 package stringslice
 
-// Merge merges several string slices into one.
-func Merge(parts ...[]string) []string {
-	var result []string
-	for _, part := range parts {
-		result = append(result, part...)
-	}
+import "slices"
 
-	return result
+// Merge merges several string slices into one.
+// Deprecated: use slices.Concat instead
+func Merge(parts ...[]string) []string {
+	return slices.Concat(parts...)
 }
