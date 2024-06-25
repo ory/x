@@ -169,7 +169,7 @@ func TestPrinting(t *testing.T) {
 					for _, s := range tc.contained {
 						assert.Contains(t, out.String(), s, "%s", out.String())
 					}
-					notContained := slices.DeleteFunc(allFields, func(s string) bool {
+					notContained := slices.DeleteFunc(slices.Clone(allFields), func(s string) bool {
 						return slices.Contains(tc.contained, s)
 					})
 					for _, s := range notContained {
@@ -257,7 +257,7 @@ func TestPrinting(t *testing.T) {
 					for _, s := range tc.contained {
 						assert.Contains(t, out.String(), s, "%s", out.String())
 					}
-					notContained := slices.DeleteFunc(allFields, func(s string) bool {
+					notContained := slices.DeleteFunc(slices.Clone(allFields), func(s string) bool {
 						return slices.Contains(tc.contained, s)
 					})
 					for _, s := range notContained {
