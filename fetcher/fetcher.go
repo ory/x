@@ -101,7 +101,7 @@ func (f *Fetcher) FetchContext(ctx context.Context, source string) (*bytes.Buffe
 // context that is used for HTTP requests.
 func (f *Fetcher) FetchBytes(ctx context.Context, source string) ([]byte, error) {
 	switch s := stringsx.SwitchPrefix(source); {
-	case s.HasPrefix("http://"), s.HasPrefix("https://"):
+	case s.HasPrefix("http://", "https://"):
 		return f.fetchRemote(ctx, source)
 	case s.HasPrefix("file://"):
 		return f.fetchFile(strings.TrimPrefix(source, "file://"))

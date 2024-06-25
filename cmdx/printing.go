@@ -291,26 +291,25 @@ func RegisterFormatFlags(flags *pflag.FlagSet) {
 	flags.String(FlagFormat, string(FormatDefault), fmt.Sprintf("Set the output format. One of %s, %s, %s, %s, %s and %s.", FormatTable, FormatJSON, FormatYAML, FormatJSONPretty, FormatJSONPath, FormatJSONPointer))
 }
 
-type bodyer interface {
-	Body() []byte
-}
-
 func PrintOpenAPIError(cmd *cobra.Command, err error) error {
 	if err == nil {
 		return nil
 	}
 
-	var be bodyer
+	var be interface {
+		Body() []byte
+	}
 	if !errors.As(err, &be) {
 		return err
 	}
 
-	var didPrettyPrint bool
-	if message := gjson.GetBytes(be.Body(), "error.message"); message.Exists() {
+	body := be.Body()
+	didPrettyPrint := false
+	if message := gjson.GetBytes(body, "error.message"); message.Exists() {
 		_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "%s\n", message.String())
 		didPrettyPrint = true
 	}
-	if reason := gjson.GetBytes(be.Body(), "error.reason"); reason.Exists() {
+	if reason := gjson.GetBytes(body, "error.reason"); reason.Exists() {
 		_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "%s\n", reason.String())
 		didPrettyPrint = true
 	}
@@ -319,7 +318,7 @@ func PrintOpenAPIError(cmd *cobra.Command, err error) error {
 		return FailSilently(cmd)
 	}
 
-	if body, err := json.MarshalIndent(json.RawMessage(be.Body()), "", "  "); err == nil {
+	if body, err := json.MarshalIndent(json.RawMessage(body), "", "  "); err == nil {
 		_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "%s\nFailed to execute API request, see error above.\n", body)
 		return FailSilently(cmd)
 	}

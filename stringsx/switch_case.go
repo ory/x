@@ -5,6 +5,7 @@ package stringsx
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -42,14 +43,16 @@ func SwitchPrefix(actual string) *RegisteredPrefixes {
 	}
 }
 
-func (r *RegisteredCases) AddCase(c string) bool {
-	r.cases = append(r.cases, c)
-	return r.actual == c
+func (r *RegisteredCases) AddCase(cases ...string) bool {
+	r.cases = append(r.cases, cases...)
+	return slices.Contains(cases, r.actual)
 }
 
-func (r *RegisteredPrefixes) HasPrefix(prefix string) bool {
-	r.prefixes = append(r.prefixes, prefix)
-	return strings.HasPrefix(r.actual, prefix)
+func (r *RegisteredPrefixes) HasPrefix(prefixes ...string) bool {
+	r.prefixes = append(r.prefixes, prefixes...)
+	return slices.ContainsFunc(prefixes, func(s string) bool {
+		return strings.HasPrefix(r.actual, s)
+	})
 }
 
 func (r *RegisteredCases) String() string {

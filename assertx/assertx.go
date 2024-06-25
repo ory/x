@@ -17,13 +17,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func PrettifyJSONPayload(t *testing.T, payload interface{}) string {
+func PrettifyJSONPayload(t testing.TB, payload interface{}) string {
+	t.Helper()
 	o, err := json.MarshalIndent(payload, "", "  ")
 	require.NoError(t, err)
 	return string(o)
 }
 
-func EqualAsJSON(t *testing.T, expected, actual interface{}, args ...interface{}) {
+func EqualAsJSON(t testing.TB, expected, actual interface{}, args ...interface{}) {
+	t.Helper()
 	var eb, ab bytes.Buffer
 	if len(args) == 0 {
 		args = []interface{}{PrettifyJSONPayload(t, actual)}
@@ -34,7 +36,8 @@ func EqualAsJSON(t *testing.T, expected, actual interface{}, args ...interface{}
 	assert.JSONEq(t, strings.TrimSpace(eb.String()), strings.TrimSpace(ab.String()), args...)
 }
 
-func EqualAsJSONExcept(t *testing.T, expected, actual interface{}, except []string, args ...interface{}) {
+func EqualAsJSONExcept(t testing.TB, expected, actual interface{}, except []string, args ...interface{}) {
+	t.Helper()
 	var eb, ab bytes.Buffer
 	if len(args) == 0 {
 		args = []interface{}{PrettifyJSONPayload(t, actual)}
@@ -56,7 +59,7 @@ func EqualAsJSONExcept(t *testing.T, expected, actual interface{}, except []stri
 	assert.JSONEq(t, strings.TrimSpace(ebs), strings.TrimSpace(abs), args...)
 }
 
-func TimeDifferenceLess(t *testing.T, t1, t2 time.Time, seconds int) {
+func TimeDifferenceLess(t testing.TB, t1, t2 time.Time, seconds int) {
 	t.Helper()
 	delta := math.Abs(float64(t1.Unix()) - float64(t2.Unix()))
 	assert.Less(t, delta, float64(seconds))

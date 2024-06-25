@@ -3,6 +3,7 @@
 
 package stringsx
 
+// Deprecated: use pointerx.Ptr instead
 func GetPointer(s string) *string {
 	return &s
 }

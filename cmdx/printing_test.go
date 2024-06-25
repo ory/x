@@ -6,12 +6,11 @@ package cmdx
 import (
 	"bytes"
 	"fmt"
+	"slices"
 	"strconv"
 	"testing"
 
 	"github.com/spf13/cobra"
-
-	"github.com/ory/x/stringslice"
 
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
@@ -170,8 +169,8 @@ func TestPrinting(t *testing.T) {
 					for _, s := range tc.contained {
 						assert.Contains(t, out.String(), s, "%s", out.String())
 					}
-					notContained := stringslice.Filter(allFields, func(s string) bool {
-						return stringslice.Has(tc.contained, s)
+					notContained := slices.DeleteFunc(allFields, func(s string) bool {
+						return slices.Contains(tc.contained, s)
 					})
 					for _, s := range notContained {
 						assert.NotContains(t, out.String(), s, "%s", out.String())
@@ -258,8 +257,8 @@ func TestPrinting(t *testing.T) {
 					for _, s := range tc.contained {
 						assert.Contains(t, out.String(), s, "%s", out.String())
 					}
-					notContained := stringslice.Filter(allFields, func(s string) bool {
-						return stringslice.Has(tc.contained, s)
+					notContained := slices.DeleteFunc(allFields, func(s string) bool {
+						return slices.Contains(tc.contained, s)
 					})
 					for _, s := range notContained {
 						assert.NotContains(t, out.String(), s, "%s", out.String())

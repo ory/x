@@ -3,12 +3,12 @@
 
 package stringslice
 
+import "slices"
+
+// Reverse reverses the order of a string slice
+// Deprecated: use slices.Reverse instead (changes semantics)
 func Reverse(s []string) []string {
-	r := make([]string, len(s))
-
-	for i, j := 0, len(r)-1; i <= j; i, j = i+1, j-1 {
-		r[i], r[j] = s[j], s[i]
-	}
-
-	return r
+	c := slices.Clone(s)
+	slices.Reverse(c)
+	return c
 }

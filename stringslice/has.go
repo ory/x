@@ -3,24 +3,20 @@
 
 package stringslice
 
-import "strings"
+import (
+	"slices"
+	"strings"
+)
 
 // Has returns true if the needle is in the haystack (case-sensitive)
+// Deprecated: use slices.Contains instead
 func Has(haystack []string, needle string) bool {
-	for _, current := range haystack {
-		if current == needle {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(haystack, needle)
 }
 
 // HasI returns true if the needle is in the haystack (case-insensitive)
 func HasI(haystack []string, needle string) bool {
-	for _, current := range haystack {
-		if strings.EqualFold(current, needle) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(haystack, func(value string) bool {
+		return strings.EqualFold(value, needle)
+	})
 }
