@@ -144,8 +144,7 @@ func (c *CallbackWriter) String() string {
 
 var _ io.Writer = (*CallbackWriter)(nil)
 
-// ExecBackgroundCtx runs the cobra command in the background.
-func ExecBackgroundCtx(ctx context.Context, cmd *cobra.Command, stdIn io.Reader, stdOut, stdErr io.Writer, args ...string) *errgroup.Group {
+func prepareCmd(cmd *cobra.Command, stdIn io.Reader, stdOut, stdErr io.Writer, args []string) {
 	cmd.SetIn(stdIn)
 	cmd.SetOut(io.MultiWriter(stdOut, debugStdout))
 	cmd.SetErr(io.MultiWriter(stdErr, debugStderr))
@@ -154,6 +153,11 @@ func ExecBackgroundCtx(ctx context.Context, cmd *cobra.Command, stdIn io.Reader,
 		args = []string{}
 	}
 	cmd.SetArgs(args)
+}
+
+// ExecBackgroundCtx runs the cobra command in the background.
+func ExecBackgroundCtx(ctx context.Context, cmd *cobra.Command, stdIn io.Reader, stdOut, stdErr io.Writer, args ...string) *errgroup.Group {
+	prepareCmd(cmd, stdIn, stdOut, stdErr, args)
 
 	eg := &errgroup.Group{}
 	eg.Go(func() error {
@@ -175,7 +179,12 @@ func Exec(t testing.TB, cmd *cobra.Command, stdIn io.Reader, args ...string) (st
 
 func ExecCtx(ctx context.Context, cmd *cobra.Command, stdIn io.Reader, args ...string) (string, string, error) {
 	stdOut, stdErr := &bytes.Buffer{}, &bytes.Buffer{}
-	err := ExecBackgroundCtx(ctx, cmd, stdIn, stdOut, stdErr, args...).Wait()
+
+	prepareCmd(cmd, stdIn, stdOut, stdErr, args)
+
+	// needs to be on a separate line to ensure that the ouput buffers are read AFTER the command ran
+	err := cmd.ExecuteContext(ctx)
+
 	return stdOut.String(), stdErr.String(), err
 }
 
