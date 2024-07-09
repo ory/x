@@ -32,7 +32,6 @@ type Middleware struct {
 }
 
 type middlewareOptions struct {
-	// Deprecated: this option does not have any effect anymore
 	Debug         bool
 	ExcludePaths  []string
 	SigningMethod jwt.SigningMethod
@@ -60,7 +59,6 @@ func SessionFromContext(ctx context.Context) (json.RawMessage, error) {
 	return session, nil
 }
 
-// Deprecated: this option does not have any effect anymore
 func MiddlewareDebugEnabled() MiddlewareOption {
 	return func(o *middlewareOptions) {
 		o.Debug = true
@@ -129,9 +127,13 @@ func NewMiddleware(
 			jwtmiddleware.WithErrorHandler(func(w http.ResponseWriter, r *http.Request, err error) {
 				switch {
 				case errors.Is(err, jwtmiddleware.ErrJWTInvalid):
-					c.ErrorWriter.WriteError(w, r, errors.WithStack(herodot.ErrUnauthorized.WithReasonf("The token is invalid or expired.")))
+					reason := "The token is invalid or expired."
+					if err := errors.Unwrap(err); err != nil {
+						reason = err.Error()
+					}
+					c.ErrorWriter.WriteError(w, r, errors.WithStack(herodot.ErrUnauthorized.WithReason(reason)))
 				case errors.Is(err, jwtmiddleware.ErrJWTMissing):
-					c.ErrorWriter.WriteError(w, r, errors.WithStack(herodot.ErrUnauthorized.WithReasonf("The token is missing.")))
+					c.ErrorWriter.WriteError(w, r, errors.WithStack(herodot.ErrUnauthorized.WithReason("The token is missing.")))
 				default:
 					c.ErrorWriter.WriteError(w, r, err)
 				}
