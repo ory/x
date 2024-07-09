@@ -6,7 +6,6 @@ package dockertest
 import (
 	"context"
 	"fmt"
-	"github.com/docker/docker/api/types/container"
 	"io"
 	"log"
 	"os"
@@ -16,16 +15,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gobuffalo/pop/v6"
-
-	"github.com/ory/dockertest/v3"
-
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
+	"github.com/gobuffalo/pop/v6"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ory/dockertest/v3"
 	dc "github.com/ory/dockertest/v3/docker"
 	"github.com/ory/x/logrusx"
 	"github.com/ory/x/resilience"
