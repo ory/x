@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 
+	"github.com/docker/docker/api/types"
 	"github.com/ory/dockertest/v3"
 	dc "github.com/ory/dockertest/v3/docker"
 	"github.com/ory/x/logrusx"
@@ -476,14 +477,14 @@ func DumpSchema(ctx context.Context, t *testing.T, db string) string {
 		t.FailNow()
 	}
 
-	process, err := cli.ContainerExecCreate(ctx, containers[0].ID, container.ExecOptions{
+	process, err := cli.ContainerExecCreate(ctx, containers[0].ID, types.ExecConfig{
 		Tty:          true,
 		AttachStdout: true,
 		Cmd:          cmd,
 	})
 	require.NoError(t, err)
 
-	resp, err := cli.ContainerExecAttach(ctx, process.ID, container.ExecStartOptions{
+	resp, err := cli.ContainerExecAttach(ctx, process.ID, types.ExecStartCheck{
 		Tty: true,
 	})
 	require.NoError(t, err)
