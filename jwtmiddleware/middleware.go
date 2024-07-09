@@ -10,35 +10,38 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/form3tech-oss/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/pkg/errors"
 
 	"github.com/ory/herodot"
 
-	jwtmiddleware "github.com/auth0/go-jwt-middleware"
+	jwtmiddleware "github.com/auth0/go-jwt-middleware/v2"
 	"github.com/urfave/negroni"
 
 	"github.com/ory/x/jwksx"
 )
 
-const SessionContextKey string = "github.com/ory/x/jwtmiddleware.session"
+// Deprecated: use jwtmiddleware.ContextKey{} instead.
+var SessionContextKey = jwtmiddleware.ContextKey{}
 
 type Middleware struct {
 	o   *middlewareOptions
 	wku string
 	jm  *jwtmiddleware.JWTMiddleware
+	w   herodot.Writer
 }
 
 type middlewareOptions struct {
 	Debug         bool
 	ExcludePaths  []string
 	SigningMethod jwt.SigningMethod
+	ErrorWriter   herodot.Writer
 }
 
 type MiddlewareOption func(*middlewareOptions)
 
 func SessionFromContext(ctx context.Context) (json.RawMessage, error) {
-	raw := ctx.Value(SessionContextKey)
+	raw := ctx.Value(jwtmiddleware.ContextKey{})
 	if raw == nil {
 		return nil, errors.WithStack(herodot.ErrUnauthorized.WithReasonf("Could not find credentials in the request."))
 	}
@@ -74,12 +77,19 @@ func MiddlewareAllowSigningMethod(method jwt.SigningMethod) MiddlewareOption {
 	}
 }
 
+func MiddlewareErrorWriter(w herodot.Writer) MiddlewareOption {
+	return func(o *middlewareOptions) {
+		o.ErrorWriter = w
+	}
+}
+
 func NewMiddleware(
 	wellKnownURL string,
 	opts ...MiddlewareOption,
 ) *Middleware {
 	c := &middlewareOptions{
 		SigningMethod: jwt.SigningMethodES256,
+		ErrorWriter:   herodot.NewJSONWriter(nil),
 	}
 
 	for _, o := range opts {
@@ -89,35 +99,61 @@ func NewMiddleware(
 	return &Middleware{
 		o:   c,
 		wku: wellKnownURL,
-		jm: jwtmiddleware.New(jwtmiddleware.Options{
-			ValidationKeyGetter: func(token *jwt.Token) (interface{}, error) {
-				if raw, ok := token.Header["kid"]; !ok {
-					return nil, errors.New(`jwt from authorization HTTP header is missing value for "kid" in token header`)
-				} else if kid, ok := raw.(string); !ok {
-					return nil, fmt.Errorf(`jwt from authorization HTTP header is expecting string value for "kid" in tokenWithoutKid header but got: %T`, raw)
-				} else if k, err := jc.GetKey(kid); err != nil {
-					return nil, err
-				} else {
-					return k.Key, nil
-				}
+		jm: jwtmiddleware.New(
+			func(ctx context.Context, rawToken string) (any, error) {
+				return jwt.NewParser(
+					jwt.WithValidMethods([]string{c.SigningMethod.Alg()}),
+				).Parse(rawToken, func(token *jwt.Token) (interface{}, error) {
+					if raw, ok := token.Header["kid"]; !ok {
+						return nil, errors.New(`jwt from authorization HTTP header is missing value for "kid" in token header`)
+					} else if kid, ok := raw.(string); !ok {
+						return nil, fmt.Errorf(`jwt from authorization HTTP header is expecting string value for "kid" in tokenWithoutKid header but got: %T`, raw)
+					} else if k, err := jc.GetKey(kid); err != nil {
+						return nil, err
+					} else {
+						return k.Key, nil
+					}
+				})
 			},
-			SigningMethod:       c.SigningMethod,
-			UserProperty:        SessionContextKey,
-			CredentialsOptional: false,
-			Debug:               c.Debug,
-		}),
+			jwtmiddleware.WithCredentialsOptional(false),
+			jwtmiddleware.WithTokenExtractor(func(r *http.Request) (string, error) {
+				// wrapping the extractor to get a herodot.ErrorContainer
+				token, err := jwtmiddleware.AuthHeaderTokenExtractor(r)
+				if err != nil {
+					return "", herodot.ErrUnauthorized.WithReason(err.Error())
+				}
+				return token, nil
+			}),
+			jwtmiddleware.WithErrorHandler(func(w http.ResponseWriter, r *http.Request, err error) {
+				switch {
+				case errors.Is(err, jwtmiddleware.ErrJWTInvalid):
+					reason := "The token is invalid or expired."
+					if err := errors.Unwrap(err); err != nil {
+						reason = err.Error()
+					}
+					c.ErrorWriter.WriteError(w, r, errors.WithStack(herodot.ErrUnauthorized.WithReason(reason)))
+				case errors.Is(err, jwtmiddleware.ErrJWTMissing):
+					c.ErrorWriter.WriteError(w, r, errors.WithStack(herodot.ErrUnauthorized.WithReason("The token is missing.")))
+				default:
+					c.ErrorWriter.WriteError(w, r, err)
+				}
+			}),
+		),
 	}
 }
 
+// Deprecated: use Middleware as a negroni.Handler directly instead.
 func (h *Middleware) NegroniHandler() negroni.Handler {
-	return negroni.HandlerFunc(func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-		for _, excluded := range h.o.ExcludePaths {
-			if strings.HasPrefix(r.URL.Path, excluded) {
-				next(w, r)
-				return
-			}
-		}
+	return negroni.HandlerFunc(h.ServeHTTP)
+}
 
-		h.jm.HandlerWithNext(w, r, next)
-	})
+func (h *Middleware) ServeHTTP(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	for _, excluded := range h.o.ExcludePaths {
+		if strings.HasPrefix(r.URL.Path, excluded) {
+			next(w, r)
+			return
+		}
+	}
+
+	h.jm.CheckJWT(next).ServeHTTP(w, r)
 }

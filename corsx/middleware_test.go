@@ -32,7 +32,7 @@ func TestContextualizedMiddleware(t *testing.T) {
 		require.NoError(t, err)
 		req.Header.Set("Origin", origin)
 		req.Header.Set("Access-Control-Request-Method", "DELETE")
-		req.Header.Set("Access-Control-Request-Headers", "origin")
+		req.Header.Set("Access-Control-Request-Headers", "")
 		res, err := ts.Client().Do(req)
 		require.NoError(t, err)
 		defer res.Body.Close()

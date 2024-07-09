@@ -15,17 +15,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gobuffalo/pop/v6"
-
-	"github.com/ory/dockertest/v3"
-
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
+	"github.com/gobuffalo/pop/v6"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ory/dockertest/v3"
 	dc "github.com/ory/dockertest/v3/docker"
 	"github.com/ory/x/logrusx"
 	"github.com/ory/x/resilience"
@@ -349,7 +348,7 @@ func RunCockroachDB() (string, error) {
 	return RunCockroachDBWithVersion("")
 }
 
-// RunCockroachDB runs a CockroachDB database and returns the URL to it.
+// RunCockroachDBWithVersion runs a CockroachDB database with the specified version and returns the URL to it.
 func RunCockroachDBWithVersion(version string) (string, error) {
 	resource, err := startCockroachDB(version)
 	if err != nil {
@@ -468,8 +467,7 @@ func DumpSchema(ctx context.Context, t *testing.T, db string) string {
 
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	require.NoError(t, err)
-	containers, err := cli.ContainerList(ctx, types.ContainerListOptions{
-		Quiet:   true,
+	containers, err := cli.ContainerList(ctx, container.ListOptions{
 		Filters: filters.NewArgs(filters.Arg("expose", containerPort)),
 	})
 	require.NoError(t, err)
