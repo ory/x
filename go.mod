@@ -13,7 +13,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/cockroachdb/cockroach-go/v2 v2.3.5
 	github.com/dgraph-io/ristretto v0.1.1
-	github.com/docker/docker v27.0.3+incompatible
+	github.com/docker/docker v26.1.4+incompatible
 	github.com/evanphx/json-patch/v5 v5.6.0
 	github.com/fatih/structs v1.1.0
 	github.com/fsnotify/fsnotify v1.6.0
