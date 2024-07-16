@@ -12,8 +12,6 @@ import (
 	"strings"
 	"time"
 
-	// Import driver
-	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/tidwall/gjson"
@@ -27,6 +25,13 @@ type row struct {
 	value string
 }
 
+// NewChangeFeedConnection opens a new connection to the database and enables the CHANGEFEED feature.
+//
+// The caller is responsible for closing the connection when done.
+//
+// You must register the `pgx` driver before calling this function:
+//
+//	import _ "github.com/jackc/pgx/v4/stdlib"
 func NewChangeFeedConnection(ctx context.Context, l *logrusx.Logger, dsn string) (*sqlx.DB, error) {
 	if !strings.HasPrefix(dsn, "cockroach://") {
 		return nil, errors.Errorf("DSN value must be prefixed with a cockroach URI schema")
@@ -75,7 +80,7 @@ const heartBeatInterval = time.Second
 // This function spawns the necessary go-routines to process the change-feed events and deduplicate them.
 func WatchChangeFeed(ctx context.Context, cx *sqlx.DB, tableName string, out EventChannel, cursor time.Time) (_ Watcher, err error) {
 	c := make(EventChannel)
-	deduplicate(ctx, c, out, 100)
+	InternalDeduplicate(ctx, c, out, 100)
 
 	var rows *sql.Rows
 	if cursor.IsZero() {
@@ -213,13 +218,13 @@ func WatchChangeFeed(ctx context.Context, cx *sqlx.DB, tableName string, out Eve
 	return d, nil
 }
 
-// deduplicate sents events from `events` to the `deduplicated` channel, but
+// InternalDeduplicate sents events from `events` to the `deduplicated` channel, but
 // deduplicates events that are sent multiple times. This is necessary, because
 // the CochroachDB changefeed has a atleast-once guarantee for change events,
 // meaning that events could be sent multiple times.
 //
 // For deduplication, the last x `pastEvents` are considered.
-func deduplicate(ctx context.Context, in <-chan Event, out chan<- Event, pastEvents int) {
+func InternalDeduplicate(ctx context.Context, in <-chan Event, out chan<- Event, pastEvents int) {
 	go func() {
 		previous := newRingBuffer(pastEvents)
 

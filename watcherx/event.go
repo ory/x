@@ -42,6 +42,13 @@ type (
 	}
 )
 
+func NewErrorEvent(err error, source_ string) *ErrorEvent {
+	return &ErrorEvent{
+		error:  err,
+		source: source(source_),
+	}
+}
+
 const (
 	serialTypeChange serialEventType = "change"
 	serialTypeRemove serialEventType = "remove"

@@ -1,7 +1,7 @@
 // Copyright © 2023 Ory Corp
 // SPDX-License-Identifier: Apache-2.0
 
-package watcherx
+package watcherx_test
 
 import (
 	"context"
@@ -18,6 +18,7 @@ import (
 	"github.com/tidwall/gjson"
 
 	"github.com/ory/x/logrusx"
+	. "github.com/ory/x/watcherx"
 )
 
 func TestWatchChangeFeed(t *testing.T) {
@@ -177,9 +178,7 @@ func Test_deduplicate(t *testing.T) {
 
 	events := make([]Event, 3)
 	for i := range events {
-		events[i] = &ErrorEvent{
-			source: source(fmt.Sprintf("Event %d", i)),
-		}
+		events[i] = NewErrorEvent(nil, fmt.Sprintf("Event %d", i))
 	}
 
 	t.Run("case=proxies", func(t *testing.T) {
@@ -188,7 +187,7 @@ func Test_deduplicate(t *testing.T) {
 		eventCh := make(EventChannel)
 		deduplicatedEvents := make(EventChannel)
 
-		deduplicate(childCtx, eventCh, deduplicatedEvents, len(events))
+		InternalDeduplicate(childCtx, eventCh, deduplicatedEvents, len(events))
 		go send(childCtx, eventCh, events)
 		received := recv(ctx, deduplicatedEvents)
 
@@ -203,7 +202,7 @@ func Test_deduplicate(t *testing.T) {
 
 		duplicateEvents := append(events, events...)
 
-		deduplicate(childCtx, eventCh, deduplicatedEvents, len(events))
+		InternalDeduplicate(childCtx, eventCh, deduplicatedEvents, len(events))
 		go send(childCtx, eventCh, duplicateEvents)
 		received := recv(ctx, deduplicatedEvents)
 
@@ -220,7 +219,7 @@ func Test_deduplicate(t *testing.T) {
 		duplicateEvents = append(duplicateEvents, events[0])
 		expectedEvents := append(events, events[0])
 
-		deduplicate(childCtx, eventCh, deduplicatedEvents, len(events)-1)
+		InternalDeduplicate(childCtx, eventCh, deduplicatedEvents, len(events)-1)
 		go send(childCtx, eventCh, duplicateEvents)
 		received := recv(ctx, deduplicatedEvents)
 
