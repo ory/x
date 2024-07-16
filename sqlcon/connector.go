@@ -5,34 +5,14 @@
 package sqlcon
 
 import (
-	"fmt"
-	"net/url"
 	"runtime"
 	"strings"
 )
-
-func cleanURLQuery(in url.Values) (out url.Values) {
-	out, _ = url.ParseQuery(in.Encode())
-	out.Del("max_conns")
-	out.Del("max_idle_conns")
-	out.Del("max_conn_lifetime")
-	out.Del("max_idle_conn_time")
-	out.Del("parseTime")
-	return out
-}
 
 // GetDriverName returns the driver name of a given DSN.
 func GetDriverName(dsn string) string {
 	return strings.Split(dsn, "://")[0]
 }
-
-func classifyDSN(dsn string) string {
-	scheme := strings.Split(dsn, "://")[0]
-	parts := strings.Split(dsn, "@")
-	host := parts[len(parts)-1]
-	return fmt.Sprintf("%s://*:*@%s", scheme, host)
-}
-
 func maxParallelism() int {
 	maxProcs := runtime.GOMAXPROCS(0)
 	numCPU := runtime.NumCPU()
