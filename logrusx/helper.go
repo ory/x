@@ -59,7 +59,7 @@ func (l *Logger) HTTPHeadersRedacted(h http.Header) map[string]interface{} {
 
 	for key, value := range h {
 		keyLower := strings.ToLower(key)
-		if keyLower == "authorization" || keyLower == "cookie" || keyLower == "set-cookie" {
+		if keyLower == "authorization" || keyLower == "cookie" || keyLower == "set-cookie" || keyLower == "x-session-token" {
 			headers[keyLower] = l.maybeRedact(value)
 		} else {
 			headers[keyLower] = h.Get(key)
