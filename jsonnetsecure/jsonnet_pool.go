@@ -5,6 +5,7 @@ package jsonnetsecure
 
 import (
 	"bufio"
+	"cmp"
 	"context"
 	"encoding/json"
 	"io"
@@ -23,11 +24,12 @@ import (
 
 type (
 	processPoolVM struct {
-		path   string
-		args   []string
-		ctx    context.Context
-		params processParameters
-		pool   *pool
+		path        string
+		args        []string
+		ctx         context.Context
+		params      processParameters
+		execTimeout time.Duration
+		pool        *pool
 	}
 	Pool interface {
 		Close()
@@ -183,7 +185,7 @@ func (vm *processPoolVM) EvaluateAnonymousSnippet(filename string, snippet strin
 	defer otelx.End(span, &err)
 
 	// TODO: maybe leave the timeout to the caller?
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, cmp.Or(vm.execTimeout, 1*time.Second))
 	defer cancel()
 
 	params := vm.params
@@ -222,10 +224,11 @@ func NewProcessPoolVM(opts *vmOptions) VM {
 		ctx = context.Background()
 	}
 	return &processPoolVM{
-		path: opts.jsonnetBinaryPath,
-		args: opts.args,
-		ctx:  ctx,
-		pool: opts.pool,
+		path:        opts.jsonnetBinaryPath,
+		args:        opts.args,
+		ctx:         ctx,
+		pool:        opts.pool,
+		execTimeout: opts.execTimeout,
 	}
 }
 

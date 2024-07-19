@@ -5,6 +5,7 @@ package jsonnetsecure
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -23,9 +24,10 @@ import (
 
 func NewProcessVM(opts *vmOptions) VM {
 	return &ProcessVM{
-		path: opts.jsonnetBinaryPath,
-		args: opts.args,
-		ctx:  opts.ctx,
+		path:        opts.jsonnetBinaryPath,
+		args:        opts.args,
+		ctx:         opts.ctx,
+		execTimeout: opts.execTimeout,
 	}
 }
 
@@ -35,12 +37,11 @@ func (p *ProcessVM) EvaluateAnonymousSnippet(filename string, snippet string) (_
 	defer otelx.End(span, &err)
 
 	// We retry the process creation, because it sometimes times out.
-	const processVMTimeout = 1 * time.Second
 	return backoff.RetryWithData(func() (_ string, err error) {
 		ctx, span := tracer.Start(ctx, "jsonnetsecure.ProcessVM.EvaluateAnonymousSnippet.run")
 		defer otelx.End(span, &err)
 
-		ctx, cancel := context.WithTimeout(ctx, processVMTimeout)
+		ctx, cancel := context.WithTimeout(ctx, cmp.Or(p.execTimeout, 1*time.Second))
 		defer cancel()
 
 		var (

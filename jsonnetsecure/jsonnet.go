@@ -9,11 +9,18 @@ import (
 	"path"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/google/go-jsonnet"
 )
 
 type (
+	evaluationOptions struct {
+		evalTimeout time.Duration
+	}
+
+	EvaluationOptionModifier func(*evaluationOptions)
+
 	VM interface {
 		EvaluateAnonymousSnippet(filename string, snippet string) (json string, formattedErr error)
 		ExtCode(key string, val string)
@@ -31,10 +38,11 @@ type (
 	}
 
 	ProcessVM struct {
-		ctx    context.Context
-		path   string
-		args   []string
-		params processParameters
+		ctx         context.Context
+		path        string
+		args        []string
+		execTimeout time.Duration
+		params      processParameters
 	}
 
 	vmOptions struct {
@@ -43,6 +51,7 @@ type (
 		args              []string
 		ctx               context.Context
 		pool              *pool
+		execTimeout       time.Duration
 	}
 
 	Option func(o *vmOptions)
@@ -67,6 +76,12 @@ func WithProcessIsolatedVM(ctx context.Context) Option {
 	return func(o *vmOptions) {
 		o.useProcessVM = true
 		o.ctx = ctx
+	}
+}
+
+func WithExecTimeout(timeout time.Duration) Option {
+	return func(o *vmOptions) {
+		o.execTimeout = timeout
 	}
 }
 
