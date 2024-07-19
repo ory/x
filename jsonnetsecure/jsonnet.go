@@ -22,6 +22,7 @@ type (
 	EvaluationOptionModifier func(*evaluationOptions)
 
 	VM interface {
+		EvaluateAnonymousSnippet(filename string, snippet string) (json string, formattedErr error)
 		ExtCode(key string, val string)
 		ExtVar(key string, val string)
 		TLACode(key string, val string)
