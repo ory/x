@@ -9,14 +9,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/cenkalti/backoff/v4"
-	"github.com/pkg/errors"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
 	"io"
 	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/cenkalti/backoff/v4"
+	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/ory/x/otelx"
 )
