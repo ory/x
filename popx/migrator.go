@@ -210,6 +210,10 @@ func (m *Migrator) Down(ctx context.Context, steps int) error {
 		steps = min(steps, count)
 
 		mfs := m.Migrations["down"].SortAndFilter(c.Dialect.Name(), sort.Reverse)
+		if len(mfs) > count {
+			// skip all migrations that were not yet applied
+			mfs = mfs[len(mfs)-count:]
+		}
 
 		reverted := 0
 		defer func() {
