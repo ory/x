@@ -109,9 +109,8 @@ func NewClient(cmd *cobra.Command) (*http.Client, *url.URL, error) {
 
 	rt := httpx.NewTransportWithHeader(header)
 	rt.RoundTripper = &http.Transport{
-		//#nosec G402 -- This is a false positive
 		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: skipVerify,
+			InsecureSkipVerify: skipVerify, //nolint:gosec // This is a false positive
 		},
 	}
 	hc.Transport = rt
