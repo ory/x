@@ -65,6 +65,10 @@ func NewProcessPool(size int) Pool {
 	if err != nil {
 		panic(err) // this should never happen, see implementation of puddle.NewPool
 	}
+	for range size {
+		// warm pool
+		go pud.CreateResource(context.Background())
+	}
 	go func() {
 		for {
 			time.Sleep(10 * time.Second)
@@ -141,12 +145,19 @@ func newWorker(ctx context.Context) (_ worker, err error) {
 	errs := make(chan string)
 	go scan(errs, stderr)
 
-	return worker{
+	w := worker{
 		cmd:    cmd,
 		stdin:  in,
 		stdout: out,
 		stderr: errs,
-	}, nil
+	}
+	_, err = w.eval(ctx, []byte("{}")) // warm up
+	if err != nil {
+		w.destroy()
+		return worker{}, errors.Wrap(err, "newWorker: warm up failed")
+	}
+
+	return w, nil
 }
 
 func (w worker) destroy() {
@@ -182,10 +193,6 @@ func (vm *processPoolVM) EvaluateAnonymousSnippet(filename string, snippet strin
 	ctx, span := tracer.Start(vm.ctx, "jsonnetsecure.processPoolVM.EvaluateAnonymousSnippet", trace.WithAttributes(attribute.String("filename", filename)))
 	defer otelx.End(span, &err)
 
-	// TODO: maybe leave the timeout to the caller?
-	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
-	defer cancel()
-
 	params := vm.params
 	params.Filename = filename
 	params.Snippet = snippet
@@ -201,6 +208,8 @@ func (vm *processPoolVM) EvaluateAnonymousSnippet(filename string, snippet strin
 		return "", errors.Wrap(err, "jsonnetsecure: acquire")
 	}
 
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
 	result, err := worker.Value().eval(ctx, pp)
 	if err != nil {
 		worker.Destroy()
