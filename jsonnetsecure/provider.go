@@ -8,7 +8,6 @@ import (
 	"os"
 	"runtime"
 	"testing"
-	"time"
 )
 
 type (
@@ -45,7 +44,6 @@ func (p *TestProvider) JsonnetVM(ctx context.Context) (VM, error) {
 		WithProcessIsolatedVM(ctx),
 		WithProcessPool(p.pool),
 		WithJsonnetBinary(p.jsonnetBinary),
-		WithExecTimeout(time.Second*5),
 	), nil
 }
 
