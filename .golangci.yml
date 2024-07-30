@@ -1,10 +1,9 @@
 linters:
   enable:
     - gosec
-    - vet
+    - govet
   disable-all: true
 
 run:
   skip-files:
-    - "migrate_files.go" # go-bindata
     - ".+_test.go"
