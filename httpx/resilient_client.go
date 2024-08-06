@@ -8,11 +8,8 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/http/httptrace"
 	"time"
 
-	"go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/oauth2"
 
@@ -128,12 +125,6 @@ func NewResilientClient(opts ...ResilientOptions) *retryablehttp.Client {
 		}
 	} else {
 		o.c.Transport = ifelse(o.ipV6, allowInternalAllowIPv6, allowInternalProhibitIPv6)
-	}
-
-	if o.tracer != nil {
-		o.c.Transport = otelhttp.NewTransport(o.c.Transport, otelhttp.WithClientTrace(func(ctx context.Context) *httptrace.ClientTrace {
-			return otelhttptrace.NewClientTrace(ctx, otelhttptrace.WithoutHeaders(), otelhttptrace.WithoutSubSpans())
-		}))
 	}
 
 	cl := retryablehttp.NewClient()
