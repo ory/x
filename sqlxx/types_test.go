@@ -269,3 +269,36 @@ func TestStringSliceJSONFormat(t *testing.T) {
 	require.NoError(t, v.Scan(`["foo","bar"]`))
 	assert.EqualValues(t, StringSliceJSONFormat{"foo", "bar"}, v)
 }
+
+func TestMapStringInterface(t *testing.T) {
+	t.Run("sentinel values", func(t *testing.T) {
+		var v MapStringInterface
+		require.Error(t, v.Scan("[]"))
+
+		require.NoError(t, v.Scan(""))
+		assert.Empty(t, v)
+
+		require.NoError(t, v.Scan("null"))
+		assert.Empty(t, v)
+		expected, err := MapStringInterface{}.Value()
+		require.NoError(t, err)
+		assert.EqualValues(t, "{}", fmt.Sprintf("%s", expected))
+	})
+
+	t.Run("JSON round-tripping", func(t *testing.T) {
+		ref := `{"foo":"bar","null":null,"pi":3.14,"ts":1723546027}`
+
+		var v MapStringInterface
+		require.NoError(t, v.Scan(ref))
+		assert.EqualValues(t, MapStringInterface{
+			"foo":  "bar",
+			"null": nil,
+			"pi":   json.Number("3.14"),
+			"ts":   json.Number("1723546027"),
+		}, v)
+
+		serialized, err := v.Value()
+		require.NoError(t, err)
+		assert.EqualValues(t, ref, fmt.Sprintf("%s", serialized))
+	})
+}
