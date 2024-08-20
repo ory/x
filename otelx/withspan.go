@@ -90,4 +90,5 @@ func setErrorTags(span trace.Span, err error) {
 			span.SetAttributes(attribute.String("error.details."+k, fmt.Sprintf("%v", v)))
 		}
 	}
+	span.SetAttributes(attribute.String("error", err.Error()))
 }
