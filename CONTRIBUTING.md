@@ -63,7 +63,7 @@ won't clash with Ory X's direction. A great way to do this is via
   Ory have [a Contributors License Agreement?](https://cla-assistant.io/ory/x)
 
 - I would like updates about new versions of Ory X.
-  [How are new releases announced?](https://ory.us10.list-manage.com/subscribe?u=ffb1a878e4ec6c0ed312a3480&id=f605a41b53)
+  [How are new releases announced?](https://www.ory.sh/l/sign-up-newsletter)
 
 ## How can I contribute?
 
