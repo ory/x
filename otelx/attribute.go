@@ -3,7 +3,12 @@
 
 package otelx
 
-import "go.opentelemetry.io/otel/attribute"
+import (
+	"database/sql"
+	"fmt"
+
+	"go.opentelemetry.io/otel/attribute"
+)
 
 func StringAttrs(attrs map[string]string) []attribute.KeyValue {
 	s := []attribute.KeyValue{}
@@ -11,4 +16,40 @@ func StringAttrs(attrs map[string]string) []attribute.KeyValue {
 		s = append(s, attribute.String(k, v))
 	}
 	return s
+}
+
+func AutoInt[I int | int32 | int64](k string, v I) attribute.KeyValue {
+	// Internally, the OpenTelemetry SDK uses int64 for all integer values anyway.
+	return attribute.Int64(k, int64(v))
+}
+
+func Nullable[V any, VN *V | sql.Null[V], A func(string, V) attribute.KeyValue](a A, k string, v VN) attribute.KeyValue {
+	switch v := any(v).(type) {
+	case *V:
+		if v == nil {
+			return attribute.String(k, "<nil>")
+		}
+		return a(k, *v)
+	case sql.Null[V]:
+		if !v.Valid {
+			return attribute.String(k, "<nil>")
+		}
+		return a(k, v.V)
+	}
+	return attribute.String(k, "unsupported type")
+}
+
+func NullString[V *string | sql.Null[string]](k string, v V) attribute.KeyValue {
+	return Nullable(attribute.String, k, v)
+}
+
+func NullStringer(k string, v fmt.Stringer) attribute.KeyValue {
+	if v == nil {
+		return attribute.String(k, "<nil>")
+	}
+	return attribute.String(k, v.String())
+}
+
+func NullInt[I int | int32 | int64, V *I | sql.Null[I]](k string, v V) attribute.KeyValue {
+	return Nullable[I](AutoInt, k, v)
 }
