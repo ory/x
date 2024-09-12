@@ -10,6 +10,8 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
+const nullString = "<null>"
+
 func StringAttrs(attrs map[string]string) []attribute.KeyValue {
 	s := []attribute.KeyValue{}
 	for k, v := range attrs {
@@ -27,16 +29,17 @@ func Nullable[V any, VN *V | sql.Null[V], A func(string, V) attribute.KeyValue](
 	switch v := any(v).(type) {
 	case *V:
 		if v == nil {
-			return attribute.String(k, "<nil>")
+			return attribute.String(k, nullString)
 		}
 		return a(k, *v)
 	case sql.Null[V]:
 		if !v.Valid {
-			return attribute.String(k, "<nil>")
+			return attribute.String(k, nullString)
 		}
 		return a(k, v.V)
 	}
-	return attribute.String(k, "unsupported type")
+	// This should never happen, as the type switch above is exhaustive to the generic type VN.
+	return attribute.String(k, fmt.Sprintf("<got unsupported type %T>", v))
 }
 
 func NullString[V *string | sql.Null[string]](k string, v V) attribute.KeyValue {
@@ -45,7 +48,7 @@ func NullString[V *string | sql.Null[string]](k string, v V) attribute.KeyValue 
 
 func NullStringer(k string, v fmt.Stringer) attribute.KeyValue {
 	if v == nil {
-		return attribute.String(k, "<nil>")
+		return attribute.String(k, nullString)
 	}
 	return attribute.String(k, v.String())
 }
