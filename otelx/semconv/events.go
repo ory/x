@@ -33,10 +33,11 @@ const (
 	AttributeKeyWorkspace          AttributeKey = "WorkspaceID"
 	AttributeKeySubscriptionID     AttributeKey = "SubscriptionID"
 	AttributeKeyProjectEnvironment AttributeKey = "ProjectEnvironment"
+	AttributeKeyAPIKeyID           AttributeKey = "APIKeyID"
 )
 
-func AttrIdentityID(val uuid.UUID) otelattr.KeyValue {
-	return otelattr.String(AttributeKeyIdentityID.String(), val.String())
+func AttrIdentityID[V string | uuid.UUID](val V) otelattr.KeyValue {
+	return otelattr.String(AttributeKeyIdentityID.String(), uuidOrString(val))
 }
 
 func AttrNID(val uuid.UUID) otelattr.KeyValue {
@@ -73,4 +74,18 @@ func AttrGeoLocation(val httpx.GeoLocation) []otelattr.KeyValue {
 	}
 
 	return geoLocationAttributes
+}
+
+func AttrAPIKeyID[V string | uuid.UUID](val V) otelattr.KeyValue {
+	return otelattr.String(AttributeKeyAPIKeyID.String(), uuidOrString(val))
+}
+
+func uuidOrString[V string | uuid.UUID](val V) string {
+	switch val := any(val).(type) {
+	case string:
+		return val
+	case uuid.UUID:
+		return val.String()
+	}
+	panic("unreachable")
 }
