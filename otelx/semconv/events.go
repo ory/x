@@ -76,7 +76,7 @@ func AttrGeoLocation(val httpx.GeoLocation) []otelattr.KeyValue {
 	return geoLocationAttributes
 }
 
-func AttrAPIKey[V string | uuid.UUID](val V) otelattr.KeyValue {
+func AttrAPIKeyID[V string | uuid.UUID](val V) otelattr.KeyValue {
 	return otelattr.String(AttributeKeyAPIKeyID.String(), uuidOrString(val))
 }
 
