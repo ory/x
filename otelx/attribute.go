@@ -13,7 +13,7 @@ import (
 const nullString = "<null>"
 
 func StringAttrs(attrs map[string]string) []attribute.KeyValue {
-	s := []attribute.KeyValue{}
+	s := make([]attribute.KeyValue, 0, len(attrs))
 	for k, v := range attrs {
 		s = append(s, attribute.String(k, v))
 	}
