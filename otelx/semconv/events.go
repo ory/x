@@ -33,8 +33,7 @@ const (
 	AttributeKeyWorkspace          AttributeKey = "WorkspaceID"
 	AttributeKeySubscriptionID     AttributeKey = "SubscriptionID"
 	AttributeKeyProjectEnvironment AttributeKey = "ProjectEnvironment"
-	AttributeProjectKeyAPIKeyID    AttributeKey = "ProjectAPIKeyID"
-	AttributeWorkspaceKeyAPIKeyID  AttributeKey = "WorkspaceAPIKeyID"
+	AttributeKeyAPIKeyID           AttributeKey = "APIKeyID"
 )
 
 func AttrIdentityID[V string | uuid.UUID](val V) otelattr.KeyValue {
@@ -77,12 +76,8 @@ func AttrGeoLocation(val httpx.GeoLocation) []otelattr.KeyValue {
 	return geoLocationAttributes
 }
 
-func AttrProjectAPIKey[V string | uuid.UUID](val V) otelattr.KeyValue {
-	return otelattr.String(AttributeProjectKeyAPIKeyID.String(), uuidOrString(val))
-}
-
-func AttrWorkspaceAPIKey[V string | uuid.UUID](val V) otelattr.KeyValue {
-	return otelattr.String(AttributeWorkspaceKeyAPIKeyID.String(), uuidOrString(val))
+func AttrAPIKey[V string | uuid.UUID](val V) otelattr.KeyValue {
+	return otelattr.String(AttributeKeyAPIKeyID.String(), uuidOrString(val))
 }
 
 func uuidOrString[V string | uuid.UUID](val V) string {
