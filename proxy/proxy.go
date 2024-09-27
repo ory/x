@@ -258,10 +258,20 @@ func (o *options) beforeProxyMiddleware(h http.Handler) http.Handler {
 }
 
 func defaultErrorHandler(w http.ResponseWriter, r *http.Request, err error) {
-	if !errors.Is(err, context.Canceled) {
+	switch {
+	case errors.Is(err, context.Canceled):
+		w.WriteHeader(499) // http://nginx.org/en/docs/dev/development_guide.html
+	case isTimeoutError(err):
+		w.WriteHeader(http.StatusGatewayTimeout)
+	default:
 		log.Printf("http: proxy error: %v", err)
+		w.WriteHeader(http.StatusBadGateway)
 	}
-	w.WriteHeader(http.StatusBadGateway)
+}
+
+func isTimeoutError(err error) bool {
+	var te interface{ Timeout() bool } = nil
+	return errors.As(err, &te) && te.Timeout() || errors.Is(err, context.DeadlineExceeded)
 }
 
 // New creates a new Proxy
