@@ -231,7 +231,7 @@ func (t *HTTP) validateRequest(r *http.Request, c *httpDecoderOptions) error {
 	}
 
 	if method != "GET" {
-		if r.ContentLength == 0 && method != "GET" {
+		if r.ContentLength == 0 {
 			return errors.WithStack(herodot.ErrBadRequest.WithReasonf(`Unable to decode HTTP Request Body because its HTTP Header "Content-Length" is zero.`))
 		}
 
@@ -555,7 +555,7 @@ func (t *HTTP) decodeJSON(r *http.Request, destination interface{}, o *httpDecod
 
 	dc := json.NewDecoder(bytes.NewReader(raw))
 	if err := dc.Decode(destination); err != nil {
-		return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Unable to decode JSON payload: %s", err))
+		return errors.WithStack(herodot.ErrBadRequest.WithReasonf("Unable to decode JSON payload: %s", err).WithDebugf("Received request body: %s", string(raw)))
 	}
 
 	if err := t.validatePayload(r.Context(), raw, o); err != nil {
