@@ -41,12 +41,11 @@ type Provider struct {
 	*koanf.Koanf
 	immutables, exceptImmutables []string
 
-	schema                   []byte
-	flags                    *pflag.FlagSet
-	validator                *jsonschema.Schema
-	onChanges                []func(watcherx.Event, error)
-	onValidationError        func(k *koanf.Koanf, err error)
-	excludeFieldsFromTracing []string
+	schema            []byte
+	flags             *pflag.FlagSet
+	validator         *jsonschema.Schema
+	onChanges         []func(watcherx.Event, error)
+	onValidationError func(k *koanf.Koanf, err error)
 
 	forcedValues []tuple
 	baseValues   []tuple
@@ -91,12 +90,11 @@ func New(ctx context.Context, schema []byte, modifiers ...OptionModifier) (*Prov
 	l.Out = io.Discard
 
 	p := &Provider{
-		schema:                   schema,
-		validator:                validator,
-		onValidationError:        func(k *koanf.Koanf, err error) {},
-		excludeFieldsFromTracing: []string{"dsn", "secret", "password", "key"},
-		logger:                   logrusx.New("discarding config logger", "", logrusx.UseLogger(l)),
-		Koanf:                    koanf.NewWithConf(koanf.Conf{Delim: Delimiter, StrictMerge: true}),
+		schema:            schema,
+		validator:         validator,
+		onValidationError: func(k *koanf.Koanf, err error) {},
+		logger:            logrusx.New("discarding config logger", "", logrusx.UseLogger(l)),
+		Koanf:             koanf.NewWithConf(koanf.Conf{Delim: Delimiter, StrictMerge: true}),
 	}
 
 	for _, m := range modifiers {

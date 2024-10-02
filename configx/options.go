@@ -102,10 +102,9 @@ func WithUserProviders(providers ...koanf.Provider) OptionModifier {
 	}
 }
 
+// DEPRECATED without replacement. This option is a no-op.
 func OmitKeysFromTracing(keys ...string) OptionModifier {
-	return func(p *Provider) {
-		p.excludeFieldsFromTracing = keys
-	}
+	return func(*Provider) {}
 }
 
 func AttachWatcher(watcher func(event watcherx.Event, err error)) OptionModifier {
