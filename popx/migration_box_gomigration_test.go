@@ -6,17 +6,16 @@ package popx_test
 import (
 	"context"
 	"database/sql"
-	"github.com/ory/x/dbal"
 	"math/rand"
 	"testing"
 	"time"
 
-	"github.com/pkg/errors"
-
 	"github.com/gobuffalo/pop/v6"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ory/x/dbal"
 	"github.com/ory/x/logrusx"
 	"github.com/ory/x/popx"
 )
