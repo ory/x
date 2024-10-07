@@ -6,6 +6,7 @@ package popx_test
 import (
 	"context"
 	"database/sql"
+	"github.com/ory/x/dbal"
 	"math/rand"
 	"testing"
 	"time"
@@ -78,7 +79,7 @@ func TestGoMigrations(t *testing.T) {
 		called = make([]time.Time, len(goMigrations))
 
 		c, err := pop.NewConnection(&pop.ConnectionDetails{
-			URL: "sqlite://file::memory:?_fk=true",
+			URL: dbal.NewSQLiteTestDatabase(t),
 		})
 		require.NoError(t, err)
 		require.NoError(t, c.Open())
@@ -101,7 +102,7 @@ func TestGoMigrations(t *testing.T) {
 
 	t.Run("tc=errs_on_missing_down_migration", func(t *testing.T) {
 		c, err := pop.NewConnection(&pop.ConnectionDetails{
-			URL: "sqlite://file::memory:?_fk=true",
+			URL: dbal.NewSQLiteTestDatabase(t),
 		})
 		require.NoError(t, err)
 		require.NoError(t, c.Open())
@@ -112,7 +113,7 @@ func TestGoMigrations(t *testing.T) {
 
 	t.Run("tc=runs everything in one transaction", func(t *testing.T) {
 		c, err := pop.NewConnection(&pop.ConnectionDetails{
-			URL: "sqlite://file::memory:?_fk=true",
+			URL: dbal.NewSQLiteTestDatabase(t),
 		})
 		require.NoError(t, err)
 		require.NoError(t, c.Open())
@@ -223,7 +224,7 @@ func TestIncompatibleRunners(t *testing.T) {
 
 func TestNoTransaction(t *testing.T) {
 	c, err := pop.NewConnection(&pop.ConnectionDetails{
-		URL: "sqlite://file::memory:",
+		URL: dbal.NewSQLiteTestDatabase(t),
 	})
 	require.NoError(t, err)
 	require.NoError(t, c.Open())

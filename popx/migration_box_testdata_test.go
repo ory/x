@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ory/x/dbal"
 	"github.com/ory/x/logrusx"
 	"github.com/ory/x/popx"
 )
@@ -34,7 +35,7 @@ type testdata struct {
 
 func TestMigrationBoxWithTestdata(t *testing.T) {
 	c, err := pop.NewConnection(&pop.ConnectionDetails{
-		URL: "sqlite://file::memory:?_fk=true",
+		URL: dbal.NewSQLiteTestDatabase(t),
 	})
 	require.NoError(t, err)
 	require.NoError(t, c.Open())
@@ -78,7 +79,7 @@ func TestMigrationBoxWithoutTransaction(t *testing.T) {
 
 func TestMigrationBox_CheckNoErr(t *testing.T) {
 	c, err := pop.NewConnection(&pop.ConnectionDetails{
-		URL: "sqlite://file::memory:?_fk=true",
+		URL: dbal.NewSQLiteTestDatabase(t),
 	})
 	require.NoError(t, err)
 	require.NoError(t, c.Open())

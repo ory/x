@@ -11,6 +11,7 @@ import (
 	"math"
 	"os"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"text/tabwriter"
@@ -18,7 +19,6 @@ import (
 
 	"github.com/gobuffalo/pop/v6"
 
-	"github.com/cockroachdb/cockroach-go/v2/crdb"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -92,7 +92,7 @@ func (m *Migrator) Up(ctx context.Context) error {
 // If step <= 0 all pending migrations are run.
 func (m *Migrator) UpTo(ctx context.Context, step int) (applied int, err error) {
 	span, ctx := m.startSpan(ctx, MigrationUpOpName)
-	defer span.End()
+	defer otelx.End(span, &err)
 
 	c := m.Connection.WithContext(ctx)
 	err = m.exec(ctx, func() error {
@@ -101,44 +101,39 @@ func (m *Migrator) UpTo(ctx context.Context, step int) (applied int, err error) 
 		for _, mi := range mfs {
 			l := m.l.WithField("version", mi.Version).WithField("migration_name", mi.Name).WithField("migration_file", mi.Path)
 
-			exists, err := c.Where("version = ?", mi.Version).Exists(mtn)
+			appliedMigrations := make([]string, 0, 2)
+			legacyVersion := mi.Version
+			if len(legacyVersion) > 14 {
+				legacyVersion = legacyVersion[:14]
+			}
+			err := c.RawQuery(fmt.Sprintf("SELECT version FROM %s WHERE version IN (?, ?)", mtn), mi.Version, legacyVersion).All(&appliedMigrations)
 			if err != nil {
 				return errors.Wrapf(err, "problem checking for migration version %s", mi.Version)
 			}
 
-			if exists {
+			if slices.Contains(appliedMigrations, mi.Version) {
 				l.Debug("Migration has already been applied, skipping.")
 				continue
 			}
 
-			if len(mi.Version) > 14 {
-				l.Debug("Migration has not been applied but it might be a legacy migration, investigating.")
+			if slices.Contains(appliedMigrations, legacyVersion) {
+				l.WithField("legacy_version", legacyVersion).WithField("migration_table", mtn).Debug("Migration has already been applied in a legacy migration run. Updating version in migration table.")
+				if err := m.isolatedTransaction(ctx, "init-migrate", func(conn *pop.Connection) error {
+					// We do not want to remove the legacy migration version or subsequent migrations might be applied twice.
+					//
+					// Do not activate the following - it is just for reference.
+					//
+					// if _, err := tx.Store.Exec(fmt.Sprintf("DELETE FROM %s WHERE version = ?", mtn), legacyVersion); err != nil {
+					//	return errors.Wrapf(err, "problem removing legacy version %s", mi.Version)
+					// }
 
-				legacyVersion := mi.Version[:14]
-				exists, err = c.Where("version = ?", legacyVersion).Exists(mtn)
-				if err != nil {
-					return errors.Wrapf(err, "problem checking for legacy migration version %s", legacyVersion)
+					// #nosec G201 - mtn is a system-wide const
+					err := conn.RawQuery(fmt.Sprintf("INSERT INTO %s (version) VALUES (?)", mtn), mi.Version).Exec()
+					return errors.Wrapf(err, "problem inserting migration version %s", mi.Version)
+				}); err != nil {
+					return err
 				}
-
-				if exists {
-					l.WithField("legacy_version", legacyVersion).WithField("migration_table", mtn).Debug("Migration has already been applied in a legacy migration run. Updating version in migration table.")
-					if err := m.isolatedTransaction(ctx, "init-migrate", func(conn *pop.Connection) error {
-						// We do not want to remove the legacy migration version or subsequent migrations might be applied twice.
-						//
-						// Do not activate the following - it is just for reference.
-						//
-						// if _, err := tx.Store.Exec(fmt.Sprintf("DELETE FROM %s WHERE version = ?", mtn), legacyVersion); err != nil {
-						//	return errors.Wrapf(err, "problem removing legacy version %s", mi.Version)
-						// }
-
-						// #nosec G201 - mtn is a system-wide const
-						err := conn.RawQuery(fmt.Sprintf("INSERT INTO %s (version) VALUES (?)", mtn), mi.Version).Exec()
-						return errors.Wrapf(err, "problem inserting migration version %s", mi.Version)
-					}); err != nil {
-						return err
-					}
-					continue
-				}
+				continue
 			}
 
 			l.Info("Migration has not yet been applied, running migration.")
@@ -506,10 +501,9 @@ func (m *Migrator) Status(ctx context.Context) (MigrationStatuses, error) {
 	if len(migrations) == 0 {
 		return nil, errors.Errorf("unable to find any migrations for dialect: %s", con.Dialect.Name())
 	}
-	m.sanitizedMigrationTableName(con)
 
-	var migrationRows []migrationRow
-	err := con.RawQuery(fmt.Sprintf("SELECT * FROM %s", m.sanitizedMigrationTableName(con))).All(&migrationRows)
+	alreadyApplied := make([]string, 0, len(migrations))
+	err := con.RawQuery(fmt.Sprintf("SELECT version FROM %s", m.sanitizedMigrationTableName(con))).All(&alreadyApplied)
 	if err != nil {
 		if errIsTableNotFound(err) {
 			// This means that no migrations have been applied and we need to apply all of them first!
@@ -529,15 +523,11 @@ func (m *Migrator) Status(ctx context.Context) (MigrationStatuses, error) {
 			Name:    mf.Name,
 		}
 
-		for _, mr := range migrationRows {
-			if mr.Version == mf.Version {
-				statuses[k].State = Applied
-				break
-			} else if len(mf.Version) > 14 {
-				if mr.Version == mf.Version[:14] {
-					statuses[k].State = Applied
-				}
-			}
+		if slices.ContainsFunc(alreadyApplied, func(applied string) bool {
+			return applied == mf.Version || (len(mf.Version) > 14 && applied == mf.Version[:14])
+		}) {
+			statuses[k].State = Applied
+			continue
 		}
 	}
 
@@ -593,13 +583,6 @@ func (m *Migrator) exec(ctx context.Context, fn func() error) error {
 	if m.Connection.Dialect.Name() == "sqlite3" {
 		if err := m.Connection.RawQuery("PRAGMA foreign_keys=OFF").Exec(); err != nil {
 			return err
-		}
-	}
-
-	if m.Connection.Dialect.Name() == "cockroach" {
-		outer := fn
-		fn = func() error {
-			return crdb.Execute(outer)
 		}
 	}
 
