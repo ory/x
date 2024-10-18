@@ -6,7 +6,10 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"math"
 	"time"
+
+	"github.com/ory/x/otelx"
 
 	"github.com/inhies/go-bytesize"
 	"go.opentelemetry.io/otel"
@@ -64,14 +67,18 @@ func NewHasherArgon2(c Argon2Configurator) *Argon2 {
 	return &Argon2{c: c}
 }
 
-func toKB(mem bytesize.ByteSize) uint32 {
-	return uint32(mem / bytesize.KB)
+func toKB(mem bytesize.ByteSize) (uint32, error) {
+	kb := uint64(mem / bytesize.KB)
+	if kb > math.MaxUint32 {
+		return 0, errors.Errorf("memory %v is too large", mem)
+	}
+	return uint32(kb), nil
 }
 
 // Generate generates a hash for the given password.
-func (h *Argon2) Generate(ctx context.Context, password []byte) ([]byte, error) {
+func (h *Argon2) Generate(ctx context.Context, password []byte) (_ []byte, err error) {
 	ctx, span := otel.GetTracerProvider().Tracer(tracingComponent).Start(ctx, "hash.Argon2.Generate")
-	defer span.End()
+	defer otelx.End(span, &err)
 	p := h.c.HasherArgon2Config(ctx)
 	span.SetAttributes(attribute.String("argon2.config", fmt.Sprintf("#%v", p)))
 
@@ -80,16 +87,20 @@ func (h *Argon2) Generate(ctx context.Context, password []byte) ([]byte, error) 
 		return nil, err
 	}
 
+	mem, err := toKB(p.Memory)
+	if err != nil {
+		return nil, err
+	}
 	// Pass the plaintext password, salt and parameters to the argon2.IDKey
 	// function. This will generate a hash of the password using the Argon2id
 	// variant.
-	hash := argon2.IDKey([]byte(password), salt, p.Iterations, toKB(p.Memory), p.Parallelism, p.KeyLength)
+	hash := argon2.IDKey(password, salt, p.Iterations, mem, p.Parallelism, p.KeyLength)
 
 	var b bytes.Buffer
 	if _, err := fmt.Fprintf(
 		&b,
 		"$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s",
-		argon2.Version, toKB(p.Memory), p.Iterations, p.Parallelism,
+		argon2.Version, mem, p.Iterations, p.Parallelism,
 		base64.RawStdEncoding.EncodeToString(salt),
 		base64.RawStdEncoding.EncodeToString(hash),
 	); err != nil {

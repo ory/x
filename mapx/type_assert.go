@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"time"
 )
 
@@ -103,17 +104,14 @@ func GetInt32Default(values map[interface{}]interface{}, key interface{}, defaul
 
 // GetInt32 returns an int32 for a given key in values.
 func GetInt32(values map[interface{}]interface{}, key interface{}) (int32, error) {
-	if v, ok := values[key]; !ok {
-		return 0, ErrKeyDoesNotExist
-	} else if sv, ok := v.(int32); ok {
-		return sv, nil
-	} else if sv, ok := v.(int); ok {
-		return int32(sv), nil
-	} else if j, ok := v.(json.Number); ok {
-		v, err := j.Int64()
-		return int32(v), err
+	v, err := GetInt64(values, key)
+	if err != nil {
+		return 0, err
 	}
-	return 0, ErrKeyCanNotBeTypeAsserted
+	if v > math.MaxInt32 || v < math.MinInt32 {
+		return 0, errors.New("value is out of range")
+	}
+	return int32(v), nil
 }
 
 // GetIntDefault returns a int or the default value for a given key in values.
@@ -127,18 +125,14 @@ func GetIntDefault(values map[interface{}]interface{}, key interface{}, defaultV
 
 // GetInt returns an int for a given key in values.
 func GetInt(values map[interface{}]interface{}, key interface{}) (int, error) {
-	if v, ok := values[key]; !ok {
-		return 0, ErrKeyDoesNotExist
-	} else if sv, ok := v.(int32); ok {
-		return int(sv), nil
-	} else if sv, ok := v.(int); ok {
-		return sv, nil
-	} else if j, ok := v.(json.Number); ok {
-		v, err := j.Int64()
-		return int(v), err
+	v, err := GetInt64(values, key)
+	if err != nil {
+		return 0, err
 	}
-	return 0, ErrKeyCanNotBeTypeAsserted
-
+	if v > math.MaxInt || v < math.MinInt {
+		return 0, errors.New("value is out of range")
+	}
+	return int(v), nil
 }
 
 // GetFloat32Default returns a float32 or the default value for a given key in values.
