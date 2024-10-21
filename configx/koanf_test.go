@@ -87,7 +87,7 @@ func BenchmarkKoanf(b *testing.B) {
 	})
 
 	b.Run("cache=true", func(b *testing.B) {
-		for i, c := range []*ristretto.Config{
+		for i, c := range []*ristretto.Config[string, any]{
 			{
 				NumCounters: int64(numKeys),
 				MaxCost:     500000,
@@ -104,19 +104,16 @@ func BenchmarkKoanf(b *testing.B) {
 				BufferItems: 64,
 			},
 		} {
-			cache, err := ristretto.NewCache(c)
+			cache, err := ristretto.NewCache[string, any](c)
 			require.NoError(b, err)
 
 			b.Run(fmt.Sprintf("config=%d", i), func(b *testing.B) {
-				var key string
-				var found bool
-				var val interface{}
-
 				b.ResetTimer()
-				for i := 0; i < b.N; i++ {
-					key = keys[i%numKeys]
+				for i := range b.N {
+					key := keys[i%numKeys]
 
-					if val, found = cache.Get(key); !found {
+					val, found := cache.Get(key)
+					if !found {
 						val = k.Koanf.Get(key)
 						_ = cache.Set(key, val, 0)
 					}

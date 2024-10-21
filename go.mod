@@ -12,7 +12,7 @@ require (
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/cockroachdb/cockroach-go/v2 v2.3.5
-	github.com/dgraph-io/ristretto v0.1.1
+	github.com/dgraph-io/ristretto v1.0.0
 	github.com/docker/docker v26.1.4+incompatible
 	github.com/evanphx/json-patch/v5 v5.6.0
 	github.com/fatih/structs v1.1.0
@@ -116,7 +116,7 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/containerd/continuity v0.4.3 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -125,7 +125,7 @@ require (
 	github.com/docker/cli v26.1.4+incompatible // indirect
 	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
-	github.com/dustin/go-humanize v1.0.0 // indirect
+	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fatih/color v1.16.0 // indirect
 	github.com/felixge/fgprof v0.9.3 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
@@ -150,7 +150,6 @@ require (
 	github.com/gofrs/flock v0.8.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
-	github.com/golang/glog v1.1.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/pprof v0.0.0-20221010195024-131d412537ea // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
@@ -189,7 +188,7 @@ require (
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0 // indirect
-	github.com/opencontainers/runc v1.1.13 // indirect
+	github.com/opencontainers/runc v1.1.14 // indirect
 	github.com/openzipkin/zipkin-go v0.4.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.6 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
@@ -214,7 +213,7 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa // indirect
 	golang.org/x/image v0.18.0 // indirect
-	golang.org/x/sys v0.21.0 // indirect
+	golang.org/x/sys v0.25.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
 	golang.org/x/time v0.4.0 // indirect
 	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect

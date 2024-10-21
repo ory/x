@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"fmt"
+	"math"
 	"regexp"
 	"strings"
 
@@ -53,8 +54,13 @@ func CompareArgon2id(_ context.Context, password []byte, hash []byte) error {
 		return err
 	}
 
+	mem := uint64(p.Memory)
+	if mem > math.MaxUint32 {
+		return errors.WithStack(ErrInvalidHash)
+	}
+
 	// Derive the key from the other password using the same parameters.
-	otherHash := argon2.IDKey([]byte(password), salt, p.Iterations, uint32(p.Memory), p.Parallelism, p.KeyLength)
+	otherHash := argon2.IDKey(password, salt, p.Iterations, uint32(mem), p.Parallelism, p.KeyLength)
 
 	// Check that the contents of the hashed passwords are identical. Note
 	// that we are using the subtle.ConstantTimeCompare() function for this
@@ -73,8 +79,13 @@ func CompareArgon2i(_ context.Context, password []byte, hash []byte) error {
 		return err
 	}
 
+	mem := uint64(p.Memory)
+	if mem > math.MaxUint32 {
+		return errors.WithStack(ErrInvalidHash)
+	}
+
 	// Derive the key from the other password using the same parameters.
-	otherHash := argon2.Key([]byte(password), salt, p.Iterations, uint32(p.Memory), p.Parallelism, p.KeyLength)
+	otherHash := argon2.Key(password, salt, p.Iterations, uint32(mem), p.Parallelism, p.KeyLength)
 
 	// Check that the contents of the hashed passwords are identical. Note
 	// that we are using the subtle.ConstantTimeCompare() function for this
@@ -153,13 +164,21 @@ func decodeArgon2idHash(encodedHash string) (p *Argon2Config, salt, hash []byte,
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	p.SaltLength = uint32(len(salt))
+	saltLength := len(salt)
+	if saltLength > math.MaxUint32 {
+		return nil, nil, nil, ErrInvalidHash
+	}
+	p.SaltLength = uint32(saltLength)
 
 	hash, err = base64.RawStdEncoding.Strict().DecodeString(parts[5])
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	p.KeyLength = uint32(len(hash))
+	keyLength := len(hash)
+	if keyLength > math.MaxUint32 {
+		return nil, nil, nil, ErrInvalidHash
+	}
+	p.KeyLength = uint32(keyLength)
 
 	return p, salt, hash, nil
 }
@@ -188,13 +207,21 @@ func decodePbkdf2Hash(encodedHash string) (p *PBKDF2Config, salt, hash []byte, e
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	p.SaltLength = uint32(len(salt))
+	saltLength := len(salt)
+	if saltLength > math.MaxUint32 {
+		return nil, nil, nil, ErrInvalidHash
+	}
+	p.SaltLength = uint32(saltLength)
 
 	hash, err = base64.RawStdEncoding.Strict().DecodeString(parts[4])
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	p.KeyLength = uint32(len(hash))
+	keyLength := len(hash)
+	if keyLength > math.MaxUint32 {
+		return nil, nil, nil, ErrInvalidHash
+	}
+	p.KeyLength = uint32(keyLength)
 
 	return p, salt, hash, nil
 }

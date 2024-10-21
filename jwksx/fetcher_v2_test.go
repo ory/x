@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/lestrrat-go/jwx/jwk"
+
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/pkg/errors"
 
@@ -59,16 +61,18 @@ func (b brokenTransport) RoundTrip(_ *http.Request) (*http.Response, error) {
 
 func TestFetcherNext(t *testing.T) {
 	ctx := context.Background()
-	cache, _ := ristretto.NewCache(&ristretto.Config{
+	cache, err := ristretto.NewCache[[]byte, jwk.Set](&ristretto.Config[[]byte, jwk.Set]{
 		NumCounters:        100 * 10,
 		MaxCost:            100,
 		BufferItems:        64,
 		Metrics:            true,
 		IgnoreInternalCost: true,
-		Cost: func(value interface{}) int64 {
+		Cost: func(jwk.Set) int64 {
 			return 1
 		},
 	})
+	require.NoError(t, err)
+
 	f := NewFetcherNext(cache)
 
 	createRemoteProvider := func(called *int, payload string) *httptest.Server {

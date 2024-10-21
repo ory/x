@@ -36,14 +36,14 @@ type (
 	}
 	// FetcherNext is a JWK fetcher that can be used to fetch JWKs from multiple locations.
 	FetcherNext struct {
-		cache *ristretto.Cache
+		cache *ristretto.Cache[[]byte, jwk.Set]
 	}
 	// FetcherNextOption is a functional option for the FetcherNext.
 	FetcherNextOption func(*fetcherNextOptions)
 )
 
 // NewFetcherNext returns a new FetcherNext instance.
-func NewFetcherNext(cache *ristretto.Cache) *FetcherNext {
+func NewFetcherNext(cache *ristretto.Cache[[]byte, jwk.Set]) *FetcherNext {
 	return &FetcherNext{
 		cache: cache,
 	}
@@ -142,7 +142,7 @@ func (f *FetcherNext) fetch(ctx context.Context, location string, opts *fetcherN
 	cacheKey := sha256.Sum256([]byte(location))
 	if opts.useCache {
 		if result, found := f.cache.Get(cacheKey[:]); found {
-			return result.(jwk.Set), nil
+			return result, nil
 		}
 	}
 
