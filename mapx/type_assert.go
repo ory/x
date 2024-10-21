@@ -83,12 +83,31 @@ func GetInt64Default(values map[interface{}]interface{}, key interface{}, defaul
 
 // GetInt64 returns an int64 for a given key in values.
 func GetInt64(values map[interface{}]interface{}, key interface{}) (int64, error) {
-	if v, ok := values[key]; !ok {
+	v, ok := values[key]
+	if !ok {
 		return 0, ErrKeyDoesNotExist
-	} else if j, ok := v.(json.Number); ok {
-		return j.Int64()
-	} else if sv, ok := v.(int64); ok {
-		return sv, nil
+	}
+	switch v := v.(type) {
+	case json.Number:
+		return v.Int64()
+	case int64:
+		return v, nil
+	case int:
+		return int64(v), nil
+	case int32:
+		return int64(v), nil
+	case uint:
+		if v > math.MaxInt64 {
+			return 0, errors.New("value is out of range")
+		}
+		return int64(v), nil
+	case uint32:
+		return int64(v), nil
+	case uint64:
+		if v > math.MaxInt64 {
+			return 0, errors.New("value is out of range")
+		}
+		return int64(v), nil
 	}
 	return 0, ErrKeyCanNotBeTypeAsserted
 }
