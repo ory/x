@@ -5,7 +5,6 @@ package configx
 
 import (
 	"crypto/sha256"
-	"fmt"
 
 	"github.com/ory/x/jsonschemax"
 
@@ -14,7 +13,7 @@ import (
 	"github.com/ory/jsonschema/v3"
 )
 
-var schemaPathCacheConfig = &ristretto.Config{
+var schemaPathCacheConfig = &ristretto.Config[[]byte, []jsonschemax.Path]{
 	// Hold up to 25 schemas in cache. Usually we only need one.
 	MaxCost:            250,
 	NumCounters:        2500,
@@ -23,15 +22,12 @@ var schemaPathCacheConfig = &ristretto.Config{
 	IgnoreInternalCost: true,
 }
 
-var schemaPathCache, _ = ristretto.NewCache(schemaPathCacheConfig)
+var schemaPathCache, _ = ristretto.NewCache[[]byte, []jsonschemax.Path](schemaPathCacheConfig)
 
 func getSchemaPaths(rawSchema []byte, schema *jsonschema.Schema) ([]jsonschemax.Path, error) {
-	key := fmt.Sprintf("%x", sha256.Sum256(rawSchema))
-	if val, found := schemaPathCache.Get(key); found {
-		if validator, ok := val.([]jsonschemax.Path); ok {
-			return validator, nil
-		}
-		schemaPathCache.Del(key)
+	key := sha256.Sum256(rawSchema)
+	if val, found := schemaPathCache.Get(key[:]); found {
+		return val, nil
 	}
 
 	keys, err := jsonschemax.ListPathsWithInitializedSchemaAndArraysIncluded(schema)
@@ -39,7 +35,7 @@ func getSchemaPaths(rawSchema []byte, schema *jsonschema.Schema) ([]jsonschemax.
 		return nil, err
 	}
 
-	schemaPathCache.Set(key, keys, 1)
+	schemaPathCache.Set(key[:], keys, 1)
 	schemaPathCache.Wait()
 	return keys, nil
 }

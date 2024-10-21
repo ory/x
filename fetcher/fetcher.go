@@ -27,14 +27,14 @@ import (
 type Fetcher struct {
 	hc    *retryablehttp.Client
 	limit int64
-	cache *ristretto.Cache
+	cache *ristretto.Cache[[]byte, []byte]
 	ttl   time.Duration
 }
 
 type opts struct {
 	hc    *retryablehttp.Client
 	limit int64
-	cache *ristretto.Cache
+	cache *ristretto.Cache[[]byte, []byte]
 	ttl   time.Duration
 }
 
@@ -55,7 +55,7 @@ func WithMaxHTTPMaxBytes(limit int64) Modifier {
 	}
 }
 
-func WithCache(cache *ristretto.Cache, ttl time.Duration) Modifier {
+func WithCache(cache *ristretto.Cache[[]byte, []byte], ttl time.Duration) Modifier {
 	return func(o *opts) {
 		if ttl < 0 {
 			return
@@ -120,9 +120,8 @@ func (f *Fetcher) fetchRemote(ctx context.Context, source string) (b []byte, err
 	if f.cache != nil {
 		cacheKey := sha256.Sum256([]byte(source))
 		if v, ok := f.cache.Get(cacheKey[:]); ok {
-			cached := v.([]byte)
-			b = make([]byte, len(cached))
-			copy(b, cached)
+			b = make([]byte, len(v))
+			copy(b, v)
 			return b, nil
 		}
 		defer func() {
