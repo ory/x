@@ -22,7 +22,7 @@ type TestMigrator struct {
 	*Migrator
 }
 
-// Returns a new TestMigrator
+// NewTestMigrator returns a new TestMigrator
 // After running each migration it applies it's corresponding testData sql files.
 // They are identified by having the same version (= number in the front of the filename).
 // The filenames are expected to be of the format ([0-9]+).*(_testdata(\.[dbtype])?.sql
