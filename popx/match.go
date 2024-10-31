@@ -52,12 +52,12 @@ func ParseMigrationFilename(filename string) (*Match, error) {
 	}
 
 	match := &Match{
-		Version:    m[1],   //
-		Name:       m[2],   //
-		DBType:     dbType, // 3
+		Version:    m[1],
+		Name:       m[2],
+		DBType:     dbType,
 		Autocommit: autocommit,
-		Direction:  m[5], //
-		Type:       m[6], //
+		Direction:  m[5],
+		Type:       m[6],
 	}
 
 	return match, nil
