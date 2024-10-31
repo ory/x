@@ -146,7 +146,7 @@ func NewMigrationBox(dir fs.FS, m *Migrator, opts ...MigrationBoxOption) (*Migra
 		mb = o(mb)
 	}
 
-	runner := func(b []byte) func(Migration, *pop.Connection, *pop.Tx) error {
+	txRunner := func(b []byte) func(Migration, *pop.Connection, *pop.Tx) error {
 		return func(mf Migration, c *pop.Connection, tx *pop.Tx) error {
 			content, err := mb.migrationContent(mf, c, b, true)
 			if err != nil {
@@ -163,7 +163,24 @@ func NewMigrationBox(dir fs.FS, m *Migrator, opts ...MigrationBoxOption) (*Migra
 		}
 	}
 
-	err := mb.findMigrations(runner)
+	autoCommitRunner := func(b []byte) func(Migration, *pop.Connection) error {
+		return func(mf Migration, c *pop.Connection) error {
+			content, err := mb.migrationContent(mf, c, b, true)
+			if err != nil {
+				return errors.Wrapf(err, "error processing %s", mf.Path)
+			}
+			if isMigrationEmpty(content) {
+				m.l.WithField("migration", mf.Path).Trace("This is usually ok - ignoring migration because content is empty. This is ok!")
+				return nil
+			}
+			if _, err = c.RawQuery(content).ExecWithCount(); err != nil {
+				return errors.Wrapf(err, "error executing %s, sql: %s", mf.Path, content)
+			}
+			return nil
+		}
+	}
+
+	err := mb.findMigrations(txRunner, autoCommitRunner)
 	if err != nil {
 		return mb, err
 	}
@@ -178,7 +195,10 @@ func NewMigrationBox(dir fs.FS, m *Migrator, opts ...MigrationBoxOption) (*Migra
 	return mb, nil
 }
 
-func (fm *MigrationBox) findMigrations(runner func([]byte) func(mf Migration, c *pop.Connection, tx *pop.Tx) error) error {
+func (fm *MigrationBox) findMigrations(
+	runner func([]byte) func(mf Migration, c *pop.Connection, tx *pop.Tx) error,
+	runnerNoTx func([]byte) func(mf Migration, c *pop.Connection) error,
+) error {
 	return fs.WalkDir(fm.Dir, ".", func(p string, info fs.DirEntry, err error) error {
 		if err != nil {
 			return errors.WithStack(err)
@@ -188,7 +208,7 @@ func (fm *MigrationBox) findMigrations(runner func([]byte) func(mf Migration, c 
 			return nil
 		}
 
-		match, err := pop.ParseMigrationFilename(info.Name())
+		match, err := ParseMigrationFilename(info.Name())
 		if err != nil {
 			if strings.HasPrefix(err.Error(), "unsupported dialect") {
 				fm.l.Tracef("This is usually ok - ignoring migration file %s because dialect is not supported: %s", info.Name(), err.Error())
@@ -219,8 +239,14 @@ func (fm *MigrationBox) findMigrations(runner func([]byte) func(mf Migration, c 
 			DBType:    match.DBType,
 			Direction: match.Direction,
 			Type:      match.Type,
-			Runner:    runner(content),
 		}
+
+		if match.Autocommit {
+			mf.RunnerNoTx = runnerNoTx(content)
+		} else {
+			mf.Runner = runner(content)
+		}
+
 		fm.Migrations[mf.Direction] = append(fm.Migrations[mf.Direction], mf)
 		mod := sort.Interface(fm.Migrations[mf.Direction])
 		if mf.Direction == "down" {
