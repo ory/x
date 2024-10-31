@@ -10,7 +10,9 @@ import (
 	"github.com/gobuffalo/pop/v6"
 )
 
-var mrx = regexp.MustCompile(`^(\d+)_([^.]+)(\.[a-z0-9]+)?(|\.autocommit)\.(up|down)\.(sql|fizz)$`)
+var mrx = regexp.MustCompile(
+	`^(\d+)_([^.]+)(\.[a-z0-9]+)?(\.autocommit)?\.(up|down)\.(sql)$`,
+)
 
 // Match holds the information parsed from a migration filename.
 type Match struct {
@@ -30,8 +32,13 @@ func ParseMigrationFilename(filename string) (*Match, error) {
 	}
 	m := matches[0]
 
+	var autocommit bool
 	var dbType string
-	if m[3] == "" {
+	if m[3] == ".autocommit" {
+		// A special case where autocommit group moves forward to the 3rd index.
+		autocommit = true
+		dbType = "all"
+	} else if m[3] == "" {
 		dbType = "all"
 	} else {
 		dbType = pop.CanonicalDialect(m[3][1:])
@@ -44,7 +51,6 @@ func ParseMigrationFilename(filename string) (*Match, error) {
 		return nil, fmt.Errorf("invalid database type %q, expected \"all\" because fizz is database type independent", dbType)
 	}
 
-	autocommit := false
 	if m[4] == ".autocommit" {
 		autocommit = true
 	} else if m[4] != "" {
