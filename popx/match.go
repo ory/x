@@ -55,7 +55,7 @@ func ParseMigrationFilename(filename string) (*Match, error) {
 		Version:    m[1],   //
 		Name:       m[2],   //
 		DBType:     dbType, // 3
-		Autocommit: m[4] == ".autocommit",
+		Autocommit: autocommit,
 		Direction:  m[5], //
 		Type:       m[6], //
 	}
