@@ -22,6 +22,9 @@ var testData embed.FS
 //go:embed stub/migrations/testdata_migrations/*
 var empty embed.FS
 
+//go:embed stub/migrations/notx/*
+var notx embed.FS
+
 //go:embed stub/migrations/check/valid/*
 var checkValidFS embed.FS
 
@@ -52,6 +55,25 @@ func TestMigrationBoxWithTestdata(t *testing.T) {
 	require.NoError(t, c.First(&data))
 	pop.Debug = false
 	assert.Equal(t, "testdata", data.Data)
+}
+
+func TestMigrationBoxWithoutTransaction(t *testing.T) {
+	c, err := pop.NewConnection(&pop.ConnectionDetails{
+		URL: "sqlite://file::memory:?_fk=true",
+	})
+	require.NoError(t, err)
+	require.NoError(t, c.Open())
+
+	mb, err := popx.NewMigrationBox(
+		notx,
+		popx.NewMigrator(c, logrusx.New("", ""), nil, 0),
+	)
+
+	require.NoError(t, err)
+	assert.Len(t, mb.Migrations["up"], 1)
+	assert.Len(t, mb.Migrations["down"], 1)
+
+	require.NoError(t, mb.Up(context.Background()), "should not fail even though we are creating a transaction in the migration")
 }
 
 func TestMigrationBox_CheckNoErr(t *testing.T) {
