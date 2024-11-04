@@ -7,7 +7,7 @@ import (
 	"context"
 	"crypto/sha256"
 
-	"github.com/dgraph-io/ristretto"
+	"github.com/dgraph-io/ristretto/v2"
 
 	"github.com/ory/jsonschema/v3"
 )
