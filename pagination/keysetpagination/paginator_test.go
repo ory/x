@@ -87,6 +87,11 @@ func TestPaginator(t *testing.T) {
 				expectedSize: 100,
 			},
 			{
+				name:         "default max size",
+				opts:         []Option{WithSize(1000)},
+				expectedSize: DefaultMaxSize,
+			},
+			{
 				name:          "with size and token",
 				opts:          []Option{WithSize(10), WithToken(StringPageToken("token"))},
 				expectedSize:  10,
