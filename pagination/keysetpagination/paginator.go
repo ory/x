@@ -34,6 +34,9 @@ var ErrUnknownOrder = errors.New("unknown order")
 const (
 	OrderDescending Order = "DESC"
 	OrderAscending  Order = "ASC"
+
+	DefaultSize    = 100
+	DefaultMaxSize = 500
 )
 
 func (o Order) extract() (string, string, error) {
@@ -62,7 +65,7 @@ func (p *Paginator) Size() int {
 			size = 100
 		}
 	}
-	if p.maxSize > 0 && size > p.maxSize {
+	if size > p.maxSize {
 		size = p.maxSize
 	}
 	return size
@@ -229,7 +232,11 @@ func withIsLast(isLast bool) Option {
 }
 
 func GetPaginator(modifiers ...Option) *Paginator {
-	opts := &Paginator{}
+	opts := &Paginator{
+		// these can still be overridden by the modifiers, but they should never be unset
+		maxSize:     DefaultMaxSize,
+		defaultSize: DefaultSize,
+	}
 	for _, f := range modifiers {
 		opts = f(opts)
 	}
