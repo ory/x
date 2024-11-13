@@ -164,7 +164,7 @@ func decodeArgon2idHash(encodedHash string) (p *Argon2Config, salt, hash []byte,
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	saltLength := len(salt)
+	saltLength := uint(len(salt))
 	if saltLength > math.MaxUint32 {
 		return nil, nil, nil, ErrInvalidHash
 	}
@@ -174,7 +174,7 @@ func decodeArgon2idHash(encodedHash string) (p *Argon2Config, salt, hash []byte,
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	keyLength := len(hash)
+	keyLength := uint(len(hash))
 	if keyLength > math.MaxUint32 {
 		return nil, nil, nil, ErrInvalidHash
 	}
@@ -207,7 +207,7 @@ func decodePbkdf2Hash(encodedHash string) (p *PBKDF2Config, salt, hash []byte, e
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	saltLength := len(salt)
+	saltLength := uint(len(salt))
 	if saltLength > math.MaxUint32 {
 		return nil, nil, nil, ErrInvalidHash
 	}
@@ -217,7 +217,7 @@ func decodePbkdf2Hash(encodedHash string) (p *PBKDF2Config, salt, hash []byte, e
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	keyLength := len(hash)
+	keyLength := uint(len(hash))
 	if keyLength > math.MaxUint32 {
 		return nil, nil, nil, ErrInvalidHash
 	}
