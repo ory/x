@@ -97,10 +97,11 @@ func GetInt64[K comparable](values map[K]any, key K) (int64, error) {
 	case int32:
 		return int64(v), nil
 	case uint:
-		if v > math.MaxInt64 {
+		vv := uint64(v)
+		if vv > math.MaxInt64 {
 			return 0, errors.New("value is out of range")
 		}
-		return int64(v), nil
+		return int64(vv), nil
 	case uint32:
 		return int64(v), nil
 	case uint64:
