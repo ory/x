@@ -142,8 +142,12 @@ func (p *Provider) createProviders(ctx context.Context) (providers []koanf.Provi
 	p.logger.WithField("files", paths).Debug("Adding config files.")
 
 	c := make(watcherx.EventChannel)
-	go p.watchForFileChanges(ctx, c)
 
+	defer func() {
+		if err == nil && len(paths) > 0 {
+			go p.watchForFileChanges(ctx, c)
+		}
+	}()
 	for _, path := range paths {
 		fp, err := NewKoanfFile(path)
 		if err != nil {
