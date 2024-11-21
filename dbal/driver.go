@@ -4,6 +4,7 @@
 package dbal
 
 import (
+	"context"
 	"strings"
 	"sync"
 
@@ -26,6 +27,7 @@ type Driver interface {
 
 	// Ping returns nil if the driver has connectivity and is healthy or an error otherwise.
 	Ping() error
+	PingContext(context.Context) error
 }
 
 // RegisterDriver registers a driver
