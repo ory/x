@@ -424,6 +424,7 @@ type MigrationStatus struct {
 	State   string `json:"state"`
 	Version string `json:"version"`
 	Name    string `json:"name"`
+	Content string `json:"content"`
 }
 
 type MigrationStatuses []MigrationStatus
@@ -458,13 +459,34 @@ func (m MigrationStatuses) IDs() []string {
 	return ids
 }
 
-// In the context of a cobra.Command, use cmdx.PrintTable instead.
-func (m MigrationStatuses) Write(out io.Writer) error {
-	w := tabwriter.NewWriter(out, 0, 0, 3, ' ', tabwriter.TabIndent)
-	_, _ = fmt.Fprintln(w, "Version\tName\tStatus\t")
+type writeOptions struct {
+	writeContents bool
+}
 
-	for _, mm := range m {
-		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t\n", mm.Version, mm.Name, mm.State)
+func WithWriteContents() func(*writeOptions) {
+	return func(o *writeOptions) {
+		o.writeContents = true
+	}
+}
+
+// In the context of a cobra.Command, use cmdx.PrintTable instead.
+func (m MigrationStatuses) Write(out io.Writer, opts ...func(*writeOptions)) error {
+	o := &writeOptions{}
+	for _, f := range opts {
+		f(o)
+	}
+
+	w := tabwriter.NewWriter(out, 0, 0, 3, ' ', tabwriter.TabIndent)
+	if !o.writeContents {
+		_, _ = fmt.Fprintln(w, "Version\tName\tStatus\t")
+		for _, mm := range m {
+			_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t\n", mm.Version, mm.Name, mm.State)
+		}
+	} else {
+		_, _ = fmt.Fprintln(w, "Version\tName\tStatus\tContent\t")
+		for _, mm := range m {
+			_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t\n", mm.Version, mm.Name, mm.State, mm.Content)
+		}
 	}
 
 	return w.Flush()
@@ -521,6 +543,7 @@ func (m *Migrator) Status(ctx context.Context) (MigrationStatuses, error) {
 			State:   Pending,
 			Version: mf.Version,
 			Name:    mf.Name,
+			Content: mf.Content,
 		}
 
 		if slices.ContainsFunc(alreadyApplied, func(applied string) bool {

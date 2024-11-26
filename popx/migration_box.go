@@ -233,12 +233,14 @@ func (fm *MigrationBox) findMigrations(
 		}
 
 		mf := Migration{
-			Path:      p,
-			Version:   match.Version,
-			Name:      match.Name,
-			DBType:    match.DBType,
-			Direction: match.Direction,
-			Type:      match.Type,
+			Path:       p,
+			Version:    match.Version,
+			Name:       match.Name,
+			DBType:     match.DBType,
+			Direction:  match.Direction,
+			Type:       match.Type,
+			Content:    string(content),
+			Autocommit: match.Autocommit,
 		}
 
 		if match.Autocommit {
