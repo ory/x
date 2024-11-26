@@ -6,6 +6,7 @@ package otelx
 import (
 	"go.opentelemetry.io/otel/trace"
 	"go.opentelemetry.io/otel/trace/embedded"
+	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/ory/x/logrusx"
 	"github.com/ory/x/stringsx"
@@ -29,7 +30,7 @@ func New(name string, l *logrusx.Logger, c *Config) (*Tracer, error) {
 
 // Creates a new no-op tracer.
 func NewNoop(_ *logrusx.Logger, c *Config) *Tracer {
-	tp := trace.NewNoopTracerProvider()
+	tp := noop.NewTracerProvider()
 	t := &Tracer{tracer: tp.Tracer("")}
 	return t
 }
@@ -63,7 +64,7 @@ func (t *Tracer) setup(name string, l *logrusx.Logger, c *Config) error {
 		l.Infof("OTLP tracer configured! Sending spans to %s", c.Providers.OTLP.ServerURL)
 	case f.AddCase(""):
 		l.Infof("No tracer configured - skipping tracing setup")
-		t.tracer = trace.NewNoopTracerProvider().Tracer(name)
+		t.tracer = noop.NewTracerProvider().Tracer(name)
 	default:
 		return f.ToUnknownCaseErr()
 	}

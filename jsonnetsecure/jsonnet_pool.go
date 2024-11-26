@@ -16,6 +16,7 @@ import (
 	"github.com/jackc/puddle/v2"
 	"github.com/pkg/errors"
 	"go.opentelemetry.io/otel/attribute"
+	semconv "go.opentelemetry.io/otel/semconv/v1.27.0"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/ory/x/otelx"
@@ -102,6 +103,9 @@ func newWorker(ctx context.Context) (_ worker, err error) {
 	args, _ := ctx.Value(contextValueArgs).([]string)
 	cmd := exec.Command(path, append(args, "-0")...)
 	cmd.Env = []string{"GOMAXPROCS=1"}
+
+	span.SetAttributes(semconv.ProcessCommand(cmd.Path), semconv.ProcessCommandArgs(cmd.Args...))
+
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return worker{}, errors.Wrap(err, "newWorker: failed to create stdin pipe")
@@ -128,6 +132,8 @@ func newWorker(ctx context.Context) (_ worker, err error) {
 	if err := cmd.Start(); err != nil {
 		return worker{}, errors.Wrap(err, "newWorker: failed to start process")
 	}
+
+	span.SetAttributes(semconv.ProcessPID(cmd.Process.Pid))
 
 	scan := func(c chan<- string, r io.Reader) {
 		defer close(c)
@@ -168,8 +174,8 @@ func (w worker) destroy() {
 
 func (w worker) eval(ctx context.Context, processParams []byte) (output string, err error) {
 	tracer := trace.SpanFromContext(ctx).TracerProvider().Tracer("")
-	ctx, span := tracer.Start(ctx, "jsonnetsecure.worker.eval",
-		trace.WithAttributes(attribute.Int("cmd.Process.Pid", w.cmd.Process.Pid)))
+	ctx, span := tracer.Start(ctx, "jsonnetsecure.worker.eval", trace.WithAttributes(
+		semconv.ProcessPID(w.cmd.Process.Pid)))
 	defer otelx.End(span, &err)
 
 	select {
