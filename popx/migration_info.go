@@ -31,6 +31,10 @@ type Migration struct {
 	// RunnerNoTx function to run/execute the migration. NOT wrapped in a
 	// database transaction. Mutually exclusive with Runner.
 	RunnerNoTx func(Migration, *pop.Connection) error
+	// Content is the raw content of the migration file
+	Content string
+	// Autocommit is true if the migration should be run outside of a transaction
+	Autocommit bool
 }
 
 func (m Migration) Valid() error {
