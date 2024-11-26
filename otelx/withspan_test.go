@@ -7,8 +7,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"testing"
 
+	pkgerrors "github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/attribute"
@@ -69,6 +71,12 @@ func returnsError(ctx context.Context) (err error) {
 	return fmt.Errorf("wrapped: %w", &errWithReason{errors.New("error from returnsError()")})
 }
 
+func returnsStackTracer(ctx context.Context) (err error) {
+	_, span := trace.SpanFromContext(ctx).TracerProvider().Tracer("").Start(ctx, "returnsStackTracer")
+	defer End(span, &err)
+	return pkgerrors.WithStack(errors.New("error from returnsStackTracer()"))
+}
+
 func returnsNamedError(ctx context.Context) (err error) {
 	_, span := trace.SpanFromContext(ctx).TracerProvider().Tracer("").Start(ctx, "returnsNamedError")
 	defer End(span, &err)
@@ -104,6 +112,14 @@ func TestEnd(t *testing.T) {
 	assert.Equal(t, last(recorder).Name(), "returnsNamedError")
 	assert.Equal(t, last(recorder).Status(), sdktrace.Status{codes.Error, "err2 message"})
 	assert.Contains(t, last(recorder).Attributes(), attribute.String("error.debug", "verbose debugging information"))
+
+	assert.Errorf(t, returnsStackTracer(ctx), "error from returnsStackTracer()")
+	require.NotEmpty(t, recorder.Ended())
+	assert.Equal(t, last(recorder).Name(), "returnsStackTracer")
+	assert.Equal(t, last(recorder).Status(), sdktrace.Status{codes.Error, "error from returnsStackTracer()"})
+	stackIdx := slices.IndexFunc(last(recorder).Attributes(), func(kv attribute.KeyValue) bool { return kv.Key == "error.stack" })
+	require.GreaterOrEqual(t, stackIdx, 0)
+	assert.Contains(t, last(recorder).Attributes()[stackIdx].Value.AsString(), "github.com/ory/x/otelx.returnsStackTracer")
 
 	assert.PanicsWithError(t, "panic from panics()", func() { panics(ctx) })
 	require.NotEmpty(t, recorder.Ended())
