@@ -8,7 +8,7 @@ import (
 	"go.opentelemetry.io/otel/exporters/zipkin"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.27.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -22,7 +22,8 @@ func SetupZipkin(t *Tracer, tracerName string, c *Config) (trace.Tracer, error) 
 		sdktrace.WithBatcher(exp),
 		sdktrace.WithResource(resource.NewWithAttributes(
 			semconv.SchemaURL,
-			semconv.ServiceNameKey.String(c.ServiceName),
+			semconv.ServiceName(c.ServiceName),
+			semconv.DeploymentEnvironmentName(c.DeploymentEnvironment),
 		)),
 		sdktrace.WithSampler(sdktrace.ParentBased(sdktrace.TraceIDRatioBased(
 			c.Providers.Zipkin.Sampling.SamplingRatio,

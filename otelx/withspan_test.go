@@ -16,6 +16,7 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/trace/noop"
 )
 
 var errPanic = errors.New("panic-error")
@@ -33,7 +34,7 @@ func (errWithReason) Debug() string {
 }
 
 func TestWithSpan(t *testing.T) {
-	tracer := trace.NewNoopTracerProvider().Tracer("test")
+	tracer := noop.NewTracerProvider().Tracer("test")
 	ctx, span := tracer.Start(context.Background(), "parent")
 	defer span.End()
 
