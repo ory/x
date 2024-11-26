@@ -100,7 +100,7 @@ func RegisterMigrateSQLDownFlags(cmd *cobra.Command) *cobra.Command {
 
 func MigrateSQLDown(cmd *cobra.Command, p MigrationProvider) (err error) {
 	steps := flagx.MustGetInt(cmd, "steps")
-	if steps < 1 {
+	if steps < 0 {
 		_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "Flag --steps must be larger than 0.")
 		return cmdx.FailSilently(cmd)
 	}

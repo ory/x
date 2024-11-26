@@ -120,6 +120,17 @@ func TestMigrateSQLUp(t *testing.T) {
 		run(t, newCmd(), nil, "status")
 	})
 
+	t.Run("migrate down but no steps", func(t *testing.T) {
+		stdout, stderr, err := cmdx.ExecCtx(ctx, newCmd(), nil, "down", "-y")
+		require.Error(t, err)
+
+		cupaloy.New(
+			cupaloy.CreateNewAutomatically(true),
+			cupaloy.FailOnUpdate(true),
+			cupaloy.SnapshotFileExtension(".txt"),
+		).SnapshotT(t, fmt.Sprintf("stdout: %s\nstderr: %s", stdout, stderr))
+	})
+
 	t.Run("migrate down but do not confirm", func(t *testing.T) {
 		run(t, newCmd(), bytes.NewBufferString("n\n"), "down", "--steps", "2")
 	})
