@@ -163,6 +163,7 @@ func newWorker(ctx context.Context) (_ worker, err error) {
 func (w worker) destroy() {
 	close(w.stdin)
 	w.cmd.Process.Kill()
+	w.cmd.Wait()
 }
 
 func (w worker) eval(ctx context.Context, processParams []byte) (output string, err error) {
