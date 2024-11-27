@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ory/x/stringsx"
+
 	"github.com/gobuffalo/pop/v6"
 	"github.com/spf13/cobra"
 
@@ -96,6 +98,36 @@ func RegisterMigrateSQLDownFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().BoolP("yes", "y", false, "If set all confirmation requests are accepted without user interaction.")
 	cmd.Flags().Int("steps", 0, "The number of migrations to roll back.")
 	return cmd
+}
+
+func NewMigrateSQLDownCmd(binaryName string, runE func(cmd *cobra.Command, args []string) error) *cobra.Command {
+	return RegisterMigrateSQLDownFlags(&cobra.Command{
+		Use:   "down [database_url]",
+		Args:  cobra.RangeArgs(0, 1),
+		Short: "Rollback the last applied SQL migrations",
+		Long: fmt.Sprintf(`This command rolls back the last applied SQL migrations for Ory %[1]s.
+
+:::warning
+
+Before running this command, create a backup of your database. This command can be destructive as it may revert changes made by previous migrations. Run this command close to the SQL instance (same VPC / same machine).
+
+:::
+
+It is recommended to review the migrations before running them. You can do this by running the command without the --yes flag:
+
+	DSN=... %[2]s migrate sql down -e`,
+			stringsx.ToUpperInitial(binaryName),
+			binaryName),
+		Example: fmt.Sprintf(`See the current migration status:
+	DSN=... %[1]s migrate sql down -e
+
+Rollback the last 10 migrations:
+	%[1]s migrate sql down $DSN --steps 10
+
+Rollback the last 10 migrations without confirmation:
+	DSN=... %[1]s migrate sql down -e --yes --steps 10`, binaryName),
+		RunE: runE,
+	})
 }
 
 func MigrateSQLDown(cmd *cobra.Command, p MigrationProvider) (err error) {
@@ -192,6 +224,28 @@ func RegisterMigrateStatusFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().BoolP("read-from-env", "e", false, "If set, reads the database connection string from the environment variable DSN or config file key dsn.")
 	cmd.Flags().Bool("block", false, "Block until all migrations have been applied")
 	return cmd
+}
+
+func NewMigrateStatusCmd(binaryName string, runE func(cmd *cobra.Command, args []string) error) *cobra.Command {
+	return RegisterMigrateStatusFlags(&cobra.Command{
+		Use:   "status [database_url]",
+		Short: "Display the current migration status",
+		Long: fmt.Sprintf(`This command shows the current migration status for Ory %[1]s.
+
+You can use this command to check which migrations have been applied and which are pending.
+
+To block until all migrations are applied, use the --block flag:
+
+	DSN=... %[1]s migrate sql status -e --block`,
+			binaryName),
+		Example: fmt.Sprintf(`See the current migration status:
+	DSN=... %[1]s migrate sql status -e
+
+Block until all migrations are applied:
+	DSN=... %[1]s migrate sql status -e --block
+`, binaryName),
+		RunE: runE,
+	})
 }
 
 func MigrateStatus(cmd *cobra.Command, p MigrationProvider) (err error) {
