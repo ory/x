@@ -34,6 +34,33 @@ func RegisterMigrateSQLUpFlags(cmd *cobra.Command) *cobra.Command {
 	return cmd
 }
 
+func NewMigrateSQLUpCmd(binaryName string, runE func(cmd *cobra.Command, args []string) error) *cobra.Command {
+	return RegisterMigrateSQLDownFlags(&cobra.Command{
+		Use:   "up [database_url]",
+		Args:  cobra.RangeArgs(0, 1),
+		Short: "Apply all pending SQL migrations",
+		Long: fmt.Sprintf(`This command applies all pending SQL migrations for Ory %[1]s.
+
+:::warning
+
+Before running this command, create a backup of your database. This command can be destructive as it may apply changes that cannot be easily reverted. Run this command close to the SQL instance (same VPC / same machine).
+
+:::
+
+It is recommended to review the migrations before running them. You can do this by running the command without the --yes flag:
+
+	DSN=... %[2]s migrate sql up -e`,
+			stringsx.ToUpperInitial(binaryName),
+			binaryName),
+		Example: fmt.Sprintf(`Apply all pending migrations:
+	DSN=... %[1]s migrate sql up -e
+
+Apply all pending migrations:
+	DSN=... %[1]s migrate sql up -e --yes`, binaryName),
+		RunE: runE,
+	})
+}
+
 func MigrateSQLUp(cmd *cobra.Command, p MigrationProvider) (err error) {
 	conn := p.Connection(cmd.Context())
 	if conn == nil {
@@ -226,7 +253,7 @@ func RegisterMigrateStatusFlags(cmd *cobra.Command) *cobra.Command {
 	return cmd
 }
 
-func NewMigrateStatusCmd(binaryName string, runE func(cmd *cobra.Command, args []string) error) *cobra.Command {
+func NewMigrateSQLStatusCmd(binaryName string, runE func(cmd *cobra.Command, args []string) error) *cobra.Command {
 	return RegisterMigrateStatusFlags(&cobra.Command{
 		Use:   "status [database_url]",
 		Short: "Display the current migration status",
