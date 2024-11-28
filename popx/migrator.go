@@ -17,18 +17,16 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/cockroachdb/cockroach-go/v2/crdb"
 	"github.com/gobuffalo/pop/v6"
-
+	"github.com/pkg/errors"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/ory/x/cmdx"
-	"github.com/ory/x/otelx"
-
 	"github.com/ory/x/logrusx"
-
-	"github.com/pkg/errors"
+	"github.com/ory/x/otelx"
 )
 
 const (
@@ -606,6 +604,13 @@ func (m *Migrator) exec(ctx context.Context, fn func() error) error {
 	if m.Connection.Dialect.Name() == "sqlite3" {
 		if err := m.Connection.RawQuery("PRAGMA foreign_keys=OFF").Exec(); err != nil {
 			return err
+		}
+	}
+
+	if m.Connection.Dialect.Name() == "cockroach" {
+		outer := fn
+		fn = func() error {
+			return crdb.Execute(outer)
 		}
 	}
 
