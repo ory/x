@@ -19,7 +19,6 @@ import (
 )
 
 type MigrationProvider interface {
-	Connection(context.Context) *pop.Connection
 	MigrationStatus(context.Context) (MigrationStatuses, error)
 	MigrateUp(context.Context) error
 	MigrateDown(context.Context, int) error
@@ -61,8 +60,7 @@ Apply all pending migrations:
 	})
 }
 
-func MigrateSQLUp(cmd *cobra.Command, p MigrationProvider) (err error) {
-	conn := p.Connection(cmd.Context())
+func MigrateSQLUp(cmd *cobra.Command, conn *pop.Connection, p MigrationProvider) (err error) {
 	if conn == nil {
 		_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "Migrations can only be executed against a SQL-compatible driver but DSN is not a SQL source.")
 		return cmdx.FailSilently(cmd)
@@ -157,16 +155,15 @@ Rollback the last 10 migrations without confirmation:
 	})
 }
 
-func MigrateSQLDown(cmd *cobra.Command, p MigrationProvider) (err error) {
-	steps := flagx.MustGetInt(cmd, "steps")
-	if steps < 0 {
-		_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "Flag --steps must be larger than 0.")
+func MigrateSQLDown(cmd *cobra.Command, conn *pop.Connection, p MigrationProvider) (err error) {
+	if conn == nil {
+		_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "Migrations can only be executed against a SQL-compatible driver but DSN is not a SQL source.")
 		return cmdx.FailSilently(cmd)
 	}
 
-	conn := p.Connection(cmd.Context())
-	if conn == nil {
-		_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "Migrations can only be executed against a SQL-compatible driver but DSN is not a SQL source.")
+	steps := flagx.MustGetInt(cmd, "steps")
+	if steps < 0 {
+		_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "Flag --steps must be larger than 0.")
 		return cmdx.FailSilently(cmd)
 	}
 
@@ -275,8 +272,7 @@ Block until all migrations are applied:
 	})
 }
 
-func MigrateStatus(cmd *cobra.Command, p MigrationProvider) (err error) {
-	conn := p.Connection(cmd.Context())
+func MigrateStatus(cmd *cobra.Command, conn *pop.Connection, p MigrationProvider) (err error) {
 	if conn == nil {
 		_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "Migrations can only be checked against a SQL-compatible driver but DSN is not a SQL source.")
 		return cmdx.FailSilently(cmd)

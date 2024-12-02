@@ -71,19 +71,19 @@ func TestMigrateSQLUp(t *testing.T) {
 			Use:  "up <database-url>",
 			Args: cobra.RangeArgs(0, 1),
 			RunE: func(cmd *cobra.Command, args []string) error {
-				return popx.MigrateSQLUp(cmd, p)
+				return popx.MigrateSQLUp(cmd, p.Connection(ctx), p)
 			}}))
 		cmd.AddCommand(popx.RegisterMigrateSQLDownFlags(&cobra.Command{
 			Use:  "down <database-url>",
 			Args: cobra.RangeArgs(0, 1),
 			RunE: func(cmd *cobra.Command, args []string) error {
-				return popx.MigrateSQLDown(cmd, p)
+				return popx.MigrateSQLDown(cmd, p.Connection(ctx), p)
 			}}))
 		cmd.AddCommand(popx.RegisterMigrateStatusFlags(&cobra.Command{
 			Use:  "status <database-url>",
 			Args: cobra.RangeArgs(0, 1),
 			RunE: func(cmd *cobra.Command, args []string) error {
-				return popx.MigrateStatus(cmd, p)
+				return popx.MigrateStatus(cmd, p.Connection(ctx), p)
 			}}))
 		return cmd
 	}
