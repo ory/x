@@ -12,7 +12,7 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"github.com/dgraph-io/ristretto"
+	"github.com/dgraph-io/ristretto/v2"
 	"github.com/stretchr/testify/require"
 )
 
