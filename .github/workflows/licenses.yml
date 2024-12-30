@@ -15,4 +15,4 @@ jobs:
         uses: ory/ci/check-licenses@master
         with:
           token: ${{ secrets.ORY_BOT_PAT || secrets.GITHUB_TOKEN }}
-          write_if_match: ${{ github.ref == 'refs/heads/add-license-check' || github.ref == 'refs/heads/main' }}
+          write_if_match: "github.ref == 'refs/heads/add-license-check' || github.ref == 'refs/heads/main'"
