@@ -22,6 +22,3 @@ jobs:
         uses: ory/ci/licenses/check@master
       - name: Write licenses
         uses: ory/ci/licenses/write@master
-        if:
-          ${{ github.ref == 'refs/heads/main' || github.ref ==
-          'refs/heads/master' }}
