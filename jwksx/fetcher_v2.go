@@ -19,7 +19,7 @@ import (
 
 	"github.com/ory/x/otelx"
 
-	"github.com/dgraph-io/ristretto"
+	"github.com/dgraph-io/ristretto/v2"
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
