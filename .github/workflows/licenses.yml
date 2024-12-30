@@ -11,7 +11,8 @@ on:
       - master
 
 jobs:
-  check:
+  licenses:
+    name: License compliance
     runs-on: ubuntu-latest
     steps:
       - name: Install script
@@ -22,3 +23,6 @@ jobs:
         uses: ory/ci/licenses/check@master
       - name: Write licenses
         uses: ory/ci/licenses/write@master
+        if:
+          ${{ github.ref == 'refs/heads/main' || github.ref ==
+          'refs/heads/master' }}
