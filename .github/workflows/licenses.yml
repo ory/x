@@ -11,7 +11,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: Check licenses
+      - name: Setup licenses
         uses: ory/ci/licenses/setup@master
         with:
           token: ${{ secrets.ORY_BOT_PAT || secrets.GITHUB_TOKEN }}
