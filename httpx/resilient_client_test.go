@@ -5,59 +5,134 @@ package httpx
 
 import (
 	"context"
-	"net"
+	"fmt"
 	"net/http"
-	"net/http/httptest"
 	"net/http/httptrace"
 	"net/netip"
-	"net/url"
 	"sync/atomic"
 	"testing"
+	"time"
+
+	"code.dny.dev/ssrf"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestNoPrivateIPs(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = w.Write([]byte("Hello, world!"))
-	}))
-	t.Cleanup(ts.Close)
+func TestPrivateIPs(t *testing.T) {
+	testCases := []struct {
+		url                 string
+		disallowInternalIPs bool
+		allowedIP           bool
+	}{
+		{
+			url:                 "http://127.0.0.1/foobar",
+			disallowInternalIPs: true,
+			allowedIP:           false,
+		},
+		{
+			url:                 "http://localhost/foobar",
+			disallowInternalIPs: true,
+			allowedIP:           false,
+		},
+		{
+			url:                 "http://127.0.0.1:56789/test",
+			disallowInternalIPs: true,
+			allowedIP:           false,
+		},
+		{
+			url:                 "http://192.168.178.5:56789",
+			disallowInternalIPs: true,
+			allowedIP:           false,
+		},
+		{
+			url:                 "http://127.0.0.1:56789/foobar",
+			disallowInternalIPs: true,
+			allowedIP:           true,
+		},
+		{
+			url:                 "http://127.0.0.1:56789/glob/bar",
+			disallowInternalIPs: true,
+			allowedIP:           true,
+		},
+		{
+			url:                 "http://127.0.0.1:56789/glob/bar/baz",
+			disallowInternalIPs: true,
+			allowedIP:           false,
+		},
+		{
+			url:                 "http://127.0.0.1:56789/FOOBAR",
+			disallowInternalIPs: true,
+			allowedIP:           false,
+		},
+		{
+			url:                 "http://100.64.1.1:80/private",
+			disallowInternalIPs: true,
+			allowedIP:           true,
+		},
+		{
+			url:                 "http://100.64.1.1:80/route",
+			disallowInternalIPs: true,
+			allowedIP:           false,
+		},
+		{
+			url:                 "http://198.18.99.99/forbidden",
+			disallowInternalIPs: true,
+			allowedIP:           false,
+		},
+		{
+			// Even if in the allowed requests, no exceptions can be made.
+			url:                 "http://198.18.99.99/allowed",
+			disallowInternalIPs: true,
+			allowedIP:           false,
+		},
+		{
+			url:                 "http://127.0.0.1",
+			disallowInternalIPs: false,
+			allowedIP:           true,
+		},
+		{
+			url:                 "http://192.168.178.5",
+			disallowInternalIPs: false,
+			allowedIP:           true,
+		},
+		{
+			url:                 "http://127.0.0.1:80/glob/bar",
+			disallowInternalIPs: false,
+			allowedIP:           true,
+		},
+		{
+			url:                 "http://100.64.1.1:80/route",
+			disallowInternalIPs: false,
+			allowedIP:           true,
+		},
+	}
+	for _, tt := range testCases {
+		t.Run(
+			fmt.Sprintf("%s should be allowed %v when disallowed internal IPs is %v", tt.url, tt.allowedIP, tt.disallowInternalIPs),
+			func(t *testing.T) {
+				options := []ResilientOptions{
+					ResilientClientWithMaxRetry(0),
+					ResilientClientWithConnectionTimeout(50 * time.Millisecond),
+				}
+				if tt.disallowInternalIPs {
+					options = append(options, ResilientClientDisallowInternalIPs())
+					options = append(options, ResilientClientAllowInternalIPRequestsTo(
+						"http://127.0.0.1:56789/foobar",
+						"http://127.0.0.1:56789/glob/*",
+						"http://100.64.1.1:80/private",
+						"http://198.18.99.99/allowed"))
+				}
 
-	target, err := url.ParseRequestURI(ts.URL)
-	require.NoError(t, err)
-
-	_, port, err := net.SplitHostPort(target.Host)
-	require.NoError(t, err)
-
-	allowedURL := "http://localhost:" + port + "/foobar"
-	allowedGlob := "http://localhost:" + port + "/glob/*"
-
-	c := NewResilientClient(
-		ResilientClientWithMaxRetry(1),
-		ResilientClientDisallowInternalIPs(),
-		ResilientClientAllowInternalIPRequestsTo(allowedURL, allowedGlob),
-	)
-
-	for i := 0; i < 10; i++ {
-		for destination, passes := range map[string]bool{
-			"http://127.0.0.1:" + port:                   false,
-			"http://localhost:" + port:                   false,
-			"http://192.168.178.5:" + port:               false,
-			allowedURL:                                   true,
-			"http://localhost:" + port + "/glob/bar":     true,
-			"http://localhost:" + port + "/glob/bar/baz": false,
-			"http://localhost:" + port + "/FOOBAR":       false,
-		} {
-			_, err := c.Get(destination)
-			if !passes {
-				require.Errorf(t, err, "dest = %s", destination)
-				assert.Containsf(t, err.Error(), "is not a permitted destination", "dest = %s", destination)
-			} else {
-				require.NoErrorf(t, err, "dest = %s", destination)
-			}
-		}
+				c := NewResilientClient(options...)
+				_, err := c.Get(tt.url)
+				if tt.allowedIP {
+					assert.NotErrorIs(t, err, ssrf.ErrProhibitedIP)
+				} else {
+					assert.ErrorIs(t, err, ssrf.ErrProhibitedIP)
+				}
+			})
 	}
 }
 
