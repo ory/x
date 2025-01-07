@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
+	"github.com/gobwas/glob"
 
 	"github.com/ory/x/pointerx"
 )
@@ -42,15 +43,20 @@ func isElementAccess(path string) bool {
 	return false
 }
 
+// ApplyJSONPatch applies a JSON patch to an object. It returns an error if the
+// patch is invalid or if the patch includes paths that are denied. denyPaths is
+// a list of path globs (interpreted with [glob.Compile] that are not allowed to
+// be patched.
 func ApplyJSONPatch(p json.RawMessage, object interface{}, denyPaths ...string) error {
 	patch, err := jsonpatch.DecodePatch(p)
 	if err != nil {
 		return err
 	}
 
-	denySet := make(map[string]struct{})
-	for _, path := range denyPaths {
-		denySet[path] = struct{}{}
+	denyPattern := fmt.Sprintf("{%s}", strings.Join(denyPaths, ","))
+	matcher, err := glob.Compile(denyPattern, '/')
+	if err != nil {
+		return err
 	}
 
 	for _, op := range patch {
@@ -62,7 +68,7 @@ func ApplyJSONPatch(p json.RawMessage, object interface{}, denyPaths ...string) 
 		if err != nil {
 			return fmt.Errorf("error parsing patch operations: %v", err)
 		}
-		if _, ok := denySet[path]; ok {
+		if matcher.Match(path) {
 			return fmt.Errorf("patch includes denied path: %s", path)
 		}
 
