@@ -45,7 +45,7 @@ func isElementAccess(path string) bool {
 
 // ApplyJSONPatch applies a JSON patch to an object. It returns an error if the
 // patch is invalid or if the patch includes paths that are denied. denyPaths is
-// a list of path globss (interpreted with [glob.Compile] that are not allowed to
+// a list of path globs (interpreted with [glob.Compile] that are not allowed to
 // be patched.
 func ApplyJSONPatch(p json.RawMessage, object interface{}, denyPaths ...string) error {
 	patch, err := jsonpatch.DecodePatch(p)
