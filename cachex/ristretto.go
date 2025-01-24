@@ -7,10 +7,8 @@ import (
 
 // RistrettoCollector collects Ristretto cache metrics.
 type RistrettoCollector[K ristretto.Key, V any] struct {
-	cache   *ristretto.Cache[K, V]
-	prefix  string
-	suffix  string
-	metrics *ristretto.Metrics
+	prefix      string
+	metricsFunc func() *ristretto.Metrics
 }
 
 // NewRistrettoCollector creates a new RistrettoCollector.
@@ -23,43 +21,44 @@ type RistrettoCollector[K ristretto.Key, V any] struct {
 //			MaxCost:     1 << 30,
 //			BufferItems: 64,
 //		})
-//		collector := NewRistrettoCollector(cache, "prefix_", "_suffix")
+//		collector := NewRistrettoCollector("prefix_", func() *ristretto.Metrics {
+//			return cache.Metrics
+//		})
 //		prometheus.MustRegister(collector)
 //	}
-func NewRistrettoCollector[K ristretto.Key, V any](cache *ristretto.Cache[K, V], prefix string, suffix string) *RistrettoCollector[K, V] {
+func NewRistrettoCollector[K ristretto.Key, V any](prefix string, metricsFunc func() *ristretto.Metrics) *RistrettoCollector[K, V] {
 	return &RistrettoCollector[K, V]{
-		cache:   cache,
-		prefix:  prefix,
-		suffix:  suffix,
-		metrics: cache.Metrics,
+		prefix:      prefix,
+		metricsFunc: metricsFunc,
 	}
 }
 
 // Describe sends the super-set of all possible descriptors of metrics
 // collected by this Collector.
 func (c *RistrettoCollector[K, V]) Describe(ch chan<- *prometheus.Desc) {
-	ch <- prometheus.NewDesc(c.prefix+"ristretto_hits"+c.suffix, "Total number of cache hits", nil, nil)
-	ch <- prometheus.NewDesc(c.prefix+"ristretto_misses"+c.suffix, "Total number of cache misses", nil, nil)
-	ch <- prometheus.NewDesc(c.prefix+"ristretto_ratio"+c.suffix, "Cache hit ratio", nil, nil)
-	ch <- prometheus.NewDesc(c.prefix+"ristretto_keys_added"+c.suffix, "Total number of keys added to the cache", nil, nil)
-	ch <- prometheus.NewDesc(c.prefix+"ristretto_cost_added"+c.suffix, "Total cost of keys added to the cache", nil, nil)
-	ch <- prometheus.NewDesc(c.prefix+"ristretto_keys_evicted"+c.suffix, "Total number of keys evicted from the cache", nil, nil)
-	ch <- prometheus.NewDesc(c.prefix+"ristretto_cost_evicted"+c.suffix, "Total cost of keys evicted from the cache", nil, nil)
-	ch <- prometheus.NewDesc(c.prefix+"ristretto_sets_dropped"+c.suffix, "Total number of sets dropped", nil, nil)
-	ch <- prometheus.NewDesc(c.prefix+"ristretto_sets_rejected"+c.suffix, "Total number of sets rejected", nil, nil)
-	ch <- prometheus.NewDesc(c.prefix+"ristretto_gets_kept"+c.suffix, "Total number of gets kept", nil, nil)
+	ch <- prometheus.NewDesc(c.prefix+"ristretto_hits", "Total number of cache hits", nil, nil)
+	ch <- prometheus.NewDesc(c.prefix+"ristretto_misses", "Total number of cache misses", nil, nil)
+	ch <- prometheus.NewDesc(c.prefix+"ristretto_ratio", "Cache hit ratio", nil, nil)
+	ch <- prometheus.NewDesc(c.prefix+"ristretto_keys_added", "Total number of keys added to the cache", nil, nil)
+	ch <- prometheus.NewDesc(c.prefix+"ristretto_cost_added", "Total cost of keys added to the cache", nil, nil)
+	ch <- prometheus.NewDesc(c.prefix+"ristretto_keys_evicted", "Total number of keys evicted from the cache", nil, nil)
+	ch <- prometheus.NewDesc(c.prefix+"ristretto_cost_evicted", "Total cost of keys evicted from the cache", nil, nil)
+	ch <- prometheus.NewDesc(c.prefix+"ristretto_sets_dropped", "Total number of sets dropped", nil, nil)
+	ch <- prometheus.NewDesc(c.prefix+"ristretto_sets_rejected", "Total number of sets rejected", nil, nil)
+	ch <- prometheus.NewDesc(c.prefix+"ristretto_gets_kept", "Total number of gets kept", nil, nil)
 }
 
 // Collect is called by the Prometheus registry when collecting metrics.
 func (c *RistrettoCollector[K, V]) Collect(ch chan<- prometheus.Metric) {
-	ch <- prometheus.MustNewConstMetric(prometheus.NewDesc(c.prefix+"ristretto_hits"+c.suffix, "Total number of cache hits", nil, nil), prometheus.GaugeValue, float64(c.metrics.Hits()))
-	ch <- prometheus.MustNewConstMetric(prometheus.NewDesc(c.prefix+"ristretto_misses"+c.suffix, "Total number of cache misses", nil, nil), prometheus.GaugeValue, float64(c.metrics.Misses()))
-	ch <- prometheus.MustNewConstMetric(prometheus.NewDesc(c.prefix+"ristretto_ratio"+c.suffix, "Cache hit ratio", nil, nil), prometheus.GaugeValue, c.metrics.Ratio())
-	ch <- prometheus.MustNewConstMetric(prometheus.NewDesc(c.prefix+"ristretto_keys_added"+c.suffix, "Total number of keys added to the cache", nil, nil), prometheus.GaugeValue, float64(c.metrics.KeysAdded()))
-	ch <- prometheus.MustNewConstMetric(prometheus.NewDesc(c.prefix+"ristretto_cost_added"+c.suffix, "Total cost of keys added to the cache", nil, nil), prometheus.GaugeValue, float64(c.metrics.CostAdded()))
-	ch <- prometheus.MustNewConstMetric(prometheus.NewDesc(c.prefix+"ristretto_keys_evicted"+c.suffix, "Total number of keys evicted from the cache", nil, nil), prometheus.GaugeValue, float64(c.metrics.KeysEvicted()))
-	ch <- prometheus.MustNewConstMetric(prometheus.NewDesc(c.prefix+"ristretto_cost_evicted"+c.suffix, "Total cost of keys evicted from the cache", nil, nil), prometheus.GaugeValue, float64(c.metrics.CostEvicted()))
-	ch <- prometheus.MustNewConstMetric(prometheus.NewDesc(c.prefix+"ristretto_sets_dropped"+c.suffix, "Total number of sets dropped", nil, nil), prometheus.GaugeValue, float64(c.metrics.SetsDropped()))
-	ch <- prometheus.MustNewConstMetric(prometheus.NewDesc(c.prefix+"ristretto_sets_rejected"+c.suffix, "Total number of sets rejected", nil, nil), prometheus.GaugeValue, float64(c.metrics.SetsRejected()))
-	ch <- prometheus.MustNewConstMetric(prometheus.NewDesc(c.prefix+"ristretto_gets_kept"+c.suffix, "Total number of gets kept", nil, nil), prometheus.GaugeValue, float64(c.metrics.GetsKept()))
+	metrics := c.metricsFunc()
+	ch <- prometheus.MustNewConstMetric(prometheus.NewDesc(c.prefix+"ristretto_hits", "Total number of cache hits", nil, nil), prometheus.GaugeValue, float64(metrics.Hits()))
+	ch <- prometheus.MustNewConstMetric(prometheus.NewDesc(c.prefix+"ristretto_misses", "Total number of cache misses", nil, nil), prometheus.GaugeValue, float64(metrics.Misses()))
+	ch <- prometheus.MustNewConstMetric(prometheus.NewDesc(c.prefix+"ristretto_ratio", "Cache hit ratio", nil, nil), prometheus.GaugeValue, metrics.Ratio())
+	ch <- prometheus.MustNewConstMetric(prometheus.NewDesc(c.prefix+"ristretto_keys_added", "Total number of keys added to the cache", nil, nil), prometheus.GaugeValue, float64(metrics.KeysAdded()))
+	ch <- prometheus.MustNewConstMetric(prometheus.NewDesc(c.prefix+"ristretto_cost_added", "Total cost of keys added to the cache", nil, nil), prometheus.GaugeValue, float64(metrics.CostAdded()))
+	ch <- prometheus.MustNewConstMetric(prometheus.NewDesc(c.prefix+"ristretto_keys_evicted", "Total number of keys evicted from the cache", nil, nil), prometheus.GaugeValue, float64(metrics.KeysEvicted()))
+	ch <- prometheus.MustNewConstMetric(prometheus.NewDesc(c.prefix+"ristretto_cost_evicted", "Total cost of keys evicted from the cache", nil, nil), prometheus.GaugeValue, float64(metrics.CostEvicted()))
+	ch <- prometheus.MustNewConstMetric(prometheus.NewDesc(c.prefix+"ristretto_sets_dropped", "Total number of sets dropped", nil, nil), prometheus.GaugeValue, float64(metrics.SetsDropped()))
+	ch <- prometheus.MustNewConstMetric(prometheus.NewDesc(c.prefix+"ristretto_sets_rejected", "Total number of sets rejected", nil, nil), prometheus.GaugeValue, float64(metrics.SetsRejected()))
+	ch <- prometheus.MustNewConstMetric(prometheus.NewDesc(c.prefix+"ristretto_gets_kept", "Total number of gets kept", nil, nil), prometheus.GaugeValue, float64(metrics.GetsKept()))
 }
