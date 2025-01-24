@@ -1,7 +1,7 @@
 package cachex
 
 import (
-	"github.com/dgraph-io/ristretto/v2"
+	"github.com/dgraph-io/ristretto"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
