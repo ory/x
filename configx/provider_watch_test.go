@@ -49,7 +49,7 @@ func assertNoOpenFDs(t require.TestingT, dir, name string) {
 	}
 	var b, be bytes.Buffer
 	// we are only interested in the file descriptors, so we use the `-F f` option
-	c := exec.Command("lsof", "-n", "-F", "f", "--", filepath.Join(dir, name))
+	c := exec.Command("lsof", "-n", "-F", "fc", "--", filepath.Join(dir, name))
 	c.Stdout = &b
 	c.Stderr = &be
 	exitErr := new(exec.ExitError)
@@ -61,13 +61,22 @@ func TestReload(t *testing.T) {
 	setup := func(t *testing.T, dir, name string, c chan<- struct{}, modifiers ...OptionModifier) (*Provider, *logrusx.Logger) {
 		l := logrusx.New("configx", "test")
 		ctx, cancel := context.WithCancel(context.Background())
-		t.Cleanup(cancel)
+		t.Cleanup(func() {
+			close(c)
+			cancel()
+			assertNoOpenFDs(t, dir, name)
+		})
 		modifiers = append(modifiers,
 			WithLogrusWatcher(l),
 			WithLogger(l),
 			AttachWatcher(func(event watcherx.Event, err error) {
-				fmt.Printf("Received event: %+v error: %+v\n", event, err)
-				c <- struct{}{}
+				fmt.Printf("Received event: %+v %T error: %+v\n", event, event, err)
+				select {
+				case <-ctx.Done():
+					return
+				case c <- struct{}{}:
+					return
+				}
 			}),
 			WithContext(ctx),
 		)
@@ -79,11 +88,11 @@ func TestReload(t *testing.T) {
 	t.Run("case=rejects not validating changes", func(t *testing.T) {
 		t.Parallel()
 		dir, name := tmpConfigFile(t, "memory", "bar")
+		assertNoOpenFDs(t, dir, name)
+
 		c := make(chan struct{})
 		p, l := setup(t, dir, name, c)
 		hook := test.NewLocal(l.Entry.Logger)
-
-		assertNoOpenFDs(t, dir, name)
 
 		assert.Equal(t, []*logrus.Entry{}, hook.AllEntries())
 		assert.Equal(t, "memory", p.String("dsn"))
@@ -112,12 +121,11 @@ func TestReload(t *testing.T) {
 	t.Run("case=rejects to update immutable", func(t *testing.T) {
 		t.Parallel()
 		dir, name := tmpConfigFile(t, "memory", "bar")
+
 		c := make(chan struct{})
 		p, l := setup(t, dir, name, c,
 			WithImmutables("dsn"))
 		hook := test.NewLocal(l.Entry.Logger)
-
-		assertNoOpenFDs(t, dir, name)
 
 		assert.Equal(t, []*logrus.Entry{}, hook.AllEntries())
 		assert.Equal(t, "memory", p.String("dsn"))
@@ -133,10 +141,10 @@ func TestReload(t *testing.T) {
 		assert.Equal(t, "bar", p.String("foo"))
 
 		// but it is still watching the files
-		updateConfigFile(t, c, dir, name, "memory", "bar", "baz")
-		assert.Equal(t, "baz", p.String("bar"))
-
-		assertNoOpenFDs(t, dir, name)
+		updateConfigFile(t, c, dir, name, "memory", "foo", "bar")
+		assert.Equal(t, "bar", p.String("bar"))
+		assert.Equal(t, "foo", p.String("bar"))
+		assert.Equal(t, "memory", p.String("dsn"))
 	})
 
 	t.Run("case=allows to update excepted immutable", func(t *testing.T) {
