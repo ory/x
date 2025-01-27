@@ -29,6 +29,8 @@ var (
 	AlphaUpper = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	// Numeric contains runes [0123456789].
 	Numeric = []rune("0123456789")
+	// AlphaNumNoAmbiguous is equivalent to AlphaNum but without visually ambiguous characters [0Oo1IlB8S5Z2].
+	AlphaNumNoAmbiguous = []rune("abcdefghijkmnpqrstuvwxyzACDEFGHJKLMNPQRTUVWXY34679")
 )
 
 // RuneSequence returns a random sequence using the defined allowed runes.
