@@ -58,10 +58,23 @@ func (l *Logger) HTTPHeadersRedacted(h http.Header) map[string]interface{} {
 	headers := map[string]interface{}{}
 
 	for key, value := range h {
-		keyLower := strings.ToLower(key)
-		if keyLower == "authorization" || keyLower == "cookie" || keyLower == "set-cookie" || keyLower == "x-session-token" {
+		switch keyLower := strings.ToLower(key); keyLower {
+		case "authorization", "cookie", "set-cookie", "x-session-token":
 			headers[keyLower] = l.maybeRedact(value)
-		} else {
+		case "location":
+			locationURL, err := url.Parse(h.Get("Location"))
+			if err != nil {
+				headers[keyLower] = l.maybeRedact(value)
+				continue
+			}
+			if l.leakSensitive {
+				headers[keyLower] = locationURL.String()
+			} else {
+				locationURL.RawQuery = ""
+				locationURL.Fragment = ""
+				headers[keyLower] = locationURL.Redacted()
+			}
+		default:
 			headers[keyLower] = h.Get(key)
 		}
 	}
