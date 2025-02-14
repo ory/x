@@ -6,9 +6,8 @@ package httpx
 import (
 	"mime"
 	"net/http"
+	"slices"
 	"strings"
-
-	"github.com/ory/x/stringslice"
 )
 
 // HasContentType determines whether the request `content-type` includes a
@@ -18,17 +17,15 @@ import (
 func HasContentType(r *http.Request, mimetypes ...string) bool {
 	contentType := r.Header.Get("Content-Type")
 	if contentType == "" {
-		return stringslice.Has(mimetypes, "application/octet-stream")
+		return slices.Contains(mimetypes, "application/octet-stream")
 	}
 
-	for _, v := range strings.Split(contentType, ",") {
-		t, _, err := mime.ParseMediaType(strings.TrimSpace(v))
-		if err != nil {
-			break
-		}
-		if stringslice.Has(mimetypes, t) {
-			return true
-		}
+	mediaType, _, err := mime.ParseMediaType(strings.TrimSpace(contentType))
+	if err != nil {
+		return false
+	}
+	if slices.Contains(mimetypes, mediaType) {
+		return true
 	}
 	return false
 }
