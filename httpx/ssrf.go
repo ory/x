@@ -138,6 +138,7 @@ func newDefaultTransport() (*http.Transport, *net.Dialer) {
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
+		TLSClientConfig:       http.DefaultTransport.(*http.Transport).TLSClientConfig,
 	}, &dialer
 }
 
