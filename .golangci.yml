@@ -4,6 +4,6 @@ linters:
     - govet
   disable-all: true
 
-run:
-  skip-files:
+issues:
+  exclude-files:
     - ".+_test.go"

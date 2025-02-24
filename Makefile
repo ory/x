@@ -32,7 +32,7 @@ licenses: .bin/licenses node_modules  # checks open-source licenses
 	GOBIN=$(shell pwd)/.bin go install golang.org/x/tools/cmd/goimports@latest
 
 .bin/golangci-lint: Makefile
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b .bin v1.61.0
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b .bin v1.64.5
 
 .bin/licenses: Makefile
 	curl https://raw.githubusercontent.com/ory/ci/master/licenses/install | sh
