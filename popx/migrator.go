@@ -174,9 +174,9 @@ func (m *Migrator) UpTo(ctx context.Context, step int) (applied int, err error) 
 			}
 		}
 		if applied == 0 {
-			m.l.Debugf("Migrations already up to date, nothing to apply")
+			m.l.Infof("Migrations already up to date, nothing to apply")
 		} else {
-			m.l.Debugf("Successfully applied %d migrations.", applied)
+			m.l.Infof("Successfully applied %d migrations.", applied)
 		}
 		return nil
 	})
