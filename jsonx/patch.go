@@ -53,7 +53,7 @@ func ApplyJSONPatch(p json.RawMessage, object interface{}, denyPaths ...string) 
 		return err
 	}
 
-	denyPattern := fmt.Sprintf("{%s}", strings.Join(denyPaths, ","))
+	denyPattern := fmt.Sprintf("{%s}", strings.ToLower(strings.Join(denyPaths, ",")))
 	matcher, err := glob.Compile(denyPattern, '/')
 	if err != nil {
 		return err
@@ -68,7 +68,7 @@ func ApplyJSONPatch(p json.RawMessage, object interface{}, denyPaths ...string) 
 		if err != nil {
 			return fmt.Errorf("error parsing patch operations: %v", err)
 		}
-		if matcher.Match(path) {
+		if matcher.Match(strings.ToLower(path)) {
 			return fmt.Errorf("patch includes denied path: %s", path)
 		}
 
