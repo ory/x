@@ -1,12 +1,6 @@
 
 "code.dny.dev/ssrf","MIT"
 "golang.org/x/exp","BSD-3-Clause"
-"github.com/cespare/xxhash/v2","MIT"
-"github.com/dgraph-io/ristretto","Apache-2.0"
-"github.com/dgraph-io/ristretto/z","MIT"
-"github.com/dustin/go-humanize","MIT"
-"github.com/pkg/errors","BSD-2-Clause"
-"golang.org/x/sys/unix","BSD-3-Clause"
 "github.com/fatih/structs","MIT"
 "github.com/fsnotify/fsnotify","BSD-3-Clause"
 "golang.org/x/sys/unix","BSD-3-Clause"
