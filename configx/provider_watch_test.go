@@ -223,7 +223,7 @@ func TestReload(t *testing.T) {
 
 		assertNoOpenFDs(t, dir, name)
 
-		for i := 0; i < 30; i++ {
+		for i := range 30 {
 			t.Run(fmt.Sprintf("iteration=%d", i), func(t *testing.T) {
 				expected := []string{"foo", "bar", "baz"}[i%3]
 				updateConfigFile(t, c, dir, name, "memory", "bar", expected)

@@ -13,7 +13,7 @@ func TestMain(m *testing.M) {
 	goleak.VerifyTestMain(m,
 		goleak.IgnoreCurrent(),
 		// We have the global schema cache that is never closed.
-		goleak.IgnoreTopFunction("github.com/dgraph-io/ristretto.(*defaultPolicy[...]).processItems"),
-		goleak.IgnoreTopFunction("github.com/dgraph-io/ristretto.(*Cache[...]).processItems"),
+		goleak.IgnoreTopFunction("github.com/dgraph-io/ristretto/v2.(*defaultPolicy[...]).processItems"),
+		goleak.IgnoreTopFunction("github.com/dgraph-io/ristretto/v2.(*Cache[...]).processItems"),
 	)
 }
