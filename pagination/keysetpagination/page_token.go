@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-type PageToken interface {
+type PageToken = interface {
 	Parse(string) map[string]string
 	Encode() string
 }
