@@ -9,7 +9,7 @@ import (
 )
 
 // RistrettoCollector collects Ristretto cache metrics.
-type RistrettoCollector[K ristretto.Key, V any] struct {
+type RistrettoCollector struct {
 	prefix      string
 	metricsFunc func() *ristretto.Metrics
 }
@@ -29,8 +29,8 @@ type RistrettoCollector[K ristretto.Key, V any] struct {
 //		})
 //		prometheus.MustRegister(collector)
 //	}
-func NewRistrettoCollector[K ristretto.Key, V any](prefix string, metricsFunc func() *ristretto.Metrics) *RistrettoCollector[K, V] {
-	return &RistrettoCollector[K, V]{
+func NewRistrettoCollector(prefix string, metricsFunc func() *ristretto.Metrics) *RistrettoCollector {
+	return &RistrettoCollector{
 		prefix:      prefix,
 		metricsFunc: metricsFunc,
 	}
@@ -38,7 +38,7 @@ func NewRistrettoCollector[K ristretto.Key, V any](prefix string, metricsFunc fu
 
 // Describe sends the super-set of all possible descriptors of metrics
 // collected by this Collector.
-func (c *RistrettoCollector[K, V]) Describe(ch chan<- *prometheus.Desc) {
+func (c *RistrettoCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- prometheus.NewDesc(c.prefix+"ristretto_hits", "Total number of cache hits", nil, nil)
 	ch <- prometheus.NewDesc(c.prefix+"ristretto_misses", "Total number of cache misses", nil, nil)
 	ch <- prometheus.NewDesc(c.prefix+"ristretto_ratio", "Cache hit ratio", nil, nil)
@@ -52,7 +52,7 @@ func (c *RistrettoCollector[K, V]) Describe(ch chan<- *prometheus.Desc) {
 }
 
 // Collect is called by the Prometheus registry when collecting metrics.
-func (c *RistrettoCollector[K, V]) Collect(ch chan<- prometheus.Metric) {
+func (c *RistrettoCollector) Collect(ch chan<- prometheus.Metric) {
 	metrics := c.metricsFunc()
 	ch <- prometheus.MustNewConstMetric(prometheus.NewDesc(c.prefix+"ristretto_hits", "Total number of cache hits", nil, nil), prometheus.GaugeValue, float64(metrics.Hits()))
 	ch <- prometheus.MustNewConstMetric(prometheus.NewDesc(c.prefix+"ristretto_misses", "Total number of cache misses", nil, nil), prometheus.GaugeValue, float64(metrics.Misses()))

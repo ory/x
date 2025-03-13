@@ -12,7 +12,7 @@ import (
 )
 
 type (
-	Item interface{ PageToken() PageToken }
+	Item = interface{ PageToken() PageToken }
 
 	Order string
 
