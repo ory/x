@@ -42,7 +42,7 @@ func WatchDirectory(ctx context.Context, dir string, c EventChannel) (Watcher, e
 }
 
 func handleEvent(e fsnotify.Event, w *fsnotify.Watcher, c EventChannel) {
-	if e.Op&fsnotify.Remove != 0 {
+	if e.Has(fsnotify.Remove) {
 		// We cannot figure out anymore if it was a file or directory.
 		// If it was a directory it was added to the watchers as well as it's parent.
 		// Therefore we will get two consecutive remove events from inotify (REMOVE and REMOVE_SELF).
@@ -56,7 +56,7 @@ func handleEvent(e fsnotify.Event, w *fsnotify.Watcher, c EventChannel) {
 			}
 			return
 		case secondE := <-w.Events:
-			if (secondE.Name != "" && secondE.Name != e.Name) || secondE.Op&fsnotify.Remove == 0 {
+			if (secondE.Name != "" && secondE.Name != e.Name) || !secondE.Has(fsnotify.Remove) {
 				// this is NOT the unix.IN_DELETE_SELF event => we have to handle the first explicitly
 				// and the second recursively because it might be the first event of a directory deletion
 				c <- &RemoveEvent{
@@ -65,7 +65,7 @@ func handleEvent(e fsnotify.Event, w *fsnotify.Watcher, c EventChannel) {
 				handleEvent(secondE, w, c)
 			} // else we do not want any event on deletion of a folder
 		}
-	} else if e.Op&(fsnotify.Write|fsnotify.Create) != 0 {
+	} else if e.Has(fsnotify.Write | fsnotify.Create) {
 		if stats, err := os.Stat(e.Name); err != nil {
 			c <- &ErrorEvent{
 				error:  errors.WithStack(err),

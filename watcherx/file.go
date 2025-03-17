@@ -145,7 +145,7 @@ func streamFileEvents(ctx context.Context, watcher *fsnotify.Watcher, c EventCha
 					addDirectFileWatcher()
 					// we fallthrough because we also want to read the file in this case
 					fallthrough
-				case e.Op&(fsnotify.Write|fsnotify.Create) != 0:
+				case e.Has(fsnotify.Write | fsnotify.Create):
 					//#nosec G304 -- false positive
 					data, err := os.ReadFile(watchedFile)
 					if err != nil {
