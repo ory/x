@@ -16,6 +16,7 @@ import "github.com/pkg/errors"
 // If the error does not implement Cause, the original error will
 // be returned. If the error is nil, nil will be returned without further
 // investigation.
+// Deprecated: you should probably use errors.As instead.
 func Cause(err error) error {
 	type causer interface {
 		Cause() error
@@ -33,6 +34,7 @@ func Cause(err error) error {
 
 // WithStack mirror pkg/errors.WithStack but does not wrap existing stack
 // traces.
+// Deprecated: you should probably use errors.WithStack instead and only annotate stacks when it makes sense.
 func WithStack(err error) error {
 	if e, ok := err.(StackTracer); ok && len(e.StackTrace()) > 0 {
 		return err

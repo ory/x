@@ -241,7 +241,7 @@ func TestTextLogger(t *testing.T) {
 
 			tc.call(tc.l)
 
-			t.Logf(b.String())
+			t.Log(b.String())
 			for _, expect := range tc.expect {
 				assert.Contains(t, b.String(), expect)
 			}

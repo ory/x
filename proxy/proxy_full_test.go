@@ -1,7 +1,7 @@
 // Copyright © 2023 Ory Corp
 // SPDX-License-Identifier: Apache-2.0
 
-package proxy
+package proxy_test
 
 import (
 	"bytes"
@@ -16,17 +16,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rs/cors"
-
 	"github.com/gorilla/websocket"
-
 	"github.com/pkg/errors"
-
-	"github.com/ory/x/httpx"
-
+	"github.com/rs/cors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ory/x/httpx"
+	"github.com/ory/x/proxy"
 	"github.com/ory/x/urlx"
 )
 
@@ -91,9 +88,9 @@ func TestFullIntegration(t *testing.T) {
 	defer upstreamServer.Close()
 
 	// create the proxy
-	hostMapper := make(chan func(*http.Request) (*HostConfig, error), 1)
-	reqMiddleware := make(chan ReqMiddleware, 1)
-	respMiddleware := make(chan RespMiddleware, 1)
+	hostMapper := make(chan func(*http.Request) (*proxy.HostConfig, error), 1)
+	reqMiddleware := make(chan proxy.ReqMiddleware, 1)
+	respMiddleware := make(chan proxy.RespMiddleware, 1)
 
 	type CustomErrorReq func(*http.Request, error)
 	type CustomErrorResp func(*http.Response, error) error
@@ -101,27 +98,27 @@ func TestFullIntegration(t *testing.T) {
 	onErrorReq := make(chan CustomErrorReq, 1)
 	onErrorResp := make(chan CustomErrorResp, 1)
 
-	proxy := httptest.NewTLSServer(New(
-		func(ctx context.Context, r *http.Request) (context.Context, *HostConfig, error) {
+	prxy := httptest.NewTLSServer(proxy.New(
+		func(ctx context.Context, r *http.Request) (context.Context, *proxy.HostConfig, error) {
 			c, err := (<-hostMapper)(r)
 			return ctx, c, err
 		},
-		WithTransport(upstreamServer.Client().Transport),
-		WithReqMiddleware(func(req *httputil.ProxyRequest, config *HostConfig, body []byte) ([]byte, error) {
+		proxy.WithTransport(upstreamServer.Client().Transport),
+		proxy.WithReqMiddleware(func(req *httputil.ProxyRequest, config *proxy.HostConfig, body []byte) ([]byte, error) {
 			f := <-reqMiddleware
 			if f == nil {
 				return body, nil
 			}
 			return f(req, config, body)
 		}),
-		WithRespMiddleware(func(resp *http.Response, config *HostConfig, body []byte) ([]byte, error) {
+		proxy.WithRespMiddleware(func(resp *http.Response, config *proxy.HostConfig, body []byte) ([]byte, error) {
 			f := <-respMiddleware
 			if f == nil {
 				return body, nil
 			}
 			return f(resp, config, body)
 		}),
-		WithOnError(func(request *http.Request, err error) {
+		proxy.WithOnError(func(request *http.Request, err error) {
 			select {
 			case f := <-onErrorReq:
 				f(request, err)
@@ -138,7 +135,7 @@ func TestFullIntegration(t *testing.T) {
 			}
 		})))
 
-	cl := proxy.Client()
+	cl := prxy.Client()
 	cl.Transport = &testingRoundTripper{t, cl.Transport}
 	cl.CheckRedirect = func(*http.Request, []*http.Request) error {
 		return http.ErrUseLastResponse
@@ -146,22 +143,22 @@ func TestFullIntegration(t *testing.T) {
 
 	for _, tc := range []struct {
 		desc           string
-		hostMapper     func(host string) (*HostConfig, error)
+		hostMapper     func(host string) (*proxy.HostConfig, error)
 		handler        func(assert *assert.Assertions, w http.ResponseWriter, r *http.Request)
 		request        func(t *testing.T) *http.Request
 		assertResponse func(t *testing.T, r *http.Response)
-		reqMiddleware  ReqMiddleware
-		respMiddleware RespMiddleware
+		reqMiddleware  proxy.ReqMiddleware
+		respMiddleware proxy.RespMiddleware
 		onErrReq       CustomErrorReq
 		onErrResp      CustomErrorResp
 	}{
 		{
 			desc: "body replacement",
-			hostMapper: func(host string) (*HostConfig, error) {
+			hostMapper: func(host string) (*proxy.HostConfig, error) {
 				if host != "example.com" {
 					return nil, fmt.Errorf("got unexpected host %s, expected 'example.com'", host)
 				}
-				return &HostConfig{
+				return &proxy.HostConfig{
 					CookieDomain: "example.com",
 					PathPrefix:   "/foo",
 				}, nil
@@ -175,7 +172,7 @@ func TestFullIntegration(t *testing.T) {
 				assert.NoError(err)
 			},
 			request: func(t *testing.T) *http.Request {
-				req, err := http.NewRequest(http.MethodPost, proxy.URL+"/foo", bytes.NewBufferString(fmt.Sprintf("some random content containing the request URL and path prefix %s/bar but also other stuff", upstreamServer.URL)))
+				req, err := http.NewRequest(http.MethodPost, prxy.URL+"/foo", bytes.NewBufferString(fmt.Sprintf("some random content containing the request URL and path prefix %s/bar but also other stuff", upstreamServer.URL)))
 				require.NoError(t, err)
 				req.Host = "example.com"
 				return req
@@ -190,11 +187,11 @@ func TestFullIntegration(t *testing.T) {
 		},
 		{
 			desc: "redirection replacement",
-			hostMapper: func(host string) (*HostConfig, error) {
+			hostMapper: func(host string) (*proxy.HostConfig, error) {
 				if host != "redirect.me" {
 					return nil, fmt.Errorf("got unexpected host %s, expected 'redirect.me'", host)
 				}
-				return &HostConfig{
+				return &proxy.HostConfig{
 					CookieDomain: "redirect.me",
 				}, nil
 			},
@@ -202,7 +199,7 @@ func TestFullIntegration(t *testing.T) {
 				http.Redirect(w, r, upstreamServer.URL+"/redirection/target", http.StatusSeeOther)
 			},
 			request: func(t *testing.T) *http.Request {
-				req, err := http.NewRequest(http.MethodGet, proxy.URL, nil)
+				req, err := http.NewRequest(http.MethodGet, prxy.URL, nil)
 				require.NoError(t, err)
 				req.Host = "redirect.me"
 				return req
@@ -214,11 +211,11 @@ func TestFullIntegration(t *testing.T) {
 		},
 		{
 			desc: "cookie replacement",
-			hostMapper: func(host string) (*HostConfig, error) {
+			hostMapper: func(host string) (*proxy.HostConfig, error) {
 				if host != "auth.cookie.love" {
 					return nil, fmt.Errorf("got unexpected host %s, expected 'cookie.love'", host)
 				}
-				return &HostConfig{
+				return &proxy.HostConfig{
 					CookieDomain: "cookie.love",
 				}, nil
 			},
@@ -232,7 +229,7 @@ func TestFullIntegration(t *testing.T) {
 				assert.NoError(err)
 			},
 			request: func(t *testing.T) *http.Request {
-				req, err := http.NewRequest(http.MethodGet, proxy.URL, nil)
+				req, err := http.NewRequest(http.MethodGet, prxy.URL, nil)
 				require.NoError(t, err)
 				req.Host = "auth.cookie.love"
 				return req
@@ -248,8 +245,8 @@ func TestFullIntegration(t *testing.T) {
 		},
 		{
 			desc: "custom middleware",
-			hostMapper: func(host string) (*HostConfig, error) {
-				return &HostConfig{}, nil
+			hostMapper: func(host string) (*proxy.HostConfig, error) {
+				return &proxy.HostConfig{}, nil
 			},
 			handler: func(assert *assert.Assertions, w http.ResponseWriter, r *http.Request) {
 				assert.Equal("noauth.example.com", r.Host)
@@ -261,7 +258,7 @@ func TestFullIntegration(t *testing.T) {
 				assert.NoError(err)
 			},
 			request: func(t *testing.T) *http.Request {
-				req, err := http.NewRequest(http.MethodPost, proxy.URL, bytes.NewReader([]byte("body")))
+				req, err := http.NewRequest(http.MethodPost, prxy.URL, bytes.NewReader([]byte("body")))
 				require.NoError(t, err)
 				req.Host = "auth.example.com"
 				return req
@@ -272,26 +269,26 @@ func TestFullIntegration(t *testing.T) {
 				assert.Equal(t, "OK", string(body))
 				assert.Equal(t, "1234", r.Header.Get("Some-Header"))
 			},
-			reqMiddleware: func(req *httputil.ProxyRequest, config *HostConfig, body []byte) ([]byte, error) {
+			reqMiddleware: func(req *httputil.ProxyRequest, config *proxy.HostConfig, body []byte) ([]byte, error) {
 				req.Out.Host = "noauth.example.com"
 				return []byte("this is a new body"), nil
 			},
-			respMiddleware: func(resp *http.Response, config *HostConfig, body []byte) ([]byte, error) {
+			respMiddleware: func(resp *http.Response, config *proxy.HostConfig, body []byte) ([]byte, error) {
 				resp.Header.Add("Some-Header", "1234")
 				return body, nil
 			},
 		},
 		{
 			desc: "custom request errors",
-			hostMapper: func(host string) (*HostConfig, error) {
-				return &HostConfig{}, errors.New("some host mapper error occurred")
+			hostMapper: func(host string) (*proxy.HostConfig, error) {
+				return &proxy.HostConfig{}, errors.New("some host mapper error occurred")
 			},
 			handler: func(assert *assert.Assertions, w http.ResponseWriter, r *http.Request) {
 				_, err := w.Write([]byte("OK"))
 				assert.NoError(err)
 			},
 			request: func(t *testing.T) *http.Request {
-				req, err := http.NewRequest(http.MethodPost, proxy.URL, bytes.NewReader([]byte("body")))
+				req, err := http.NewRequest(http.MethodPost, prxy.URL, bytes.NewReader([]byte("body")))
 				require.NoError(t, err)
 				req.Host = "auth.example.com"
 				return req
@@ -305,21 +302,21 @@ func TestFullIntegration(t *testing.T) {
 		},
 		{
 			desc: "custom response errors",
-			hostMapper: func(host string) (*HostConfig, error) {
-				return &HostConfig{}, nil
+			hostMapper: func(host string) (*proxy.HostConfig, error) {
+				return &proxy.HostConfig{}, nil
 			},
 			handler: func(assert *assert.Assertions, w http.ResponseWriter, r *http.Request) {
 				_, err := w.Write([]byte("OK"))
 				assert.NoError(err)
 			},
 			request: func(t *testing.T) *http.Request {
-				req, err := http.NewRequest(http.MethodPost, proxy.URL, bytes.NewReader([]byte("body")))
+				req, err := http.NewRequest(http.MethodPost, prxy.URL, bytes.NewReader([]byte("body")))
 				require.NoError(t, err)
 				req.Host = "auth.example.com"
 				return req
 			},
 			assertResponse: func(t *testing.T, r *http.Response) {},
-			respMiddleware: func(resp *http.Response, config *HostConfig, body []byte) ([]byte, error) {
+			respMiddleware: func(resp *http.Response, config *proxy.HostConfig, body []byte) ([]byte, error) {
 				return nil, errors.New("some response middleware error")
 			},
 			onErrResp: func(response *http.Response, err error) error {
@@ -330,11 +327,11 @@ func TestFullIntegration(t *testing.T) {
 		},
 		{
 			desc: "cors with allowed origin",
-			hostMapper: func(host string) (*HostConfig, error) {
+			hostMapper: func(host string) (*proxy.HostConfig, error) {
 				if host != "example.com" {
 					return nil, fmt.Errorf("got unexpected host %s, expected 'example.com'", host)
 				}
-				return &HostConfig{
+				return &proxy.HostConfig{
 					CorsOptions: &cors.Options{
 						AllowCredentials: true,
 						AllowedMethods:   []string{"GET"},
@@ -349,7 +346,7 @@ func TestFullIntegration(t *testing.T) {
 				w.WriteHeader(http.StatusOK)
 			},
 			request: func(t *testing.T) *http.Request {
-				req, err := http.NewRequest(http.MethodGet, proxy.URL+"/foo", bytes.NewBufferString(fmt.Sprintf("some random content containing the request URL and path prefix %s/bar but also other stuff", upstreamServer.URL)))
+				req, err := http.NewRequest(http.MethodGet, prxy.URL+"/foo", bytes.NewBufferString(fmt.Sprintf("some random content containing the request URL and path prefix %s/bar but also other stuff", upstreamServer.URL)))
 				require.NoError(t, err)
 				req.Host = "example.com"
 				req.Header.Add("Origin", "https://example.com")
@@ -364,11 +361,11 @@ func TestFullIntegration(t *testing.T) {
 		},
 		{
 			desc: "cors with multiple allowed origins",
-			hostMapper: func(host string) (*HostConfig, error) {
+			hostMapper: func(host string) (*proxy.HostConfig, error) {
 				if host != "sub.sub.foobar.com" {
 					return nil, fmt.Errorf("got unexpected host %s, expected 'example.com'", host)
 				}
-				return &HostConfig{
+				return &proxy.HostConfig{
 					CorsOptions: &cors.Options{
 						AllowCredentials: true,
 						AllowedMethods:   []string{"GET"},
@@ -383,7 +380,7 @@ func TestFullIntegration(t *testing.T) {
 				w.WriteHeader(http.StatusOK)
 			},
 			request: func(t *testing.T) *http.Request {
-				req, err := http.NewRequest(http.MethodGet, proxy.URL+"/foo", bytes.NewBufferString(fmt.Sprintf("some random content containing the request URL and path prefix %s/bar but also other stuff", upstreamServer.URL)))
+				req, err := http.NewRequest(http.MethodGet, prxy.URL+"/foo", bytes.NewBufferString(fmt.Sprintf("some random content containing the request URL and path prefix %s/bar but also other stuff", upstreamServer.URL)))
 				require.NoError(t, err)
 				req.Host = "sub.sub.foobar.com"
 				req.Header.Add("Origin", "https://sub.sub.foobar.com")
@@ -398,11 +395,11 @@ func TestFullIntegration(t *testing.T) {
 		},
 		{
 			desc: "cors fails on unknown origin",
-			hostMapper: func(host string) (*HostConfig, error) {
+			hostMapper: func(host string) (*proxy.HostConfig, error) {
 				if host != "example.com" {
 					return nil, fmt.Errorf("got unexpected host %s, expected 'example.com'", host)
 				}
-				return &HostConfig{
+				return &proxy.HostConfig{
 					CorsOptions: &cors.Options{
 						AllowCredentials: true,
 						AllowedMethods:   []string{"GET"},
@@ -417,7 +414,7 @@ func TestFullIntegration(t *testing.T) {
 				w.WriteHeader(http.StatusOK)
 			},
 			request: func(t *testing.T) *http.Request {
-				req, err := http.NewRequest(http.MethodGet, proxy.URL+"/foo", bytes.NewBufferString(fmt.Sprintf("some random content containing the request URL and path prefix %s/bar but also other stuff", upstreamServer.URL)))
+				req, err := http.NewRequest(http.MethodGet, prxy.URL+"/foo", bytes.NewBufferString(fmt.Sprintf("some random content containing the request URL and path prefix %s/bar but also other stuff", upstreamServer.URL)))
 				require.NoError(t, err)
 				req.Host = "example.com"
 				req.Header.Add("Origin", "https://example.com")
@@ -431,11 +428,11 @@ func TestFullIntegration(t *testing.T) {
 		},
 		{
 			desc: "cors fails on unsupported method",
-			hostMapper: func(host string) (*HostConfig, error) {
+			hostMapper: func(host string) (*proxy.HostConfig, error) {
 				if host != "example.com" {
 					return nil, fmt.Errorf("got unexpected host %s, expected 'example.com'", host)
 				}
-				return &HostConfig{
+				return &proxy.HostConfig{
 					CorsOptions: &cors.Options{
 						AllowCredentials: true,
 						AllowedMethods:   []string{"GET"},
@@ -450,7 +447,7 @@ func TestFullIntegration(t *testing.T) {
 				w.WriteHeader(http.StatusOK)
 			},
 			request: func(t *testing.T) *http.Request {
-				req, err := http.NewRequest(http.MethodPost, proxy.URL+"/foo", bytes.NewBufferString(fmt.Sprintf("some random content containing the request URL and path prefix %s/bar but also other stuff", upstreamServer.URL)))
+				req, err := http.NewRequest(http.MethodPost, prxy.URL+"/foo", bytes.NewBufferString(fmt.Sprintf("some random content containing the request URL and path prefix %s/bar but also other stuff", upstreamServer.URL)))
 				require.NoError(t, err)
 				req.Host = "example.com"
 				req.Header.Add("Origin", "https://example.com")
@@ -464,11 +461,11 @@ func TestFullIntegration(t *testing.T) {
 		},
 		{
 			desc: "cors succeeds on wildcard domains",
-			hostMapper: func(host string) (*HostConfig, error) {
+			hostMapper: func(host string) (*proxy.HostConfig, error) {
 				if host != "example.com" {
 					return nil, fmt.Errorf("got unexpected host %s, expected 'example.com'", host)
 				}
-				return &HostConfig{
+				return &proxy.HostConfig{
 					CorsOptions: &cors.Options{
 						AllowCredentials: true,
 						AllowedMethods:   []string{"GET"},
@@ -483,7 +480,7 @@ func TestFullIntegration(t *testing.T) {
 				w.WriteHeader(http.StatusOK)
 			},
 			request: func(t *testing.T) *http.Request {
-				req, err := http.NewRequest(http.MethodGet, proxy.URL+"/foo", bytes.NewBufferString(fmt.Sprintf("some random content containing the request URL and path prefix %s/bar but also other stuff", upstreamServer.URL)))
+				req, err := http.NewRequest(http.MethodGet, prxy.URL+"/foo", bytes.NewBufferString(fmt.Sprintf("some random content containing the request URL and path prefix %s/bar but also other stuff", upstreamServer.URL)))
 				require.NoError(t, err)
 				req.Host = "example.com"
 				req.Header.Add("Origin", "https://example.com")
@@ -497,7 +494,7 @@ func TestFullIntegration(t *testing.T) {
 		},
 	} {
 		t.Run("case="+tc.desc, func(t *testing.T) {
-			hostMapper <- func(r *http.Request) (*HostConfig, error) {
+			hostMapper <- func(r *http.Request) (*proxy.HostConfig, error) {
 				host := r.Host
 				hc, err := tc.hostMapper(host)
 				if err == nil {
@@ -559,8 +556,8 @@ func TestBetweenReverseProxies(t *testing.T) {
 	revProxyHandler := httputil.NewSingleHostReverseProxy(urlx.ParseOrPanic(target.URL))
 	revProxy := httptest.NewServer(revProxyHandler)
 
-	thisProxy := httptest.NewServer(New(func(ctx context.Context, _ *http.Request) (context.Context, *HostConfig, error) {
-		return ctx, &HostConfig{
+	thisProxy := httptest.NewServer(proxy.New(func(ctx context.Context, _ *http.Request) (context.Context, *proxy.HostConfig, error) {
+		return ctx, &proxy.HostConfig{
 			CookieDomain:   "sh",
 			UpstreamHost:   urlx.ParseOrPanic(revProxy.URL).Host,
 			UpstreamScheme: urlx.ParseOrPanic(revProxy.URL).Scheme,
@@ -656,21 +653,21 @@ func TestProxyProtoMix(t *testing.T) {
 		upstream.Transport = targetServer.Client().Transport
 		upstreamServer := upstreamServerFunc(upstream)
 
-		proxy := httptest.NewServer(New(func(ctx context.Context, r *http.Request) (context.Context, *HostConfig, error) {
-			return ctx, &HostConfig{
+		prxy := httptest.NewServer(proxy.New(func(ctx context.Context, r *http.Request) (context.Context, *proxy.HostConfig, error) {
+			return ctx, &proxy.HostConfig{
 				CookieDomain:   exposedHost,
 				UpstreamHost:   urlx.ParseOrPanic(upstreamServer.URL).Host,
 				UpstreamScheme: urlx.ParseOrPanic(upstreamServer.URL).Scheme,
 				TargetHost:     urlx.ParseOrPanic(targetServer.URL).Host,
 				TargetScheme:   urlx.ParseOrPanic(targetServer.URL).Scheme,
 			}, nil
-		}, WithTransport(upstreamServer.Client().Transport)))
-		client := proxy.Client()
+		}, proxy.WithTransport(upstreamServer.Client().Transport)))
+		client := prxy.Client()
 		client.CheckRedirect = func(*http.Request, []*http.Request) error {
 			return http.ErrUseLastResponse
 		}
 
-		return targetHandlerC, targetServer.URL, proxy.URL, client
+		return targetHandlerC, targetServer.URL, prxy.URL, client
 	}
 
 	for _, tc := range []struct {
@@ -728,7 +725,7 @@ func TestProxyProtoMix(t *testing.T) {
 					cookie := &http.Cookie{
 						Name:   "foo",
 						Value:  "bar",
-						Domain: stripPort(urlx.ParseOrPanic(targetURL).Host),
+						Domain: urlx.ParseOrPanic(targetURL).Hostname(),
 						Secure: true,
 					}
 					http.SetCookie(w, cookie)
@@ -781,16 +778,14 @@ func TestProxyWebsocketRequests(t *testing.T) {
 	}
 
 	setupProxy := func(targetServer *httptest.Server) *httptest.Server {
-		proxy := httptest.NewServer(New(func(ctx context.Context, r *http.Request) (context.Context, *HostConfig, error) {
-			return ctx, &HostConfig{
+		return httptest.NewServer(proxy.New(func(ctx context.Context, r *http.Request) (context.Context, *proxy.HostConfig, error) {
+			return ctx, &proxy.HostConfig{
 				UpstreamHost:   urlx.ParseOrPanic(targetServer.URL).Host,
 				UpstreamScheme: urlx.ParseOrPanic(targetServer.URL).Scheme,
 				TargetHost:     urlx.ParseOrPanic(targetServer.URL).Host,
 				TargetScheme:   urlx.ParseOrPanic(targetServer.URL).Scheme,
 			}, nil
 		}))
-
-		return proxy
 	}
 
 	t.Logf("Creating websocket server with proxy with context timeout of 5 seconds")

@@ -156,31 +156,26 @@ func TestApplyJSONPatch(t *testing.T) {
 
 	t.Run("suite=invalid patches", func(t *testing.T) {
 		cases := []struct {
-			name      string
-			patch     []byte
-			assertErr assert.ErrorAssertionFunc
+			name  string
+			patch []byte
 		}{{
-			name:      "test",
-			patch:     []byte(`[{"op": "test", "path": "/"}]`),
-			assertErr: assert.Error,
+			name:  "test",
+			patch: []byte(`[{"op": "test", "path": "/"}]`),
 		}, {
-			name:      "add",
-			patch:     []byte(`[{"op": "add", "path": "/"}]`),
-			assertErr: assert.NoError,
+			name:  "add",
+			patch: []byte(`[{"op": "add", "path": "/"}]`),
 		}, {
-			name:      "remove",
-			patch:     []byte(`[{"op": "add", "path": "/"}]`),
-			assertErr: assert.NoError,
+			name:  "remove",
+			patch: []byte(`[{"op": "remove"}]`),
 		}, {
-			name:      "replace",
-			patch:     []byte(`[{"op": "add", "path": "/"}]`),
-			assertErr: assert.NoError,
+			name:  "replace",
+			patch: []byte(`[{"op": "replace", "path": "/"}]`),
 		}}
 
 		for _, tc := range cases {
 			t.Run("case="+tc.name, func(t *testing.T) {
 				obj := &TestType{}
-				tc.assertErr(t, ApplyJSONPatch(tc.patch, &obj))
+				assert.Error(t, ApplyJSONPatch(tc.patch, &obj))
 			})
 		}
 	})
