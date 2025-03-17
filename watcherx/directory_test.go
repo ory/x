@@ -121,7 +121,7 @@ func TestWatchDirectory(t *testing.T) {
 		case e := <-c:
 			t.Logf("got unexpected event %T: %+v", e, e)
 			t.FailNow()
-		case <-time.After(2 * time.Millisecond):
+		case <-time.After(10 * time.Millisecond):
 			// expected to not receive an event (1ms is what the watcher waits for the second event)
 		}
 	})
