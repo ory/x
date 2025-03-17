@@ -5,10 +5,11 @@ package watcherx
 
 import (
 	"context"
-	"github.com/fsnotify/fsnotify"
-	"github.com/pkg/errors"
 	"os"
 	"path/filepath"
+
+	"github.com/fsnotify/fsnotify"
+	"github.com/pkg/errors"
 )
 
 func WatchDirectory(ctx context.Context, dir string, c EventChannel) (Watcher, error) {
