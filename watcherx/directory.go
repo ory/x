@@ -47,10 +47,10 @@ func handleEvent(e fsnotify.Event, w *fsnotify.Watcher, c EventChannel) {
 		// If it was a directory it was added to the watchers as well as it's parent.
 		// Therefore we will get two consecutive remove events from inotify (REMOVE and REMOVE_SELF).
 		// Sometimes the second event has an empty name (no specific reason for that).
-		// If there is no second event (timeout 5ms) we assume it was a file that got deleted.
+		// If there is no second event (timeout 1ms) we assume it was a file that got deleted.
 		// This means that file deletion events are delayed by 1ms.
 		select {
-		case <-time.After(5 * time.Millisecond):
+		case <-time.After(time.Millisecond):
 			c <- &RemoveEvent{
 				source: source(e.Name),
 			}
