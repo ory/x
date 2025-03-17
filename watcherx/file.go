@@ -25,7 +25,7 @@ func WatchFile(ctx context.Context, file string, c EventChannel) (Watcher, error
 	}
 	resolvedFile, err := filepath.EvalSymlinks(file)
 	if err != nil {
-		if _, ok := err.(*os.PathError); !ok {
+		if pathError := new(os.PathError); !errors.As(err, &pathError) {
 			return nil, errors.WithStack(err)
 		}
 		// The file does not exist. The watcher should still watch the directory
