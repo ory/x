@@ -15,7 +15,7 @@ require (
 	github.com/dgraph-io/ristretto/v2 v2.1.0
 	github.com/docker/docker v28.0.1+incompatible
 	github.com/evanphx/json-patch/v5 v5.9.11
-	github.com/fsnotify/fsnotify v1.7.0
+	github.com/fsnotify/fsnotify v1.8.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-jose/go-jose/v3 v3.0.4
 	github.com/go-openapi/jsonpointer v0.21.1
