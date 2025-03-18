@@ -76,7 +76,7 @@ func (m StringSliceJSONFormat) Value() (driver.Value, error) {
 }
 
 func (m StringSliceJSONFormat) IsZero() bool {
-	return len(m) > 0
+	return len(m) == 0
 }
 
 // StringSlicePipeDelimiter de/encodes the string slice to/from a SQL string.
@@ -98,7 +98,7 @@ func (n StringSlicePipeDelimiter) Value() (driver.Value, error) {
 }
 
 func (n StringSlicePipeDelimiter) IsZero() bool {
-	return len(n) > 0
+	return len(n) == 0
 }
 
 func scanStringSlice(delimiter rune, value interface{}) []string {
@@ -176,7 +176,7 @@ func (ns *NullBool) UnmarshalJSON(data []byte) error {
 }
 
 func (ns NullBool) IsZero() bool {
-	return ns.Valid && !ns.Bool
+	return ns.Valid
 }
 
 // FalsyNullBool represents a bool that may be null.
@@ -277,7 +277,7 @@ func (ns NullString) String() string {
 }
 
 func (ns NullString) IsZero() bool {
-	return len(ns) > 0
+	return len(ns) == 0
 }
 
 // NullTime implements sql.NullTime functionality.
@@ -347,7 +347,7 @@ func (n MapStringInterface) Value() (driver.Value, error) {
 }
 
 func (n MapStringInterface) IsZero() bool {
-	return len(n) > 0
+	return len(n) == 0
 }
 
 // JSONArrayRawMessage represents a json.RawMessage which only accepts arrays that works well with JSON, SQL, and Swagger.
