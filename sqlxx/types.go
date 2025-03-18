@@ -42,6 +42,10 @@ func (ns *Duration) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (ns Duration) IsZero() bool {
+	return time.Duration(ns) == 0
+}
+
 // StringSliceJSONFormat represents []string{} which is encoded to/from JSON for SQL storage.
 type StringSliceJSONFormat []string
 
@@ -71,6 +75,10 @@ func (m StringSliceJSONFormat) Value() (driver.Value, error) {
 	return string(encoded), errors.WithStack(err)
 }
 
+func (m StringSliceJSONFormat) IsZero() bool {
+	return len(m) > 0
+}
+
 // StringSlicePipeDelimiter de/encodes the string slice to/from a SQL string.
 type StringSlicePipeDelimiter []string
 
@@ -87,6 +95,10 @@ func (n *StringSlicePipeDelimiter) Scan(value interface{}) error {
 // Value implements the driver Valuer interface.
 func (n StringSlicePipeDelimiter) Value() (driver.Value, error) {
 	return valueStringSlice('|', n), nil
+}
+
+func (n StringSlicePipeDelimiter) IsZero() bool {
+	return len(n) > 0
 }
 
 func scanStringSlice(delimiter rune, value interface{}) []string {
@@ -163,6 +175,10 @@ func (ns *NullBool) UnmarshalJSON(data []byte) error {
 	return errors.WithStack(json.Unmarshal(data, &ns.Bool))
 }
 
+func (ns NullBool) IsZero() bool {
+	return ns.Valid && !ns.Bool
+}
+
 // FalsyNullBool represents a bool that may be null.
 // It JSON decodes to false if null.
 //
@@ -213,6 +229,10 @@ func (ns *FalsyNullBool) UnmarshalJSON(data []byte) error {
 	return errors.WithStack(json.Unmarshal(data, &ns.Bool))
 }
 
+func (ns FalsyNullBool) IsZero() bool {
+	return ns.Valid
+}
+
 // swagger:type string
 // swagger:model nullString
 type NullString string
@@ -256,6 +276,10 @@ func (ns NullString) String() string {
 	return string(ns)
 }
 
+func (ns NullString) IsZero() bool {
+	return len(ns) > 0
+}
+
 // NullTime implements sql.NullTime functionality.
 //
 // swagger:model nullTime
@@ -297,6 +321,10 @@ func (ns NullTime) Value() (driver.Value, error) {
 	return sql.NullTime{Valid: !time.Time(ns).IsZero(), Time: time.Time(ns)}.Value()
 }
 
+func (ns NullTime) IsZero() bool {
+	return time.Time(ns).IsZero()
+}
+
 // MapStringInterface represents a map[string]interface that works well with JSON, SQL, and Swagger.
 type MapStringInterface map[string]interface{}
 
@@ -316,6 +344,10 @@ func (n MapStringInterface) Value() (driver.Value, error) {
 		return nil, errors.WithStack(err)
 	}
 	return string(value), nil
+}
+
+func (n MapStringInterface) IsZero() bool {
+	return len(n) > 0
 }
 
 // JSONArrayRawMessage represents a json.RawMessage which only accepts arrays that works well with JSON, SQL, and Swagger.
@@ -426,6 +458,10 @@ func (m *NullJSONRawMessage) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (m *NullJSONRawMessage) IsZero() bool {
+	return gjson.ParseBytes(*m).Type == gjson.Null
+}
+
 // JSONScan is a generic helper for storing a value as a JSON blob in SQL.
 func JSONScan(dst interface{}, value interface{}) error {
 	if value == nil {
@@ -496,6 +532,10 @@ func (ns *NullInt64) UnmarshalJSON(data []byte) error {
 	return errors.WithStack(json.Unmarshal(data, &ns.Int))
 }
 
+func (ns *NullInt64) IsZero() bool {
+	return ns.Valid
+}
+
 // NullDuration represents a nullable JSON and SQL compatible time.Duration.
 //
 // swagger:type string
@@ -532,6 +572,10 @@ func (ns NullDuration) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(ns.Duration.String())
+}
+
+func (ns *NullDuration) IsZero() bool {
+	return ns.Valid
 }
 
 // UnmarshalJSON sets *m to a copy of data.
