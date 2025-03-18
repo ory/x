@@ -1,8 +1,6 @@
 module github.com/ory/x
 
-go 1.24
-
-toolchain go1.24.0
+go 1.24.1
 
 require (
 	code.dny.dev/ssrf v0.2.0
@@ -52,8 +50,8 @@ require (
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
 	github.com/ory/analytics-go/v5 v5.0.1
 	github.com/ory/dockertest/v3 v3.11.0
-	github.com/ory/herodot v0.10.2
-	github.com/ory/jsonschema/v3 v3.0.8
+	github.com/ory/herodot v0.10.3-0.20250318104651-3179543efba8
+	github.com/ory/jsonschema/v3 v3.0.9-0.20250317235931-280c5fc7bf0e
 	github.com/pelletier/go-toml v1.9.5
 	github.com/peterhellberg/link v1.2.0
 	github.com/pkg/errors v0.9.1
@@ -180,21 +178,14 @@ require (
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/opencontainers/runc v1.2.5 // indirect
 	github.com/openzipkin/zipkin-go v0.4.3 // indirect
-	github.com/ory/go-acc v0.2.9-0.20230103102148-6b1c9a70dbbe // indirect
-	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
-	github.com/sagikazarmark/locafero v0.8.0 // indirect
 	github.com/segmentio/backo-go v1.1.0 // indirect
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/sourcegraph/annotate v0.0.0-20160123013949-f4cad6c6324d // indirect
-	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/sourcegraph/syntaxhighlight v0.0.0-20170531221838-bd320f5d308e // indirect
-	github.com/spf13/afero v1.14.0 // indirect
-	github.com/spf13/viper v1.20.0-alpha.6 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
-	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
@@ -203,7 +194,6 @@ require (
 	go.mongodb.org/mongo-driver v1.17.3 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/otel/metric v1.35.0 // indirect
-	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
