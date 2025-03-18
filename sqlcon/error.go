@@ -51,9 +51,8 @@ func handlePostgres(err error, sqlState string) error {
 	switch sqlState {
 	case "23505": // "unique_violation"
 		return errors.WithStack(ErrUniqueViolation.WithWrap(err))
-	case "40001": // "serialization_failure" in CRDB
-		fallthrough
-	case "CR000": // "serialization_failure"
+	case "40001", // "serialization_failure" in CRDB
+		"CR000": // "serialization_failure"
 		return errors.WithStack(ErrConcurrentUpdate.WithWrap(err))
 	case "42P01": // "no such table"
 		return errors.WithStack(ErrNoSuchTable.WithWrap(err))

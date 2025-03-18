@@ -15,7 +15,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
@@ -457,14 +456,14 @@ func DumpSchema(ctx context.Context, t *testing.T, db string) string {
 		t.FailNow()
 	}
 
-	process, err := cli.ContainerExecCreate(ctx, containers[0].ID, types.ExecConfig{
+	process, err := cli.ContainerExecCreate(ctx, containers[0].ID, container.ExecOptions{
 		Tty:          true,
 		AttachStdout: true,
 		Cmd:          cmd,
 	})
 	require.NoError(t, err)
 
-	resp, err := cli.ContainerExecAttach(ctx, process.ID, types.ExecStartCheck{
+	resp, err := cli.ContainerExecAttach(ctx, process.ID, container.ExecAttachOptions{
 		Tty: true,
 	})
 	require.NoError(t, err)

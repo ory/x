@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"text/template"
 
-	"github.com/gobuffalo/fizz"
 	"github.com/gobuffalo/pop/v6"
 	"github.com/pkg/errors"
 )
@@ -46,14 +45,6 @@ func ParameterizedMigrationContent(params map[string]interface{}) func(mf Migrat
 			content = bb.String()
 		} else {
 			content = string(b)
-		}
-
-		if mf.Type == "fizz" {
-			var err error
-			content, err = fizz.AString(content, c.Dialect.FizzTranslator())
-			if err != nil {
-				return "", errors.Wrapf(err, "could not fizz the migration %s", mf.Path)
-			}
 		}
 
 		return content, nil

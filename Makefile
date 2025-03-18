@@ -2,40 +2,24 @@ SHELL=/bin/bash -o pipefail
 
 export PATH := .bin:${PATH}
 
-GO_DEPENDENCIES = github.com/ory/go-acc \
-				  github.com/ory/x/tools/listx \
-				  github.com/jandelgado/gcov2lcov  \
-				  github.com/golang/mock/mockgen
-
-define make-go-dependency
-  # go install is responsible for not re-building when the code hasn't changed
-  .bin/$(notdir $1): go.mod go.sum Makefile
-		GOBIN=$(PWD)/.bin/ go install $1
-endef
-$(foreach dep, $(GO_DEPENDENCIES), $(eval $(call make-go-dependency, $(dep))))
-$(call make-lint-dependency)
-
 .bin/ory: Makefile
 	curl https://raw.githubusercontent.com/ory/meta/master/install.sh | bash -s -- -b .bin ory v0.2.2
 	touch .bin/ory
 
 .PHONY: format
-format: .bin/goimports .bin/ory node_modules
+format: .bin/ory node_modules
 	.bin/ory dev headers copyright --type=open-source --exclude=clidoc/ --exclude=hasherx/mocks_pkdbf2_test.go --exclude=josex/ --exclude=hasherx/ --exclude=jsonnetsecure/jsonnet.go
-	.bin/goimports -w -local github.com/ory .
+	go tool goimports -w -local github.com/ory .
 	npm exec -- prettier --write .
-
-licenses: .bin/licenses node_modules  # checks open-source licenses
-	.bin/licenses
-
-.bin/goimports: Makefile
-	GOBIN=$(shell pwd)/.bin go install golang.org/x/tools/cmd/goimports@latest
 
 .bin/golangci-lint: Makefile
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b .bin v1.64.5
 
 .bin/licenses: Makefile
 	curl https://raw.githubusercontent.com/ory/ci/master/licenses/install | sh
+
+licenses: .bin/licenses node_modules  # checks open-source licenses
+	.bin/licenses
 
 .PHONY: test
 test:
@@ -67,10 +51,10 @@ migrations-render-replace: .bin/ory
 	ory dev pop migration render -r networkx/migrations/templates networkx/migrations/sql
 
 .PHONY: mocks
-mocks: .bin/mockgen
-	mockgen -package hasherx_test -destination hasherx/mocks_argon2_test.go github.com/ory/x/hasherx Argon2Configurator
-	mockgen -package hasherx_test -destination hasherx/mocks_bcrypt_test.go github.com/ory/x/hasherx BCryptConfigurator
-	mockgen -package hasherx_test -destination hasherx/mocks_pkdbf2_test.go github.com/ory/x/hasherx PBKDF2Configurator
+mocks:
+	go tool mockgen -package hasherx_test -destination hasherx/mocks_argon2_test.go github.com/ory/x/hasherx Argon2Configurator
+	go tool mockgen -package hasherx_test -destination hasherx/mocks_bcrypt_test.go github.com/ory/x/hasherx BCryptConfigurator
+	go tool mockgen -package hasherx_test -destination hasherx/mocks_pkdbf2_test.go github.com/ory/x/hasherx PBKDF2Configurator
 
 node_modules: package-lock.json
 	npm ci

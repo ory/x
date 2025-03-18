@@ -14,8 +14,6 @@ import (
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/v2"
 
-	"github.com/ory/x/stringslice"
-
 	"github.com/pkg/errors"
 
 	"github.com/ory/x/watcherx"
@@ -76,9 +74,9 @@ func (f *KoanfFile) Read() (map[string]interface{}, error) {
 	}
 
 	path := strings.Split(f.subKey, Delimiter)
-	for _, k := range stringslice.Reverse(path) {
+	for i := range path {
 		v = map[string]interface{}{
-			k: v,
+			path[len(path)-1-i]: v,
 		}
 	}
 
