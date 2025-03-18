@@ -176,7 +176,7 @@ func (ns *NullBool) UnmarshalJSON(data []byte) error {
 }
 
 func (ns NullBool) IsZero() bool {
-	return ns.Valid
+	return !ns.Valid
 }
 
 // FalsyNullBool represents a bool that may be null.
@@ -230,7 +230,7 @@ func (ns *FalsyNullBool) UnmarshalJSON(data []byte) error {
 }
 
 func (ns FalsyNullBool) IsZero() bool {
-	return ns.Valid
+	return !ns.Valid
 }
 
 // swagger:type string
@@ -533,7 +533,7 @@ func (ns *NullInt64) UnmarshalJSON(data []byte) error {
 }
 
 func (ns *NullInt64) IsZero() bool {
-	return ns.Valid
+	return !ns.Valid
 }
 
 // NullDuration represents a nullable JSON and SQL compatible time.Duration.
@@ -575,7 +575,7 @@ func (ns NullDuration) MarshalJSON() ([]byte, error) {
 }
 
 func (ns *NullDuration) IsZero() bool {
-	return ns.Valid
+	return !ns.Valid
 }
 
 // UnmarshalJSON sets *m to a copy of data.
