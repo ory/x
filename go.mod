@@ -24,7 +24,7 @@ require (
 	github.com/gobwas/glob v0.2.3
 	github.com/goccy/go-yaml v1.16.0
 	github.com/gofrs/uuid v4.4.0+incompatible
-	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/google/go-jsonnet v0.20.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
