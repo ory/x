@@ -1,6 +1,6 @@
 module github.com/ory/x/randx/strength
 
-go 1.24.0
+go 1.24.1
 
 replace github.com/ory/x => ../..
 

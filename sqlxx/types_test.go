@@ -135,16 +135,35 @@ func TestNullInt64MarshalJSON(t *testing.T) {
 func TestNullDurationMarshalJSON(t *testing.T) {
 	type outer struct {
 		Duration *NullDuration `json:"null_duration,omitempty"`
+		Zero     *NullDuration `json:"omitzero_duration,omitzero"`
 	}
 
 	for k, tc := range []struct {
 		in       *outer
 		expected string
 	}{
-		{in: &outer{&NullDuration{Valid: false, Duration: 1}}, expected: "{\"null_duration\":null}"},
-		{in: &outer{&NullDuration{Valid: true, Duration: 2}}, expected: "{\"null_duration\":\"2ns\"}"},
-		{in: &outer{&NullDuration{Valid: true, Duration: 3}}, expected: "{\"null_duration\":\"3ns\"}"},
-		{in: &outer{}, expected: "{}"},
+		{
+			in: &outer{
+				Duration: &NullDuration{Valid: false, Duration: 1},
+				Zero:     &NullDuration{Valid: false, Duration: 1},
+			},
+			expected: "{\"null_duration\":null}",
+		},
+		{
+			in: &outer{
+				Duration: &NullDuration{Valid: true, Duration: 2},
+				Zero:     &NullDuration{Valid: true, Duration: 2},
+			},
+			expected: `{"null_duration":"2ns","omitzero_duration":"2ns"}`,
+		},
+		{
+			in:       &outer{Duration: &NullDuration{Valid: true, Duration: 3}},
+			expected: "{\"null_duration\":\"3ns\"}",
+		},
+		{
+			in:       &outer{},
+			expected: "{}",
+		},
 	} {
 		t.Run(fmt.Sprintf("case=%d", k), func(t *testing.T) {
 			out, err := json.Marshal(tc.in)
