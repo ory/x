@@ -125,6 +125,9 @@ func TestEnd(t *testing.T) {
 	require.NotEmpty(t, recorder.Ended())
 	assert.Equal(t, last(recorder).Name(), "panics")
 	assert.Equal(t, last(recorder).Status(), sdktrace.Status{codes.Error, "panic: panic from panics()"})
+	stackIdx = slices.IndexFunc(last(recorder).Attributes(), func(kv attribute.KeyValue) bool { return kv.Key == "error.stack" })
+	require.GreaterOrEqual(t, stackIdx, 0)
+	assert.Contains(t, last(recorder).Attributes()[stackIdx].Value.AsString(), "github.com/ory/x/otelx.panics")
 
 	span.End()
 	require.NotEmpty(t, recorder.Ended())
