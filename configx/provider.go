@@ -504,7 +504,7 @@ func (p *Provider) TracingConfig(serviceName string) *otelx.Config {
 				ServerURL: p.String("tracing.providers.otlp.server_url"),
 				Insecure:  p.Bool("tracing.providers.otlp.insecure"),
 				Sampling: otelx.OTLPSampling{
-					SamplingRatio: p.Float64("tracing.providers.otlp.sampling.sampling_ratio"),
+					SamplingRatio: p.Float64F("tracing.providers.otlp.sampling.sampling_ratio", 1),
 				},
 				AuthorizationHeader: p.String("tracing.providers.otlp.authorization_header"),
 			},
