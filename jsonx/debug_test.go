@@ -52,11 +52,11 @@ func TestJSONShape(t *testing.T) {
   "roles" : [ "foo", "bar" ]
 }`,
 		expected: `{
-  "active": "bool",
+  "active": "boolean",
   "displayName": "string",
   "emails": [
 	{
-	  "primary": "bool",
+	  "primary": "boolean",
 	  "type": "string",
 	  "value": "string"
 	}
@@ -98,6 +98,24 @@ func TestJSONShape(t *testing.T) {
 		name:     "invalid JSON",
 		in:       `{`,
 		expected: `{"error": "invalid JSON", "message": "unexpected end of JSON input"}`,
+	}, {
+		name: "different types",
+		in: `{
+	"float": 0.42,
+	"int": 42,
+	"string": "foo",
+	"bool": true,
+	"null": null,
+	"array": [1, "2", 0]
+}`,
+		expected: `{
+	"float": "number",
+	"int": "number",
+	"string": "string",
+	"bool": "boolean",
+	"null": "null",
+	"array": ["number", "string", "number"]
+}`,
 	}} {
 		t.Run(tc.name, func(t *testing.T) {
 			actual := string(jsonx.Anonymize([]byte(tc.in), "id", "schemas"))

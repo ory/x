@@ -42,7 +42,7 @@ func anonymize(obj map[string]any, except ...string) {
 					anonymize(el)
 					v[elIdx] = el
 				default:
-					v[elIdx] = fmt.Sprintf("%T", el)
+					v[elIdx] = jsonType(el)
 				}
 			}
 
@@ -50,7 +50,26 @@ func anonymize(obj map[string]any, except ...string) {
 			anonymize(v)
 			obj[k] = v
 		default:
-			obj[k] = fmt.Sprintf("%T", v)
+			obj[k] = jsonType(v)
 		}
+	}
+}
+
+func jsonType(v any) string {
+	switch v := v.(type) {
+	case string:
+		return "string"
+	case float64:
+		return "number"
+	case bool:
+		return "boolean"
+	case nil:
+		return "null"
+	case []any:
+		return "array"
+	case map[string]any:
+		return "object"
+	default:
+		return fmt.Sprintf("%T", v)
 	}
 }
