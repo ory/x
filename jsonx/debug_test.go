@@ -94,6 +94,10 @@ func TestJSONShape(t *testing.T) {
   ],
   "userName": "string"
 }`,
+	}, {
+		name:     "invalid JSON",
+		in:       `{`,
+		expected: `{"error": "invalid JSON", "message": "unexpected end of JSON input"}`,
 	}} {
 		t.Run(tc.name, func(t *testing.T) {
 			actual := string(jsonx.Anonymize([]byte(tc.in), "id", "schemas"))
