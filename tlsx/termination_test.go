@@ -1,17 +1,21 @@
+// Copyright © 2025 Ory Corp
+// SPDX-License-Identifier: Apache-2.0
+
 package tlsx
 
 import (
 	"fmt"
-	"github.com/ory/herodot"
-	"github.com/ory/x/healthx"
-	"github.com/ory/x/logrusx"
-	"github.com/ory/x/prometheusx"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/ory/herodot"
+	"github.com/ory/x/healthx"
+	"github.com/ory/x/logrusx"
+	"github.com/ory/x/prometheusx"
 )
 
 func failHandler(t *testing.T) http.HandlerFunc {
