@@ -22,14 +22,18 @@ type dependencies interface {
 	Writer() herodot.Writer
 }
 
+// EnforceTLSRequests creates a middleware that enforces TLS for incoming HTTP requests.
+// It allows termination (non-HTTPS traffic) from specific CIDR ranges provided in the `allowTerminationFrom` slice.
+// If the request is not secure and does not match the allowed CIDR ranges, an error response is returned.
+// The middleware also validates the `X-Forwarded-Proto` header to ensure it is set to "https".
 func EnforceTLSRequests(d dependencies, allowTerminationFrom []string) (negroni.Handler, error) {
 	networks := make([]*net.IPNet, 0, len(allowTerminationFrom))
 	for _, rn := range allowTerminationFrom {
-		_, cidr, err := net.ParseCIDR(rn)
+		_, network, err := net.ParseCIDR(rn)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
-		networks = append(networks, cidr)
+		networks = append(networks, network)
 	}
 
 	return negroni.HandlerFunc(func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
@@ -68,7 +72,7 @@ func EnforceTLSRequests(d dependencies, allowTerminationFrom []string) (negroni.
 	}), nil
 }
 
-func matchesRange(r *http.Request, nets []*net.IPNet) error {
+func matchesRange(r *http.Request, networks []*net.IPNet) error {
 	remoteIP, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		return errors.WithStack(err)
@@ -79,13 +83,13 @@ func matchesRange(r *http.Request, nets []*net.IPNet) error {
 		check = append(check, strings.TrimSpace(fwd))
 	}
 
-	for _, cidr := range nets {
+	for _, ipNet := range networks {
 		for _, ip := range check {
 			addr := net.ParseIP(ip)
-			if cidr.Contains(addr) {
+			if ipNet.Contains(addr) {
 				return nil
 			}
 		}
 	}
-	return errors.Errorf("neither remote address nor any x-forwarded-for values match CIDR ranges %+v: %v, ranges, check)", nets, check)
+	return errors.Errorf("neither remote address nor any x-forwarded-for values match CIDR ranges %+v: %v, ranges, check)", networks, check)
 }
