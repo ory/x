@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/ory/herodot"
 	"github.com/ory/x/healthx"
@@ -53,21 +54,16 @@ func TestRejectInsecureRequests(t *testing.T) {
 
 	t.Run("no allowTerminationFrom set", func(t *testing.T) {
 		res := httptest.NewRecorder()
-		EnforceTLSRequests(d, true, nil).
-			ServeHTTP(res, &http.Request{RemoteAddr: remoteAddrNotInRange, Header: http.Header{}, URL: new(url.URL)}, failHandler(t))
+		h, err := EnforceTLSRequests(d, nil)
+		require.NoError(t, err)
+		h.ServeHTTP(res, &http.Request{RemoteAddr: remoteAddrNotInRange, Header: http.Header{}, URL: new(url.URL)}, failHandler(t))
 		assert.EqualValues(t, http.StatusBadGateway, res.Code)
 
 		res = httptest.NewRecorder()
-		EnforceTLSRequests(d, true, []string{}).
-			ServeHTTP(res, &http.Request{RemoteAddr: remoteAddrNotInRange, Header: http.Header{}, URL: new(url.URL)}, failHandler(t))
+		h, err = EnforceTLSRequests(d, []string{})
+		require.NoError(t, err)
+		h.ServeHTTP(res, &http.Request{RemoteAddr: remoteAddrNotInRange, Header: http.Header{}, URL: new(url.URL)}, failHandler(t))
 		assert.EqualValues(t, http.StatusBadGateway, res.Code)
-	})
-
-	t.Run("tls disabled", func(t *testing.T) {
-		res := httptest.NewRecorder()
-		EnforceTLSRequests(d, false, allowedRanges).
-			ServeHTTP(res, &http.Request{RemoteAddr: remoteAddrNotInRange, Header: http.Header{}, URL: new(url.URL)}, noopHandler)
-		assert.EqualValues(t, http.StatusNoContent, res.Code)
 	})
 
 	for _, tc := range []struct {
@@ -178,8 +174,9 @@ func TestRejectInsecureRequests(t *testing.T) {
 				handler = failHandler(t)
 				expectedStatus = http.StatusBadGateway
 			}
-			EnforceTLSRequests(d, true, allowedRanges).
-				ServeHTTP(res, tc.req, handler)
+			h, err := EnforceTLSRequests(d, allowedRanges)
+			require.NoError(t, err)
+			h.ServeHTTP(res, tc.req, handler)
 			assert.EqualValues(t, expectedStatus, res.Code)
 		})
 	}

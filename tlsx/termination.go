@@ -17,43 +17,19 @@ import (
 	"github.com/ory/x/prometheusx"
 )
 
-func MatchesRange(r *http.Request, ranges []string) error {
-	remoteIP, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-
-	xff := strings.Split(r.Header.Get("X-Forwarded-For"), ",")
-	check := make([]string, 1, len(xff)+1)
-	check[0] = remoteIP
-	for _, fwd := range xff {
-		check = append(check, strings.TrimSpace(fwd))
-	}
-
-	for _, rn := range ranges {
-		_, cidr, err := net.ParseCIDR(rn)
-		if err != nil {
-			return errors.WithStack(err)
-		}
-
-		for _, ip := range check {
-			addr := net.ParseIP(ip)
-			if cidr.Contains(addr) {
-				return nil
-			}
-		}
-	}
-	return errors.Errorf("neither remote address nor any x-forwarded-for values match CIDR ranges %v: %v, ranges, check)", ranges, check)
-}
-
 type dependencies interface {
 	logrusx.Provider
 	Writer() herodot.Writer
 }
 
-func EnforceTLSRequests(d dependencies, enabled bool, allowTerminationFrom []string) negroni.Handler {
-	if !enabled {
-		return negroni.HandlerFunc(func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) { next(w, r) })
+func EnforceTLSRequests(d dependencies, allowTerminationFrom []string) (negroni.Handler, error) {
+	networks := make([]*net.IPNet, 0, len(allowTerminationFrom))
+	for _, rn := range allowTerminationFrom {
+		_, cidr, err := net.ParseCIDR(rn)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		networks = append(networks, cidr)
 	}
 
 	return negroni.HandlerFunc(func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
@@ -65,13 +41,13 @@ func EnforceTLSRequests(d dependencies, enabled bool, allowTerminationFrom []str
 			return
 		}
 
-		if len(allowTerminationFrom) == 0 {
+		if len(networks) == 0 {
 			d.Logger().WithRequest(r).WithError(errors.New("TLS termination is not enabled")).Error("Could not serve http connection")
 			d.Writer().WriteErrorCode(rw, r, http.StatusBadGateway, errors.New("can not serve request over insecure http"))
 			return
 		}
 
-		if err := MatchesRange(r, allowTerminationFrom); err != nil {
+		if err := matchesRange(r, networks); err != nil {
 			d.Logger().WithRequest(r).WithError(err).Warnln("Could not serve http connection")
 			d.Writer().WriteErrorCode(rw, r, http.StatusBadGateway, errors.New("can not serve request over insecure http"))
 			return
@@ -89,5 +65,27 @@ func EnforceTLSRequests(d dependencies, enabled bool, allowTerminationFrom []str
 		}
 
 		next(rw, r)
-	})
+	}), nil
+}
+
+func matchesRange(r *http.Request, nets []*net.IPNet) error {
+	remoteIP, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	check := []string{remoteIP}
+	for fwd := range strings.SplitSeq(r.Header.Get("X-Forwarded-For"), ",") {
+		check = append(check, strings.TrimSpace(fwd))
+	}
+
+	for _, cidr := range nets {
+		for _, ip := range check {
+			addr := net.ParseIP(ip)
+			if cidr.Contains(addr) {
+				return nil
+			}
+		}
+	}
+	return errors.Errorf("neither remote address nor any x-forwarded-for values match CIDR ranges %+v: %v, ranges, check)", nets, check)
 }
