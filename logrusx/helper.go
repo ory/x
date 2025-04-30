@@ -23,14 +23,19 @@ import (
 	"github.com/ory/x/errorsx"
 )
 
-type Logger struct {
-	*logrus.Entry
-	leakSensitive bool
-	redactionText string
-	opts          []Option
-	name          string
-	version       string
-}
+type (
+	Logger struct {
+		*logrus.Entry
+		leakSensitive bool
+		redactionText string
+		opts          []Option
+		name          string
+		version       string
+	}
+	Provider interface {
+		Logger() *Logger
+	}
+)
 
 var opts = otelhttptrace.WithPropagators(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 
