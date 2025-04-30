@@ -53,19 +53,19 @@ func TestRejectInsecureRequests(t *testing.T) {
 
 	t.Run("no allowTerminationFrom set", func(t *testing.T) {
 		res := httptest.NewRecorder()
-		RejectInsecureRequests(d, true, nil).
+		EnforceTLSRequests(d, true, nil).
 			ServeHTTP(res, &http.Request{RemoteAddr: remoteAddrNotInRange, Header: http.Header{}, URL: new(url.URL)}, failHandler(t))
 		assert.EqualValues(t, http.StatusBadGateway, res.Code)
 
 		res = httptest.NewRecorder()
-		RejectInsecureRequests(d, true, []string{}).
+		EnforceTLSRequests(d, true, []string{}).
 			ServeHTTP(res, &http.Request{RemoteAddr: remoteAddrNotInRange, Header: http.Header{}, URL: new(url.URL)}, failHandler(t))
 		assert.EqualValues(t, http.StatusBadGateway, res.Code)
 	})
 
 	t.Run("tls disabled", func(t *testing.T) {
 		res := httptest.NewRecorder()
-		RejectInsecureRequests(d, false, allowedRanges).
+		EnforceTLSRequests(d, false, allowedRanges).
 			ServeHTTP(res, &http.Request{RemoteAddr: remoteAddrNotInRange, Header: http.Header{}, URL: new(url.URL)}, noopHandler)
 		assert.EqualValues(t, http.StatusNoContent, res.Code)
 	})
@@ -178,7 +178,7 @@ func TestRejectInsecureRequests(t *testing.T) {
 				handler = failHandler(t)
 				expectedStatus = http.StatusBadGateway
 			}
-			RejectInsecureRequests(d, true, allowedRanges).
+			EnforceTLSRequests(d, true, allowedRanges).
 				ServeHTTP(res, tc.req, handler)
 			assert.EqualValues(t, expectedStatus, res.Code)
 		})

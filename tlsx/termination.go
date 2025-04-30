@@ -51,10 +51,13 @@ type dependencies interface {
 	Writer() herodot.Writer
 }
 
-func RejectInsecureRequests(d dependencies, enabled bool, allowTerminationFrom []string) negroni.Handler {
+func EnforceTLSRequests(d dependencies, enabled bool, allowTerminationFrom []string) negroni.Handler {
+	if !enabled {
+		return negroni.HandlerFunc(func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) { next(w, r) })
+	}
+
 	return negroni.HandlerFunc(func(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 		if r.TLS != nil ||
-			!enabled ||
 			r.URL.Path == healthx.AliveCheckPath ||
 			r.URL.Path == healthx.ReadyCheckPath ||
 			r.URL.Path == prometheusx.MetricsPrometheusPath {
