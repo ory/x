@@ -66,6 +66,11 @@ func TestRejectInsecureRequests(t *testing.T) {
 		assert.EqualValues(t, http.StatusBadGateway, res.Code)
 	})
 
+	t.Run("invalid CIDR", func(t *testing.T) {
+		_, err := EnforceTLSRequests(d, []string{"invalidCIDR"})
+		assert.ErrorContains(t, err, "invalid CIDR address")
+	})
+
 	for _, tc := range []struct {
 		name          string
 		req           *http.Request
