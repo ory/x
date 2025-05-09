@@ -11,7 +11,9 @@ import (
 	"math"
 	"os/exec"
 	"strings"
+	"syscall"
 	"time"
+	"unsafe"
 
 	"github.com/jackc/puddle/v2"
 	"github.com/pkg/errors"
@@ -132,6 +134,23 @@ func newWorker(ctx context.Context) (_ worker, err error) {
 	if err := cmd.Start(); err != nil {
 		return worker{}, errors.Wrap(err, "newWorker: failed to start process")
 	}
+
+	pid := cmd.Process.Pid
+	const MiB = 1024 * 1024
+
+	// limit address space
+	lim := syscall.Rlimit{Cur: 2 * MiB, Max: 2 * MiB}
+	syscall.Syscall6(syscall.SYS_PRLIMIT64, uintptr(pid), syscall.RLIMIT_AS, uintptr(unsafe.Pointer(&lim)), 0, 0, 0)
+
+	// limit data segment
+	syscall.Syscall6(syscall.SYS_PRLIMIT64, uintptr(pid), syscall.RLIMIT_DATA, uintptr(unsafe.Pointer(&lim)), 0, 0, 0)
+
+	// limit file size
+	syscall.Syscall6(syscall.SYS_PRLIMIT64, uintptr(pid), syscall.RLIMIT_FSIZE, uintptr(unsafe.Pointer(&lim)), 0, 0, 0)
+
+	// limit cpu time
+	lim = syscall.Rlimit{Cur: 1, Max: 1}
+	syscall.Syscall6(syscall.SYS_PRLIMIT64, uintptr(pid), syscall.RLIMIT_CPU, uintptr(unsafe.Pointer(&lim)), 0, 0, 0)
 
 	span.SetAttributes(semconv.ProcessPID(cmd.Process.Pid))
 
