@@ -21,6 +21,10 @@ import (
 	"github.com/ory/x/otelx"
 )
 
+const (
+	jsonnetOutputLimit uint64 = 512 * 1024 // 512 KiB
+)
+
 func NewProcessVM(opts *vmOptions) VM {
 	return &ProcessVM{
 		path: opts.jsonnetBinaryPath,
@@ -44,9 +48,11 @@ func (p *ProcessVM) EvaluateAnonymousSnippet(filename string, snippet string) (_
 		defer cancel()
 
 		var (
-			stdin          bytes.Buffer
-			stdout, stderr strings.Builder
+			stdin  bytes.Buffer
+			stderr strings.Builder
 		)
+		stdout := make([]byte, 0, jsonnetOutputLimit)
+		stdoutWriter := bytes.NewBuffer(stdout)
 		p.params.Filename = filename
 		p.params.Snippet = snippet
 
@@ -56,7 +62,7 @@ func (p *ProcessVM) EvaluateAnonymousSnippet(filename string, snippet string) (_
 
 		cmd := exec.CommandContext(ctx, p.path, p.args...) //nolint:gosec
 		cmd.Stdin = &stdin
-		cmd.Stdout = &stdout
+		cmd.Stdout = stdoutWriter
 		cmd.Stderr = &stderr
 		cmd.Env = []string{"GOMAXPROCS=1"}
 
@@ -66,10 +72,10 @@ func (p *ProcessVM) EvaluateAnonymousSnippet(filename string, snippet string) (_
 			return "", backoff.Permanent(fmt.Errorf("jsonnetsecure: unexpected output on stderr: %q", stderr.String()))
 		}
 		if err != nil {
-			return "", fmt.Errorf("jsonnetsecure: %w (stdout=%q stderr=%q)", err, stdout.String(), stderr.String())
+			return "", fmt.Errorf("jsonnetsecure: %w (stdout=%q stderr=%q)", err, string(stdout), stderr.String())
 		}
 
-		return stdout.String(), nil
+		return string(stdout), nil
 	}, backoff.WithContext(backoff.NewExponentialBackOff(), ctx))
 }
 
