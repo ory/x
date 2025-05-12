@@ -16,7 +16,7 @@ import (
 
 const (
 	MiB         uint64 = 1024 * 1024
-	memoryLimit        = 2 * MiB
+	memoryLimit        = 64 * MiB
 )
 
 func NewJsonnetCmd() *cobra.Command {
@@ -32,7 +32,7 @@ func NewJsonnetCmd() *cobra.Command {
 			}
 			err := syscall.Setrlimit(syscall.RLIMIT_AS, &limit)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "failed to set memory limit: %+v\n", err)
+				fmt.Fprintf(os.Stderr, "failed to set memory limit %d: %+v\n", memoryLimit, err)
 				// Still continue.
 			}
 
