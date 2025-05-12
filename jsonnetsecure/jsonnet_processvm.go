@@ -51,7 +51,7 @@ func (p *ProcessVM) EvaluateAnonymousSnippet(filename string, snippet string) (_
 			stdin  bytes.Buffer
 			stderr strings.Builder
 		)
-		stdout := make([]byte, 0, jsonnetOutputLimit)
+		stdout := make([]byte, jsonnetOutputLimit)
 		stdoutWriter := bytes.NewBuffer(stdout)
 		p.params.Filename = filename
 		p.params.Snippet = snippet
