@@ -7,9 +7,16 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"os"
+	"syscall"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+)
+
+const (
+	MiB         uint64 = 1024 * 1024
+	memoryLimit        = 2 * MiB
 )
 
 func NewJsonnetCmd() *cobra.Command {
@@ -19,6 +26,16 @@ func NewJsonnetCmd() *cobra.Command {
 		Short:  "Run Jsonnet as a CLI command",
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			limit := syscall.Rlimit{
+				Cur: memoryLimit,
+				Max: memoryLimit,
+			}
+			err := syscall.Setrlimit(syscall.RLIMIT_AS, &limit)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "failed to set memory limit: %+v\n", err)
+				// Still continue.
+			}
+
 			if null {
 				return scan(cmd.OutOrStdout(), cmd.InOrStdin())
 			}
