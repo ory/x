@@ -36,7 +36,7 @@ func NewProcessVM(opts *vmOptions) VM {
 
 // Jsonnet evaluation is run in a subprocess with a timeout.
 // Standard output and error are limited in size and are truncated to this limit
-// if too big (but this is not an error condition).
+// if too big (but this is not an error condition since that would be too complex to detect and not worth the effort).
 func (p *ProcessVM) EvaluateAnonymousSnippet(filename string, snippet string) (_ string, err error) {
 	tracer := trace.SpanFromContext(p.ctx).TracerProvider().Tracer("")
 	ctx, span := tracer.Start(p.ctx, "jsonnetsecure.ProcessVM.EvaluateAnonymousSnippet", trace.WithAttributes(attribute.String("filename", filename)))
