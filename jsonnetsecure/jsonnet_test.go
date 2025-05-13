@@ -130,17 +130,21 @@ func TestSecureVM(t *testing.T) {
 			WithProcessIsolatedVM(ctx),
 			WithJsonnetBinary(testBinary),
 		)
-		result, err := vm.EvaluateAnonymousSnippet("test", snippet)
+		_, err := vm.EvaluateAnonymousSnippet("test", snippet)
 		require.Error(t, err)
 
-		// Error is either context.DeadlineExceeded or exec.ExitError, depending on whether
-		// the process was already stared. We check for both to avoid flakes (both are fine).
+		// Error is either context.DeadlineExceeded or exec.ExitError or runtime error, depending on whether
+		// the process was already stared and which limit was hit first.
+		// We check for all to avoid flakes (any are fine).
 		if errors.Is(err, context.DeadlineExceeded) {
 			return
 		}
 		var exitErr *exec.ExitError
-		require.ErrorAs(t, err, &exitErr, result)
-		assert.Equal(t, exitErr.ProcessState.ExitCode(), -1)
+		if errors.As(err, &exitErr) {
+			assert.Equal(t, exitErr.ProcessState.ExitCode(), -1)
+		}
+
+		require.True(t, strings.Contains(err.Error(), "reached limits") || strings.Contains(err.Error(), "killed"))
 	})
 
 	t.Run("case=stack overflow pool", func(t *testing.T) {
