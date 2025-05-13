@@ -33,6 +33,10 @@ func NewJsonnetCmd() *cobra.Command {
 		Short:  "Run Jsonnet as a CLI command",
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// `setrlimit(2)` with `RLIMIT_AS` seems broken on macOS and its behavior
+			// varies between major versions.
+			// Also there is not really a use case for macOS server-side, so we do not
+			// bother on non-Linux platforms.
 			if runtime.GOOS == "linux" {
 				limit := syscall.Rlimit{
 					Cur: memoryLimit,
@@ -41,7 +45,7 @@ func NewJsonnetCmd() *cobra.Command {
 				err := syscall.Setrlimit(syscall.RLIMIT_AS, &limit)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "failed to set memory limit %d: %+v\n", memoryLimit, err)
-					// It could fail because current limits are lowered than what we tried to set,
+					// It could fail because current limits are lower than what we tried to set,
 					// so we still continue in this case.
 				}
 			}
