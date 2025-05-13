@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -34,10 +33,7 @@ func NewJsonnetCmd() *cobra.Command {
 
 			// This could fail because current limits are lower than what we tried to set,
 			// so we still continue in this case.
-			err := SetVirtualMemoryLimit(memoryLimit)
-			if err != nil {
-				log.Printf("failed to set virtual memory limit: %d %v", memoryLimit, err)
-			}
+			SetVirtualMemoryLimit(memoryLimit)
 
 			if null {
 				return scan(cmd.OutOrStdout(), cmd.InOrStdin())
