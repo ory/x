@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
@@ -96,9 +95,7 @@ func (p *ProcessVM) EvaluateAnonymousSnippet(filename string, snippet string) (_
 			return "", backoff.Permanent(fmt.Errorf("jsonnetsecure: subprocess encountered an error: %w %s", err, string(stderrOutput)))
 		}
 
-		finalOutput := strings.Trim(string(stdoutOutput), "\x00")
-
-		return finalOutput, nil
+		return string(stdoutOutput), nil
 	}, backoff.WithContext(backoff.NewExponentialBackOff(), ctx))
 }
 

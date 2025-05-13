@@ -156,8 +156,10 @@ func TestSecureVM(t *testing.T) {
 		assert.Empty(t, result)
 	})
 
-	t.Run("case=output too lengthy", func(t *testing.T) {
-		snippet := `{user_id: std.repeat("a", ` + strconv.FormatUint(jsonnetOutputLimit+1, 10) + `)}`
+	t.Run("case=stdout too lengthy", func(t *testing.T) {
+		// This script outputs more than the limit.
+		// This is not an error, its output gets in this case truncated to the limit.
+		snippet := `{user_id: std.repeat("a", ` + strconv.FormatUint(jsonnetOutputLimit, 10) + `)}`
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		t.Cleanup(cancel)
 		vm := MakeSecureVM(
@@ -165,16 +167,10 @@ func TestSecureVM(t *testing.T) {
 			WithJsonnetBinary(testBinary),
 		)
 		result, err := vm.EvaluateAnonymousSnippet("test", snippet)
-		require.Error(t, err)
-
-		// Error is either context.DeadlineExceeded or exec.ExitError, depending on whether
-		// the process was already stared. We check for both to avoid flakes (both are fine).
-		if errors.Is(err, context.DeadlineExceeded) {
-			return
-		}
-		var exitErr *exec.ExitError
-		require.ErrorAs(t, err, &exitErr, result)
-		assert.Equal(t, exitErr.ProcessState.ExitCode(), -1)
+		require.NoError(t, err)
+		fmt.Println(result[:50])
+		require.True(t, strings.HasPrefix(result, "{\n   \"user_id\": \"aaaa"))
+		require.False(t, strings.HasSuffix(result, "}")) // Truncated.
 	})
 
 	t.Run("case=importbin", func(t *testing.T) {
