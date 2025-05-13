@@ -134,7 +134,7 @@ func TestSecureVM(t *testing.T) {
 		require.Error(t, err)
 
 		// Error is either context.DeadlineExceeded or exec.ExitError or runtime error, depending on whether
-		// the process was already stared and which limit was hit first.
+		// the process was already started and which limit was hit first.
 		// We check for all to avoid flakes (any are fine).
 		if errors.Is(err, context.DeadlineExceeded) {
 			return
@@ -157,7 +157,20 @@ func TestSecureVM(t *testing.T) {
 			WithProcessPool(procPool),
 		)
 		result, err := vm.EvaluateAnonymousSnippet("test", snippet)
-		assert.ErrorIs(t, err, context.DeadlineExceeded)
+		require.Error(t, err)
+
+		// Error is either context.DeadlineExceeded or exec.ExitError or runtime error, depending on whether
+		// the process was already started and which limit was hit first.
+		// We check for all to avoid flakes (any are fine).
+		if errors.Is(err, context.DeadlineExceeded) {
+			return
+		}
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			assert.Equal(t, exitErr.ProcessState.ExitCode(), -1)
+		}
+
+		require.True(t, strings.Contains(err.Error(), "reached limits") || strings.Contains(err.Error(), "killed"))
 		assert.Empty(t, result)
 	})
 
