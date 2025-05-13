@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"syscall"
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
@@ -83,6 +84,9 @@ func (p *ProcessVM) EvaluateAnonymousSnippet(filename string, snippet string) (_
 		stderrReader := io.LimitReader(stderrPipe, jsonnetErrLimit)
 
 		if err := cmd.Start(); err != nil {
+			if errors.Is(err, syscall.EAGAIN) || errors.Is(err, syscall.ENOMEM) {
+				return "", errors.WithStack(fmt.Errorf("jsonnetsecure: failed to start subprocess, retrying %v", err))
+			}
 			return "", backoff.Permanent(fmt.Errorf("jsonnetsecure: failed to start subprocess: %w", err))
 		}
 
