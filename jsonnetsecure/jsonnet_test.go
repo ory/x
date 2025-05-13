@@ -197,22 +197,6 @@ func TestSecureVM(t *testing.T) {
 		_, err := vm.EvaluateAnonymousSnippet("test", snippet)
 		// Check that the stderr is truncated.
 		// The jsonnet vm will print some stuff along the error so we need to acccount for that in the size.
-		require.Less(t, len(err.Error()), jsonnetErrLimit*2)
-		require.ErrorContains(t, err, "aaaaa")
-	})
-
-	t.Run("case=stderr truncated pool", func(t *testing.T) {
-		// Intentionally incorrect jsonnet syntax to trigger an error
-		snippet := `{user_id: ` + strings.Repeat("a", jsonnetErrLimit*5)
-		_, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-		t.Cleanup(cancel)
-		vm := MakeSecureVM(
-			WithProcessPool(procPool),
-			WithJsonnetBinary(testBinary),
-		)
-		_, err := vm.EvaluateAnonymousSnippet("test", snippet)
-		// Check that the stderr is truncated.
-		// The jsonnet vm will print some stuff along the error so we need to acccount for that in the size.
 		require.Error(t, err)
 		require.Less(t, len(err.Error()), jsonnetErrLimit*2)
 		require.ErrorContains(t, err, "aaaaa")
