@@ -135,7 +135,7 @@ func TestSecureVM(t *testing.T) {
 
 		// Error is either context.DeadlineExceeded or exec.ExitError or runtime error, depending on whether
 		// the process was already started and which limit was hit first.
-		// We check for all to avoid flakes (any are fine).
+		// We check for all to avoid flakes (any is fine).
 		if errors.Is(err, context.DeadlineExceeded) {
 			return
 		}
@@ -161,7 +161,7 @@ func TestSecureVM(t *testing.T) {
 
 		// Error is either context.DeadlineExceeded or exec.ExitError or runtime error, depending on whether
 		// the process was already started and which limit was hit first.
-		// We check for all to avoid flakes (any are fine).
+		// We check for all to avoid flakes (any is fine).
 		if errors.Is(err, context.DeadlineExceeded) {
 			return
 		}
