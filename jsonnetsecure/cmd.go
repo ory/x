@@ -7,9 +7,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"os"
-	"runtime"
-	"syscall"
+	"log"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -33,21 +31,12 @@ func NewJsonnetCmd() *cobra.Command {
 		Short:  "Run Jsonnet as a CLI command",
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// - macos: `setrlimit(2)` with `RLIMIT_AS` seems broken on macOS and its behavior
-			// varies between major versions. Also there is not really a use case for macOS server-side, so we do not
-			// bother.
-			// - windows: This syscall is Unix specific so not available.
-			if !(runtime.GOOS == "windows" || runtime.GOOS == "darwin") {
-				limit := syscall.Rlimit{
-					Cur: memoryLimit,
-					Max: memoryLimit,
-				}
-				err := syscall.Setrlimit(syscall.RLIMIT_AS, &limit)
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "failed to set memory limit %d: %+v\n", memoryLimit, err)
-					// It could fail because current limits are lower than what we tried to set,
-					// so we still continue in this case.
-				}
+
+			// This could fail because current limits are lower than what we tried to set,
+			// so we still continue in this case.
+			err := SetVirtualMemoryLimit(memoryLimit)
+			if err != nil {
+				log.Printf("failed to set virtual memory limit: %d %v", memoryLimit, err)
 			}
 
 			if null {
