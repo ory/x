@@ -129,6 +129,10 @@ func newWorker(ctx context.Context) (_ worker, err error) {
 	if err != nil {
 		return worker{}, errors.Wrap(err, "newWorker: failed to create stderr pipe")
 	}
+
+	stdoutReader := io.LimitReader(stdout, int64(jsonnetOutputLimit))
+	stderrReader := io.LimitReader(stderr, int64(jsonnetErrLimit))
+
 	if err := cmd.Start(); err != nil {
 		return worker{}, errors.Wrap(err, "newWorker: failed to start process")
 	}
@@ -147,9 +151,9 @@ func newWorker(ctx context.Context) (_ worker, err error) {
 		}
 	}
 	out := make(chan string)
-	go scan(out, stdout)
+	go scan(out, stdoutReader)
 	errs := make(chan string)
-	go scan(errs, stderr)
+	go scan(errs, stderrReader)
 
 	w := worker{
 		cmd:    cmd,
