@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
 	"syscall"
 
 	"github.com/pkg/errors"
@@ -15,8 +16,14 @@ import (
 )
 
 const (
-	MiB         uint64 = 1024 * 1024
-	memoryLimit        = 64 * MiB
+	MiB uint64 = 1024 * 1024
+	// Generous limit including the peak memory allocated by the Go runtime, the Jsonnet VM,
+	// and the Jsonnet script.
+	// This number was acquired by running:
+	// `echo -n '{"Snippet":"std.repeat(\"a\", 1000)"}' | rusage ./kratos jsonnet > /dev/null
+	// which outputs among other things: `ballooned to 45,088kb in size` (i.e. 45 MiB).
+	// Thus we raise this number a bit for safety and call it a day.
+	memoryLimit = 64 * MiB
 )
 
 func NewJsonnetCmd() *cobra.Command {
@@ -26,14 +33,17 @@ func NewJsonnetCmd() *cobra.Command {
 		Short:  "Run Jsonnet as a CLI command",
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			limit := syscall.Rlimit{
-				Cur: memoryLimit,
-				Max: memoryLimit,
-			}
-			err := syscall.Setrlimit(syscall.RLIMIT_AS, &limit)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "failed to set memory limit %d: %+v\n", memoryLimit, err)
-				// Still continue.
+			if runtime.GOOS == "linux" {
+				limit := syscall.Rlimit{
+					Cur: memoryLimit,
+					Max: memoryLimit,
+				}
+				err := syscall.Setrlimit(syscall.RLIMIT_AS, &limit)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "failed to set memory limit %d: %+v\n", memoryLimit, err)
+					// It could fail because current limits are lowered than what we tried to set,
+					// so we still continue in this case.
+				}
 			}
 
 			if null {

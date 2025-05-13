@@ -22,7 +22,9 @@ import (
 )
 
 const (
-	jsonnetOutputLimit uint64 = 512 * 1024 // 512 KiB
+	KiB                uint64 = 1024
+	jsonnetOutputLimit uint64 = 512 * KiB
+	jsonnetErrLimit    uint64 = 1 * KiB
 )
 
 func NewProcessVM(opts *vmOptions) VM {
@@ -48,11 +50,9 @@ func (p *ProcessVM) EvaluateAnonymousSnippet(filename string, snippet string) (_
 		defer cancel()
 
 		var (
-			stdin  bytes.Buffer
-			stderr strings.Builder
+			stdin bytes.Buffer
 		)
-		stdout := make([]byte, jsonnetOutputLimit)
-		stdoutWriter := bytes.NewBuffer(stdout)
+
 		p.params.Filename = filename
 		p.params.Snippet = snippet
 
@@ -62,20 +62,43 @@ func (p *ProcessVM) EvaluateAnonymousSnippet(filename string, snippet string) (_
 
 		cmd := exec.CommandContext(ctx, p.path, p.args...) //nolint:gosec
 		cmd.Stdin = &stdin
-		cmd.Stdout = stdoutWriter
-		cmd.Stderr = &stderr
 		cmd.Env = []string{"GOMAXPROCS=1"}
 
-		err = cmd.Run()
-		if stderr.Len() > 0 {
-			// If the process wrote to stderr, this means it started and we won't retry.
-			return "", backoff.Permanent(fmt.Errorf("jsonnetsecure: unexpected output on stderr: %q", stderr.String()))
-		}
+		stdoutPipe, err := cmd.StdoutPipe()
 		if err != nil {
-			return "", fmt.Errorf("jsonnetsecure: %w (stdout=%q stderr=%q)", err, string(stdout), stderr.String())
+			return "", backoff.Permanent(errors.WithStack(err))
+		}
+		defer stdoutPipe.Close()
+
+		stderrPipe, err := cmd.StderrPipe()
+		if err != nil {
+			return "", backoff.Permanent(errors.WithStack(err))
+		}
+		defer stderrPipe.Close()
+
+		stdoutReader := io.LimitReader(stdoutPipe, int64(jsonnetOutputLimit))
+		stderrReader := io.LimitReader(stderrPipe, int64(jsonnetErrLimit))
+
+		if err := cmd.Start(); err != nil {
+			return "", backoff.Permanent(fmt.Errorf("jsonnetsecure: failed to start subprocess: %w", err))
 		}
 
-		return string(stdout), nil
+		stdoutOutput, err := io.ReadAll(stdoutReader)
+		if err != nil {
+			return "", backoff.Permanent(fmt.Errorf("jsonnetsecure: failed to read subprocess stdout: %w", err))
+		}
+
+		// Reading from stderr is best effort (there might not be anything).
+		stderrOutput, _ := io.ReadAll(stderrReader)
+
+		err = cmd.Wait()
+		if err != nil {
+			return "", backoff.Permanent(fmt.Errorf("jsonnetsecure: subprocess encountered an error: %w %s", err, string(stderrOutput)))
+		}
+
+		finalOutput := strings.Trim(string(stdoutOutput), "\x00")
+
+		return finalOutput, nil
 	}, backoff.WithContext(backoff.NewExponentialBackOff(), ctx))
 }
 
