@@ -168,7 +168,6 @@ func TestSecureVM(t *testing.T) {
 		)
 		result, err := vm.EvaluateAnonymousSnippet("test", snippet)
 		require.NoError(t, err)
-		fmt.Println(result[:50])
 		require.True(t, strings.HasPrefix(result, "{\n   \"user_id\": \"aaaa"))
 		require.False(t, strings.HasSuffix(result, "}")) // Truncated.
 	})
@@ -182,6 +181,24 @@ func TestSecureVM(t *testing.T) {
 			"local contents = importbin 'stub/import.jsonnet'; { contents: contents }")
 		require.Error(t, err, "%s", result)
 	})
+}
+
+func BenchmarkJsonnetSubprocessOutputTooLengthy(b *testing.B) {
+	testBinary := JsonnetTestBinary(b)
+	for b.Loop() {
+		snippet := `{user_id: std.repeat("a", ` + strconv.FormatUint(jsonnetOutputLimit, 10) + `)}`
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		b.Cleanup(cancel)
+
+		vm := MakeSecureVM(
+			WithProcessIsolatedVM(ctx),
+			WithJsonnetBinary(testBinary),
+		)
+		result, err := vm.EvaluateAnonymousSnippet("test", snippet)
+		require.NoError(b, err)
+		require.True(b, strings.HasPrefix(result, "{\n   \"user_id\": \"aaaa"))
+		require.False(b, strings.HasSuffix(result, "}")) // Truncated.
+	}
 }
 
 func standardVM(t *testing.T) VM {
