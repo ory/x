@@ -158,7 +158,6 @@ func TestSecureVM(t *testing.T) {
 
 	t.Run("case=stdout too lengthy", func(t *testing.T) {
 		// This script outputs more than the limit.
-		// This is not an error, its output gets in this case truncated to the limit.
 		snippet := `{user_id: std.repeat("a", ` + strconv.FormatUint(jsonnetOutputLimit, 10) + `)}`
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		t.Cleanup(cancel)
@@ -166,10 +165,8 @@ func TestSecureVM(t *testing.T) {
 			WithProcessIsolatedVM(ctx),
 			WithJsonnetBinary(testBinary),
 		)
-		result, err := vm.EvaluateAnonymousSnippet("test", snippet)
-		require.NoError(t, err)
-		require.True(t, strings.HasPrefix(result, "{\n   \"user_id\": \"aaaa"))
-		require.False(t, strings.HasSuffix(result, "}")) // Truncated.
+		_, err := vm.EvaluateAnonymousSnippet("test", snippet)
+		require.ErrorContains(t, err, "reached limits")
 	})
 
 	t.Run("case=importbin", func(t *testing.T) {
@@ -181,24 +178,6 @@ func TestSecureVM(t *testing.T) {
 			"local contents = importbin 'stub/import.jsonnet'; { contents: contents }")
 		require.Error(t, err, "%s", result)
 	})
-}
-
-func BenchmarkJsonnetSubprocessOutputTooLengthy(b *testing.B) {
-	testBinary := JsonnetTestBinary(b)
-	for b.Loop() {
-		snippet := `{user_id: std.repeat("a", ` + strconv.FormatUint(jsonnetOutputLimit, 10) + `)}`
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-		b.Cleanup(cancel)
-
-		vm := MakeSecureVM(
-			WithProcessIsolatedVM(ctx),
-			WithJsonnetBinary(testBinary),
-		)
-		result, err := vm.EvaluateAnonymousSnippet("test", snippet)
-		require.NoError(b, err)
-		require.True(b, strings.HasPrefix(result, "{\n   \"user_id\": \"aaaa"))
-		require.False(b, strings.HasSuffix(result, "}")) // Truncated.
-	}
 }
 
 func standardVM(t *testing.T) VM {

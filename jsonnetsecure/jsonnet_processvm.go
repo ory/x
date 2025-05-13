@@ -34,9 +34,10 @@ func NewProcessVM(opts *vmOptions) VM {
 	}
 }
 
-// Jsonnet evaluation is run in a subprocess with a timeout.
-// Standard output and error are limited in size and are truncated to this limit
-// if too big (but this is not an error condition since that would be too complex to detect and not worth the effort).
+// Jsonnet evaluation is run in a subprocess with a timeout, and
+// standard output and error are limited in size.
+// The subprocess is killed when a limit (whichever comes first) is reached.
+// In this case an error is returned.
 func (p *ProcessVM) EvaluateAnonymousSnippet(filename string, snippet string) (_ string, err error) {
 	tracer := trace.SpanFromContext(p.ctx).TracerProvider().Tracer("")
 	ctx, span := tracer.Start(p.ctx, "jsonnetsecure.ProcessVM.EvaluateAnonymousSnippet", trace.WithAttributes(attribute.String("filename", filename)))
@@ -99,6 +100,8 @@ func (p *ProcessVM) EvaluateAnonymousSnippet(filename string, snippet string) (_
 		// NOTE: Depending on what the subprocess does and the OS scheduling, this might kill the subprocess, or have no effect (e.g. the child already terminated).
 		if len(stderrOutput) > 0 || len(stdoutOutput) == int(jsonnetOutputLimit) {
 			cmd.Cancel()
+
+			return "", backoff.Permanent(fmt.Errorf("jsonnetsecure: subprocess encountered an error or reached limits: stderr=%s stdout_length=%d", string(stderrOutput), len(stdoutOutput)))
 		}
 
 		err = cmd.Wait()
