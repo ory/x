@@ -144,14 +144,16 @@ func newWorker(ctx context.Context) (_ worker, err error) {
 
 	span.SetAttributes(semconv.ProcessPID(cmd.Process.Pid))
 
-	scan := func(c chan<- string, r io.Reader) {
+	scan := func(c chan<- string, r io.Reader, limit int) {
 		defer close(c)
+		// NOTE: `bufio.Scanner` has its own internal limit of 64 KiB.
 		scanner := bufio.NewScanner(r)
+
 		scanner.Split(splitNull)
 		for scanner.Scan() {
 			s := scanner.Text()
-			if len(s) >= jsonnetOutputLimit {
-				c <- "ERROR: output too lengthy: " + strconv.FormatInt(int64(len(s)), 10)
+			if len(s) >= limit {
+				c <- "ERROR: reached limits: " + strconv.FormatInt(int64(len(s)), 10)
 			} else {
 				c <- s
 			}
@@ -161,9 +163,11 @@ func newWorker(ctx context.Context) (_ worker, err error) {
 		}
 	}
 	out := make(chan string, chanSize)
-	go scan(out, stdoutReader)
+	go scan(out, stdoutReader, jsonnetOutputLimit)
 	errs := make(chan string, chanSize)
-	go scan(errs, stderrReader)
+	// No limit here because: too much data on stderr is not an error - simply having some already is.
+	// And we already use a LimitedReader.
+	go scan(errs, stderrReader, math.MaxInt)
 
 	w := worker{
 		cmd:    cmd,

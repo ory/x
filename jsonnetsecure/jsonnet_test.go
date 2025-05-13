@@ -45,6 +45,7 @@ func TestSecureVM(t *testing.T) {
 			for i, contents := range []string{
 				"local contents = importstr 'jsonnet.go'; { contents: contents }",
 				"local contents = import 'stub/import.jsonnet'; { contents: contents }",
+				`{user_id: ` + strings.Repeat("a", jsonnetErrLimit*5),
 			} {
 				t.Run(fmt.Sprintf("case=%d", i), func(t *testing.T) {
 					vm := MakeSecureVM(optCase.opts...)
@@ -169,9 +170,24 @@ func TestSecureVM(t *testing.T) {
 		require.ErrorContains(t, err, "reached limits")
 	})
 
-	t.Run("case=stderr too lengthy", func(t *testing.T) {
+	t.Run("case=stdout too lengthy pool", func(t *testing.T) {
+		// This script outputs more than the limit.
+		snippet := `{user_id: std.repeat("a", ` + strconv.FormatUint(jsonnetOutputLimit, 10) + `)}`
+		_, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		t.Cleanup(cancel)
+		vm := MakeSecureVM(
+			WithProcessPool(procPool),
+			WithJsonnetBinary(testBinary),
+		)
+		_, err := vm.EvaluateAnonymousSnippet("test", snippet)
+		// In the case of the pool, the `bufio.Scanner` has an internal limit and returns itself an error when
+		// this is reached.
+		require.ErrorContains(t, err, "token too long")
+	})
+
+	t.Run("case=stderr truncated", func(t *testing.T) {
 		// Intentionally incorrect jsonnet syntax to trigger an error
-		snippet := `{user_id: ` + strings.Repeat("a", jsonnetErrLimit*10)
+		snippet := `{user_id: ` + strings.Repeat("a", jsonnetErrLimit*5)
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		t.Cleanup(cancel)
 		vm := MakeSecureVM(
@@ -180,6 +196,24 @@ func TestSecureVM(t *testing.T) {
 		)
 		_, err := vm.EvaluateAnonymousSnippet("test", snippet)
 		// Check that the stderr is truncated.
+		// The jsonnet vm will print some stuff along the error so we need to acccount for that in the size.
+		require.Less(t, len(err.Error()), jsonnetErrLimit*2)
+		require.ErrorContains(t, err, "aaaaa")
+	})
+
+	t.Run("case=stderr truncated pool", func(t *testing.T) {
+		// Intentionally incorrect jsonnet syntax to trigger an error
+		snippet := `{user_id: ` + strings.Repeat("a", jsonnetErrLimit*5)
+		_, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		t.Cleanup(cancel)
+		vm := MakeSecureVM(
+			WithProcessPool(procPool),
+			WithJsonnetBinary(testBinary),
+		)
+		_, err := vm.EvaluateAnonymousSnippet("test", snippet)
+		// Check that the stderr is truncated.
+		// The jsonnet vm will print some stuff along the error so we need to acccount for that in the size.
+		require.Error(t, err)
 		require.Less(t, len(err.Error()), jsonnetErrLimit*2)
 		require.ErrorContains(t, err, "aaaaa")
 	})
