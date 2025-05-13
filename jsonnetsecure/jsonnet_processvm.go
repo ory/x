@@ -96,6 +96,7 @@ func (p *ProcessVM) EvaluateAnonymousSnippet(filename string, snippet string) (_
 		// If there was some stderr output or the stdout has reached the limit,
 		// no point in keeping the subprocess running so we kill it.
 		// This limits the negative effect of misbehaving jsonnet scripts.
+		// NOTE: Depending on what the subprocess does and the OS scheduling, this might kill the subprocess, or have no effect (e.g. the child already terminated).
 		if len(stderrOutput) > 0 || len(stdoutOutput) == int(jsonnetOutputLimit) {
 			cmd.Cancel()
 		}
