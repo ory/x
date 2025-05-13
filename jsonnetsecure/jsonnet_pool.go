@@ -10,6 +10,7 @@ import (
 	"io"
 	"math"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
@@ -20,6 +21,10 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/ory/x/otelx"
+)
+
+const (
+	chanSize = 16
 )
 
 type (
@@ -111,7 +116,7 @@ func newWorker(ctx context.Context) (_ worker, err error) {
 		return worker{}, errors.Wrap(err, "newWorker: failed to create stdin pipe")
 	}
 
-	in := make(chan []byte)
+	in := make(chan []byte, chanSize)
 	go func(c <-chan []byte) {
 		for input := range c {
 			if _, err := stdin.Write(append(input, 0)); err != nil {
@@ -144,15 +149,20 @@ func newWorker(ctx context.Context) (_ worker, err error) {
 		scanner := bufio.NewScanner(r)
 		scanner.Split(splitNull)
 		for scanner.Scan() {
-			c <- scanner.Text()
+			s := scanner.Text()
+			if len(s) > jsonnetOutputLimit {
+				c <- "ERROR: output too lengthy: " + strconv.FormatInt(int64(len(s)), 10)
+			} else {
+				c <- s
+			}
 		}
 		if err := scanner.Err(); err != nil {
 			c <- "ERROR: scan: " + err.Error()
 		}
 	}
-	out := make(chan string)
+	out := make(chan string, chanSize)
 	go scan(out, stdoutReader)
-	errs := make(chan string)
+	errs := make(chan string, chanSize)
 	go scan(errs, stderrReader)
 
 	w := worker{

@@ -21,9 +21,9 @@ import (
 )
 
 const (
-	KiB                uint64 = 1024
-	jsonnetOutputLimit uint64 = 512 * KiB
-	jsonnetErrLimit    uint64 = 1 * KiB
+	KiB                = 1024
+	jsonnetOutputLimit = 512 * KiB
+	jsonnetErrLimit    = 1 * KiB
 )
 
 func NewProcessVM(opts *vmOptions) VM {
@@ -79,8 +79,8 @@ func (p *ProcessVM) EvaluateAnonymousSnippet(filename string, snippet string) (_
 		}
 		defer stderrPipe.Close()
 
-		stdoutReader := io.LimitReader(stdoutPipe, int64(jsonnetOutputLimit))
-		stderrReader := io.LimitReader(stderrPipe, int64(jsonnetErrLimit))
+		stdoutReader := io.LimitReader(stdoutPipe, jsonnetOutputLimit)
+		stderrReader := io.LimitReader(stderrPipe, jsonnetErrLimit)
 
 		if err := cmd.Start(); err != nil {
 			return "", backoff.Permanent(fmt.Errorf("jsonnetsecure: failed to start subprocess: %w", err))
