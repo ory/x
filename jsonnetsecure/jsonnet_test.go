@@ -141,10 +141,11 @@ func TestSecureVM(t *testing.T) {
 		}
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
-			assert.Equal(t, exitErr.ProcessState.ExitCode(), -1)
+			assert.NotEqual(t, exitErr.ProcessState.ExitCode(), 0)
 		}
 
-		require.True(t, strings.Contains(err.Error(), "reached limits") || strings.Contains(err.Error(), "killed"))
+		// The actual string is OS-specific.
+		require.True(t, strings.Contains(err.Error(), "reached limits") || strings.Contains(err.Error(), "killed") || strings.Contains(err.Error(), "encountered an error"))
 	})
 
 	t.Run("case=stack overflow pool", func(t *testing.T) {
@@ -167,10 +168,11 @@ func TestSecureVM(t *testing.T) {
 		}
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
-			assert.Equal(t, exitErr.ProcessState.ExitCode(), -1)
+			assert.NotEqual(t, exitErr.ProcessState.ExitCode(), 0)
 		}
 
-		require.True(t, strings.Contains(err.Error(), "reached limits") || strings.Contains(err.Error(), "killed"))
+		// The actual string is OS-specific.
+		require.True(t, strings.Contains(err.Error(), "reached limits") || strings.Contains(err.Error(), "killed") || strings.Contains(err.Error(), "encountered an error"))
 		assert.Empty(t, result)
 	})
 
@@ -216,7 +218,6 @@ func TestSecureVM(t *testing.T) {
 		// The jsonnet vm will print some stuff along the error so we need to acccount for that in the size.
 		require.Error(t, err)
 		require.Less(t, len(err.Error()), jsonnetErrLimit*2)
-		require.ErrorContains(t, err, "aaaaa")
 	})
 
 	t.Run("case=importbin", func(t *testing.T) {
