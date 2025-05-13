@@ -169,6 +169,21 @@ func TestSecureVM(t *testing.T) {
 		require.ErrorContains(t, err, "reached limits")
 	})
 
+	t.Run("case=stderr too lengthy", func(t *testing.T) {
+		// Intentionally incorrect jsonnet syntax to trigger an error
+		snippet := `{user_id: ` + strings.Repeat("a", jsonnetErrLimit*10)
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		t.Cleanup(cancel)
+		vm := MakeSecureVM(
+			WithProcessIsolatedVM(ctx),
+			WithJsonnetBinary(testBinary),
+		)
+		_, err := vm.EvaluateAnonymousSnippet("test", snippet)
+		// Check that the stderr is truncated.
+		require.Less(t, len(err.Error()), jsonnetErrLimit*2)
+		require.ErrorContains(t, err, "aaaaa")
+	})
+
 	t.Run("case=importbin", func(t *testing.T) {
 		// importbin does not exist in the current version, but is already merged on the main branch:
 		// https://github.com/google/go-jsonnet/commit/856bd58872418eee1cede0badea5b7b462c429eb
