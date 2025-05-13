@@ -150,7 +150,7 @@ func newWorker(ctx context.Context) (_ worker, err error) {
 		scanner.Split(splitNull)
 		for scanner.Scan() {
 			s := scanner.Text()
-			if len(s) > jsonnetOutputLimit {
+			if len(s) >= jsonnetOutputLimit {
 				c <- "ERROR: output too lengthy: " + strconv.FormatInt(int64(len(s)), 10)
 			} else {
 				c <- s
