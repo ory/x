@@ -33,11 +33,11 @@ func NewJsonnetCmd() *cobra.Command {
 		Short:  "Run Jsonnet as a CLI command",
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// `setrlimit(2)` with `RLIMIT_AS` seems broken on macOS and its behavior
-			// varies between major versions.
-			// Also there is not really a use case for macOS server-side, so we do not
-			// bother on non-Linux platforms.
-			if runtime.GOOS == "linux" {
+			// - macos: `setrlimit(2)` with `RLIMIT_AS` seems broken on macOS and its behavior
+			// varies between major versions. Also there is not really a use case for macOS server-side, so we do not
+			// bother.
+			// - windows: This syscall is Unix specific so not available.
+			if !(runtime.GOOS == "windows" || runtime.GOOS == "darwin") {
 				limit := syscall.Rlimit{
 					Cur: memoryLimit,
 					Max: memoryLimit,
