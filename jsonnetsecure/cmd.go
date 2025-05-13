@@ -21,7 +21,7 @@ const (
 	// and the Jsonnet script.
 	// This number was acquired by running:
 	// `echo -n '{"Snippet":"std.repeat(\"a\", 1000)"}' | rusage ./kratos jsonnet > /dev/null
-	// which outputs among other things: `ballooned to 45,088kb in size` (i.e. 45 MiB).
+	// which outputs among other things: `ballooned to 45,088kb in size` (i.e. ~45 MiB).
 	// Thus we raise this number a bit for safety and call it a day.
 	memoryLimit = 64 * MiB
 )
