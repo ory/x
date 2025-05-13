@@ -93,6 +93,13 @@ func (p *ProcessVM) EvaluateAnonymousSnippet(filename string, snippet string) (_
 		// Reading from stderr is best effort (there might not be anything).
 		stderrOutput, _ := io.ReadAll(stderrReader)
 
+		// If there was some stderr output or the stdout has reached the limit,
+		// no point in keeping the subprocess running so we kill it.
+		// This limits the negative effect of misbehaving jsonnet scripts.
+		if len(stderrOutput) > 0 || len(stdoutOutput) == int(jsonnetOutputLimit) {
+			cmd.Cancel()
+		}
+
 		err = cmd.Wait()
 		if err != nil || len(stderrOutput) > 0 {
 			return "", backoff.Permanent(fmt.Errorf("jsonnetsecure: subprocess encountered an error: %w %s", err, string(stderrOutput)))
