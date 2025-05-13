@@ -94,7 +94,7 @@ func (p *ProcessVM) EvaluateAnonymousSnippet(filename string, snippet string) (_
 		stderrOutput, _ := io.ReadAll(stderrReader)
 
 		err = cmd.Wait()
-		if err != nil {
+		if err != nil || len(stderrOutput) > 0 {
 			return "", backoff.Permanent(fmt.Errorf("jsonnetsecure: subprocess encountered an error: %w %s", err, string(stderrOutput)))
 		}
 
