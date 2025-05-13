@@ -156,6 +156,27 @@ func TestSecureVM(t *testing.T) {
 		assert.Empty(t, result)
 	})
 
+	t.Run("case=output too lengthy", func(t *testing.T) {
+		snippet := `{user_id: std.repeat("a", ` + strconv.FormatUint(jsonnetOutputLimit+1, 10) + `)}`
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		t.Cleanup(cancel)
+		vm := MakeSecureVM(
+			WithProcessIsolatedVM(ctx),
+			WithJsonnetBinary(testBinary),
+		)
+		result, err := vm.EvaluateAnonymousSnippet("test", snippet)
+		require.Error(t, err)
+
+		// Error is either context.DeadlineExceeded or exec.ExitError, depending on whether
+		// the process was already stared. We check for both to avoid flakes (both are fine).
+		if errors.Is(err, context.DeadlineExceeded) {
+			return
+		}
+		var exitErr *exec.ExitError
+		require.ErrorAs(t, err, &exitErr, result)
+		assert.Equal(t, exitErr.ProcessState.ExitCode(), -1)
+	})
+
 	t.Run("case=importbin", func(t *testing.T) {
 		// importbin does not exist in the current version, but is already merged on the main branch:
 		// https://github.com/google/go-jsonnet/commit/856bd58872418eee1cede0badea5b7b462c429eb

@@ -33,10 +33,10 @@ type (
 	}
 )
 
-func NewTestProvider(t testing.TB) *TestProvider {
+func NewTestProvider(tb testing.TB) *TestProvider {
 	pool := NewProcessPool(runtime.GOMAXPROCS(0))
-	t.Cleanup(pool.Close)
-	return &TestProvider{JsonnetTestBinary(t), pool}
+	tb.Cleanup(pool.Close)
+	return &TestProvider{JsonnetTestBinary(tb), pool}
 }
 
 func (p *TestProvider) JsonnetVM(ctx context.Context) (VM, error) {
