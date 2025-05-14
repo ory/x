@@ -111,6 +111,10 @@ func (importer *ErrorImporter) Import(importedFrom, importedPath string) (conten
 func JsonnetTestBinary(t testing.TB) string {
 	t.Helper()
 
+	if s := os.Getenv("ORY_JSONNET_PATH"); s != "" {
+		return s
+	}
+
 	var stderr bytes.Buffer
 	outPath := path.Join(t.TempDir(), "jsonnet")
 	if runtime.GOOS == "windows" {

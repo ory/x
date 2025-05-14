@@ -67,6 +67,7 @@ func (p *ProcessVM) EvaluateAnonymousSnippet(filename string, snippet string) (_
 		cmd := exec.CommandContext(ctx, p.path, p.args...) //nolint:gosec
 		cmd.Stdin = &stdin
 		cmd.Env = []string{"GOMAXPROCS=1"}
+		cmd.WaitDelay = processVMTimeout
 
 		stdoutPipe, err := cmd.StdoutPipe()
 		if err != nil {
