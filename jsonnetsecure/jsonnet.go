@@ -111,6 +111,8 @@ func (importer *ErrorImporter) Import(importedFrom, importedPath string) (conten
 func JsonnetTestBinary(t testing.TB) string {
 	t.Helper()
 
+	// We can force the usage of a given jsonnet executable.
+	// Useful to test different versions, or run the tests under wine.
 	if s := os.Getenv("ORY_JSONNET_PATH"); s != "" {
 		return s
 	}
