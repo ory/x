@@ -273,7 +273,9 @@ func assertEqualVMOutput(t *testing.T, run func(factory func(t *testing.T) VM) s
 
 func TestStressTest(t *testing.T) {
 	ctx := context.Background()
-	wg := new(errgroup.Group)
+	wg := errgroup.Group{}
+	// It's easy to overwhelm certain OSes with too many spawned processes at once.
+	wg.SetLimit(8)
 	testBinary := JsonnetTestBinary(t)
 
 	count := 200
@@ -296,13 +298,13 @@ func TestStressTest(t *testing.T) {
 			c := cases[i%len(cases)]
 			_, err := vm.EvaluateAnonymousSnippet("test", c.snippet)
 
+			// An error happened and was expected: ok.
 			if c.errExpected {
 				require.Error(t, err)
 				return nil
 			}
 
 			// An error happened but none was expected.
-
 			// Special case for macOS where data-races can happen with `kill(2)` where we
 			// `kill(2)` the wrong process e.g. the one for a valid script.
 			// We cannot avoid this issue so we simply swallow the error.
