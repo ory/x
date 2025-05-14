@@ -108,6 +108,7 @@ func newWorker(ctx context.Context) (_ worker, err error) {
 	args, _ := ctx.Value(contextValueArgs).([]string)
 	cmd := exec.Command(path, append(args, "-0")...)
 	cmd.Env = []string{"GOMAXPROCS=1"}
+	cmd.WaitDelay = 100 * time.Millisecond
 
 	span.SetAttributes(semconv.ProcessCommand(cmd.Path), semconv.ProcessCommandArgs(cmd.Args...))
 
