@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	retry "github.com/avast/retry-go/v4"
+	"github.com/avast/retry-go/v4"
 	"github.com/pkg/errors"
 	"github.com/tidwall/gjson"
 )

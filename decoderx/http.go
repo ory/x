@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -25,7 +26,6 @@ import (
 
 	"github.com/ory/x/httpx"
 	"github.com/ory/x/jsonschemax"
-	"github.com/ory/x/stringslice"
 )
 
 type (
@@ -226,7 +226,7 @@ func NewHTTP() *HTTP {
 func (t *HTTP) validateRequest(r *http.Request, c *httpDecoderOptions) error {
 	method := strings.ToUpper(r.Method)
 
-	if !stringslice.Has(c.allowedHTTPMethods, method) {
+	if !slices.Contains(c.allowedHTTPMethods, method) {
 		return errors.WithStack(herodot.ErrBadRequest.WithReasonf(`Unable to decode body because HTTP Request Method was "%s" but only %v are supported.`, method, c.allowedHTTPMethods))
 	}
 

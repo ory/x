@@ -34,7 +34,7 @@ func AllValidJSONKeys(s interface{}) (keys []string) {
 		t = t.Elem()
 		v = v.Elem()
 	}
-	for i := 0; i < t.NumField(); i++ {
+	for i := range t.NumField() {
 		f := t.Field(i)
 		jKey := jsonKey(f)
 		if k := f.Type.Kind(); k == reflect.Struct || k == reflect.Ptr {

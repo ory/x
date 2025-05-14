@@ -224,8 +224,6 @@ func (m *mergedFile) ReadDir(n int) ([]fs.DirEntry, error) {
 		return entries, io.EOF
 	}
 
-	if n <= len(entries) && n > 0 {
-		entries, m.unprocessedDirEntries = entries[:n], entries[n:]
-	}
+	entries, m.unprocessedDirEntries = entries[:n], entries[n:]
 	return entries, nil
 }

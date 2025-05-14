@@ -31,15 +31,26 @@ const GlobHelp = `Glob patterns supports the following special terms in the patt
 `
 
 // RootCommand represents the jsonnet command
+// Deprecated: use NewRootCommand instead.
 var RootCommand = &cobra.Command{
 	Use:   "jsonnet",
 	Short: "Helpers for linting and formatting JSONNet code",
 }
 
 // RegisterCommandRecursive adds all jsonnet helpers to the RootCommand
+// Deprecated: use NewRootCommand instead.
 func RegisterCommandRecursive(parent *cobra.Command) {
 	parent.AddCommand(RootCommand)
 
 	RootCommand.AddCommand(FormatCommand)
 	RootCommand.AddCommand(LintCommand)
+}
+
+func NewRootCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "jsonnet",
+		Short: "Helpers for linting and formatting JSONNet code",
+	}
+	cmd.AddCommand(NewFormatCommand(), NewLintCommand())
+	return cmd
 }
