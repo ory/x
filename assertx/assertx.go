@@ -6,7 +6,6 @@ package assertx
 import (
 	"bytes"
 	"encoding/json"
-	"math"
 	"strings"
 	"testing"
 	"time"
@@ -59,8 +58,8 @@ func EqualAsJSONExcept(t testing.TB, expected, actual interface{}, except []stri
 	assert.JSONEq(t, strings.TrimSpace(ebs), strings.TrimSpace(abs), args...)
 }
 
+// Deprecated: use assert.WithinDuration instead
 func TimeDifferenceLess(t testing.TB, t1, t2 time.Time, seconds int) {
 	t.Helper()
-	delta := math.Abs(float64(t1.Unix()) - float64(t2.Unix()))
-	assert.Less(t, delta, float64(seconds))
+	assert.WithinDuration(t, t1, t2, time.Duration(seconds)*time.Second)
 }

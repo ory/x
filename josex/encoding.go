@@ -28,8 +28,11 @@ type Base64Reader struct {
 
 func (r Base64Reader) Read(p []byte) (n int, err error) {
 	n, err = r.In.Read(p)
+	if err != nil {
+		return
+	}
 
-	for i := 0; i < n; i++ {
+	for i := range n {
 		switch p[i] {
 		// Map - to +
 		case 0x2D:

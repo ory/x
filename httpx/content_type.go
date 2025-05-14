@@ -24,8 +24,5 @@ func HasContentType(r *http.Request, mimetypes ...string) bool {
 	if err != nil {
 		return false
 	}
-	if slices.Contains(mimetypes, mediaType) {
-		return true
-	}
-	return false
+	return slices.Contains(mimetypes, mediaType)
 }

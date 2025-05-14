@@ -54,7 +54,7 @@ func ParseMapInterfaceInterfaceClaims(claims map[interface{}]interface{}) *Claim
 
 	if aud, err := mapx.GetString(claims, "aud"); err == nil {
 		result.Audience = []string{aud}
-	} else if errors.Cause(err) == mapx.ErrKeyCanNotBeTypeAsserted {
+	} else if errors.Is(err, mapx.ErrKeyCanNotBeTypeAsserted) {
 		if aud, err := mapx.GetStringSlice(claims, "aud"); err == nil {
 			result.Audience = aud
 		} else {

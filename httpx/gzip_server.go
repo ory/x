@@ -4,7 +4,6 @@
 package httpx
 
 import (
-	"bytes"
 	"compress/gzip"
 	"fmt"
 	"io"
@@ -34,22 +33,13 @@ func (c *CompressionRequestReader) ServeHTTP(w http.ResponseWriter, r *http.Requ
 	for _, enc := range strings.Split(r.Header.Get("Content-Encoding"), ",") {
 		switch enc = strings.TrimSpace(enc); enc {
 		case "gzip":
-			var b bytes.Buffer
 			reader, err := gzip.NewReader(r.Body)
 			if err != nil {
 				c.ErrHandler(w, r, err)
 				return
 			}
-
-			if _, err := io.Copy(&b, reader); err != nil { //nolint:gosec // FIXME
-				c.ErrHandler(w, r, err)
-				return
-			}
-
-			r.Body = io.NopCloser(&b)
-		case "identity":
-			fallthrough
-		case "":
+			r.Body = io.NopCloser(reader)
+		case "identity", "":
 			// nothing to do
 		default:
 			c.ErrHandler(w, r, fmt.Errorf("%s content encoding not supported", enc))

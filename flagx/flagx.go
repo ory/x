@@ -18,6 +18,7 @@ func NewFlagSet(name string) *pflag.FlagSet {
 }
 
 // MustGetBool returns a bool flag or fatals if an error occurs.
+// Deprecated: just handle the error properly, this breaks command testing
 func MustGetBool(cmd *cobra.Command, name string) bool {
 	ok, err := cmd.Flags().GetBool(name)
 	if err != nil {
@@ -27,6 +28,7 @@ func MustGetBool(cmd *cobra.Command, name string) bool {
 }
 
 // MustGetString returns a string flag or fatals if an error occurs.
+// Deprecated: just handle the error properly, this breaks command testing
 func MustGetString(cmd *cobra.Command, name string) string {
 	s, err := cmd.Flags().GetString(name)
 	if err != nil {
@@ -36,6 +38,7 @@ func MustGetString(cmd *cobra.Command, name string) string {
 }
 
 // MustGetDuration returns a time.Duration flag or fatals if an error occurs.
+// Deprecated: just handle the error properly, this breaks command testing
 func MustGetDuration(cmd *cobra.Command, name string) time.Duration {
 	d, err := cmd.Flags().GetDuration(name)
 	if err != nil {
@@ -45,6 +48,7 @@ func MustGetDuration(cmd *cobra.Command, name string) time.Duration {
 }
 
 // MustGetStringSlice returns a []string flag or fatals if an error occurs.
+// Deprecated: just handle the error properly, this breaks command testing
 func MustGetStringSlice(cmd *cobra.Command, name string) []string {
 	ss, err := cmd.Flags().GetStringSlice(name)
 	if err != nil {
@@ -54,6 +58,7 @@ func MustGetStringSlice(cmd *cobra.Command, name string) []string {
 }
 
 // MustGetStringArray returns a []string flag or fatals if an error occurs.
+// Deprecated: just handle the error properly, this breaks command testing
 func MustGetStringArray(cmd *cobra.Command, name string) []string {
 	ss, err := cmd.Flags().GetStringArray(name)
 	if err != nil {
@@ -63,6 +68,7 @@ func MustGetStringArray(cmd *cobra.Command, name string) []string {
 }
 
 // MustGetStringToStringMap returns a map[string]string flag or fatals if an error occurs.
+// Deprecated: just handle the error properly, this breaks command testing
 func MustGetStringToStringMap(cmd *cobra.Command, name string) map[string]string {
 	ss, err := cmd.Flags().GetStringToString(name)
 	if err != nil {
@@ -72,6 +78,7 @@ func MustGetStringToStringMap(cmd *cobra.Command, name string) map[string]string
 }
 
 // MustGetInt returns a int flag or fatals if an error occurs.
+// Deprecated: just handle the error properly, this breaks command testing
 func MustGetInt(cmd *cobra.Command, name string) int {
 	ss, err := cmd.Flags().GetInt(name)
 	if err != nil {
@@ -81,6 +88,7 @@ func MustGetInt(cmd *cobra.Command, name string) int {
 }
 
 // MustGetUint8 returns a uint8 flag or fatals if an error occurs.
+// Deprecated: just handle the error properly, this breaks command testing
 func MustGetUint8(cmd *cobra.Command, name string) uint8 {
 	v, err := cmd.Flags().GetUint8(name)
 	if err != nil {
@@ -90,6 +98,7 @@ func MustGetUint8(cmd *cobra.Command, name string) uint8 {
 }
 
 // MustGetUint32 returns a uint32 flag or fatals if an error occurs.
+// Deprecated: just handle the error properly, this breaks command testing
 func MustGetUint32(cmd *cobra.Command, name string) uint32 {
 	v, err := cmd.Flags().GetUint32(name)
 	if err != nil {

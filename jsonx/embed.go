@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -14,7 +15,6 @@ import (
 	"github.com/tidwall/sjson"
 
 	"github.com/ory/x/osx"
-	"github.com/ory/x/stringslice"
 )
 
 type options struct {
@@ -72,7 +72,7 @@ func embed(parsed gjson.Result, parents []string, result *json.RawMessage, o *op
 		return nil
 	}
 
-	if len(parents) > 0 && stringslice.Has(o.ignoreKeys, parents[len(parents)-1]) {
+	if len(parents) > 0 && slices.Contains(o.ignoreKeys, parents[len(parents)-1]) {
 		return nil
 	}
 
@@ -87,7 +87,7 @@ func embed(parsed gjson.Result, parents []string, result *json.RawMessage, o *op
 			// Not a known pattern, ignore
 			return nil
 		}
-	} else if !stringslice.Has(o.onlySchemes, loc.Scheme) {
+	} else if !slices.Contains(o.onlySchemes, loc.Scheme) {
 		// Not a known pattern, ignore
 		return nil
 	}

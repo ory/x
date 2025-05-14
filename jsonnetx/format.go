@@ -12,55 +12,69 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/ory/x/cmdx"
-	"github.com/ory/x/flagx"
 )
 
 // FormatCommand represents the format command
-var FormatCommand = &cobra.Command{
-	Use: "format path/to/files/*.jsonnet [more/files.jsonnet, [supports/**/{foo,bar}.jsonnet]]",
-	Long: `Formats JSONNet files using the official JSONNet formatter.
+// Deprecated: use NewFormatCommand instead.
+var FormatCommand = NewFormatCommand()
+
+func NewFormatCommand() *cobra.Command {
+	var verbose, write bool
+	cmd := &cobra.Command{
+		Use: "format path/to/files/*.jsonnet [more/files.jsonnet, [supports/**/{foo,bar}.jsonnet]]",
+		Long: `Formats JSONNet files using the official JSONNet formatter.
 
 Use -w or --write to write output back to files instead of stdout.
 
 ` + GlobHelp,
-	Args: cobra.MinimumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		verbose := flagx.MustGetBool(cmd, "verbose")
-		for _, pattern := range args {
-			files, err := doublestar.Glob(pattern)
-			cmdx.Must(err, `Glob pattern "%s" is not valid: %s`, pattern, err)
-
-			shouldWrite := flagx.MustGetBool(cmd, "write")
-			for _, file := range files {
-				if fi, err := os.Stat(file); err != nil {
-					cmdx.Must(err, "Unable to stat file %s: %s", file, err)
-				} else if fi.IsDir() {
-					continue
+		Args: cobra.MinimumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			for _, pattern := range args {
+				files, err := doublestar.Glob(pattern)
+				if err != nil {
+					_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Glob pattern %q is not valid: %s\n", pattern, err)
+					return cmdx.FailSilently(cmd)
 				}
 
-				if verbose {
-					fmt.Printf("Processing file: %s\n", file)
-				}
+				for _, file := range files {
+					if fi, err := os.Stat(file); err != nil {
+						_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Matching file %q could not be opened: %s\n", file, err)
+						return cmdx.FailSilently(cmd)
+					} else if fi.IsDir() {
+						continue
+					}
 
-				//#nosec G304 -- false positive
-				content, err := os.ReadFile(file)
-				cmdx.Must(err, `Unable to read file "%s" because: %s`, file, err)
+					if verbose {
+						fmt.Printf("Processing file: %s\n", file)
+					}
 
-				output, err := formatter.Format(file, string(content), formatter.DefaultOptions())
-				cmdx.Must(err, `JSONNet file "%s" could not be formatted: %s`, file, err)
+					//#nosec G304 -- false positive
+					content, err := os.ReadFile(file)
+					if err != nil {
+						_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Unable to read file %q: %s\n", file, err)
+						return cmdx.FailSilently(cmd)
+					}
 
-				if shouldWrite {
-					err := os.WriteFile(file, []byte(output), 0644) // #nosec
-					cmdx.Must(err, `Could not write to file "%s" because: %s`, file, err)
-				} else {
-					fmt.Println(output)
+					output, err := formatter.Format(file, string(content), formatter.DefaultOptions())
+					if err != nil {
+						_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "File %q could not be formatted: %s", file, err)
+					}
+
+					if write {
+						err := os.WriteFile(file, []byte(output), 0644) // #nosec
+						if err != nil {
+							_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "Unable to write file %q: %s\n", file, err)
+							return cmdx.FailSilently(cmd)
+						}
+					} else {
+						fmt.Println(output)
+					}
 				}
 			}
-		}
-	},
-}
-
-func init() {
-	FormatCommand.Flags().BoolP("write", "w", false, "Write formatted output back to file.")
-	FormatCommand.Flags().Bool("verbose", false, "Verbose output.")
+			return nil
+		},
+	}
+	cmd.Flags().BoolVarP(&write, "write", "w", false, "Write formatted output back to file.")
+	cmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output.")
+	return cmd
 }
