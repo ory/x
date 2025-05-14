@@ -23,6 +23,29 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+func ensureChildProcessStoppedEarly(t testing.TB, err error) {
+	require.Error(t, err)
+	// The actual string is OS-specific and our tests run on all major ones.
+	// Additionally the child process may have stopped/been stopped for a variety of reasons,
+	// depending on which limit was hit first.
+	require.True(t,
+		// Killed by the parent or the OS (due to hitting the memory limit).
+		strings.Contains(err.Error(), "reached limits") ||
+			strings.Contains(err.Error(), "killed") ||
+			// Invalid input.
+			strings.Contains(err.Error(), "encountered an error") ||
+			// Timeout.
+			strings.Contains(err.Error(), "deadline exceeded") ||
+			// Too much output (this error comes from `bufio.Scanner` which has its own internal limit).
+			strings.Contains(err.Error(), "token too long"),
+	)
+
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		assert.NotEqual(t, exitErr.ProcessState.ExitCode(), 0)
+	}
+}
+
 func TestSecureVM(t *testing.T) {
 	testBinary := JsonnetTestBinary(t)
 
@@ -131,21 +154,7 @@ func TestSecureVM(t *testing.T) {
 			WithJsonnetBinary(testBinary),
 		)
 		_, err := vm.EvaluateAnonymousSnippet("test", snippet)
-		require.Error(t, err)
-
-		// Error is either context.DeadlineExceeded or exec.ExitError or runtime error, depending on whether
-		// the process was already started and which limit was hit first.
-		// We check for all to avoid flakes (any is fine).
-		if errors.Is(err, context.DeadlineExceeded) {
-			return
-		}
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
-			assert.NotEqual(t, exitErr.ProcessState.ExitCode(), 0)
-		}
-
-		// The actual string is OS-specific.
-		require.True(t, strings.Contains(err.Error(), "reached limits") || strings.Contains(err.Error(), "killed") || strings.Contains(err.Error(), "encountered an error"))
+		ensureChildProcessStoppedEarly(t, err)
 	})
 
 	t.Run("case=stack overflow pool", func(t *testing.T) {
@@ -158,21 +167,7 @@ func TestSecureVM(t *testing.T) {
 			WithProcessPool(procPool),
 		)
 		result, err := vm.EvaluateAnonymousSnippet("test", snippet)
-		require.Error(t, err)
-
-		// Error is either context.DeadlineExceeded or exec.ExitError or runtime error, depending on whether
-		// the process was already started and which limit was hit first.
-		// We check for all to avoid flakes (any is fine).
-		if errors.Is(err, context.DeadlineExceeded) {
-			return
-		}
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
-			assert.NotEqual(t, exitErr.ProcessState.ExitCode(), 0)
-		}
-
-		// The actual string is OS-specific.
-		require.True(t, strings.Contains(err.Error(), "reached limits") || strings.Contains(err.Error(), "killed") || strings.Contains(err.Error(), "encountered an error"), err.Error())
+		ensureChildProcessStoppedEarly(t, err)
 		assert.Empty(t, result)
 	})
 
@@ -186,7 +181,7 @@ func TestSecureVM(t *testing.T) {
 			WithJsonnetBinary(testBinary),
 		)
 		_, err := vm.EvaluateAnonymousSnippet("test", snippet)
-		require.True(t, strings.Contains(err.Error(), "reached limits") || strings.Contains(err.Error(), "killed") || strings.Contains(err.Error(), "encountered an error"))
+		ensureChildProcessStoppedEarly(t, err)
 	})
 
 	t.Run("case=stdout too lengthy pool", func(t *testing.T) {
@@ -199,9 +194,7 @@ func TestSecureVM(t *testing.T) {
 			WithJsonnetBinary(testBinary),
 		)
 		_, err := vm.EvaluateAnonymousSnippet("test", snippet)
-		// In the case of the pool, the `bufio.Scanner` has an internal limit and returns itself an error when
-		// this is reached.
-		require.ErrorContains(t, err, "token too long")
+		ensureChildProcessStoppedEarly(t, err)
 	})
 
 	t.Run("case=stderr truncated", func(t *testing.T) {
