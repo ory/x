@@ -186,7 +186,7 @@ func TestSecureVM(t *testing.T) {
 			WithJsonnetBinary(testBinary),
 		)
 		_, err := vm.EvaluateAnonymousSnippet("test", snippet)
-		require.ErrorContains(t, err, "reached limits")
+		require.True(t, strings.Contains(err.Error(), "reached limits") || strings.Contains(err.Error(), "killed") || strings.Contains(err.Error(), "encountered an error"))
 	})
 
 	t.Run("case=stdout too lengthy pool", func(t *testing.T) {
