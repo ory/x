@@ -24,20 +24,24 @@ import (
 )
 
 func ensureChildProcessStoppedEarly(t testing.TB, err error) {
+	t.Helper()
+
 	require.Error(t, err)
 	// The actual string is OS-specific and our tests run on all major ones.
 	// Additionally the child process may have stopped/been stopped for a variety of reasons,
 	// depending on which limit was hit first.
+	errStr := err.Error()
 	require.True(t,
 		// Killed by the parent or the OS (due to hitting the memory limit).
-		strings.Contains(err.Error(), "reached limits") ||
-			strings.Contains(err.Error(), "killed") ||
+		strings.Contains(errStr, "reached limits") ||
+			strings.Contains(errStr, "killed") ||
 			// Invalid input.
-			strings.Contains(err.Error(), "encountered an error") ||
+			strings.Contains(errStr, "encountered an error") ||
 			// Timeout.
-			strings.Contains(err.Error(), "deadline exceeded") ||
+			strings.Contains(errStr, "deadline exceeded") ||
 			// Too much output (this error comes from `bufio.Scanner` which has its own internal limit).
-			strings.Contains(err.Error(), "token too long"),
+			strings.Contains(errStr, "token too long"),
+		errStr,
 	)
 
 	var exitErr *exec.ExitError
