@@ -271,19 +271,40 @@ func assertEqualVMOutput(t *testing.T, run func(factory func(t *testing.T) VM) s
 	assert.Equal(t, expectedOut, poolOut, "pool output incorrect")
 }
 
-func TestCreateMultipleProcessVMs(t *testing.T) {
+func TestStressTest(t *testing.T) {
 	ctx := context.Background()
 	wg := new(errgroup.Group)
 	testBinary := JsonnetTestBinary(t)
 
-	for i := 0; i < 100; i++ {
+	count := 500
+	type Case struct {
+		snippet     string
+		errExpected bool
+	}
+
+	cases := []Case{
+		{snippet: `{a:1}`, errExpected: false},                       // Correct.
+		{snippet: `{a: std.repeat("a",1000000)}`, errExpected: true}, // Correct but output is too lengthy.
+		{snippet: `{a:`, errExpected: true},                          // Incorrect syntax (will print on stderr).
+	}
+	for i := range count {
 		wg.Go(func() error {
 			vm := MakeSecureVM(
 				WithProcessIsolatedVM(ctx),
 				WithJsonnetBinary(testBinary),
 			)
-			_, err := vm.EvaluateAnonymousSnippet("test", "{a:1}")
+			c := cases[i%len(cases)]
+			_, err := vm.EvaluateAnonymousSnippet("test", c.snippet)
 
+			if c.errExpected {
+				require.Error(t, err)
+				return nil
+			}
+
+			// An error happened but none was expected.
+			if err != nil {
+				t.Logf("err: i=%d case=%+v err=%+v", i, c, err)
+			}
 			return err
 		})
 	}
