@@ -35,6 +35,10 @@ func ensureChildProcessStoppedEarly(t testing.TB, err error) {
 		// Killed by the parent or the OS (due to hitting the memory limit).
 		strings.Contains(errStr, "reached limits") ||
 			strings.Contains(errStr, "killed") ||
+
+			// The Go runtime hit the memory limit and quit.
+			strings.Contains(errStr, "cannot allocate memory") ||
+
 			// Invalid input.
 			strings.Contains(errStr, "encountered an error") ||
 			// Timeout.
