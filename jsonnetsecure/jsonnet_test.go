@@ -172,7 +172,7 @@ func TestSecureVM(t *testing.T) {
 		}
 
 		// The actual string is OS-specific.
-		require.True(t, strings.Contains(err.Error(), "reached limits") || strings.Contains(err.Error(), "killed") || strings.Contains(err.Error(), "encountered an error"))
+		require.True(t, strings.Contains(err.Error(), "reached limits") || strings.Contains(err.Error(), "killed") || strings.Contains(err.Error(), "encountered an error"), err.Error())
 		assert.Empty(t, result)
 	})
 
