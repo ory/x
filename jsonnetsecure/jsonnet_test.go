@@ -234,6 +234,8 @@ func TestStressTest(t *testing.T) {
 				WithJsonnetBinary(testBinary),
 			)
 			snippet := cases[i%len(cases)]
+			// Due to the documented edge cases, we cannot really assert anything about
+			// the result and error in the presence of misbehaving scripts.
 			vm.EvaluateAnonymousSnippet("test", snippet)
 			return nil
 		})

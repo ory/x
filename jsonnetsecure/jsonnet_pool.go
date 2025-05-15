@@ -3,6 +3,18 @@
 
 package jsonnetsecure
 
+// Known limitations/edge cases:
+// - The child process exiting early (e.g. crashing) or getting killed (e.g. reaching some OS limit)
+//   is not detected and no error will be returned in this case from `eval()`.
+// - Misbehaving jsonnet scripts in the middle of a batch being passed to the child process for evaluation may result in
+//   no error (as mentioned above), and other valid scripts in this batch may result
+//   in an error (because the output from the child process is truncated).
+//
+// Possible remediations:
+// - Do not pass a batch of scripts to a worker, only pass one script at a time (to isolate misbehaving scripts)
+// - Validate that the output is valid JSON (to detect truncated output)
+// - Detect the child process exiting (to return an error)
+
 import (
 	"bufio"
 	"context"
