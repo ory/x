@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"syscall"
 	"time"
@@ -111,6 +112,8 @@ func (p *ProcessVM) EvaluateAnonymousSnippet(filename string, snippet string) (_
 
 		err = cmd.Wait()
 		if err != nil || len(stderrOutput) > 0 {
+			fmt.Fprintf(os.Stderr, "[D001] snippet=%s err=%v stderr=%s\n", snippet, err, string(stderrOutput))
+
 			return "", backoff.Permanent(fmt.Errorf("jsonnetsecure: subprocess encountered an error: %w %s", err, string(stderrOutput)))
 		}
 
