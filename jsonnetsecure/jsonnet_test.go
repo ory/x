@@ -277,10 +277,10 @@ func TestStressTest(t *testing.T) {
 	ctx := context.Background()
 	wg := errgroup.Group{}
 	// It's easy to overwhelm certain OSes with too many spawned processes at once.
-	wg.SetLimit(8)
+	wg.SetLimit(runtime.NumCPU())
 	testBinary := JsonnetTestBinary(t)
 
-	count := 200
+	count := 500
 	type Case struct {
 		snippet     string
 		errExpected bool
