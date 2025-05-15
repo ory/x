@@ -19,7 +19,7 @@ const (
 	// This number was acquired by running:
 	// Found by trial and error with:
 	// `ulimit -Sv 1048576 && echo '{"Snippet": "{user_id: std.repeat(\'a\', 1000)}"}' | kratos jsonnet -0`
-	// NOTE: Ideally we'd like to limit RSS but that is not possible on Linux with `ulimit/setrlimit(2)`.
+	// NOTE: Ideally we'd like to limit RSS but that is not possible on Linux with `ulimit/setrlimit(2)` - only with cgroups.
 	virtualMemoryLimitBytes = 2 * GiB
 )
 
