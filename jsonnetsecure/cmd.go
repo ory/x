@@ -13,14 +13,14 @@ import (
 )
 
 const (
-	MiB uint64 = 1024 * 1024
-	// Generous limit including the peak memory allocated by the Go runtime, the Jsonnet VM,
+	GiB uint64 = 1024 * 1024
+	// Generous limit on virtual memory including the peak memory allocated by the Go runtime, the Jsonnet VM,
 	// and the Jsonnet script.
 	// This number was acquired by running:
-	// `echo -n '{"Snippet":"std.repeat(\"a\", 1000)"}' | rusage ./kratos jsonnet > /dev/null
-	// which outputs among other things: `ballooned to 45,088kb in size` (i.e. ~45 MiB).
-	// Thus we raise this number a bit for safety and call it a day.
-	memoryLimit = 96 * MiB
+	// Found by trial and error with:
+	// `ulimit -Sv 1048576 && echo '{"Snippet": "{user_id: std.repeat(\'a\', 1000)}"}' | kratos jsonnet -0`
+	// NOTE: Ideally we'd like to limit RSS but that is not possible on Linux.
+	memoryLimitBytes = 1 * GiB
 )
 
 func NewJsonnetCmd() *cobra.Command {
@@ -33,7 +33,7 @@ func NewJsonnetCmd() *cobra.Command {
 
 			// This could fail because current limits are lower than what we tried to set,
 			// so we still continue in this case.
-			SetVirtualMemoryLimit(memoryLimit)
+			SetVirtualMemoryLimit(memoryLimitBytes)
 
 			if null {
 				return scan(cmd.OutOrStdout(), cmd.InOrStdin())

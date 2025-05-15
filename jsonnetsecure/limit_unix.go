@@ -12,10 +12,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-func SetVirtualMemoryLimit(limit uint64) error {
+func SetVirtualMemoryLimit(limitBytes uint64) error {
 	lim := syscall.Rlimit{
-		Cur: limit,
-		Max: limit,
+		Cur: limitBytes,
+		Max: limitBytes,
 	}
 	err := syscall.Setrlimit(syscall.RLIMIT_AS, &lim)
 	if err != nil {
