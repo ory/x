@@ -216,6 +216,33 @@ func assertEqualVMOutput(t *testing.T, run func(factory func(t *testing.T) VM) s
 	assert.Equal(t, expectedOut, poolOut, "pool output incorrect")
 }
 
+func TestStressTestOnlyValid(t *testing.T) {
+	wg := errgroup.Group{}
+	testBinary := JsonnetTestBinary(t)
+
+	count := 100
+
+	procPool := NewProcessPool(runtime.GOMAXPROCS(0))
+	defer procPool.Close()
+
+	snippet := `{a:1}`
+	for range count {
+		wg.Go(func() error {
+			vm := MakeSecureVM(
+				WithProcessPool(procPool),
+				WithJsonnetBinary(testBinary),
+			)
+			out, err := vm.EvaluateAnonymousSnippet("test", snippet)
+			require.NoError(t, err)
+			require.NotEmpty(t, out)
+
+			return err
+		})
+	}
+
+	require.NoError(t, wg.Wait())
+}
+
 func TestStressTest(t *testing.T) {
 	wg := errgroup.Group{}
 	testBinary := JsonnetTestBinary(t)
