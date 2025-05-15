@@ -22,7 +22,7 @@ jobs:
           go-version: "1.24"
       - run: |
           go test -tags sqlite -failfast -short -timeout=20m $(go list ./... |grep -E -v 'sqlcon|watcherx|pkgerx|configx|jsonnetsecure')
-          # Run jsonnetsecure tests *not* in parallel with other tests to avoid CPU starvation leading to subprocesses timing out.
+          # Run jsonnetsecure tests *not* in parallel with other packages to avoid CPU starvation leading to subprocesses timing out.
           go test ./jsonnetsecure
         shell: bash
 
