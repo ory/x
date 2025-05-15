@@ -5,6 +5,7 @@ package logrusx
 
 import (
 	"bytes"
+	"cmp"
 	_ "embed"
 	"io"
 	"net/http"
@@ -78,7 +79,7 @@ func setLevel(l *logrus.Logger, o *options) {
 		l.Level = *o.level
 	} else {
 		var err error
-		l.Level, err = logrus.ParseLevel(stringsx.Coalesce(
+		l.Level, err = logrus.ParseLevel(cmp.Or(
 			o.c.String("log.level"),
 			os.Getenv("LOG_LEVEL")))
 		if err != nil {
@@ -93,7 +94,7 @@ func setFormatter(l *logrus.Logger, o *options) {
 	} else {
 		var unknownFormat bool // we first have to set the formatter before we can complain about the unknown format
 
-		format := stringsx.SwitchExact(stringsx.Coalesce(o.format, o.c.String("log.format"), os.Getenv("LOG_FORMAT")))
+		format := stringsx.SwitchExact(cmp.Or(o.format, o.c.String("log.format"), os.Getenv("LOG_FORMAT")))
 		switch {
 		case format.AddCase("json"):
 			l.Formatter = &logrus.JSONFormatter{PrettyPrint: false, TimestampFormat: time.RFC3339Nano, DisableHTMLEscape: true}
@@ -203,7 +204,7 @@ func New(name string, version string, opts ...Option) *Logger {
 		name:          name,
 		version:       version,
 		leakSensitive: o.leakSensitive || o.c.Bool("log.leak_sensitive_values"),
-		redactionText: stringsx.Coalesce(o.redactionText, `Value is sensitive and has been redacted. To see the value set config key "log.leak_sensitive_values = true" or environment variable "LOG_LEAK_SENSITIVE_VALUES=true".`),
+		redactionText: cmp.Or(o.redactionText, `Value is sensitive and has been redacted. To see the value set config key "log.leak_sensitive_values = true" or environment variable "LOG_LEAK_SENSITIVE_VALUES=true".`),
 		Entry: newLogger(o.l, o).WithFields(logrus.Fields{
 			"audience": "application", "service_name": name, "service_version": version}),
 	}
@@ -215,7 +216,7 @@ func NewAudit(name string, version string, opts ...Option) *Logger {
 
 func (l *Logger) UseConfig(c configurator) {
 	l.leakSensitive = l.leakSensitive || c.Bool("log.leak_sensitive_values")
-	l.redactionText = stringsx.Coalesce(c.String("log.redaction_text"), l.redactionText)
+	l.redactionText = cmp.Or(c.String("log.redaction_text"), l.redactionText)
 	o := newOptions(append(l.opts, WithConfigurator(c)))
 	setLevel(l.Entry.Logger, o)
 	setFormatter(l.Entry.Logger, o)

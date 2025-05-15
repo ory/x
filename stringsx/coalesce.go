@@ -3,12 +3,10 @@
 
 package stringsx
 
+import "cmp"
+
 // Coalesce returns the first non-empty string value
+// Deprecated: use cmp.Or instead
 func Coalesce(str ...string) string {
-	for _, s := range str {
-		if s != "" {
-			return s
-		}
-	}
-	return ""
+	return cmp.Or(str...)
 }

@@ -34,7 +34,7 @@ func ToFloatSliceE(i interface{}) ([]float64, error) {
 	case reflect.Slice, reflect.Array:
 		s := reflect.ValueOf(i)
 		a := make([]float64, s.Len())
-		for j := 0; j < s.Len(); j++ {
+		for j := range a {
 			val, err := cast.ToFloat64E(s.Index(j).Interface())
 			if err != nil {
 				return []float64{}, fmt.Errorf("unable to cast %#v of type %T to []float64", i, i)
@@ -64,7 +64,5 @@ func ToStringSliceE(i interface{}) ([]string, error) {
 }
 
 func parseCSV(v string) ([]string, error) {
-	stringReader := strings.NewReader(v)
-	csvReader := csv.NewReader(stringReader)
-	return csvReader.Read()
+	return csv.NewReader(strings.NewReader(v)).Read()
 }

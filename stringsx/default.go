@@ -3,7 +3,9 @@
 
 package stringsx
 
-// Deprecated: use Coalesce instead
+import "cmp"
+
+// Deprecated: use cmp.Or instead
 func DefaultIfEmpty(s string, defaultValue string) string {
-	return Coalesce(s, defaultValue)
+	return cmp.Or(s, defaultValue)
 }

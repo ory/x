@@ -4,6 +4,7 @@
 package metricsx
 
 import (
+	"cmp"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -26,14 +27,13 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/gofrs/uuid"
+
 	"github.com/ory/x/cmdx"
 	"github.com/ory/x/logrusx"
 	"github.com/ory/x/resilience"
-	"github.com/ory/x/stringsx"
 
-	"github.com/gofrs/uuid"
-
-	analytics "github.com/ory/analytics-go/v5"
+	"github.com/ory/analytics-go/v5"
 )
 
 var instance *Service
@@ -286,7 +286,7 @@ func (sw *Service) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.
 		DeploymentId: sw.o.DeploymentId,
 		Project:      sw.o.Service,
 
-		UrlHost:        stringsx.Coalesce(r.Header.Get("X-Forwarded-Host"), r.Host),
+		UrlHost:        cmp.Or(r.Header.Get("X-Forwarded-Host"), r.Host),
 		UrlPath:        path,
 		RequestCode:    stat,
 		RequestLatency: int(latency),

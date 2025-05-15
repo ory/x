@@ -3,12 +3,12 @@
 
 package osx
 
-import "os"
+import (
+	"cmp"
+	"os"
+)
 
 // GetenvDefault returns an environment variable or the default value if it is empty.
 func GetenvDefault(key string, def string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return def
+	return cmp.Or(os.Getenv(key), def)
 }
