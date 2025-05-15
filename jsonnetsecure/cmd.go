@@ -20,7 +20,7 @@ const (
 	// Found by trial and error with:
 	// `ulimit -Sv 1048576 && echo '{"Snippet": "{user_id: std.repeat(\'a\', 1000)}"}' | kratos jsonnet -0`
 	// NOTE: Ideally we'd like to limit RSS but that is not possible on Linux.
-	memoryLimitBytes = 1 * GiB
+	memoryLimitBytes = 2 * GiB
 )
 
 func NewJsonnetCmd() *cobra.Command {
