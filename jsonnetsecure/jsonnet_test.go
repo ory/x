@@ -250,9 +250,10 @@ func TestStressTest(t *testing.T) {
 	count := 100
 
 	cases := []string{
-		`{a:1}`,                        // Correct.
-		`{a: std.repeat("a",1000000)}`, // Correct but output is too lengthy.
-		`{a:`,                          // Incorrect syntax (will print on stderr).
+		`{a:1}`,                                // Correct.
+		`{a: std.repeat("a",1000000)}`,         // Correct but output is too lengthy.
+		`{a:`,                                  // Incorrect syntax (will print on stderr).
+		`{a:` + strings.Repeat("a", 1024*1024), // Big script which will be printed to stderr.
 	}
 	for i := range count {
 		wg.Go(func() error {

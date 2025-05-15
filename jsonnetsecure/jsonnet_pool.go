@@ -22,7 +22,6 @@ import (
 	"io"
 	"math"
 	"os/exec"
-	"strconv"
 	"strings"
 	"time"
 
@@ -36,7 +35,6 @@ import (
 )
 
 const (
-	chanSize           = 16
 	KiB                = 1024
 	jsonnetOutputLimit = 512 * KiB
 	jsonnetErrLimit    = 1 * KiB
@@ -132,7 +130,7 @@ func newWorker(ctx context.Context) (_ worker, err error) {
 		return worker{}, errors.Wrap(err, "newWorker: failed to create stdin pipe")
 	}
 
-	in := make(chan []byte, chanSize)
+	in := make(chan []byte, 1)
 	go func(c <-chan []byte) {
 		for input := range c {
 			if _, err := stdin.Write(append(input, 0)); err != nil {
@@ -151,39 +149,29 @@ func newWorker(ctx context.Context) (_ worker, err error) {
 		return worker{}, errors.Wrap(err, "newWorker: failed to create stderr pipe")
 	}
 
-	stdoutReader := io.LimitReader(stdout, int64(jsonnetOutputLimit))
-	stderrReader := io.LimitReader(stderr, int64(jsonnetErrLimit))
-
 	if err := cmd.Start(); err != nil {
 		return worker{}, errors.Wrap(err, "newWorker: failed to start process")
 	}
 
 	span.SetAttributes(semconv.ProcessPID(cmd.Process.Pid))
 
-	scan := func(c chan<- string, r io.Reader, limit int) {
+	scan := func(c chan<- string, r io.Reader) {
 		defer close(c)
 		// NOTE: `bufio.Scanner` has its own internal limit of 64 KiB.
 		scanner := bufio.NewScanner(r)
 
 		scanner.Split(splitNull)
 		for scanner.Scan() {
-			s := scanner.Text()
-			if len(s) >= limit {
-				c <- "ERROR: reached limits: " + strconv.FormatInt(int64(len(s)), 10)
-			} else {
-				c <- s
-			}
+			c <- scanner.Text()
 		}
 		if err := scanner.Err(); err != nil {
 			c <- "ERROR: scan: " + err.Error()
 		}
 	}
-	out := make(chan string, chanSize)
-	go scan(out, stdoutReader, jsonnetOutputLimit)
-	errs := make(chan string, chanSize)
-	// No limit here because: too much data on stderr is not an error - simply having some already is.
-	// And we already use a LimitedReader.
-	go scan(errs, stderrReader, math.MaxInt)
+	out := make(chan string, 1)
+	go scan(out, stdout)
+	errs := make(chan string, 1)
+	go scan(errs, stderr)
 
 	w := worker{
 		cmd:    cmd,
