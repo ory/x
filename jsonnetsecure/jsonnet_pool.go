@@ -24,7 +24,10 @@ import (
 )
 
 const (
-	chanSize = 16
+	chanSize           = 16
+	KiB                = 1024
+	jsonnetOutputLimit = 512 * KiB
+	jsonnetErrLimit    = 1 * KiB
 )
 
 type (
