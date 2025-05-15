@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	GiB uint64 = 1024 * 1024
+	GiB uint64 = 1024 * 1024 * 1024
 	// Generous limit on virtual memory including the peak memory allocated by the Go runtime, the Jsonnet VM,
 	// and the Jsonnet script.
 	// This number was acquired by running:
