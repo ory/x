@@ -20,7 +20,7 @@ const (
 	// Found by trial and error with:
 	// `ulimit -Sv 1048576 && echo '{"Snippet": "{user_id: std.repeat(\'a\', 1000)}"}' | kratos jsonnet -0`
 	// NOTE: Ideally we'd like to limit RSS but that is not possible on Linux with `ulimit/setrlimit(2)`.
-	memoryLimitBytes = 2 * GiB
+	virtualMemoryLimitBytes = 2 * GiB
 )
 
 func NewJsonnetCmd() *cobra.Command {
@@ -33,7 +33,7 @@ func NewJsonnetCmd() *cobra.Command {
 
 			// This could fail because current limits are lower than what we tried to set,
 			// so we still continue in this case.
-			SetVirtualMemoryLimit(memoryLimitBytes)
+			SetVirtualMemoryLimit(virtualMemoryLimitBytes)
 
 			if null {
 				return scan(cmd.OutOrStdout(), cmd.InOrStdin())
