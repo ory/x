@@ -118,6 +118,7 @@ func JsonnetTestBinary(t testing.TB) string {
 	}
 
 	var stderr bytes.Buffer
+	// Using `t.TempDir()` results in permissions errors on Windows, sometimes.
 	outPath := path.Join(os.TempDir(), "jsonnet")
 	if runtime.GOOS == "windows" {
 		outPath = outPath + ".exe"
