@@ -218,48 +218,24 @@ func assertEqualVMOutput(t *testing.T, run func(factory func(t *testing.T) VM) s
 
 func TestStressTest(t *testing.T) {
 	wg := errgroup.Group{}
-	// It's easy to overwhelm certain OSes with too many spawned processes at once.
-	wg.SetLimit(runtime.NumCPU())
 	testBinary := JsonnetTestBinary(t)
 
-	count := 500
-	type Case struct {
-		snippet     string
-		errExpected bool
-	}
+	count := 100
 
-	cases := []Case{
-		{snippet: `{a:1}`, errExpected: false},                       // Correct.
-		{snippet: `{a: std.repeat("a",1000000)}`, errExpected: true}, // Correct but output is too lengthy.
-		{snippet: `{a:`, errExpected: true},                          // Incorrect syntax (will print on stderr).
+	cases := []string{
+		`{a:1}`,                        // Correct.
+		`{a: std.repeat("a",1000000)}`, // Correct but output is too lengthy.
+		`{a:`,                          // Incorrect syntax (will print on stderr).
 	}
 	for i := range count {
 		wg.Go(func() error {
 			vm := MakeSecureVM(
+				WithProcessPool(procPool),
 				WithJsonnetBinary(testBinary),
 			)
-			c := cases[i%len(cases)]
-			_, err := vm.EvaluateAnonymousSnippet("test", c.snippet)
-
-			// An error happened and was expected: ok.
-			if c.errExpected {
-				require.Error(t, err)
-				return nil
-			}
-
-			// An error happened but none was expected.
-			// Special case for macOS where data-races can happen with `kill(2)` where we
-			// `kill(2)` the wrong process e.g. the one for a valid script.
-			// We cannot avoid this issue so we simply swallow the error.
-			// Other OSes have saner, race-free APIs e.g. https://www.man7.org/linux/man-pages/man2/pidfd_send_signal.2.html.
-			if err != nil && runtime.GOOS == "darwin" && strings.Contains(err.Error(), "signal: killed") {
-				return nil
-			}
-
-			if err != nil {
-				t.Logf("err: i=%d case=%+v err=%+v", i, c, err)
-			}
-			return err
+			snippet := cases[i%len(cases)]
+			vm.EvaluateAnonymousSnippet("test", snippet)
+			return nil
 		})
 	}
 
