@@ -118,7 +118,7 @@ func JsonnetTestBinary(t testing.TB) string {
 	}
 
 	var stderr bytes.Buffer
-	outPath := path.Join(t.TempDir(), "jsonnet")
+	outPath := path.Join(os.TempDir(), "jsonnet")
 	if runtime.GOOS == "windows" {
 		outPath = outPath + ".exe"
 	}
