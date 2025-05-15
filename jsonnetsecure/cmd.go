@@ -20,7 +20,7 @@ const (
 	// `echo -n '{"Snippet":"std.repeat(\"a\", 1000)"}' | rusage ./kratos jsonnet > /dev/null
 	// which outputs among other things: `ballooned to 45,088kb in size` (i.e. ~45 MiB).
 	// Thus we raise this number a bit for safety and call it a day.
-	memoryLimit = 64 * MiB
+	memoryLimit = 96 * MiB
 )
 
 func NewJsonnetCmd() *cobra.Command {
