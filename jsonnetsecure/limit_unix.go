@@ -14,6 +14,7 @@ import (
 )
 
 func SetVirtualMemoryLimit(limitBytes uint64) error {
+	// Tell the Go runtime about the limit.
 	debug.SetMemoryLimit(int64(limitBytes)) //nolint:gosec // The number is a compile-time constant.
 
 	lim := syscall.Rlimit{
