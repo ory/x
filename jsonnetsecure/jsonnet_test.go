@@ -5,7 +5,6 @@ package jsonnetsecure
 
 import (
 	"bufio"
-	"context"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -23,6 +22,38 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+func ensureChildProcessStoppedEarly(t testing.TB, err error) {
+	t.Helper()
+
+	require.Error(t, err)
+	// The actual string is OS-specific and our tests run on all major ones.
+	// Additionally the child process may have stopped/been stopped for a variety of reasons,
+	// depending on which limit was hit first.
+	errStr := err.Error()
+	require.True(t,
+		// Killed by the parent or the OS (due to hitting the memory limit).
+		strings.Contains(errStr, "reached limits") ||
+			strings.Contains(errStr, "killed") ||
+
+			// The Go runtime hit the memory limit and quit.
+			strings.Contains(errStr, "cannot allocate memory") ||
+			strings.Contains(errStr, "out of memory") ||
+
+			// Invalid input.
+			strings.Contains(errStr, "encountered an error") ||
+			// Timeout.
+			strings.Contains(errStr, "deadline exceeded") ||
+			// Too much output (this error comes from `bufio.Scanner` which has its own internal limit).
+			strings.Contains(errStr, "token too long"),
+		errStr,
+	)
+
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		assert.NotEqual(t, exitErr.ProcessState.ExitCode(), 0)
+	}
+}
+
 func TestSecureVM(t *testing.T) {
 	testBinary := JsonnetTestBinary(t)
 
@@ -31,12 +62,7 @@ func TestSecureVM(t *testing.T) {
 		opts []Option
 	}{
 		{"none", []Option{}},
-		{"process vm", []Option{
-			WithProcessIsolatedVM(context.Background()),
-			WithJsonnetBinary(testBinary),
-		}},
 		{"process pool vm", []Option{
-			WithProcessIsolatedVM(context.Background()),
 			WithProcessPool(procPool),
 			WithJsonnetBinary(testBinary),
 		}},
@@ -45,6 +71,7 @@ func TestSecureVM(t *testing.T) {
 			for i, contents := range []string{
 				"local contents = importstr 'jsonnet.go'; { contents: contents }",
 				"local contents = import 'stub/import.jsonnet'; { contents: contents }",
+				`{user_id: ` + strings.Repeat("a", jsonnetErrLimit*5),
 			} {
 				t.Run(fmt.Sprintf("case=%d", i), func(t *testing.T) {
 					vm := MakeSecureVM(optCase.opts...)
@@ -121,39 +148,26 @@ func TestSecureVM(t *testing.T) {
 		})
 	})
 
-	t.Run("case=stack overflow", func(t *testing.T) {
-		snippet := "local f(x) = if x == 0 then [] else [f(x - 1), f(x - 1)]; f(100)"
-		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-		t.Cleanup(cancel)
-		vm := MakeSecureVM(
-			WithProcessIsolatedVM(ctx),
-			WithJsonnetBinary(testBinary),
-		)
-		result, err := vm.EvaluateAnonymousSnippet("test", snippet)
-		require.Error(t, err)
-
-		// Error is either context.DeadlineExceeded or exec.ExitError, depending on whether
-		// the process was already stared. We check for both to avoid flakes (both are fine).
-		if errors.Is(err, context.DeadlineExceeded) {
-			return
-		}
-		var exitErr *exec.ExitError
-		require.ErrorAs(t, err, &exitErr, result)
-		assert.Equal(t, exitErr.ProcessState.ExitCode(), -1)
-	})
-
 	t.Run("case=stack overflow pool", func(t *testing.T) {
 		snippet := "local f(x) = if x == 0 then [] else [f(x - 1), f(x - 1)]; f(100)"
-		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-		t.Cleanup(cancel)
 		vm := MakeSecureVM(
-			WithProcessIsolatedVM(ctx),
 			WithJsonnetBinary(testBinary),
 			WithProcessPool(procPool),
 		)
 		result, err := vm.EvaluateAnonymousSnippet("test", snippet)
-		assert.ErrorIs(t, err, context.DeadlineExceeded)
+		ensureChildProcessStoppedEarly(t, err)
 		assert.Empty(t, result)
+	})
+
+	t.Run("case=stdout too lengthy pool", func(t *testing.T) {
+		// This script outputs more than the limit.
+		snippet := `{user_id: std.repeat("a", ` + strconv.FormatUint(jsonnetOutputLimit, 10) + `)}`
+		vm := MakeSecureVM(
+			WithProcessPool(procPool),
+			WithJsonnetBinary(testBinary),
+		)
+		_, err := vm.EvaluateAnonymousSnippet("test", snippet)
+		ensureChildProcessStoppedEarly(t, err)
 	})
 
 	t.Run("case=importbin", func(t *testing.T) {
@@ -177,19 +191,11 @@ func secureVM(t *testing.T) VM {
 	return MakeSecureVM()
 }
 
-func processVM(t *testing.T) VM {
-	t.Helper()
-	return MakeSecureVM(
-		WithProcessIsolatedVM(context.Background()),
-		WithJsonnetBinary(JsonnetTestBinary(t)))
-}
-
 func poolVM(t *testing.T) VM {
 	t.Helper()
 	pool := NewProcessPool(10)
 	t.Cleanup(pool.Close)
 	return MakeSecureVM(
-		WithProcessIsolatedVM(context.Background()),
 		WithProcessPool(pool),
 		WithJsonnetBinary(JsonnetTestBinary(t)))
 }
@@ -199,28 +205,62 @@ func assertEqualVMOutput(t *testing.T, run func(factory func(t *testing.T) VM) s
 
 	expectedOut := run(standardVM)
 	secureOut := run(secureVM)
-	processOut := run(processVM)
 	poolOut := run(poolVM)
 
 	assert.Equal(t, expectedOut, secureOut, "secure output incorrect")
-	assert.Equal(t, expectedOut, processOut, "process output incorrect")
 	assert.Equal(t, expectedOut, poolOut, "pool output incorrect")
 }
 
-func TestCreateMultipleProcessVMs(t *testing.T) {
-	ctx := context.Background()
-	wg := new(errgroup.Group)
+func TestStressTestOnlyValid(t *testing.T) {
+	wg := errgroup.Group{}
 	testBinary := JsonnetTestBinary(t)
 
-	for i := 0; i < 100; i++ {
+	count := 100
+
+	procPool := NewProcessPool(runtime.GOMAXPROCS(0))
+	defer procPool.Close()
+
+	snippet := `{a:1}`
+	for range count {
 		wg.Go(func() error {
 			vm := MakeSecureVM(
-				WithProcessIsolatedVM(ctx),
+				WithProcessPool(procPool),
 				WithJsonnetBinary(testBinary),
 			)
-			_, err := vm.EvaluateAnonymousSnippet("test", "{a:1}")
+			out, err := vm.EvaluateAnonymousSnippet("test", snippet)
+			require.NoError(t, err)
+			require.NotEmpty(t, out)
 
 			return err
+		})
+	}
+
+	require.NoError(t, wg.Wait())
+}
+
+func TestStressTest(t *testing.T) {
+	wg := errgroup.Group{}
+	testBinary := JsonnetTestBinary(t)
+
+	count := 100
+
+	cases := []string{
+		`{a:1}`,                                // Correct.
+		`{a: std.repeat("a",1000000)}`,         // Correct but output is too lengthy.
+		`{a:`,                                  // Incorrect syntax (will print on stderr).
+		`{a:` + strings.Repeat("a", 1024*1024), // Big script which will be printed to stderr.
+	}
+	for i := range count {
+		wg.Go(func() error {
+			vm := MakeSecureVM(
+				WithProcessPool(procPool),
+				WithJsonnetBinary(testBinary),
+			)
+			snippet := cases[i%len(cases)]
+			// Due to the documented edge cases, we cannot really assert anything about
+			// the result and error in the presence of misbehaving scripts.
+			vm.EvaluateAnonymousSnippet("test", snippet)
+			return nil
 		})
 	}
 
@@ -245,7 +285,6 @@ func BenchmarkIsolatedVM(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			vm := MakeSecureVM(
-				WithProcessIsolatedVM(context.Background()),
 				WithJsonnetBinary(binary),
 			)
 			i := rand.Int()

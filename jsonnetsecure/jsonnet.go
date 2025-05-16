@@ -3,7 +3,9 @@ package jsonnetsecure
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path"
@@ -38,7 +40,6 @@ type (
 	}
 
 	vmOptions struct {
-		useProcessVM      bool
 		jsonnetBinaryPath string
 		args              []string
 		ctx               context.Context
@@ -47,6 +48,14 @@ type (
 
 	Option func(o *vmOptions)
 )
+
+func (pp *processParameters) EncodeTo(w io.Writer) error {
+	return json.NewEncoder(w).Encode(pp)
+}
+
+func (pp *processParameters) Decode(d []byte) error {
+	return json.Unmarshal(d, pp)
+}
 
 func newVMOptions() *vmOptions {
 	jsonnetBinaryPath, _ := os.Executable()
@@ -60,13 +69,6 @@ func WithProcessPool(p Pool) Option {
 	return func(o *vmOptions) {
 		pool, _ := p.(*pool)
 		o.pool = pool
-	}
-}
-
-func WithProcessIsolatedVM(ctx context.Context) Option {
-	return func(o *vmOptions) {
-		o.useProcessVM = true
-		o.ctx = ctx
 	}
 }
 
@@ -90,8 +92,6 @@ func MakeSecureVM(opts ...Option) VM {
 
 	if options.pool != nil {
 		return NewProcessPoolVM(options)
-	} else if options.useProcessVM {
-		return NewProcessVM(options)
 	} else {
 		vm := jsonnet.MakeVM()
 		vm.Importer(new(ErrorImporter))
@@ -111,8 +111,15 @@ func (importer *ErrorImporter) Import(importedFrom, importedPath string) (conten
 func JsonnetTestBinary(t testing.TB) string {
 	t.Helper()
 
+	// We can force the usage of a given jsonnet executable.
+	// Useful to test different versions, or run the tests under wine.
+	if s := os.Getenv("ORY_JSONNET_PATH"); s != "" {
+		return s
+	}
+
 	var stderr bytes.Buffer
-	outPath := path.Join(t.TempDir(), "jsonnet")
+	// Using `t.TempDir()` results in permissions errors on Windows, sometimes.
+	outPath := path.Join(os.TempDir(), "jsonnet")
 	if runtime.GOOS == "windows" {
 		outPath = outPath + ".exe"
 	}

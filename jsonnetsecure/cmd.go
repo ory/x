@@ -12,6 +12,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	GiB uint64 = 1024 * 1024 * 1024
+	// Generous limit on virtual memory including the peak memory allocated by the Go runtime, the Jsonnet VM,
+	// and the Jsonnet script.
+	// This number was acquired by running:
+	// Found by trial and error with:
+	// `ulimit -Sv 1048576 && echo '{"Snippet": "{user_id: std.repeat(\'a\', 1000)}"}' | kratos jsonnet -0`
+	// NOTE: Ideally we'd like to limit RSS but that is not possible on Linux with `ulimit/setrlimit(2)` - only with cgroups.
+	virtualMemoryLimitBytes = 2 * GiB
+)
+
 func NewJsonnetCmd() *cobra.Command {
 	var null bool
 	cmd := &cobra.Command{
@@ -19,6 +30,11 @@ func NewJsonnetCmd() *cobra.Command {
 		Short:  "Run Jsonnet as a CLI command",
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
+
+			// This could fail because current limits are lower than what we tried to set,
+			// so we still continue in this case.
+			SetVirtualMemoryLimit(virtualMemoryLimitBytes)
+
 			if null {
 				return scan(cmd.OutOrStdout(), cmd.InOrStdin())
 			}

@@ -3,6 +3,18 @@
 
 package jsonnetsecure
 
+// Known limitations/edge cases:
+// - The child process exiting early (e.g. crashing) or getting killed (e.g. reaching some OS limit)
+//   is not detected and no error will be returned in this case from `eval()`.
+// - Misbehaving jsonnet scripts in the middle of a batch being passed to the child process for evaluation may result in
+//   no error (as mentioned above), and other valid scripts in this batch may result
+//   in an error (because the output from the child process is truncated).
+//
+// Possible remediations:
+// - Do not pass a batch of scripts to a worker, only pass one script at a time (to isolate misbehaving scripts)
+// - Validate that the output is valid JSON (to detect truncated output)
+// - Detect the child process exiting (to return an error)
+
 import (
 	"bufio"
 	"context"
@@ -20,6 +32,12 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/ory/x/otelx"
+)
+
+const (
+	KiB                = 1024
+	jsonnetOutputLimit = 512 * KiB
+	jsonnetErrLimit    = 1 * KiB
 )
 
 type (
@@ -103,6 +121,7 @@ func newWorker(ctx context.Context) (_ worker, err error) {
 	args, _ := ctx.Value(contextValueArgs).([]string)
 	cmd := exec.Command(path, append(args, "-0")...)
 	cmd.Env = []string{"GOMAXPROCS=1"}
+	cmd.WaitDelay = 100 * time.Millisecond
 
 	span.SetAttributes(semconv.ProcessCommand(cmd.Path), semconv.ProcessCommandArgs(cmd.Args...))
 
@@ -111,7 +130,7 @@ func newWorker(ctx context.Context) (_ worker, err error) {
 		return worker{}, errors.Wrap(err, "newWorker: failed to create stdin pipe")
 	}
 
-	in := make(chan []byte)
+	in := make(chan []byte, 1)
 	go func(c <-chan []byte) {
 		for input := range c {
 			if _, err := stdin.Write(append(input, 0)); err != nil {
@@ -129,6 +148,7 @@ func newWorker(ctx context.Context) (_ worker, err error) {
 	if err != nil {
 		return worker{}, errors.Wrap(err, "newWorker: failed to create stderr pipe")
 	}
+
 	if err := cmd.Start(); err != nil {
 		return worker{}, errors.Wrap(err, "newWorker: failed to start process")
 	}
@@ -137,7 +157,9 @@ func newWorker(ctx context.Context) (_ worker, err error) {
 
 	scan := func(c chan<- string, r io.Reader) {
 		defer close(c)
+		// NOTE: `bufio.Scanner` has its own internal limit of 64 KiB.
 		scanner := bufio.NewScanner(r)
+
 		scanner.Split(splitNull)
 		for scanner.Scan() {
 			c <- scanner.Text()
@@ -146,9 +168,9 @@ func newWorker(ctx context.Context) (_ worker, err error) {
 			c <- "ERROR: scan: " + err.Error()
 		}
 	}
-	out := make(chan string)
+	out := make(chan string, 1)
 	go scan(out, stdout)
-	errs := make(chan string)
+	errs := make(chan string, 1)
 	go scan(errs, stderr)
 
 	w := worker{
