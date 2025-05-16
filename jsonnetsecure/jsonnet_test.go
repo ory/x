@@ -5,7 +5,6 @@ package jsonnetsecure
 
 import (
 	"bufio"
-	"context"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -151,8 +150,6 @@ func TestSecureVM(t *testing.T) {
 
 	t.Run("case=stack overflow pool", func(t *testing.T) {
 		snippet := "local f(x) = if x == 0 then [] else [f(x - 1), f(x - 1)]; f(100)"
-		_, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-		t.Cleanup(cancel)
 		vm := MakeSecureVM(
 			WithJsonnetBinary(testBinary),
 			WithProcessPool(procPool),
@@ -165,8 +162,6 @@ func TestSecureVM(t *testing.T) {
 	t.Run("case=stdout too lengthy pool", func(t *testing.T) {
 		// This script outputs more than the limit.
 		snippet := `{user_id: std.repeat("a", ` + strconv.FormatUint(jsonnetOutputLimit, 10) + `)}`
-		_, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-		t.Cleanup(cancel)
 		vm := MakeSecureVM(
 			WithProcessPool(procPool),
 			WithJsonnetBinary(testBinary),
