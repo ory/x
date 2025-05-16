@@ -14,7 +14,7 @@ import (
 )
 
 func SetVirtualMemoryLimit(limitBytes uint64) error {
-	debug.SetMemoryLimit(int64(limitBytes))
+	debug.SetMemoryLimit(int64(limitBytes)) //nolint:gosec // The number is a compile-time constant.
 
 	lim := syscall.Rlimit{
 		Cur: limitBytes,
