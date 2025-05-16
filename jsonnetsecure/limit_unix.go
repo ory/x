@@ -7,12 +7,15 @@ package jsonnetsecure
 
 import (
 	"fmt"
+	"runtime/debug"
 	"syscall"
 
 	"github.com/pkg/errors"
 )
 
 func SetVirtualMemoryLimit(limitBytes uint64) error {
+	debug.SetMemoryLimit(int64(limitBytes))
+
 	lim := syscall.Rlimit{
 		Cur: limitBytes,
 		Max: limitBytes,
