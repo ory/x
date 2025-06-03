@@ -5,15 +5,16 @@ package httpx
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptrace"
 	"net/netip"
+	"slices"
 	"time"
 
 	"code.dny.dev/ssrf"
 	"github.com/gobwas/glob"
+	"github.com/ory/x/ipx"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
@@ -67,6 +68,7 @@ func init() {
 	d.Control = ssrf.New(
 		ssrf.WithAnyPort(),
 		ssrf.WithNetworks("tcp4", "tcp6"),
+		ssrf.WithAllowedV6Prefixes(ipx.PublicIPv4Nat64Prefixes()...),
 	).Safe
 	prohibitInternalAllowIPv6 = otelTransport(t)
 }
@@ -76,6 +78,7 @@ func init() {
 	d.Control = ssrf.New(
 		ssrf.WithAnyPort(),
 		ssrf.WithNetworks("tcp4"),
+		ssrf.WithAllowedV6Prefixes(ipx.PublicIPv4Nat64Prefixes()...),
 	).Safe
 	t.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
 		return d.DialContext(ctx, "tcp4", addr)
@@ -97,11 +100,13 @@ func init() {
 		ssrf.WithAnyPort(),
 		ssrf.WithNetworks("tcp4", "tcp6"),
 		ssrf.WithAllowedV4Prefixes(allowedV4Prefixes...),
-		ssrf.WithAllowedV6Prefixes(append(
+		ssrf.WithAllowedV6Prefixes(slices.Concat(
+			ipx.PublicIPv4Nat64Prefixes(),
 			[]netip.Prefix{
 				netip.MustParsePrefix("::1/128"),  // Loopback (RFC 4193)
 				netip.MustParsePrefix("fc00::/7"), // Unique Local (RFC 4193)
-			}, mustConvertToNAT64Prefixes(allowedV4Prefixes)...,
+			},
+			ipx.MustConvertToNAT64Prefixes(allowedV4Prefixes),
 		)...),
 	).Safe
 	allowInternalAllowIPv6 = otelTransport(t)
@@ -121,11 +126,13 @@ func init() {
 		ssrf.WithAnyPort(),
 		ssrf.WithNetworks("tcp4"),
 		ssrf.WithAllowedV4Prefixes(allowedV4Prefixes...),
-		ssrf.WithAllowedV6Prefixes(append(
+		ssrf.WithAllowedV6Prefixes(slices.Concat(
+			ipx.PublicIPv4Nat64Prefixes(),
 			[]netip.Prefix{
 				netip.MustParsePrefix("::1/128"),  // Loopback (RFC 4193)
 				netip.MustParsePrefix("fc00::/7"), // Unique Local (RFC 4193)
-			}, mustConvertToNAT64Prefixes(allowedV4Prefixes)...,
+			},
+			ipx.MustConvertToNAT64Prefixes(allowedV4Prefixes),
 		)...),
 	).Safe
 	t.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
@@ -154,33 +161,4 @@ func otelTransport(t *http.Transport) http.RoundTripper {
 	return otelhttp.NewTransport(t, otelhttp.WithClientTrace(func(ctx context.Context) *httptrace.ClientTrace {
 		return otelhttptrace.NewClientTrace(ctx, otelhttptrace.WithoutHeaders(), otelhttptrace.WithoutSubSpans())
 	}))
-}
-
-func mustConvertToNAT64Prefixes(ps []netip.Prefix) []netip.Prefix {
-	out := make([]netip.Prefix, len(ps))
-	for i, p := range ps {
-		out[i] = mustConvertToNAT64Prefix(p)
-	}
-	return out
-}
-
-func mustConvertToNAT64Prefix(p netip.Prefix) netip.Prefix {
-	var nat64Base = netip.MustParsePrefix("64:ff9b::/96") // NAT64 Prefix (RFC 6052)
-
-	if !p.Addr().Is4() {
-		panic(fmt.Errorf("prefix %v is not an IPv4 prefix", p))
-	}
-
-	ipv4Len := p.Bits()
-	if ipv4Len > 32 {
-		panic(fmt.Errorf("invalid IPv4 prefix length: %d", ipv4Len))
-	}
-
-	newLen := 96 + ipv4Len
-	ip4 := p.Addr().As4()
-
-	baseBytes := nat64Base.Addr().As16()
-	copy(baseBytes[12:], ip4[:])
-
-	return netip.PrefixFrom(netip.AddrFrom16(baseBytes), newLen)
 }
