@@ -5,6 +5,7 @@ package httpx
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptrace"
@@ -83,41 +84,49 @@ func init() {
 }
 
 func init() {
+	allowedV4Prefixes := []netip.Prefix{
+		netip.MustParsePrefix("10.0.0.0/8"),     // Private-Use (RFC 1918)
+		netip.MustParsePrefix("127.0.0.0/8"),    // Loopback (RFC 1122, Section 3.2.1.3))
+		netip.MustParsePrefix("169.254.0.0/16"), // Link Local (RFC 3927)
+		netip.MustParsePrefix("172.16.0.0/12"),  // Private-Use (RFC 1918)
+		netip.MustParsePrefix("192.168.0.0/16"), // Private-Use (RFC 1918)
+	}
+
 	t, d := newDefaultTransport()
 	d.Control = ssrf.New(
 		ssrf.WithAnyPort(),
 		ssrf.WithNetworks("tcp4", "tcp6"),
-		ssrf.WithAllowedV4Prefixes(
-			netip.MustParsePrefix("10.0.0.0/8"),     // Private-Use (RFC 1918)
-			netip.MustParsePrefix("127.0.0.0/8"),    // Loopback (RFC 1122, Section 3.2.1.3))
-			netip.MustParsePrefix("169.254.0.0/16"), // Link Local (RFC 3927)
-			netip.MustParsePrefix("172.16.0.0/12"),  // Private-Use (RFC 1918)
-			netip.MustParsePrefix("192.168.0.0/16"), // Private-Use (RFC 1918)
-		),
-		ssrf.WithAllowedV6Prefixes(
-			netip.MustParsePrefix("::1/128"),  // Loopback (RFC 4193)
-			netip.MustParsePrefix("fc00::/7"), // Unique Local (RFC 4193)
-		),
+		ssrf.WithAllowedV4Prefixes(allowedV4Prefixes...),
+		ssrf.WithAllowedV6Prefixes(append(
+			[]netip.Prefix{
+				netip.MustParsePrefix("::1/128"),  // Loopback (RFC 4193)
+				netip.MustParsePrefix("fc00::/7"), // Unique Local (RFC 4193)
+			}, mustConvertToNAT64Prefixes(allowedV4Prefixes)...,
+		)...),
 	).Safe
 	allowInternalAllowIPv6 = otelTransport(t)
 }
 
 func init() {
+	allowedV4Prefixes := []netip.Prefix{
+		netip.MustParsePrefix("10.0.0.0/8"),     // Private-Use (RFC 1918)
+		netip.MustParsePrefix("127.0.0.0/8"),    // Loopback (RFC 1122, Section 3.2.1.3))
+		netip.MustParsePrefix("169.254.0.0/16"), // Link Local (RFC 3927)
+		netip.MustParsePrefix("172.16.0.0/12"),  // Private-Use (RFC 1918)
+		netip.MustParsePrefix("192.168.0.0/16"), // Private-Use (RFC 1918)
+	}
+
 	t, d := newDefaultTransport()
 	d.Control = ssrf.New(
 		ssrf.WithAnyPort(),
 		ssrf.WithNetworks("tcp4"),
-		ssrf.WithAllowedV4Prefixes(
-			netip.MustParsePrefix("10.0.0.0/8"),     // Private-Use (RFC 1918)
-			netip.MustParsePrefix("127.0.0.0/8"),    // Loopback (RFC 1122, Section 3.2.1.3))
-			netip.MustParsePrefix("169.254.0.0/16"), // Link Local (RFC 3927)
-			netip.MustParsePrefix("172.16.0.0/12"),  // Private-Use (RFC 1918)
-			netip.MustParsePrefix("192.168.0.0/16"), // Private-Use (RFC 1918)
-		),
-		ssrf.WithAllowedV6Prefixes(
-			netip.MustParsePrefix("::1/128"),  // Loopback (RFC 4193)
-			netip.MustParsePrefix("fc00::/7"), // Unique Local (RFC 4193)
-		),
+		ssrf.WithAllowedV4Prefixes(allowedV4Prefixes...),
+		ssrf.WithAllowedV6Prefixes(append(
+			[]netip.Prefix{
+				netip.MustParsePrefix("::1/128"),  // Loopback (RFC 4193)
+				netip.MustParsePrefix("fc00::/7"), // Unique Local (RFC 4193)
+			}, mustConvertToNAT64Prefixes(allowedV4Prefixes)...,
+		)...),
 	).Safe
 	t.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
 		return d.DialContext(ctx, "tcp4", addr)
@@ -145,4 +154,33 @@ func otelTransport(t *http.Transport) http.RoundTripper {
 	return otelhttp.NewTransport(t, otelhttp.WithClientTrace(func(ctx context.Context) *httptrace.ClientTrace {
 		return otelhttptrace.NewClientTrace(ctx, otelhttptrace.WithoutHeaders(), otelhttptrace.WithoutSubSpans())
 	}))
+}
+
+func mustConvertToNAT64Prefixes(ps []netip.Prefix) []netip.Prefix {
+	out := make([]netip.Prefix, len(ps))
+	for i, p := range ps {
+		out[i] = mustConvertToNAT64Prefix(p)
+	}
+	return out
+}
+
+func mustConvertToNAT64Prefix(p netip.Prefix) netip.Prefix {
+	var nat64Base = netip.MustParsePrefix("64:ff9b::/96") // NAT64 Prefix (RFC 6052)
+
+	if !p.Addr().Is4() {
+		panic(fmt.Errorf("prefix %v is not an IPv4 prefix", p))
+	}
+
+	ipv4Len := p.Bits()
+	if ipv4Len > 32 {
+		panic(fmt.Errorf("invalid IPv4 prefix length: %d", ipv4Len))
+	}
+
+	newLen := 96 + ipv4Len
+	ip4 := p.Addr().As4()
+
+	baseBytes := nat64Base.Addr().As16()
+	copy(baseBytes[12:], ip4[:])
+
+	return netip.PrefixFrom(netip.AddrFrom16(baseBytes), newLen)
 }
