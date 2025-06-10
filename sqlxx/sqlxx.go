@@ -17,7 +17,7 @@ import (
 // Returns a slice of field names as strings.
 func GetDBFieldNames(model interface{}, exclude ...string) []string {
 	// Create a mapper that uses the "db" tag
-	mapper := reflectx.NewMapperFunc("db", strings.ToLower)
+	mapper := reflectx.NewMapper("db")
 
 	// Get field names from the struct
 	fields := mapper.TypeMap(reflectx.Deref(reflect.TypeOf(model))).Names
