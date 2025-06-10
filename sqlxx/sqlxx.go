@@ -8,22 +8,30 @@ import (
 	"reflect"
 	"slices"
 	"strings"
+
+	"github.com/jmoiron/sqlx/reflectx"
 )
 
-func keys(t any, exclude []string) []string {
-	tt := reflect.TypeOf(t)
-	if tt.Kind() == reflect.Pointer {
-		tt = tt.Elem()
-	}
-	ks := make([]string, 0, tt.NumField())
-	for i := range tt.NumField() {
-		f := tt.Field(i)
-		key, _, _ := strings.Cut(f.Tag.Get("db"), ",")
-		if key != "" && key != "-" && !slices.Contains(exclude, key) {
-			ks = append(ks, key)
+// GetDBFieldNames extracts all database field names from a struct based on the `db` tags using sqlx.
+// Fields without a `db` tag, with a `db:"-"` tag, or listed in the `exclude` parameter are omitted.
+// Returns a slice of field names as strings.
+func GetDBFieldNames(model interface{}, exclude ...string) []string {
+	// Create a mapper that uses the "db" tag
+	mapper := reflectx.NewMapperFunc("db", strings.ToLower)
+
+	// Get field names from the struct
+	fields := mapper.TypeMap(reflectx.Deref(reflect.TypeOf(model))).Names
+
+	// Extract just the field names
+	fieldNames := make([]string, 0, len(fields))
+	for _, f := range fields {
+		if f.Field.Tag == "" || f.Path == "" || f.Name == "" || slices.Contains(exclude, f.Name) {
+			continue
 		}
+		fieldNames = append(fieldNames, f.Name)
 	}
-	return ks
+
+	return fieldNames
 }
 
 // NamedInsertArguments returns columns and arguments for SQL INSERT statements based on a struct's tags. Does
@@ -39,7 +47,7 @@ func keys(t any, exclude []string) []string {
 //	query := fmt.Sprintf("INSERT INTO foo (%s) VALUES (%s)", columns, arguments)
 //	// INSERT INTO foo (foo, bar) VALUES (:foo, :bar)
 func NamedInsertArguments(t any, exclude ...string) (columns string, arguments string) {
-	keys := keys(t, exclude)
+	keys := GetDBFieldNames(t, exclude...)
 	return strings.Join(keys, ", "),
 		":" + strings.Join(keys, ", :")
 }
@@ -56,7 +64,7 @@ func NamedInsertArguments(t any, exclude ...string) (columns string, arguments s
 //	query := fmt.Sprintf("UPDATE foo SET %s", NamedUpdateArguments(new(st)))
 //	// UPDATE foo SET foo=:foo, bar=:bar
 func NamedUpdateArguments(t any, exclude ...string) string {
-	keys := keys(t, exclude)
+	keys := GetDBFieldNames(t, exclude...)
 	statements := make([]string, len(keys))
 
 	for k, key := range keys {

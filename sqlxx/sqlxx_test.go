@@ -32,3 +32,28 @@ func TestExpectNamedInsert(t *testing.T) {
 		fmt.Sprintf("INSERT INTO foo (%s) VALUES (%s)", columns, arguments),
 	)
 }
+
+func TestGetDBFieldNames(t *testing.T) {
+	t.Run("get all db field names", func(t *testing.T) {
+		fieldNames := GetDBFieldNames(new(st))
+		assert.ElementsMatch(t, []string{"foo", "bar", "barn"}, fieldNames)
+	})
+
+	t.Run("with exclusions", func(t *testing.T) {
+		fieldNames := GetDBFieldNames(new(st), "barn")
+		assert.ElementsMatch(t, []string{"foo", "bar"}, fieldNames)
+
+		fieldNames = GetDBFieldNames(new(st), "barn", "foo")
+		assert.ElementsMatch(t, []string{"bar"}, fieldNames)
+	})
+
+	t.Run("fields with - tag are excluded", func(t *testing.T) {
+		fieldNames := GetDBFieldNames(new(st))
+		assert.NotContains(t, fieldNames, "baz")
+	})
+
+	t.Run("fields without db tag are excluded", func(t *testing.T) {
+		fieldNames := GetDBFieldNames(new(st))
+		assert.NotContains(t, fieldNames, "zab")
+	})
+}
