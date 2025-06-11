@@ -4,6 +4,7 @@
 package keysetpagination
 
 import (
+	"cmp"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -11,8 +12,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-
-	"github.com/ory/x/stringsx"
 )
 
 // Pagination Request Parameters
@@ -67,11 +66,6 @@ type ResponseHeaders struct {
 	//	</admin/sessions?page_size=250&page_token={last_item_uuid}; rel="first",/admin/sessions?page_size=250&page_token=>; rel="next"
 	//
 	Link string `json:"link"`
-
-	// The X-Total-Count HTTP Header
-	//
-	// The `X-Total-Count` header contains the total number of items in the collection.
-	TotalCount int `json:"x-total-count"`
 }
 
 func header(u *url.URL, rel, token string, size int) string {
@@ -96,7 +90,7 @@ func Header(w http.ResponseWriter, u *url.URL, p *Paginator) {
 // Parse returns the pagination options from the URL query.
 func Parse(q url.Values, p PageTokenConstructor) ([]Option, error) {
 	var opts []Option
-	if pt := stringsx.Coalesce(q["page_token"]...); pt != "" {
+	if pt := cmp.Or(q["page_token"]...); pt != "" {
 		pageToken, err := url.QueryUnescape(pt)
 		if err != nil {
 			return nil, errors.WithStack(err)
@@ -107,7 +101,7 @@ func Parse(q url.Values, p PageTokenConstructor) ([]Option, error) {
 		}
 		opts = append(opts, WithToken(parsed))
 	}
-	if ps := stringsx.Coalesce(q["page_size"]...); ps != "" {
+	if ps := cmp.Or(q["page_size"]...); ps != "" {
 		size, err := strconv.Atoi(ps)
 		if err != nil {
 			return nil, errors.WithStack(err)

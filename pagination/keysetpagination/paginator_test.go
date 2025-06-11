@@ -114,6 +114,11 @@ func TestPaginator(t *testing.T) {
 				opts:         []Option{WithSize(10), WithDefaultSize(20), WithMaxSize(5)},
 				expectedSize: 5,
 			},
+			{
+				name:         "with negative size",
+				opts:         []Option{WithSize(-1), WithDefaultSize(20), WithMaxSize(100)},
+				expectedSize: 20,
+			},
 		} {
 			t.Run(tc.name, func(t *testing.T) {
 				paginator := GetPaginator(tc.opts...)
