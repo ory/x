@@ -39,6 +39,20 @@ func TestPaginator(t *testing.T) {
 		assert.Equal(t, []interface{}{"token"}, args)
 	})
 
+	t.Run("paginates correctly with negative size", func(t *testing.T) {
+		c, err := pop.NewConnection(&pop.ConnectionDetails{
+			URL: "postgres://foo.bar",
+		})
+		require.NoError(t, err)
+		q := pop.Q(c)
+		paginator := GetPaginator(WithSize(-1), WithDefaultSize(10), WithToken(StringPageToken("token")))
+		q = q.Scope(Paginate[testItem](paginator))
+
+		sql, args := q.ToSQL(&pop.Model{Value: new(testItem)})
+		assert.Equal(t, `SELECT test_items.created_at, test_items.pk FROM test_items AS test_items WHERE "test_items"."pk" > $1 ORDER BY "test_items"."pk" ASC LIMIT 11`, sql)
+		assert.Equal(t, []interface{}{"token"}, args)
+	})
+
 	t.Run("paginates correctly mysql", func(t *testing.T) {
 		c, err := pop.NewConnection(&pop.ConnectionDetails{
 			URL: "mysql://user:pass@(host:1337)/database",
@@ -113,6 +127,11 @@ func TestPaginator(t *testing.T) {
 				name:         "with size and custom default and max size",
 				opts:         []Option{WithSize(10), WithDefaultSize(20), WithMaxSize(5)},
 				expectedSize: 5,
+			},
+			{
+				name:         "with negative size",
+				opts:         []Option{WithSize(-1), WithDefaultSize(20), WithMaxSize(100)},
+				expectedSize: 20,
 			},
 		} {
 			t.Run(tc.name, func(t *testing.T) {

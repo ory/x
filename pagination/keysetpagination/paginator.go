@@ -59,7 +59,7 @@ func (p *Paginator) Token() PageToken {
 
 func (p *Paginator) Size() int {
 	size := p.size
-	if size == 0 {
+	if size <= 0 {
 		size = p.defaultSize
 		if size == 0 {
 			size = 100
