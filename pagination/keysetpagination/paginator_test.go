@@ -269,3 +269,59 @@ func TestPaginateWithAdditionalColumn(t *testing.T) {
 		})
 	}
 }
+
+func TestOptions(t *testing.T) {
+	for _, tc := range []struct {
+		name          string
+		opts          []Option
+		expectedToken PageToken
+		expectedSize  int
+	}{
+		{
+			name:          "no options",
+			opts:          nil,
+			expectedToken: nil,
+			expectedSize:  DefaultSize,
+		},
+		{
+			name:          "with token",
+			opts:          []Option{WithToken(StringPageToken("token"))},
+			expectedToken: StringPageToken("token"),
+			expectedSize:  DefaultSize,
+		},
+		{
+			name:          "with size",
+			opts:          []Option{WithSize(10)},
+			expectedToken: nil,
+			expectedSize:  10,
+		},
+		{
+			name: "with all options",
+			opts: []Option{
+				WithToken(StringPageToken("token")),
+				WithDefaultToken(StringPageToken("default")),
+				WithSize(20),
+				WithDefaultSize(30),
+				WithMaxSize(50),
+				WithColumn("created_at", "DESC"),
+				withIsLast(true),
+			},
+			expectedToken: StringPageToken("token"),
+			expectedSize:  20,
+		},
+		{
+			name:          "with explicit defaults",
+			opts:          []Option{WithMaxSize(DefaultMaxSize), WithDefaultSize(DefaultSize)},
+			expectedToken: nil,
+			expectedSize:  DefaultSize,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			paginator := GetPaginator(tc.opts...)
+			assert.Equal(t, tc.expectedToken, paginator.Token())
+			assert.Equal(t, tc.expectedSize, paginator.Size())
+
+			assert.Equal(t, paginator, GetPaginator(paginator.ToOptions()...))
+		})
+	}
+}
