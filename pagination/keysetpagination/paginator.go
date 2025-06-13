@@ -76,15 +76,29 @@ func (p *Paginator) IsLast() bool {
 }
 
 func (p *Paginator) ToOptions() []Option {
-	return []Option{
-		WithToken(p.token),
-		WithSize(p.size),
-		WithDefaultToken(p.defaultToken),
-		WithDefaultSize(p.defaultSize),
-		WithMaxSize(p.maxSize),
-		WithColumn(p.additionalColumn.name, p.additionalColumn.order),
-		withIsLast(p.isLast),
+	opts := make([]Option, 0, 7)
+	if p.token != nil {
+		opts = append(opts, WithToken(p.token))
 	}
+	if p.defaultToken != nil {
+		opts = append(opts, WithDefaultToken(p.defaultToken))
+	}
+	if p.size > 0 {
+		opts = append(opts, WithSize(p.size))
+	}
+	if p.defaultSize != DefaultSize {
+		opts = append(opts, WithDefaultSize(p.defaultSize))
+	}
+	if p.maxSize != DefaultMaxSize {
+		opts = append(opts, WithMaxSize(p.maxSize))
+	}
+	if p.additionalColumn.name != "" {
+		opts = append(opts, WithColumn(p.additionalColumn.name, p.additionalColumn.order))
+	}
+	if p.isLast {
+		opts = append(opts, withIsLast(p.isLast))
+	}
+	return opts
 }
 
 func (p *Paginator) multipleOrderFieldsQuery(q *pop.Query, idField string, cols map[string]*columns.Column, quoteAndContextualize func(string) string) {
