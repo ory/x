@@ -6,9 +6,8 @@ package popx
 import (
 	"sort"
 
+	pop "github.com/gobuffalo/pop/v6"
 	"github.com/pkg/errors"
-
-	"github.com/gobuffalo/pop/v6"
 )
 
 // Migration handles the data for a given database migration

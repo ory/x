@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/bmatcuk/doublestar/v2"
+	doublestar "github.com/bmatcuk/doublestar/v2"
 	"github.com/google/go-jsonnet/formatter"
 	"github.com/spf13/cobra"
 

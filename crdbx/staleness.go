@@ -6,10 +6,9 @@ package crdbx
 import (
 	"net/http"
 
+	pop "github.com/gobuffalo/pop/v6"
+
 	"github.com/ory/x/dbal"
-
-	"github.com/gobuffalo/pop/v6"
-
 	"github.com/ory/x/sqlcon"
 )
 

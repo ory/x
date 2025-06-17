@@ -10,17 +10,16 @@ import (
 	"io"
 	"testing"
 
-	"github.com/bradleyjkemp/cupaloy/v2"
+	cupaloy "github.com/bradleyjkemp/cupaloy/v2"
+	pop "github.com/gobuffalo/pop/v6"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/require"
 
 	"github.com/ory/x/cmdx"
 	"github.com/ory/x/dbal"
 	"github.com/ory/x/logrusx"
 	"github.com/ory/x/popx"
-
-	"github.com/gobuffalo/pop/v6"
-	"github.com/spf13/cobra"
-	"github.com/stretchr/testify/require"
 )
 
 type MockPersistenceProvider struct {

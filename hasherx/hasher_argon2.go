@@ -9,15 +9,14 @@ import (
 	"math"
 	"time"
 
-	"github.com/ory/x/otelx"
-
-	"github.com/inhies/go-bytesize"
+	bytesize "github.com/inhies/go-bytesize"
+	"github.com/pkg/errors"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-
-	"github.com/pkg/errors"
 	"golang.org/x/crypto/argon2"
+
+	"github.com/ory/x/otelx"
 )
 
 var (

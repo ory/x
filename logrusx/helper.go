@@ -13,9 +13,7 @@ import (
 	"strings"
 
 	"github.com/gobuffalo/pop/v6/logging"
-
 	"github.com/sirupsen/logrus"
-
 	"go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"

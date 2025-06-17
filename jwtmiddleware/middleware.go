@@ -10,13 +10,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/golang-jwt/jwt/v5"
+	jwtmiddleware "github.com/auth0/go-jwt-middleware/v2"
+	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/pkg/errors"
+	"github.com/urfave/negroni"
 
 	"github.com/ory/herodot"
-
-	jwtmiddleware "github.com/auth0/go-jwt-middleware/v2"
-	"github.com/urfave/negroni"
 
 	"github.com/ory/x/jwksx"
 )

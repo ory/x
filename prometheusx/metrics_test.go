@@ -12,9 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ory/herodot"
-	"github.com/ory/x/logrusx"
-
 	pbTestproto "github.com/grpc-ecosystem/go-grpc-prometheus/examples/testproto"
 	"github.com/julienschmidt/httprouter"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -26,6 +23,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/ory/herodot"
+
+	"github.com/ory/x/logrusx"
 	prometheus "github.com/ory/x/prometheusx"
 )
 

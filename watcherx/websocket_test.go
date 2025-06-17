@@ -13,13 +13,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ory/x/logrusx"
-
 	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ory/herodot"
+
+	"github.com/ory/x/logrusx"
 	"github.com/ory/x/urlx"
 )
 

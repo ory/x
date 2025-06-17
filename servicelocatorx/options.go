@@ -6,10 +6,9 @@ package servicelocatorx
 import (
 	"net/http"
 
-	"github.com/ory/x/contextx"
-
 	"google.golang.org/grpc"
 
+	"github.com/ory/x/contextx"
 	"github.com/ory/x/logrusx"
 )
 

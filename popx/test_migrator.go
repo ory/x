@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ory/x/logrusx"
-
-	"github.com/gobuffalo/pop/v6"
+	pop "github.com/gobuffalo/pop/v6"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ory/x/logrusx"
 )
 
 // TestMigrator is a modified pop.FileMigrator

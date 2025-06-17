@@ -12,17 +12,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jmoiron/sqlx/reflectx"
-
-	"github.com/ory/x/dbal"
-
-	"github.com/gobuffalo/pop/v6"
+	pop "github.com/gobuffalo/pop/v6"
 	"github.com/gofrs/uuid"
+	"github.com/jmoiron/sqlx/reflectx"
 	"github.com/pkg/errors"
 
+	"github.com/ory/x/dbal"
 	"github.com/ory/x/otelx"
 	"github.com/ory/x/sqlcon"
-
 	"github.com/ory/x/sqlxx"
 )
 

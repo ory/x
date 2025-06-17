@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dgraph-io/ristretto/v2"
-	"github.com/hashicorp/go-retryablehttp"
+	ristretto "github.com/dgraph-io/ristretto/v2"
+	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"github.com/pkg/errors"
 
 	"github.com/ory/x/httpx"

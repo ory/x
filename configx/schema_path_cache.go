@@ -6,11 +6,11 @@ package configx
 import (
 	"crypto/sha256"
 
+	ristretto "github.com/dgraph-io/ristretto/v2"
+
+	jsonschema "github.com/ory/jsonschema/v3"
+
 	"github.com/ory/x/jsonschemax"
-
-	"github.com/dgraph-io/ristretto/v2"
-
-	"github.com/ory/jsonschema/v3"
 )
 
 var schemaPathCacheConfig = &ristretto.Config[[]byte, []jsonschemax.Path]{

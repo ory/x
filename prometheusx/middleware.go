@@ -9,7 +9,6 @@ import (
 	"sync"
 
 	grpcPrometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
-
 	"github.com/julienschmidt/httprouter"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"

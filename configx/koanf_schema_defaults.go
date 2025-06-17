@@ -9,7 +9,8 @@ import (
 	"github.com/knadh/koanf/maps"
 	"github.com/pkg/errors"
 
-	"github.com/ory/jsonschema/v3"
+	jsonschema "github.com/ory/jsonschema/v3"
+
 	"github.com/ory/x/jsonschemax"
 )
 

@@ -6,9 +6,9 @@ package contextx
 import (
 	"context"
 
-	"github.com/ory/x/configx"
-
 	"github.com/gofrs/uuid"
+
+	"github.com/ory/x/configx"
 )
 
 // TestContextualizer is a mock implementation of the Contextualizer interface.

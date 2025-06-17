@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/bmatcuk/doublestar/v2"
-	"github.com/google/go-jsonnet"
+	doublestar "github.com/bmatcuk/doublestar/v2"
+	jsonnet "github.com/google/go-jsonnet"
 	"github.com/google/go-jsonnet/linter"
 	"github.com/spf13/cobra"
 

@@ -9,13 +9,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ory/x/dbal"
-
 	"github.com/gofrs/uuid"
 	"github.com/jmoiron/sqlx/reflectx"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ory/x/dbal"
 	"github.com/ory/x/snapshotx"
 	"github.com/ory/x/sqlxx"
 )

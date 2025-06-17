@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/mock"
 
-	"github.com/ory/dockertest/v3"
+	dockertest "github.com/ory/dockertest/v3"
 	dc "github.com/ory/dockertest/v3/docker"
 )
 

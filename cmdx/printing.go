@@ -13,7 +13,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/go-openapi/jsonpointer"
-	"github.com/goccy/go-yaml"
+	yaml "github.com/goccy/go-yaml"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/tidwall/gjson"

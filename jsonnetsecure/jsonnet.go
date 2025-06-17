@@ -12,7 +12,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/google/go-jsonnet"
+	jsonnet "github.com/google/go-jsonnet"
 )
 
 type (

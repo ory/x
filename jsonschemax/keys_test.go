@@ -11,13 +11,12 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ory/x/snapshotx"
-
 	"github.com/pkg/errors"
-
 	"github.com/stretchr/testify/require"
 
-	"github.com/ory/jsonschema/v3"
+	jsonschema "github.com/ory/jsonschema/v3"
+
+	"github.com/ory/x/snapshotx"
 )
 
 const recursiveSchema = `{

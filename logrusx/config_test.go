@@ -7,17 +7,16 @@ import (
 	"context"
 	"testing"
 
-	"github.com/sirupsen/logrus/hooks/test"
-
 	"github.com/knadh/koanf/parsers/json"
 	"github.com/knadh/koanf/providers/rawbytes"
-	"github.com/knadh/koanf/v2"
+	koanf "github.com/knadh/koanf/v2"
 	"github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/sjson"
 
-	"github.com/ory/jsonschema/v3"
+	jsonschema "github.com/ory/jsonschema/v3"
 )
 
 func TestConfigSchema(t *testing.T) {

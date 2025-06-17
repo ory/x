@@ -13,9 +13,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tidwall/gjson"
 
-	"github.com/ory/x/pagination"
-
 	"github.com/ory/herodot"
+
+	"github.com/ory/x/pagination"
 )
 
 func Encode(offset int64) string {

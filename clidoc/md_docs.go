@@ -23,9 +23,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ory/x/cmdx"
-
 	"github.com/spf13/cobra"
+
+	"github.com/ory/x/cmdx"
 )
 
 func printOptions(buf *bytes.Buffer, cmd *cobra.Command, name string) error {

@@ -18,22 +18,18 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ory/x/httpx"
-
+	"github.com/gofrs/uuid"
+	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
 
-	"github.com/ory/x/configx"
-
-	"github.com/spf13/cobra"
-
-	"github.com/gofrs/uuid"
+	analytics "github.com/ory/analytics-go/v5"
 
 	"github.com/ory/x/cmdx"
+	"github.com/ory/x/configx"
+	"github.com/ory/x/httpx"
 	"github.com/ory/x/logrusx"
 	"github.com/ory/x/resilience"
-
-	"github.com/ory/analytics-go/v5"
 )
 
 var instance *Service

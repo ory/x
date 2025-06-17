@@ -4,11 +4,9 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-
 	"golang.org/x/crypto/bcrypt"
 )
 

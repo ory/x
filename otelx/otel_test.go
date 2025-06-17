@@ -23,10 +23,9 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
+	tracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
-
-	tracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 
 	"github.com/ory/x/logrusx"
 )

@@ -14,10 +14,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dgraph-io/ristretto/v2"
-	"github.com/hashicorp/go-retryablehttp"
-
+	ristretto "github.com/dgraph-io/ristretto/v2"
 	"github.com/gobuffalo/httptest"
+	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"github.com/julienschmidt/httprouter"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -8,10 +8,9 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/ory/x/httpx"
-
 	"github.com/stretchr/testify/assert"
 
+	"github.com/ory/x/httpx"
 	"github.com/ory/x/urlx"
 )
 

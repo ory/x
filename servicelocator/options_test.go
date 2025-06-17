@@ -8,13 +8,12 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/urfave/negroni"
 	"google.golang.org/grpc"
 
 	"github.com/ory/x/contextx"
 	"github.com/ory/x/logrusx"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestOptions(t *testing.T) {

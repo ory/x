@@ -11,7 +11,7 @@ import (
 
 	"github.com/tidwall/gjson"
 
-	"github.com/ory/jsonschema/v3"
+	jsonschema "github.com/ory/jsonschema/v3"
 )
 
 func FormatValidationErrorForCLI(w io.Writer, conf []byte, err error) {
