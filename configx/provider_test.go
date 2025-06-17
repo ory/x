@@ -10,16 +10,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/inhies/go-bytesize"
-
+	bytesize "github.com/inhies/go-bytesize"
 	"github.com/knadh/koanf/parsers/json"
-
-	"github.com/ory/x/urlx"
-
 	"github.com/spf13/pflag"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ory/x/urlx"
 )
 
 func newProvider(t testing.TB) *Provider {

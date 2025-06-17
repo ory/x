@@ -12,9 +12,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
 	gelf "github.com/seatgeek/logrus-gelf-formatter"
+	"github.com/sirupsen/logrus"
 
 	"github.com/ory/x/stringsx"
 )

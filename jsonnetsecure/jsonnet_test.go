@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-jsonnet"
+	jsonnet "github.com/google/go-jsonnet"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"

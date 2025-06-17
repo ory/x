@@ -7,9 +7,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/ory/x/assertx"
-
 	"github.com/stretchr/testify/require"
+
+	"github.com/ory/x/assertx"
 )
 
 func TestSetBytes(t *testing.T) {

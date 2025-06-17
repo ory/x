@@ -10,7 +10,6 @@ import (
 	"net/http/httputil"
 
 	"github.com/pkg/errors"
-
 	"github.com/rs/cors"
 	"go.opentelemetry.io/otel"
 )

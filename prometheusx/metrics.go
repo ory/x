@@ -8,12 +8,11 @@ import (
 	"strconv"
 
 	grpcPrometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
-
-	"github.com/ory/x/httpx"
-
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"github.com/ory/x/httpx"
 )
 
 // Metrics prototypes

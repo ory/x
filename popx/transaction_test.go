@@ -11,7 +11,7 @@ import (
 
 	"github.com/cockroachdb/cockroach-go/v2/crdb"
 	"github.com/cockroachdb/cockroach-go/v2/testserver"
-	"github.com/gobuffalo/pop/v6"
+	pop "github.com/gobuffalo/pop/v6"
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"

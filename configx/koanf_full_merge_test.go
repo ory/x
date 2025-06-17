@@ -9,7 +9,7 @@ import (
 
 	"github.com/knadh/koanf/parsers/json"
 	"github.com/knadh/koanf/providers/rawbytes"
-	"github.com/knadh/koanf/v2"
+	koanf "github.com/knadh/koanf/v2"
 )
 
 func TestKoanfMergeArray(t *testing.T) {

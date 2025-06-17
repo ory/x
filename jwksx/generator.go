@@ -12,7 +12,7 @@ import (
 	"crypto/x509"
 	"io"
 
-	"github.com/go-jose/go-jose/v3"
+	jose "github.com/go-jose/go-jose/v3"
 	"github.com/gofrs/uuid"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ed25519"

@@ -10,10 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tidwall/sjson"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tidwall/sjson"
 )
 
 func PrettifyJSONPayload(t testing.TB, payload interface{}) string {

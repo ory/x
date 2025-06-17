@@ -5,13 +5,11 @@ package configx
 
 import (
 	"context"
+	stdjson "encoding/json"
 
 	"github.com/knadh/koanf/parsers/json"
-	"github.com/knadh/koanf/v2"
-
+	koanf "github.com/knadh/koanf/v2"
 	"github.com/pkg/errors"
-
-	stdjson "encoding/json"
 )
 
 // KoanfMemory implements a KoanfMemory provider.

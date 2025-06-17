@@ -14,13 +14,11 @@ import (
 	"os"
 	"testing"
 
-	"golang.org/x/sync/errgroup"
-
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/require"
-
-	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/ory/x/logrusx"
 )

@@ -10,8 +10,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hashicorp/go-retryablehttp"
-
+	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"github.com/pkg/errors"
 
 	"github.com/ory/x/httpx"

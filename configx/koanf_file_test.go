@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/ghodss/yaml"
-	"github.com/pelletier/go-toml"
+	toml "github.com/pelletier/go-toml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -7,9 +7,9 @@ import (
 	"context"
 	"crypto/sha256"
 
-	"github.com/dgraph-io/ristretto/v2"
+	ristretto "github.com/dgraph-io/ristretto/v2"
 
-	"github.com/ory/jsonschema/v3"
+	jsonschema "github.com/ory/jsonschema/v3"
 )
 
 var schemaCacheConfig = &ristretto.Config[[]byte, *jsonschema.Schema]{

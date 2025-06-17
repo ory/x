@@ -12,8 +12,7 @@ import (
 	"github.com/knadh/koanf/parsers/json"
 	"github.com/knadh/koanf/parsers/toml"
 	"github.com/knadh/koanf/parsers/yaml"
-	"github.com/knadh/koanf/v2"
-
+	koanf "github.com/knadh/koanf/v2"
 	"github.com/pkg/errors"
 
 	"github.com/ory/x/watcherx"

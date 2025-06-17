@@ -10,13 +10,12 @@ import (
 	"io"
 	"os"
 
+	koanf "github.com/knadh/koanf/v2"
 	"github.com/spf13/pflag"
 
-	"github.com/ory/jsonschema/v3"
+	jsonschema "github.com/ory/jsonschema/v3"
+
 	"github.com/ory/x/logrusx"
-
-	"github.com/knadh/koanf/v2"
-
 	"github.com/ory/x/watcherx"
 )
 

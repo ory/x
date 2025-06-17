@@ -6,9 +6,9 @@ package servicelocatorx
 import (
 	"testing"
 
-	"github.com/ory/x/contextx"
-
 	"github.com/stretchr/testify/assert"
+
+	"github.com/ory/x/contextx"
 )
 
 func TestOptions(t *testing.T) {

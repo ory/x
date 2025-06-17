@@ -7,14 +7,14 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/ory/x/logrusx"
-	"github.com/ory/x/otelx"
-
 	"github.com/gofrs/uuid"
 	"github.com/pkg/errors"
 	"github.com/tidwall/gjson"
 
-	"github.com/ory/jsonschema/v3"
+	jsonschema "github.com/ory/jsonschema/v3"
+
+	"github.com/ory/x/logrusx"
+	"github.com/ory/x/otelx"
 )
 
 func newCompiler(schema []byte) (string, *jsonschema.Compiler, error) {

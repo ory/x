@@ -15,16 +15,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/inhies/go-bytesize"
+	bytesize "github.com/inhies/go-bytesize"
 	"github.com/knadh/koanf/parsers/json"
 	"github.com/knadh/koanf/providers/posflag"
-	"github.com/knadh/koanf/v2"
+	koanf "github.com/knadh/koanf/v2"
 	"github.com/pkg/errors"
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 
-	"github.com/ory/jsonschema/v3"
+	jsonschema "github.com/ory/jsonschema/v3"
+
 	"github.com/ory/x/jsonschemax"
 	"github.com/ory/x/logrusx"
 	"github.com/ory/x/otelx"

@@ -10,12 +10,11 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/tidwall/sjson"
-
-	"github.com/ory/jsonschema/v3"
-
 	"github.com/spf13/cast"
 	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
+
+	jsonschema "github.com/ory/jsonschema/v3"
 
 	"github.com/ory/x/castx"
 	"github.com/ory/x/jsonschemax"

@@ -10,10 +10,9 @@ import (
 	"net/http"
 	"time"
 
+	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/oauth2"
-
-	"github.com/hashicorp/go-retryablehttp"
 
 	"github.com/ory/x/logrusx"
 )

@@ -7,11 +7,12 @@ import (
 	"strings"
 
 	"github.com/knadh/koanf/providers/posflag"
-	"github.com/knadh/koanf/v2"
+	koanf "github.com/knadh/koanf/v2"
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 
-	"github.com/ory/jsonschema/v3"
+	jsonschema "github.com/ory/jsonschema/v3"
+
 	"github.com/ory/x/jsonschemax"
 )
 

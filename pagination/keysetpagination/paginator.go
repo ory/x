@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/gobuffalo/pop/v6"
+	pop "github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/pop/v6/columns"
 )
 

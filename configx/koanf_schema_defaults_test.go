@@ -12,7 +12,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/ory/jsonschema/v3"
+	jsonschema "github.com/ory/jsonschema/v3"
+
 	"github.com/ory/x/snapshotx"
 )
 

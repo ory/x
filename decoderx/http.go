@@ -20,9 +20,8 @@ import (
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 
-	"github.com/ory/jsonschema/v3"
-
 	"github.com/ory/herodot"
+	jsonschema "github.com/ory/jsonschema/v3"
 
 	"github.com/ory/x/httpx"
 	"github.com/ory/x/jsonschemax"

@@ -11,10 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ory/x/snapshotx"
-
 	"github.com/stretchr/testify/assert"
 
+	"github.com/ory/x/snapshotx"
 	"github.com/ory/x/urlx"
 )
 

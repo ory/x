@@ -25,7 +25,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jackc/puddle/v2"
+	puddle "github.com/jackc/puddle/v2"
 	"github.com/pkg/errors"
 	"go.opentelemetry.io/otel/attribute"
 	semconv "go.opentelemetry.io/otel/semconv/v1.27.0"

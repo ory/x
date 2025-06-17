@@ -12,6 +12,7 @@ import (
 	"github.com/urfave/negroni"
 
 	"github.com/ory/herodot"
+
 	"github.com/ory/x/healthx"
 	"github.com/ory/x/logrusx"
 	"github.com/ory/x/prometheusx"

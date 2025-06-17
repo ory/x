@@ -14,15 +14,14 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ory/x/assertx"
-
-	"github.com/tidwall/gjson"
-
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tidwall/gjson"
 
-	"github.com/ory/jsonschema/v3"
+	jsonschema "github.com/ory/jsonschema/v3"
+
+	"github.com/ory/x/assertx"
 )
 
 func newRequest(t *testing.T, method, url string, body io.Reader, ct string) *http.Request {

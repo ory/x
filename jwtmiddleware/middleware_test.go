@@ -4,6 +4,7 @@
 package jwtmiddleware_test
 
 import (
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,21 +12,16 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/tidwall/gjson"
-
-	"github.com/golang-jwt/jwt/v5"
+	jwt "github.com/golang-jwt/jwt/v5"
+	"github.com/julienschmidt/httprouter"
 	"github.com/rakutentech/jwk-go/jwk"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
+	"github.com/urfave/negroni"
 
 	"github.com/ory/x/jwtmiddleware"
-
-	_ "embed"
-
-	"github.com/tidwall/sjson"
-
-	"github.com/julienschmidt/httprouter"
-	"github.com/stretchr/testify/require"
-	"github.com/urfave/negroni"
 )
 
 func mustString(s string, err error) string {

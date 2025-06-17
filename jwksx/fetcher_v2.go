@@ -8,21 +8,18 @@ import (
 	"crypto/sha256"
 	"time"
 
-	"github.com/ory/herodot"
-
-	"github.com/hashicorp/go-retryablehttp"
-
-	"github.com/ory/x/fetcher"
-
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
-
-	"github.com/ory/x/otelx"
-
-	"github.com/dgraph-io/ristretto/v2"
+	ristretto "github.com/dgraph-io/ristretto/v2"
+	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/ory/herodot"
+
+	"github.com/ory/x/fetcher"
+	"github.com/ory/x/otelx"
 )
 
 var ErrUnableToFindKeyID = errors.New("specified JWK kid can not be found in the JWK sets")

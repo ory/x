@@ -12,9 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tidwall/gjson"
-
 	"github.com/pkg/errors"
+	"github.com/tidwall/gjson"
 )
 
 // Duration represents a JSON and SQL compatible time.Duration.

@@ -7,12 +7,11 @@ import (
 	"database/sql"
 	"net/http"
 
-	"google.golang.org/grpc/codes"
-
 	"github.com/go-sql-driver/mysql"
 	"github.com/jackc/pgconn"
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
+	"google.golang.org/grpc/codes"
 
 	"github.com/ory/herodot"
 )

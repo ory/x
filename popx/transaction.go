@@ -8,7 +8,7 @@ import (
 	"runtime"
 
 	"github.com/cockroachdb/cockroach-go/v2/crdb"
-	"github.com/gobuffalo/pop/v6"
+	pop "github.com/gobuffalo/pop/v6"
 	"github.com/jmoiron/sqlx"
 	"github.com/prometheus/client_golang/prometheus"
 )

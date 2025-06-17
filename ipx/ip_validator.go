@@ -9,9 +9,8 @@ import (
 	"net/url"
 	"time"
 
-	"golang.org/x/sync/errgroup"
-
 	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 )
 
 // IsAssociatedIPAllowedWhenSet is a wrapper for IsAssociatedIPAllowed which returns valid

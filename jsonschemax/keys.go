@@ -17,7 +17,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/ory/jsonschema/v3"
+	jsonschema "github.com/ory/jsonschema/v3"
 )
 
 type (

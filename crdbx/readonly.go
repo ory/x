@@ -4,7 +4,7 @@
 package crdbx
 
 import (
-	"github.com/gobuffalo/pop/v6"
+	pop "github.com/gobuffalo/pop/v6"
 
 	"github.com/ory/x/dbal"
 	"github.com/ory/x/sqlcon"

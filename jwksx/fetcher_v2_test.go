@@ -10,12 +10,10 @@ import (
 	"testing"
 	"time"
 
+	ristretto "github.com/dgraph-io/ristretto/v2"
+	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"github.com/lestrrat-go/jwx/jwk"
-
-	"github.com/hashicorp/go-retryablehttp"
 	"github.com/pkg/errors"
-
-	"github.com/dgraph-io/ristretto/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
