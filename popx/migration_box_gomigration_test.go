@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gobuffalo/pop/v6"
+	"github.com/ory/pop/v6"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

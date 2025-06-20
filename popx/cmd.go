@@ -10,7 +10,7 @@ import (
 
 	"github.com/ory/x/stringsx"
 
-	"github.com/gobuffalo/pop/v6"
+	"github.com/ory/pop/v6"
 	"github.com/spf13/cobra"
 
 	"github.com/ory/x/cmdx"

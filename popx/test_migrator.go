@@ -12,7 +12,7 @@ import (
 
 	"github.com/ory/x/logrusx"
 
-	"github.com/gobuffalo/pop/v6"
+	"github.com/ory/pop/v6"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 )

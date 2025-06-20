@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/gobuffalo/pop/v6"
+	"github.com/ory/pop/v6"
 )
 
 var mrx = regexp.MustCompile(

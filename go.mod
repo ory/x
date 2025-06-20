@@ -8,7 +8,6 @@ require (
 	github.com/avast/retry-go/v4 v4.6.1
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/bradleyjkemp/cupaloy/v2 v2.8.0
-	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/cockroachdb/cockroach-go/v2 v2.4.0
 	github.com/dgraph-io/ristretto/v2 v2.1.0
 	github.com/docker/docker v28.0.1+incompatible
@@ -20,7 +19,6 @@ require (
 	github.com/go-openapi/runtime v0.28.0
 	github.com/go-sql-driver/mysql v1.9.0
 	github.com/gobuffalo/httptest v1.5.2
-	github.com/gobuffalo/pop/v6 v6.1.1
 	github.com/gobwas/glob v0.2.3
 	github.com/goccy/go-yaml v1.16.0
 	github.com/gofrs/uuid v4.4.0+incompatible
@@ -52,6 +50,7 @@ require (
 	github.com/ory/dockertest/v3 v3.11.0
 	github.com/ory/herodot v0.10.3-0.20250318104651-3179543efba8
 	github.com/ory/jsonschema/v3 v3.0.9-0.20250317235931-280c5fc7bf0e
+	github.com/ory/pop/v6 v6.3.0
 	github.com/pelletier/go-toml v1.9.5
 	github.com/peterhellberg/link v1.2.0
 	github.com/pkg/errors v0.9.1
@@ -105,6 +104,7 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/containerd/continuity v0.4.5 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -150,6 +150,7 @@ require (
 	github.com/jackc/pgproto3/v2 v2.3.3 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/pgtype v1.14.4 // indirect
+	github.com/jackc/pgx/v5 v5.7.2 // indirect
 	github.com/jandelgado/gcov2lcov v1.1.1 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
