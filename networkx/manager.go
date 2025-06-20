@@ -7,8 +7,9 @@ import (
 	"context"
 	"embed"
 
-	"github.com/ory/pop/v6"
 	"github.com/pkg/errors"
+
+	"github.com/ory/pop/v6"
 
 	"github.com/ory/x/logrusx"
 	"github.com/ory/x/otelx"

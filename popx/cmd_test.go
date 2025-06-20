@@ -18,9 +18,10 @@ import (
 	"github.com/ory/x/logrusx"
 	"github.com/ory/x/popx"
 
-	"github.com/ory/pop/v6"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ory/pop/v6"
 )
 
 type MockPersistenceProvider struct {

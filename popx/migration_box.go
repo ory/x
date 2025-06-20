@@ -11,9 +11,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ory/pop/v6"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ory/pop/v6"
 
 	"github.com/ory/x/logrusx"
 )

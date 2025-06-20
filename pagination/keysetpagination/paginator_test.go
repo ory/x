@@ -8,9 +8,10 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ory/pop/v6"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ory/pop/v6"
 )
 
 type testItem struct {

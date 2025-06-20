@@ -9,8 +9,9 @@ import (
 
 	"github.com/cockroachdb/cockroach-go/v2/crdb"
 	"github.com/jmoiron/sqlx"
-	"github.com/ory/pop/v6"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"github.com/ory/pop/v6"
 )
 
 type transactionContextKey int

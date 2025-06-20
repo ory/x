@@ -17,8 +17,9 @@ import (
 	"github.com/ory/x/dbal"
 
 	"github.com/gofrs/uuid"
-	"github.com/ory/pop/v6"
 	"github.com/pkg/errors"
+
+	"github.com/ory/pop/v6"
 
 	"github.com/ory/x/otelx"
 	"github.com/ory/x/sqlcon"

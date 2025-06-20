@@ -7,8 +7,9 @@ import (
 	"bytes"
 	"text/template"
 
-	"github.com/ory/pop/v6"
 	"github.com/pkg/errors"
+
+	"github.com/ory/pop/v6"
 )
 
 func ParameterizedMigrationContent(params map[string]interface{}) func(mf Migration, c *pop.Connection, r []byte, usingTemplate bool) (string, error) {
