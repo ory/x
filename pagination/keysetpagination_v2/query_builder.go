@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gobuffalo/pop/v6"
+	"github.com/ory/pop/v6"
 )
 
 type Order int
