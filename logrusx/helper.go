@@ -12,7 +12,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/gobuffalo/pop/v6/logging"
+	"github.com/ory/pop/v6/logging"
 
 	"github.com/sirupsen/logrus"
 

@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/gobuffalo/pop/v6"
-	"github.com/gobuffalo/pop/v6/logging"
+	"github.com/ory/pop/v6"
+	"github.com/ory/pop/v6/logging"
 )
 
 func formatter(lvl logging.Level, s string, args ...interface{}) string {

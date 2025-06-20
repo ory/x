@@ -32,7 +32,7 @@ require (
 	github.com/gobuffalo/fizz v1.10.0
 	github.com/gobuffalo/httptest v1.0.2
 	github.com/gobuffalo/packr v1.22.0
-	github.com/gobuffalo/pop/v5 v5.3.1
+	github.com/ory/pop/v5 v5.3.1
 	github.com/golang/mock v1.3.1
 	github.com/google/go-jsonnet v0.16.0
 	github.com/google/uuid v1.1.2

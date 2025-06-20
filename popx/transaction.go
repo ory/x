@@ -8,9 +8,10 @@ import (
 	"runtime"
 
 	"github.com/cockroachdb/cockroach-go/v2/crdb"
-	"github.com/gobuffalo/pop/v6"
 	"github.com/jmoiron/sqlx"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"github.com/ory/pop/v6"
 )
 
 type transactionContextKey int
@@ -96,7 +97,7 @@ func caller() string {
 	pc := make([]uintptr, 3)
 	// The number stack frames to skip was determined by putting a breakpoint in
 	// ory/kratos and looking for the topmost frame which isn't from ory/x or
-	// gobuffalo/pop.
+	// ory/pop.
 	n := runtime.Callers(8, pc)
 	if n == 0 {
 		return unknownCaller
