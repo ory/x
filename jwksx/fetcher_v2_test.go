@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lestrrat-go/jwx/jwk"
+	"github.com/lestrrat-go/jwx/v3/jwk"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/pkg/errors"
