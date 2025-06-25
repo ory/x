@@ -68,11 +68,11 @@ type ResponseHeaders struct {
 
 // SetLinkHeader adds the Link header for the page encoded by the paginator.
 // It contains links to the first and next page, if one exists.
-func SetLinkHeader(w http.ResponseWriter, key *[32]byte, u *url.URL, p *Paginator) {
+func SetLinkHeader(w http.ResponseWriter, keys [][32]byte, u *url.URL, p *Paginator) {
 	size := p.Size()
-	link := []string{linkPart(u, "first", p.DefaultToken().Encrypt(key), size)}
+	link := []string{linkPart(u, "first", p.DefaultToken().Encrypt(keys), size)}
 	if !p.isLast {
-		link = append(link, linkPart(u, "next", p.PageToken().Encrypt(key), size))
+		link = append(link, linkPart(u, "next", p.PageToken().Encrypt(keys), size))
 	}
 	w.Header().Set("Link", strings.Join(link, ","))
 }
@@ -109,9 +109,14 @@ func ParseQueryParams(keys [][32]byte, q url.Values) ([]Option, error) {
 	return opts, nil
 }
 
+// ParsePageToken parses a page token from the given raw string using the provided keys.
+// It panics if no keys are provided.
 func ParsePageToken(keys [][32]byte, raw string) (t PageToken, err error) {
-	for _, key := range keys {
-		err = errors.WithStack(hyrumtoken.Unmarshal(&key, raw, &t))
+	if len(keys) == 0 {
+		panic("keysetpagination: cannot parse page token with no keys")
+	}
+	for i := range keys {
+		err = errors.WithStack(hyrumtoken.Unmarshal(&keys[i], raw, &t))
 		if err == nil {
 			return
 		}

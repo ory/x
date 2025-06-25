@@ -17,7 +17,7 @@ import (
 func TestSetLinkHeader(t *testing.T) {
 	t.Parallel()
 
-	key := [32]byte{1, 2, 3}
+	keys := [][32]byte{{1, 2, 3}}
 	defaultToken, nextToken := NewPageToken(Column{Name: "id", Value: "default"}), NewPageToken(Column{Name: "id", Value: "next"})
 	opts := []Option{WithSize(2), WithDefaultToken(defaultToken), WithToken(nextToken)}
 
@@ -30,7 +30,7 @@ func TestSetLinkHeader(t *testing.T) {
 		assert.Equal(t, "https", u.Scheme)
 		assert.Equal(t, "ory.sh", u.Host)
 		raw := u.Query().Get("page_token")
-		token, err := ParsePageToken([][32]byte{key}, raw)
+		token, err := ParsePageToken(keys, raw)
 		require.NoError(t, err)
 		return token
 	}
@@ -39,7 +39,7 @@ func TestSetLinkHeader(t *testing.T) {
 		r := httptest.NewRecorder()
 		p := NewPaginator(opts...)
 
-		SetLinkHeader(r, &key, u, p)
+		SetLinkHeader(r, keys, u, p)
 
 		assert.Len(t, r.Result().Header.Values("link"), 1, "make sure we send one header with multiple comma-separated values rather than multiple headers")
 		links := link.ParseResponse(r.Result())
@@ -55,7 +55,7 @@ func TestSetLinkHeader(t *testing.T) {
 		r := httptest.NewRecorder()
 		p := NewPaginator(append(opts, withIsLast(true))...)
 
-		SetLinkHeader(r, &key, u, p)
+		SetLinkHeader(r, keys, u, p)
 
 		assert.Len(t, r.Result().Header.Values("link"), 1, "make sure we send one header with multiple comma-separated values rather than multiple headers")
 		links := link.ParseResponse(r.Result())
@@ -73,20 +73,23 @@ func TestParsePageToken(t *testing.T) {
 	keys := [][32]byte{{1, 2, 3}, {4, 5, 6}}
 
 	expectedToken := NewPageToken(Column{Name: "id", Value: "token"}, Column{Name: "name", Order: OrderDescending, Value: "test"})
+	encryptedToken := expectedToken.Encrypt(keys)
 
 	t.Run("with valid key", func(t *testing.T) {
-		for i, key := range keys {
-			encoded := expectedToken.Encrypt(&key)
-			token, err := ParsePageToken(keys, encoded)
-			require.NoErrorf(t, err, "%d", i)
-			assert.Equal(t, expectedToken, token)
-		}
+		token, err := ParsePageToken(keys, encryptedToken)
+		require.NoError(t, err)
+		assert.Equal(t, expectedToken, token)
+	})
+
+	t.Run("with rotated key", func(t *testing.T) {
+		encryptedToken := expectedToken.Encrypt(keys[1:])
+		token, err := ParsePageToken(keys, encryptedToken)
+		require.NoError(t, err)
+		assert.Equal(t, expectedToken, token)
 	})
 
 	t.Run("with invalid key", func(t *testing.T) {
-		invalidKey := [32]byte{7, 8, 9}
-		encoded := expectedToken.Encrypt(&invalidKey)
-		token, err := ParsePageToken(keys, encoded)
+		token, err := ParsePageToken([][32]byte{{7, 8, 9}}, encryptedToken)
 		require.ErrorContains(t, err, "decrypt token")
 		assert.Zero(t, token)
 	})
@@ -98,7 +101,7 @@ func TestParse(t *testing.T) {
 	keys := [][32]byte{{1, 2, 3}}
 	token := NewPageToken(Column{Name: "id", Value: "token"}, Column{Name: "name", Order: OrderDescending, Value: "test"})
 	defaultToken := NewPageToken(Column{Name: "id", Value: "default"}, Column{Name: "name", Order: OrderDescending, Value: "default name"})
-	encodedToken := token.Encrypt(&keys[0])
+	encryptedToken := token.Encrypt(keys)
 
 	for _, tc := range []struct {
 		name          string
@@ -114,7 +117,7 @@ func TestParse(t *testing.T) {
 		},
 		{
 			name:          "with page token",
-			q:             url.Values{"page_token": {encodedToken}},
+			q:             url.Values{"page_token": {encryptedToken}},
 			expectedSize:  DefaultSize,
 			expectedToken: token,
 		},
@@ -126,7 +129,7 @@ func TestParse(t *testing.T) {
 		},
 		{
 			name:          "with page size and page token",
-			q:             url.Values{"page_size": {"123"}, "page_token": {encodedToken}},
+			q:             url.Values{"page_size": {"123"}, "page_token": {encryptedToken}},
 			expectedSize:  123,
 			expectedToken: token,
 		},
@@ -158,7 +161,7 @@ func TestParse(t *testing.T) {
 		assert.Equal(t, defaultToken, paginator.PageToken())
 		assert.Equal(t, DefaultSize, paginator.Size())
 
-		opts, err = ParseQueryParams(keys, url.Values{"page_token": {"", encodedToken, ""}, "page_size": {"", "123", ""}})
+		opts, err = ParseQueryParams(keys, url.Values{"page_token": {"", encryptedToken, ""}, "page_size": {"", "123", ""}})
 		require.NoError(t, err)
 		paginator = NewPaginator(append(opts, WithDefaultToken(defaultToken))...)
 		assert.Equal(t, token, paginator.PageToken())
