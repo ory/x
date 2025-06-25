@@ -39,3 +39,26 @@ func TestPageToken(t *testing.T) {
 		assert.ErrorIs(t, decodedToken.UnmarshalJSON(raw), ErrPageTokenExpired)
 	})
 }
+
+func TestPageToken_Encrypt(t *testing.T) {
+	t.Parallel()
+
+	keys := [][32]byte{{1, 2, 3}, {4, 5, 6}}
+	token := NewPageToken(Column{Name: "id", Value: "token"})
+
+	t.Run("encrypts with the first key", func(t *testing.T) {
+		encrypted := token.Encrypt(keys)
+
+		decrypted, err := ParsePageToken(keys[:1], encrypted)
+		require.NoError(t, err)
+		assert.Equal(t, token, decrypted)
+
+		_, err = ParsePageToken(keys[1:], encrypted)
+		assert.ErrorContains(t, err, "decrypt token")
+	})
+
+	t.Run("panics with no keys", func(t *testing.T) {
+		assert.PanicsWithValue(t, "keyset pagination: cannot encrypt page token with no keys", func() { token.Encrypt(nil) })
+		assert.PanicsWithValue(t, "keyset pagination: cannot encrypt page token with no keys", func() { token.Encrypt([][32]byte{}) })
+	})
+}

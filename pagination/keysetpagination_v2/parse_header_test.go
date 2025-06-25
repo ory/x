@@ -18,14 +18,13 @@ func TestParseHeader(t *testing.T) {
 
 	u, err := url.Parse("https://www.ory.sh/")
 	require.NoError(t, err)
-	key := [32]byte{1, 2, 3}
-	keys := [][32]byte{key}
+	keys := [][32]byte{{1, 2, 3}}
 	defaultToken, nextToken := NewPageToken(Column{Name: "id", Value: "default"}), NewPageToken(Column{Name: "id", Value: "next"})
 
 	t.Run("has next page", func(t *testing.T) {
 		p := NewPaginator(WithSize(2), WithDefaultToken(defaultToken), WithToken(nextToken))
 		r := httptest.NewRecorder()
-		SetLinkHeader(r, &key, u, p)
+		SetLinkHeader(r, keys, u, p)
 
 		first, next, isLast := ParseHeader(&http.Response{Header: r.Header()})
 		require.NotEqual(t, first, next, r.Header())
@@ -43,7 +42,7 @@ func TestParseHeader(t *testing.T) {
 	t.Run("is last page", func(t *testing.T) {
 		p := NewPaginator(WithSize(2), WithDefaultToken(defaultToken), WithToken(nextToken), withIsLast(true))
 		r := httptest.NewRecorder()
-		SetLinkHeader(r, &key, u, p)
+		SetLinkHeader(r, keys, u, p)
 
 		first, next, isLast := ParseHeader(&http.Response{Header: r.Header()})
 		assert.Empty(t, next, r.Header())
