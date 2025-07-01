@@ -55,7 +55,7 @@ func TestMigrationSort(t *testing.T) {
 	assert.Equal(t, expected, migrations)
 }
 
-// SortFunc requires that cmp is a strict weak ordering: (https://en.wikipedia.org/wiki/Weak_ordering#Strict_weak_orderings.)
+// `slices.SortFunc` requires that `cmp` is a strict weak ordering: (https://en.wikipedia.org/wiki/Weak_ordering#Strict_weak_orderings.)
 // - Irreflexivity: For all x ∈ S , it is not true that x < x .
 // - Transitivity: For all x , y , z ∈ S , if x < y  and  y < z then x < z .
 // - Asymmetry: For all x , y ∈ S , if x < y is true then y < x is false.
