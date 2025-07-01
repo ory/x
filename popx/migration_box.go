@@ -251,11 +251,6 @@ func (fm *MigrationBox) findMigrations(
 		}
 
 		fm.Migrations[mf.Direction] = append(fm.Migrations[mf.Direction], mf)
-		mod := sort.Interface(fm.Migrations[mf.Direction])
-		if mf.Direction == "down" {
-			mod = sort.Reverse(mod)
-		}
-		sort.Sort(mod)
 		return nil
 	})
 }
