@@ -68,3 +68,27 @@ func TestSortingMigrations(t *testing.T) {
 		assert.Equal(t, expectedOrder, migrations)
 	})
 }
+
+// From the docs:
+// Less must describe a transitive ordering:
+//   - if both Less(i, j) and Less(j, k) are true, then Less(i, k) must be true as well.
+//   - if both Less(i, j) and Less(j, k) are false, then Less(i, k) must be false as well.
+//
+// Here:
+// - i=0, j=1, k=2
+// - i=2, j=1, k=0
+// We only test the case of `a.Version == b.Version` because otherwise we just call the Go stdlib
+// which is assumed to be correct.
+func TestSortTransitiveOrdering(t *testing.T) {
+	m := Migrations{
+		{DBType: "b"}, {DBType: "c"}, {DBType: "all"},
+	}
+
+	assert.True(t, m.Less(0, 1))
+	assert.True(t, m.Less(1, 2))
+	assert.True(t, m.Less(0, 2))
+
+	assert.False(t, m.Less(1, 0))
+	assert.False(t, m.Less(2, 1))
+	assert.False(t, m.Less(2, 0))
+}

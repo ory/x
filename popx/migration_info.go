@@ -56,19 +56,15 @@ func (mfs Migrations) Len() int {
 }
 
 func (mfs Migrations) Less(i, j int) bool {
-	if mfs[i].Version == mfs[j].Version {
-		// force "all" to the back
-		return mfs[i].DBType != "all"
-	}
-	return mfs[i].Version < mfs[j].Version
+	return CompareMigration(mfs[i], mfs[j]) < 0
 }
 
 func CompareMigration(a, b Migration) int {
 	if a.Version == b.Version {
 		// Force "all" to be greater.
-		if a.DBType == "all" {
+		if a.DBType == "all" && b.DBType != "all" {
 			return 1
-		} else if b.DBType == "all" {
+		} else if a.DBType != "all" && b.DBType == "all" {
 			return -1
 		} else {
 			return strings.Compare(a.DBType, b.DBType)
