@@ -37,6 +37,7 @@ func TestMigrationSort(t *testing.T) {
 		{Version: "97", DBType: "mysql"},
 		{Version: "99", DBType: "postgresql"},
 		{Version: "97", DBType: ""},
+		{Version: "99", DBType: ""},
 	}
 
 	slices.SortFunc(migrations, CompareMigration)
@@ -45,6 +46,7 @@ func TestMigrationSort(t *testing.T) {
 		{Version: "97", DBType: ""},
 		{Version: "97", DBType: "mysql"},
 		{Version: "98", DBType: "mysql"},
+		{Version: "99", DBType: ""},
 		{Version: "99", DBType: "mysql"},
 		{Version: "99", DBType: "postgresql"},
 		{Version: "99", DBType: "sqlite"},
