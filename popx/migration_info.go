@@ -5,6 +5,7 @@ package popx
 
 import (
 	"sort"
+	"strings"
 
 	"github.com/pkg/errors"
 
@@ -60,6 +61,20 @@ func (mfs Migrations) Less(i, j int) bool {
 		return mfs[i].DBType != "all"
 	}
 	return mfs[i].Version < mfs[j].Version
+}
+
+func CompareMigration(a, b Migration) int {
+	if a.Version == b.Version {
+		// Force "all" to be greater.
+		if a.DBType == "all" {
+			return 1
+		} else if b.DBType == "all" {
+			return -1
+		} else {
+			return strings.Compare(a.DBType, b.DBType)
+		}
+	}
+	return strings.Compare(a.Version, b.Version)
 }
 
 func (mfs Migrations) Swap(i, j int) {
