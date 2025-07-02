@@ -77,18 +77,25 @@ func TestSortingMigrations(t *testing.T) {
 // Here:
 // - i=0, j=1, k=2
 // - i=2, j=1, k=0
-// We only test the case of `a.Version == b.Version` because otherwise we just call the Go stdlib
-// which is assumed to be correct.
 func TestSortTransitiveOrdering(t *testing.T) {
 	m := Migrations{
-		{DBType: "b"}, {DBType: "c"}, {DBType: "all"},
+		{Version: "0", DBType: "b"}, {Version: "0", DBType: "c"}, {Version: "0", DBType: "all"}, {Version: "1", DBType: "d"},
 	}
 
+	// First clause.
 	assert.True(t, m.Less(0, 1))
-	assert.True(t, m.Less(1, 2))
 	assert.True(t, m.Less(0, 2))
+	assert.True(t, m.Less(0, 3))
+	assert.True(t, m.Less(1, 2))
+	assert.True(t, m.Less(1, 3))
+	assert.True(t, m.Less(2, 3))
 
+	// Second clause.
 	assert.False(t, m.Less(1, 0))
 	assert.False(t, m.Less(2, 1))
 	assert.False(t, m.Less(2, 0))
+
+	assert.False(t, m.Less(2, 1))
+	assert.False(t, m.Less(3, 2))
+	assert.False(t, m.Less(3, 1))
 }

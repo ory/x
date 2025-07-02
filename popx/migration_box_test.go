@@ -64,23 +64,24 @@ func isLesserThan(a, b Migration) bool {
 // - Transitivity: For all x , y , z ∈ S , if x < y  and  y < z then x < z .
 // - Asymmetry: For all x , y ∈ S , if x < y is true then y < x is false.
 // - (there is a fourth rule which does not apply to us).
-//
-// We only test the case of `a.Version == b.Version` because otherwise we just call the Go stdlib
-// which is assumed to be correct.
 func TestSortStrictWeakOrdering(t *testing.T) {
 	m := Migrations{
-		{DBType: "b"}, {DBType: "c"}, {DBType: "all"},
+		{Version: "0", DBType: "b"}, {Version: "0", DBType: "c"}, {Version: "0", DBType: "all"}, {Version: "1", DBType: "d"},
 	}
 
 	// Irreflexivity.
 	assert.False(t, isLesserThan(m[0], m[0]))
 	assert.False(t, isLesserThan(m[1], m[1]))
 	assert.False(t, isLesserThan(m[2], m[2]))
+	assert.False(t, isLesserThan(m[3], m[3]))
 
 	// Transitivity.
 	assert.True(t, isLesserThan(m[0], m[1]))
-	assert.True(t, isLesserThan(m[1], m[2]))
 	assert.True(t, isLesserThan(m[0], m[2]))
+	assert.True(t, isLesserThan(m[0], m[3]))
+	assert.True(t, isLesserThan(m[1], m[2]))
+	assert.True(t, isLesserThan(m[1], m[3]))
+	assert.True(t, isLesserThan(m[2], m[3]))
 
 	// Asymmetry.
 	assert.True(t, isLesserThan(m[0], m[1]))
@@ -91,4 +92,7 @@ func TestSortStrictWeakOrdering(t *testing.T) {
 
 	assert.True(t, isLesserThan(m[1], m[2]))
 	assert.False(t, isLesserThan(m[2], m[1]))
+
+	assert.True(t, isLesserThan(m[2], m[3]))
+	assert.False(t, isLesserThan(m[3], m[2]))
 }
