@@ -70,35 +70,46 @@ func TestSortStrictWeakOrdering(t *testing.T) {
 	}
 
 	// Irreflexivity.
-	assert.False(t, isLesserThan(m[0], m[0]))
-	assert.False(t, isLesserThan(m[1], m[1]))
-	assert.False(t, isLesserThan(m[2], m[2]))
-	assert.False(t, isLesserThan(m[3], m[3]))
+	for _, m := range migrations {
+		assert.False(t, isLesserThan(m, m))
+	}
 
 	// Transitivity.
-	assert.True(t, isLesserThan(m[0], m[1]))
-	assert.True(t, isLesserThan(m[0], m[2]))
-	assert.True(t, isLesserThan(m[0], m[3]))
-	assert.True(t, isLesserThan(m[1], m[2]))
-	assert.True(t, isLesserThan(m[1], m[3]))
-	assert.True(t, isLesserThan(m[2], m[3]))
+
+	// All 3-three_permutations.
+	three_permutations := [][3]int{
+		{0, 1, 2}, {0, 1, 3}, {0, 2, 1}, {0, 2, 3}, {0, 3, 1}, {0, 3, 2},
+		{1, 0, 2}, {1, 0, 3}, {1, 2, 0}, {1, 2, 3}, {1, 3, 0}, {1, 3, 2},
+		{2, 0, 1}, {2, 0, 3}, {2, 1, 0}, {2, 1, 3}, {2, 3, 0}, {2, 3, 1},
+		{3, 0, 1}, {3, 0, 2}, {3, 1, 0}, {3, 1, 2}, {3, 2, 0}, {3, 2, 1},
+	}
+
+	for _, p := range three_permutations {
+		x := m[p[0]]
+		y := m[p[1]]
+		z := m[p[2]]
+
+		if isLesserThan(x, y) && isLesserThan(y, z) {
+			assert.True(t, isLesserThan(x, z))
+		}
+	}
 
 	// Asymmetry.
-	assert.True(t, isLesserThan(m[0], m[1]))
-	assert.False(t, isLesserThan(m[1], m[0]))
 
-	assert.True(t, isLesserThan(m[0], m[2]))
-	assert.False(t, isLesserThan(m[2], m[0]))
+	// All 2-two_permutations.
+	two_permutations := [][2]int{
+		{0, 1}, {0, 2}, {0, 3},
+		{1, 0}, {1, 2}, {1, 3},
+		{2, 0}, {2, 1}, {2, 3},
+		{3, 0}, {3, 1}, {3, 2},
+	}
 
-	assert.True(t, isLesserThan(m[0], m[3]))
-	assert.False(t, isLesserThan(m[3], m[0]))
+	for _, p := range two_permutations {
+		x := m[p[0]]
+		y := m[p[1]]
 
-	assert.True(t, isLesserThan(m[1], m[2]))
-	assert.False(t, isLesserThan(m[2], m[1]))
-
-	assert.True(t, isLesserThan(m[1], m[3]))
-	assert.False(t, isLesserThan(m[3], m[1]))
-
-	assert.True(t, isLesserThan(m[2], m[3]))
-	assert.False(t, isLesserThan(m[3], m[2]))
+		if isLesserThan(x, y) {
+			assert.False(t, isLesserThan(y, x))
+		}
+	}
 }

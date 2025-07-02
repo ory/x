@@ -78,15 +78,15 @@ func TestSortTransitiveOrdering(t *testing.T) {
 		{Version: "0", DBType: "b"}, {Version: "0", DBType: "c"}, {Version: "0", DBType: "all"}, {Version: "1", DBType: "d"},
 	}
 
-	// All 3-permutations.
-	permutations := [][3]int{
+	// All 3-three_permutations.
+	three_permutations := [][3]int{
 		{0, 1, 2}, {0, 1, 3}, {0, 2, 1}, {0, 2, 3}, {0, 3, 1}, {0, 3, 2},
 		{1, 0, 2}, {1, 0, 3}, {1, 2, 0}, {1, 2, 3}, {1, 3, 0}, {1, 3, 2},
 		{2, 0, 1}, {2, 0, 3}, {2, 1, 0}, {2, 1, 3}, {2, 3, 0}, {2, 3, 1},
 		{3, 0, 1}, {3, 0, 2}, {3, 1, 0}, {3, 1, 2}, {3, 2, 0}, {3, 2, 1},
 	}
 
-	for _, p := range permutations {
+	for _, p := range three_permutations {
 		i := p[0]
 		j := p[1]
 		k := p[2]
