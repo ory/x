@@ -55,6 +55,10 @@ func TestMigrationSort(t *testing.T) {
 	assert.Equal(t, expected, migrations)
 }
 
+func isLesserThan(a, b Migration) bool {
+	return -1 == CompareMigration(a, b)
+}
+
 // `slices.SortFunc` requires that `cmp` is a strict weak ordering: (https://en.wikipedia.org/wiki/Weak_ordering#Strict_weak_orderings.)
 // - Irreflexivity: For all x ∈ S , it is not true that x < x .
 // - Transitivity: For all x , y , z ∈ S , if x < y  and  y < z then x < z .
@@ -69,22 +73,22 @@ func TestSortStrictWeakOrdering(t *testing.T) {
 	}
 
 	// Irreflexivity.
-	assert.NotEqual(t, -1, CompareMigration(m[0], m[0]))
-	assert.NotEqual(t, -1, CompareMigration(m[1], m[1]))
-	assert.NotEqual(t, -1, CompareMigration(m[2], m[2]))
+	assert.False(t, isLesserThan(m[0], m[0]))
+	assert.False(t, isLesserThan(m[1], m[1]))
+	assert.False(t, isLesserThan(m[2], m[2]))
 
 	// Transitivity.
-	assert.Equal(t, -1, CompareMigration(m[0], m[1]))
-	assert.Equal(t, -1, CompareMigration(m[1], m[2]))
-	assert.Equal(t, -1, CompareMigration(m[0], m[2]))
+	assert.True(t, isLesserThan(m[0], m[1]))
+	assert.True(t, isLesserThan(m[1], m[2]))
+	assert.True(t, isLesserThan(m[0], m[2]))
 
 	// Asymmetry.
-	assert.Equal(t, -1, CompareMigration(m[0], m[1]))
-	assert.NotEqual(t, -1, CompareMigration(m[1], m[0]))
+	assert.True(t, isLesserThan(m[0], m[1]))
+	assert.False(t, isLesserThan(m[1], m[0]))
 
-	assert.Equal(t, -1, CompareMigration(m[0], m[2]))
-	assert.NotEqual(t, -1, CompareMigration(m[2], m[0]))
+	assert.True(t, isLesserThan(m[0], m[2]))
+	assert.False(t, isLesserThan(m[2], m[0]))
 
-	assert.Equal(t, -1, CompareMigration(m[1], m[2]))
-	assert.NotEqual(t, -1, CompareMigration(m[2], m[1]))
+	assert.True(t, isLesserThan(m[1], m[2]))
+	assert.False(t, isLesserThan(m[2], m[1]))
 }
