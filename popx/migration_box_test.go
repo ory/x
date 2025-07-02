@@ -90,8 +90,14 @@ func TestSortStrictWeakOrdering(t *testing.T) {
 	assert.True(t, isLesserThan(m[0], m[2]))
 	assert.False(t, isLesserThan(m[2], m[0]))
 
+	assert.True(t, isLesserThan(m[0], m[3]))
+	assert.False(t, isLesserThan(m[3], m[0]))
+
 	assert.True(t, isLesserThan(m[1], m[2]))
 	assert.False(t, isLesserThan(m[2], m[1]))
+
+	assert.True(t, isLesserThan(m[1], m[3]))
+	assert.False(t, isLesserThan(m[3], m[1]))
 
 	assert.True(t, isLesserThan(m[2], m[3]))
 	assert.False(t, isLesserThan(m[3], m[2]))

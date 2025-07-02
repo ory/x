@@ -73,10 +73,6 @@ func TestSortingMigrations(t *testing.T) {
 // Less must describe a transitive ordering:
 //   - if both Less(i, j) and Less(j, k) are true, then Less(i, k) must be true as well.
 //   - if both Less(i, j) and Less(j, k) are false, then Less(i, k) must be false as well.
-//
-// Here:
-// - i=0, j=1, k=2
-// - i=2, j=1, k=0
 func TestSortTransitiveOrdering(t *testing.T) {
 	m := Migrations{
 		{Version: "0", DBType: "b"}, {Version: "0", DBType: "c"}, {Version: "0", DBType: "all"}, {Version: "1", DBType: "d"},
