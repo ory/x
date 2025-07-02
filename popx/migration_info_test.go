@@ -78,20 +78,25 @@ func TestSortTransitiveOrdering(t *testing.T) {
 		{Version: "0", DBType: "b"}, {Version: "0", DBType: "c"}, {Version: "0", DBType: "all"}, {Version: "1", DBType: "d"},
 	}
 
-	// First clause.
-	assert.True(t, m.Less(0, 1))
-	assert.True(t, m.Less(0, 2))
-	assert.True(t, m.Less(0, 3))
-	assert.True(t, m.Less(1, 2))
-	assert.True(t, m.Less(1, 3))
-	assert.True(t, m.Less(2, 3))
+	// All 3-permutations.
+	permutations := [][3]int{
+		{0, 1, 2}, {0, 1, 3}, {0, 2, 1}, {0, 2, 3}, {0, 3, 1}, {0, 3, 2},
+		{1, 0, 2}, {1, 0, 3}, {1, 2, 0}, {1, 2, 3}, {1, 3, 0}, {1, 3, 2},
+		{2, 0, 1}, {2, 0, 3}, {2, 1, 0}, {2, 1, 3}, {2, 3, 0}, {2, 3, 1},
+		{3, 0, 1}, {3, 0, 2}, {3, 1, 0}, {3, 1, 2}, {3, 2, 0}, {3, 2, 1},
+	}
 
-	// Second clause.
-	assert.False(t, m.Less(1, 0))
-	assert.False(t, m.Less(2, 1))
-	assert.False(t, m.Less(2, 0))
+	for _, p := range permutations {
+		i := p[0]
+		j := p[1]
+		k := p[2]
 
-	assert.False(t, m.Less(2, 1))
-	assert.False(t, m.Less(3, 2))
-	assert.False(t, m.Less(3, 1))
+		if m.Less(i, j) && m.Less(j, k) {
+			assert.True(t, m.Less(i, k))
+		}
+
+		if !m.Less(i, j) && !m.Less(j, k) {
+			assert.False(t, m.Less(i, k))
+		}
+	}
 }
