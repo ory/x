@@ -75,7 +75,6 @@ func TestSortStrictWeakOrdering(t *testing.T) {
 	}
 
 	// Transitivity.
-
 	// All 3-three_permutations.
 	three_permutations := [][3]int{
 		{0, 1, 2}, {0, 1, 3}, {0, 2, 1}, {0, 2, 3}, {0, 3, 1}, {0, 3, 2},
@@ -95,7 +94,6 @@ func TestSortStrictWeakOrdering(t *testing.T) {
 	}
 
 	// Asymmetry.
-
 	// All 2-two_permutations.
 	two_permutations := [][2]int{
 		{0, 1}, {0, 2}, {0, 3},
