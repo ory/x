@@ -34,6 +34,7 @@ var fakeRequest = &http.Request{
 		"Set-Cookie":      {"kratos_session=2198ef09ac09d09ff098dd123ab128353"},
 		"Cookie":          {"kratos_cookie=2198ef09ac09d09ff098dd123ab128353"},
 		"X-Session-Token": {"2198ef09ac09d09ff098dd123ab128353"},
+		"X-Custom-Header": {"2198ef09ac09d09ff098dd123ab128353"},
 		"Authorization":   {"Bearer 2198ef09ac09d09ff098dd123ab128353"},
 	},
 	Body:       nil,
@@ -195,12 +196,33 @@ func TestTextLogger(t *testing.T) {
 				`cookie:Value is sensitive and has been redacted. To see the value set config key "log.leak_sensitive_values = true" or environment variable "LOG_LEAK_SENSITIVE_VALUES=true".`,
 				`x-session-token:Value is sensitive and has been redacted. To see the value set config key "log.leak_sensitive_values = true" or environment variable "LOG_LEAK_SENSITIVE_VALUES=true".`,
 				`authorization:Value is sensitive and has been redacted. To see the value set config key "log.leak_sensitive_values = true" or environment variable "LOG_LEAK_SENSITIVE_VALUES=true".`,
+				"x-custom-header:2198ef09ac09d09ff098dd123ab128353",
 			},
 			notExpect: []string{
 				"set-cookie:kratos_session=2198ef09ac09d09ff098dd123ab128353",
 				"cookie:kratos_cookie=2198ef09ac09d09ff098dd123ab128353",
 				"x-session-token:2198ef09ac09d09ff098dd123ab128353",
 				"authorization:Bearer 2198ef09ac09d09ff098dd123ab128353",
+			},
+			call: func(l *Logger) {
+				l.WithRequest(fakeRequest).Debug()
+			},
+		},
+		{
+			l: New("logrusx-server", "v0.0.1", ForceFormat("text"), WithAdditionalRedactedHeaders([]string{"x-custom-header"}), ForceLevel(logrus.DebugLevel)),
+			expect: []string{
+				"set-cookie:Value is sensitive and has been redacted. To see the value set config key \"log.leak_sensitive_values = true\" or environment variable \"LOG_LEAK_SENSITIVE_VALUES=true\".",
+				`cookie:Value is sensitive and has been redacted. To see the value set config key "log.leak_sensitive_values = true" or environment variable "LOG_LEAK_SENSITIVE_VALUES=true".`,
+				`x-session-token:Value is sensitive and has been redacted. To see the value set config key "log.leak_sensitive_values = true" or environment variable "LOG_LEAK_SENSITIVE_VALUES=true".`,
+				`authorization:Value is sensitive and has been redacted. To see the value set config key "log.leak_sensitive_values = true" or environment variable "LOG_LEAK_SENSITIVE_VALUES=true".`,
+				`x-custom-header:Value is sensitive and has been redacted. To see the value set config key "log.leak_sensitive_values = true" or environment variable "LOG_LEAK_SENSITIVE_VALUES=true".`,
+			},
+			notExpect: []string{
+				"set-cookie:kratos_session=2198ef09ac09d09ff098dd123ab128353",
+				"cookie:kratos_cookie=2198ef09ac09d09ff098dd123ab128353",
+				"x-session-token:2198ef09ac09d09ff098dd123ab128353",
+				"authorization:Bearer 2198ef09ac09d09ff098dd123ab128353",
+				"x-custom-header:2198ef09ac09d09ff098dd123ab128353",
 			},
 			call: func(l *Logger) {
 				l.WithRequest(fakeRequest).Debug()

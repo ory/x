@@ -26,11 +26,12 @@ import (
 type (
 	Logger struct {
 		*logrus.Entry
-		leakSensitive bool
-		redactionText string
-		opts          []Option
-		name          string
-		version       string
+		leakSensitive             bool
+		redactionText             string
+		additionalRedactedHeaders map[string]struct{}
+		opts                      []Option
+		name                      string
+		version                   string
 	}
 	Provider interface {
 		Logger() *Logger
@@ -80,6 +81,10 @@ func (l *Logger) HTTPHeadersRedacted(h http.Header) map[string]interface{} {
 				headers[keyLower] = locationURL.Redacted()
 			}
 		default:
+			if _, ok := l.additionalRedactedHeaders[keyLower]; ok {
+				headers[keyLower] = l.maybeRedact(value)
+				continue
+			}
 			headers[keyLower] = h.Get(key)
 		}
 	}
