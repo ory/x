@@ -29,6 +29,14 @@
       "type": "string",
       "title": "Sensitive log value redaction text",
       "description": "Text to use, when redacting sensitive log value."
+    },
+    "custom_sensitive_headers": {
+      "type": "array",
+      "title": "Custom Sensitive Headers",
+      "description": "List of HTTP headers which will be treated as sensitive and redacted.",
+      "items": {
+        "type": "string"
+      }
     }
   },
   "additionalProperties": false

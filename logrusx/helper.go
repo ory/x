@@ -26,11 +26,12 @@ import (
 type (
 	Logger struct {
 		*logrus.Entry
-		leakSensitive bool
-		redactionText string
-		opts          []Option
-		name          string
-		version       string
+		leakSensitive          bool
+		redactionText          string
+		customSensitiveHeaders map[string]struct{}
+		opts                   []Option
+		name                   string
+		version                string
 	}
 	Provider interface {
 		Logger() *Logger
@@ -41,6 +42,11 @@ var opts = otelhttptrace.WithPropagators(propagation.NewCompositeTextMapPropagat
 
 func (l *Logger) LeakSensitiveData() bool {
 	return l.leakSensitive
+}
+
+func (l *Logger) isCustomSensitiveHeader(header string) bool {
+	_, ok := l.customSensitiveHeaders[strings.ToLower(header)]
+	return ok
 }
 
 func (l *Logger) Logrus() *logrus.Logger {
@@ -80,6 +86,10 @@ func (l *Logger) HTTPHeadersRedacted(h http.Header) map[string]interface{} {
 				headers[keyLower] = locationURL.Redacted()
 			}
 		default:
+			if l.isCustomSensitiveHeader(keyLower) {
+				headers[keyLower] = l.maybeRedact(value)
+				continue
+			}
 			headers[keyLower] = h.Get(key)
 		}
 	}

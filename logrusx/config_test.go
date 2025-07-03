@@ -38,6 +38,10 @@ func TestConfigSchema(t *testing.T) {
 			"level":                 "trace",
 			"format":                "json_pretty",
 			"leak_sensitive_values": true,
+			"custom_sensitive_headers": []interface{}{
+				"custom_header_1",
+				"custom_header_2",
+			},
 		}
 		assert.NoError(t, schema.ValidateInterface(logConfig))
 
@@ -48,6 +52,8 @@ func TestConfigSchema(t *testing.T) {
 
 		assert.True(t, l.leakSensitive)
 		assert.Equal(t, logrus.TraceLevel, l.Logger.Level)
+		assert.Contains(t, l.customSensitiveHeaders, "custom_header_1")
+		assert.Contains(t, l.customSensitiveHeaders, "custom_header_2")
 		assert.IsType(t, &logrus.JSONFormatter{}, l.Logger.Formatter)
 	})
 
