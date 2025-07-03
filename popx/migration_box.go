@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/fs"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -200,7 +201,7 @@ func (fm *MigrationBox) findMigrations(
 	runner func([]byte) func(mf Migration, c *pop.Connection, tx *pop.Tx) error,
 	runnerNoTx func([]byte) func(mf Migration, c *pop.Connection) error,
 ) error {
-	return fs.WalkDir(fm.Dir, ".", func(p string, info fs.DirEntry, err error) error {
+	err := fs.WalkDir(fm.Dir, ".", func(p string, info fs.DirEntry, err error) error {
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -251,13 +252,16 @@ func (fm *MigrationBox) findMigrations(
 		}
 
 		fm.Migrations[mf.Direction] = append(fm.Migrations[mf.Direction], mf)
-		mod := sort.Interface(fm.Migrations[mf.Direction])
-		if mf.Direction == "down" {
-			mod = sort.Reverse(mod)
-		}
-		sort.Sort(mod)
 		return nil
 	})
+
+	// Sort descending.
+	slices.SortFunc(fm.Migrations["down"], func(a, b Migration) int { return -CompareMigration(a, b) })
+
+	// Sort ascending.
+	slices.SortFunc(fm.Migrations["up"], CompareMigration)
+
+	return err
 }
 
 // hasDownMigrationWithVersion checks if there is a migration with the given
