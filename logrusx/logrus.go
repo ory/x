@@ -22,17 +22,17 @@ import (
 
 type (
 	options struct {
-		l                      *logrus.Logger
-		level                  *logrus.Level
-		formatter              logrus.Formatter
-		format                 string
-		reportCaller           bool
-		exitFunc               func(int)
-		leakSensitive          bool
-		redactionText          string
-		customSensitiveHeaders []string
-		hooks                  []logrus.Hook
-		c                      configurator
+		l                         *logrus.Logger
+		level                     *logrus.Level
+		formatter                 logrus.Formatter
+		format                    string
+		reportCaller              bool
+		exitFunc                  func(int)
+		leakSensitive             bool
+		redactionText             string
+		additionalRedactedHeaders []string
+		hooks                     []logrus.Hook
+		c                         configurator
 	}
 	Option           func(*options)
 	nullConfigurator struct{}
@@ -182,9 +182,9 @@ func RedactionText(text string) Option {
 	}
 }
 
-func CustomSensitiveHeaders(headers []string) Option {
+func WithAdditionalRedactedHeaders(headers []string) Option {
 	return func(o *options) {
-		o.customSensitiveHeaders = headers
+		o.additionalRedactedHeaders = headers
 	}
 }
 
@@ -226,11 +226,11 @@ func New(name string, version string, opts ...Option) *Logger {
 		version:       version,
 		leakSensitive: o.leakSensitive || o.c.Bool("log.leak_sensitive_values"),
 		redactionText: cmp.Or(o.redactionText, `Value is sensitive and has been redacted. To see the value set config key "log.leak_sensitive_values = true" or environment variable "LOG_LEAK_SENSITIVE_VALUES=true".`),
-		customSensitiveHeaders: toHeaderMap(func() []string {
-			if len(o.customSensitiveHeaders) > 0 {
-				return o.customSensitiveHeaders
+		additionalRedactedHeaders: toHeaderMap(func() []string {
+			if len(o.additionalRedactedHeaders) > 0 {
+				return o.additionalRedactedHeaders
 			}
-			return o.c.Strings("log.custom_sensitive_headers")
+			return o.c.Strings("log.additional_redacted_headers")
 		}()),
 		Entry: newLogger(o.l, o).WithFields(logrus.Fields{
 			"audience": "application", "service_name": name, "service_version": version}),
@@ -244,6 +244,10 @@ func NewAudit(name string, version string, opts ...Option) *Logger {
 func (l *Logger) UseConfig(c configurator) {
 	l.leakSensitive = l.leakSensitive || c.Bool("log.leak_sensitive_values")
 	l.redactionText = cmp.Or(c.String("log.redaction_text"), l.redactionText)
+	newHeaders := toHeaderMap(c.Strings("log.additional_redacted_headers"))
+	for k := range newHeaders {
+		l.additionalRedactedHeaders[k] = struct{}{}
+	}
 	o := newOptions(append(l.opts, WithConfigurator(c)))
 	setLevel(l.Entry.Logger, o)
 	setFormatter(l.Entry.Logger, o)

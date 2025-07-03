@@ -209,7 +209,7 @@ func TestTextLogger(t *testing.T) {
 			},
 		},
 		{
-			l: New("logrusx-server", "v0.0.1", ForceFormat("text"), CustomSensitiveHeaders([]string{"x-custom-header"}), ForceLevel(logrus.DebugLevel)),
+			l: New("logrusx-server", "v0.0.1", ForceFormat("text"), WithAdditionalRedactedHeaders([]string{"x-custom-header"}), ForceLevel(logrus.DebugLevel)),
 			expect: []string{
 				"set-cookie:Value is sensitive and has been redacted. To see the value set config key \"log.leak_sensitive_values = true\" or environment variable \"LOG_LEAK_SENSITIVE_VALUES=true\".",
 				`cookie:Value is sensitive and has been redacted. To see the value set config key "log.leak_sensitive_values = true" or environment variable "LOG_LEAK_SENSITIVE_VALUES=true".`,
