@@ -9,10 +9,12 @@ import (
 	"net/http"
 	"net/http/httptrace"
 	"net/netip"
+	"slices"
 	"time"
 
 	"code.dny.dev/ssrf"
 	"github.com/gobwas/glob"
+	"github.com/ory/x/ipx"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
@@ -52,6 +54,7 @@ func init() {
 	d.Control = ssrf.New(
 		ssrf.WithAnyPort(),
 		ssrf.WithNetworks("tcp4", "tcp6"),
+		ssrf.WithAllowedV6Prefixes(ipx.PublicIPv4Nat64Prefixes()...),
 	).Safe
 	prohibitInternalAllowIPv6 = OTELTraceTransport(t)
 }
@@ -61,6 +64,7 @@ func init() {
 	d.Control = ssrf.New(
 		ssrf.WithAnyPort(),
 		ssrf.WithNetworks("tcp4"),
+		ssrf.WithAllowedV6Prefixes(ipx.PublicIPv4Nat64Prefixes()...),
 	).Safe
 	t.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
 		return d.DialContext(ctx, "tcp4", addr)
@@ -68,41 +72,53 @@ func init() {
 }
 
 func init() {
+	allowedV4Prefixes := []netip.Prefix{
+		netip.MustParsePrefix("10.0.0.0/8"),     // Private-Use (RFC 1918)
+		netip.MustParsePrefix("127.0.0.0/8"),    // Loopback (RFC 1122, Section 3.2.1.3))
+		netip.MustParsePrefix("169.254.0.0/16"), // Link Local (RFC 3927)
+		netip.MustParsePrefix("172.16.0.0/12"),  // Private-Use (RFC 1918)
+		netip.MustParsePrefix("192.168.0.0/16"), // Private-Use (RFC 1918)
+	}
+
 	t, d := newDefaultTransport()
 	d.Control = ssrf.New(
 		ssrf.WithAnyPort(),
 		ssrf.WithNetworks("tcp4", "tcp6"),
-		ssrf.WithAllowedV4Prefixes(
-			netip.MustParsePrefix("10.0.0.0/8"),     // Private-Use (RFC 1918)
-			netip.MustParsePrefix("127.0.0.0/8"),    // Loopback (RFC 1122, Section 3.2.1.3))
-			netip.MustParsePrefix("169.254.0.0/16"), // Link Local (RFC 3927)
-			netip.MustParsePrefix("172.16.0.0/12"),  // Private-Use (RFC 1918)
-			netip.MustParsePrefix("192.168.0.0/16"), // Private-Use (RFC 1918)
-		),
-		ssrf.WithAllowedV6Prefixes(
-			netip.MustParsePrefix("::1/128"),  // Loopback (RFC 4193)
-			netip.MustParsePrefix("fc00::/7"), // Unique Local (RFC 4193)
-		),
+		ssrf.WithAllowedV4Prefixes(allowedV4Prefixes...),
+		ssrf.WithAllowedV6Prefixes(slices.Concat(
+			ipx.PublicIPv4Nat64Prefixes(),
+			[]netip.Prefix{
+				netip.MustParsePrefix("::1/128"),  // Loopback (RFC 4193)
+				netip.MustParsePrefix("fc00::/7"), // Unique Local (RFC 4193)
+			},
+			ipx.MustConvertToNAT64Prefixes(allowedV4Prefixes),
+		)...),
 	).Safe
 	allowInternalAllowIPv6 = OTELTraceTransport(t)
 }
 
 func init() {
+	allowedV4Prefixes := []netip.Prefix{
+		netip.MustParsePrefix("10.0.0.0/8"),     // Private-Use (RFC 1918)
+		netip.MustParsePrefix("127.0.0.0/8"),    // Loopback (RFC 1122, Section 3.2.1.3))
+		netip.MustParsePrefix("169.254.0.0/16"), // Link Local (RFC 3927)
+		netip.MustParsePrefix("172.16.0.0/12"),  // Private-Use (RFC 1918)
+		netip.MustParsePrefix("192.168.0.0/16"), // Private-Use (RFC 1918)
+	}
+
 	t, d := newDefaultTransport()
 	d.Control = ssrf.New(
 		ssrf.WithAnyPort(),
 		ssrf.WithNetworks("tcp4"),
-		ssrf.WithAllowedV4Prefixes(
-			netip.MustParsePrefix("10.0.0.0/8"),     // Private-Use (RFC 1918)
-			netip.MustParsePrefix("127.0.0.0/8"),    // Loopback (RFC 1122, Section 3.2.1.3))
-			netip.MustParsePrefix("169.254.0.0/16"), // Link Local (RFC 3927)
-			netip.MustParsePrefix("172.16.0.0/12"),  // Private-Use (RFC 1918)
-			netip.MustParsePrefix("192.168.0.0/16"), // Private-Use (RFC 1918)
-		),
-		ssrf.WithAllowedV6Prefixes(
-			netip.MustParsePrefix("::1/128"),  // Loopback (RFC 4193)
-			netip.MustParsePrefix("fc00::/7"), // Unique Local (RFC 4193)
-		),
+		ssrf.WithAllowedV4Prefixes(allowedV4Prefixes...),
+		ssrf.WithAllowedV6Prefixes(slices.Concat(
+			ipx.PublicIPv4Nat64Prefixes(),
+			[]netip.Prefix{
+				netip.MustParsePrefix("::1/128"),  // Loopback (RFC 4193)
+				netip.MustParsePrefix("fc00::/7"), // Unique Local (RFC 4193)
+			},
+			ipx.MustConvertToNAT64Prefixes(allowedV4Prefixes),
+		)...),
 	).Safe
 	t.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
 		return d.DialContext(ctx, "tcp4", addr)
