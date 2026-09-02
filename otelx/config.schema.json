@@ -105,7 +105,7 @@
           "properties": {
             "server_url": {
               "type": "string",
-              "description": "The endpoint of the OTLP exporter (HTTP) where spans should be sent to.",
+              "description": "The endpoint of the OTLP exporter (HTTP) where spans should be sent to. Accepts host:port or an http(s) URL. A URL path is treated as a base path and /v1/traces is appended unless already present.",
               "anyOf": [
                 {
                   "title": "IPv6 Address and Port",
@@ -118,9 +118,14 @@
                 {
                   "title": "Hostname and Port",
                   "pattern": "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9]):([0-9]*)$"
+                },
+                {
+                  "title": "URL",
+                  "pattern": "^https?://.+$",
+                  "examples": ["https://otlp-gateway.example.com/otlp"]
                 }
               ],
-              "examples": ["localhost:4318"]
+              "examples": ["localhost:4318", "https://otlp-gateway.example.com/otlp"]
             },
             "insecure": {
               "type": "boolean",
