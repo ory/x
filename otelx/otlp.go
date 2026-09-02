@@ -5,6 +5,8 @@ package otelx
 
 import (
 	"context"
+	"net/url"
+	"strings"
 
 	"go.opentelemetry.io/contrib/propagators/b3"
 	jaegerPropagator "go.opentelemetry.io/contrib/propagators/jaeger"
@@ -18,22 +20,53 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+const otlpTracesPath = "/v1/traces"
+
+func otlpHTTPOptions(c *OTLPConfig) []otlptracehttp.Option {
+	opts := make([]otlptracehttp.Option, 0, 4)
+	insecure := c.Insecure
+
+	if u, err := url.Parse(c.ServerURL); err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != "" {
+		opts = append(opts, otlptracehttp.WithEndpoint(u.Host))
+		if p := otlpTracesURLPath(u.Path); p != "" {
+			opts = append(opts, otlptracehttp.WithURLPath(p))
+		}
+		insecure = u.Scheme == "http"
+	} else {
+		opts = append(opts, otlptracehttp.WithEndpoint(c.ServerURL))
+	}
+
+	if insecure {
+		opts = append(opts, otlptracehttp.WithInsecure())
+	}
+
+	if c.AuthorizationHeader != "" {
+		opts = append(opts, otlptracehttp.WithHeaders(map[string]string{"Authorization": c.AuthorizationHeader}))
+	}
+
+	return opts
+}
+
+// otlpTracesURLPath maps a URL path to the OTLP HTTP traces path.
+// Empty or "/" leaves the exporter default (/v1/traces). Other paths are treated
+// as a base prefix (OTEL_EXPORTER_OTLP_ENDPOINT semantics) unless they already
+// end with /v1/traces.
+func otlpTracesURLPath(p string) string {
+	p = strings.TrimSpace(p)
+	if p == "" || p == "/" {
+		return ""
+	}
+	p = strings.TrimRight(p, "/")
+	if strings.HasSuffix(p, otlpTracesPath) {
+		return p
+	}
+	return p + otlpTracesPath
+}
+
 func SetupOTLP(t *Tracer, tracerName string, c *Config) (trace.Tracer, error) {
 	ctx := context.Background()
 
-	clientOpts := []otlptracehttp.Option{
-		otlptracehttp.WithEndpoint(c.Providers.OTLP.ServerURL),
-	}
-
-	if c.Providers.OTLP.Insecure {
-		clientOpts = append(clientOpts, otlptracehttp.WithInsecure())
-	}
-
-	if c.Providers.OTLP.AuthorizationHeader != "" {
-		clientOpts = append(clientOpts,
-			otlptracehttp.WithHeaders(map[string]string{"Authorization": c.Providers.OTLP.AuthorizationHeader}),
-		)
-	}
+	clientOpts := otlpHTTPOptions(&c.Providers.OTLP)
 
 	exp, err := otlptrace.New(
 		ctx, otlptracehttp.NewClient(clientOpts...),
