@@ -6,8 +6,11 @@ package ipx
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"net/netip"
+	"os"
+	"strings"
 	"time"
 
 	"code.dny.dev/ssrf"
@@ -22,19 +25,54 @@ var (
 	AllowInternalDialFunc = ssrfDialFunc(
 		ssrf.WithAnyPort(),
 		ssrf.WithNetworks("tcp4", "tcp6"),
-		ssrf.WithAllowedV4Prefixes(
-			netip.MustParsePrefix("10.0.0.0/8"),     // Private-Use (RFC 1918)
-			netip.MustParsePrefix("127.0.0.0/8"),    // Loopback (RFC 1122, Section 3.2.1.3))
-			netip.MustParsePrefix("169.254.0.0/16"), // Link Local (RFC 3927)
-			netip.MustParsePrefix("172.16.0.0/12"),  // Private-Use (RFC 1918)
-			netip.MustParsePrefix("192.168.0.0/16"), // Private-Use (RFC 1918)
-		),
-		ssrf.WithAllowedV6Prefixes(
-			netip.MustParsePrefix("::1/128"),  // Loopback (RFC 4193)
-			netip.MustParsePrefix("fc00::/7"), // Unique Local (RFC 4193)
-		),
+		ssrf.WithAllowedV4Prefixes(allowedInternalV4Prefixes...),
+		ssrf.WithAllowedV6Prefixes(allowedInternalV6Prefixes...),
 	)
 )
+
+// AllowedInternalPrefixesEnv names the environment variable that replaces the
+// prefixes AllowInternalDialFunc may dial. It takes a comma-separated list of
+// IPv4 and IPv6 prefixes, e.g. "10.0.0.0/8,100.64.0.0/10,fd00::/8". If it is
+// unset or empty, the defaults below apply. An invalid prefix panics when the
+// package is initialized.
+const AllowedInternalPrefixesEnv = "ORY_SSRF_ALLOWED_INTERNAL_PREFIXES"
+
+var (
+	defaultAllowedInternalV4Prefixes = []netip.Prefix{
+		netip.MustParsePrefix("10.0.0.0/8"),     // Private-Use (RFC 1918)
+		netip.MustParsePrefix("127.0.0.0/8"),    // Loopback (RFC 1122, Section 3.2.1.3))
+		netip.MustParsePrefix("169.254.0.0/16"), // Link Local (RFC 3927)
+		netip.MustParsePrefix("172.16.0.0/12"),  // Private-Use (RFC 1918)
+		netip.MustParsePrefix("192.168.0.0/16"), // Private-Use (RFC 1918)
+	}
+	defaultAllowedInternalV6Prefixes = []netip.Prefix{
+		netip.MustParsePrefix("::1/128"),  // Loopback (RFC 4193)
+		netip.MustParsePrefix("fc00::/7"), // Unique Local (RFC 4193)
+	}
+
+	allowedInternalV4Prefixes, allowedInternalV6Prefixes = allowedInternalPrefixes(os.Getenv(AllowedInternalPrefixesEnv))
+)
+
+func allowedInternalPrefixes(env string) (v4, v6 []netip.Prefix) {
+	if strings.TrimSpace(env) == "" {
+		return defaultAllowedInternalV4Prefixes, defaultAllowedInternalV6Prefixes
+	}
+	for _, s := range strings.Split(env, ",") {
+		p, err := netip.ParsePrefix(strings.TrimSpace(s))
+		if err == nil && p.Addr().Is4In6() {
+			err = fmt.Errorf("%s is IPv4-mapped and never matches, use the IPv4 form", p)
+		}
+		if err != nil {
+			panic(fmt.Sprintf("%s: %v", AllowedInternalPrefixesEnv, err))
+		}
+		if p.Addr().Is4() {
+			v4 = append(v4, p.Masked())
+		} else {
+			v6 = append(v6, p.Masked())
+		}
+	}
+	return v4, v6
+}
 
 func ssrfDialFunc(opt ...ssrf.Option) func(ctx context.Context, network, address string) (net.Conn, error) {
 	dialer := net.Dialer{
